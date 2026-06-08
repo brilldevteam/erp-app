@@ -1,0 +1,13 @@
+{
+    "Note": "Примечание",
+    "Save Changes": "Сохранить изменения",
+    "Count": "Счет",
+    "Period": "Период",
+    "Permission denied": "Разрешение отказано",
+    "Saving...": "Спасать...",
+    "They will configure and set up the required cron job.": "Они настроит и настроит требуемую работу cron.",
+    "This setup is essential to activate the module.": "Эта настройка необходима для активации модуля.",
+    "Failed to save settings": "Не удалось сохранить настройки",
+    "Failed to update settings: ": "Не удалось обновить настройки:",
+    "Select frequency": "Выберите частоту"
+}

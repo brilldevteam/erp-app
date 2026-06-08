@@ -1,0 +1,25 @@
+{
+    "name": "workdo/contract-template",
+    "description": "Description for contract-template package",
+    "type": "library",
+    "license": "MIT",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Workdo\\ContractTemplate\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "WorkDo",
+            "email": "support@workdo.io"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Workdo\\ContractTemplate\\Providers\\ContractTemplateServiceProvider"
+            ]
+        }
+    }
+}

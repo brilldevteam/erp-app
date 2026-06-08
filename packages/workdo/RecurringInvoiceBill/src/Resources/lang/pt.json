@@ -1,0 +1,13 @@
+{
+    "Note": "Nota",
+    "Save Changes": "Salvar alterações",
+    "Count": "Contagem",
+    "Period": "Período",
+    "Permission denied": "Permissão negada",
+    "Saving...": "Salvar...",
+    "They will configure and set up the required cron job.": "Eles vão configurar e configurar o trabalho cron necessário.",
+    "This setup is essential to activate the module.": "Esta configuração é essencial para activar o módulo.",
+    "Failed to save settings": "Não conseguiu salvar as definições",
+    "Failed to update settings: ": "Não foi possível atualizar as configurações:",
+    "Select frequency": "Selecionar frequência"
+}

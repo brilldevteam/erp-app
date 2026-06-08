@@ -1,0 +1,13 @@
+{
+    "Note": "Bemærkning",
+    "Save Changes": "Gem ændringer",
+    "Count": "Antal",
+    "Period": "Periode",
+    "Permission denied": "Tilladelse nægtet",
+    "Saving...": "- Jeg redder...",
+    "They will configure and set up the required cron job.": "De vil konfigurere og indstille den nødvendige cron job.",
+    "This setup is essential to activate the module.": "Denne indstilling er afgørende for at aktivere modulen.",
+    "Failed to save settings": "Det lykkedes ikke at gemme indstillinger",
+    "Failed to update settings: ": "Det lykkedes ikke at opdatere indstillingerne:",
+    "Select frequency": "Vælg frekvens"
+}

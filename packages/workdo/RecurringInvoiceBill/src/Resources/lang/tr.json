@@ -1,0 +1,13 @@
+{
+    "Note": "Not:",
+    "Save Changes": "Değişiklikleri kaydet",
+    "Count": "Sayın",
+    "Period": "Dönem",
+    "Permission denied": "İzin verildi .",
+    "Saving...": "Kurtarmak...",
+    "They will configure and set up the required cron job.": "Gerekli cron işini yapılandıracaklar.",
+    "This setup is essential to activate the module.": "Bu ayar, modülü etkinleştirmek için gereklidir.",
+    "Failed to save settings": "Ayarları kaydetme başarısız oldu",
+    "Failed to update settings: ": "Ayarları güncelleme başarısız oldu:",
+    "Select frequency": "Sıklık seç"
+}

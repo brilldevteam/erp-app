@@ -1,0 +1,25 @@
+{
+    "name": "workdo/petty-cash-management",
+    "description": "Description for petty-cash-management package",
+    "type": "library",
+    "license": "MIT",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Workdo\\PettyCashManagement\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "WorkDo",
+            "email": "support@workdo.io"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Workdo\\PettyCashManagement\\Providers\\PettyCashManagementServiceProvider"
+            ]
+        }
+    }
+}

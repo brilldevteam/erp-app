@@ -1,0 +1,25 @@
+{
+    "name": "workdo/retainer",
+    "description": "Description for retainer package",
+    "type": "library",
+    "license": "MIT",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Workdo\\Retainer\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "WorkDo",
+            "email": "support@workdo.io"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Workdo\\Retainer\\Providers\\RetainerServiceProvider"
+            ]
+        }
+    }
+}

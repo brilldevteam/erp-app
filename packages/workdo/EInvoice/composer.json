@@ -1,0 +1,25 @@
+{
+    "name": "workdo/einvoice",
+    "description": "Description for einvoice package",
+    "type": "library",
+    "license": "MIT",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Workdo\\EInvoice\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "WorkDo",
+            "email": "support@workdo.io"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Workdo\\EInvoice\\Providers\\EInvoiceServiceProvider"
+            ]
+        }
+    }
+}

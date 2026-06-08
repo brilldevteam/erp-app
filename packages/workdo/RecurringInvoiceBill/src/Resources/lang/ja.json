@@ -1,0 +1,13 @@
+{
+    "Note": "付記",
+    "Save Changes": "変更を保存する",
+    "Count": "カウント",
+    "Period": "期間",
+    "Permission denied": "許可は拒否された",
+    "Saving...": "救うこと...",
+    "They will configure and set up the required cron job.": "必要なクロンジョブを設定します.",
+    "This setup is essential to activate the module.": "この設定はモジュールを起動するために不可欠です.",
+    "Failed to save settings": "設定を保存できない",
+    "Failed to update settings: ": "設定の更新に失敗しました.",
+    "Select frequency": "周波数を選択"
+}

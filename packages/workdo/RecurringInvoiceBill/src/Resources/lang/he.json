@@ -1,0 +1,13 @@
+{
+    "Note": "הערה",
+    "Save Changes": "שמור שינויים",
+    "Count": "ספור.",
+    "Period": "תקופה",
+    "Permission denied": "אישור נדחה",
+    "Saving...": "להציל...",
+    "They will configure and set up the required cron job.": "הם יצורו ויסדרו את עבודת הקרון הנדרשת.",
+    "This setup is essential to activate the module.": "ההגדרה הזו חיוני כדי להפעיל את המודול.",
+    "Failed to save settings": "לא הצליח לשמור הגדרות",
+    "Failed to update settings: ": "לא ניתן לעדכן את ההגדרות:",
+    "Select frequency": "בחר תדירות"
+}

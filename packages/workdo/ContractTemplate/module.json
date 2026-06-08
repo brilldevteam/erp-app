@@ -1,0 +1,13 @@
+{
+    "name": "ContractTemplate",
+    "alias": "Contract Template",
+    "description": "Depending on Contract",
+    "priority": 305,
+    "version": 5.0,
+    "monthly_price": 0,
+    "yearly_price": 0,
+    "parent_module": [
+        "Contract"
+    ],
+    "package_name": "contract-template"
+}

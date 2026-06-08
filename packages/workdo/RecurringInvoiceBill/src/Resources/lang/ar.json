@@ -1,0 +1,13 @@
+{
+    "Note": "ملاحظة",
+    "Save Changes": "احفظ التغييرات",
+    "Count": "العد",
+    "Period": "الفترة",
+    "Permission denied": "تم رفض الإذن",
+    "Saving...": "إنقاذ...",
+    "They will configure and set up the required cron job.": "سوف يقومون بتكوين و إعداد وظيفة كرون المطلوبة",
+    "This setup is essential to activate the module.": "هذا الإعداد ضروري لتفعيل الوحدة",
+    "Failed to save settings": "فشل في حفظ الإعدادات",
+    "Failed to update settings: ": "فشل تحديث الإعدادات:",
+    "Select frequency": "حدد التردد"
+}

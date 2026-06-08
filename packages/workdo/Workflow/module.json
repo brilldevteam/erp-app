@@ -1,0 +1,10 @@
+{
+    "name": "Workflow",
+    "alias": "Workflow Automation",
+    "description": "",
+    "priority": 540,
+    "version": 5.1,
+    "monthly_price": 0,
+    "yearly_price": 0,
+    "package_name": "workflow"
+}

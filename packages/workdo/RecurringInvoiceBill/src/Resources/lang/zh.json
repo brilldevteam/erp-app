@@ -1,0 +1,13 @@
+{
+    "Note": "标记",
+    "Save Changes": "保存更改",
+    "Count": "计数",
+    "Period": "时间",
+    "Permission denied": "拒绝许可",
+    "Saving...": "拯救一个...",
+    "They will configure and set up the required cron job.": "他们会配置和设置所需的cron工作.",
+    "This setup is essential to activate the module.": "这种设置是激活模块的必要条件.",
+    "Failed to save settings": "无法保存设置",
+    "Failed to update settings: ": "无法更新设置:",
+    "Select frequency": "选择频率"
+}

@@ -1,0 +1,25 @@
+{
+    "name": "workdo/recurring-invoice-bill",
+    "description": "Description for recurring-invoice-bill package",
+    "type": "library",
+    "license": "MIT",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Workdo\\RecurringInvoiceBill\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "WorkDo",
+            "email": "support@workdo.io"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Workdo\\RecurringInvoiceBill\\Providers\\RecurringInvoiceBillServiceProvider"
+            ]
+        }
+    }
+}

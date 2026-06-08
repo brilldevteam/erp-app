@@ -1,0 +1,204 @@
+import { useTranslation } from 'react-i18next';
+import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatDate, formatCurrency } from '@/utils/helpers';
+
+interface RetainerPaymentViewProps {
+    payment: {
+        id: number;
+        payment_number?: string;
+        payment_date: string;
+        payment_amount: number;
+        reference_number?: string;
+        status: string;
+        notes?: string;
+        created_at: string;
+        customer?: {
+            name: string;
+        };
+        bank_account?: {
+            account_name: string;
+            account_number: string;
+        };
+        retainer?: {
+            retainer_number: string;
+            total_amount: number;
+            paid_amount: number;
+            balance_amount: number;
+        };
+        allocations?: Array<{
+            id: number;
+            allocated_amount: number;
+            retainer?: {
+                retainer_number: string;
+                total_amount: number;
+                paid_amount: number;
+                balance_amount: number;
+                created_at: string;
+            };
+        }>;
+    };
+}
+
+export default function View({ payment }: RetainerPaymentViewProps) {
+    const { t } = useTranslation();
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'cleared':
+                return 'bg-green-100 text-green-800';
+            case 'pending':
+                return 'bg-yellow-100 text-yellow-800';
+            case 'cancelled':
+                return 'bg-red-100 text-red-800';
+            default:
+                return 'bg-gray-100 text-gray-800';
+        }
+    };
+
+    return (
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+                <DialogTitle>{t('Payment Details')} - {payment.payment_number || `#${payment.id}`}</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-6 mt-3">
+                {/* Payment Information */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">{t('Payment Information')}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span className="font-semibold">{t('Payment Number')}</span>
+                                <p className="mt-1 text-gray-500">{payment.payment_number || `#${payment.id}`}</p>
+                            </div>
+                            <div>
+                                <span className="font-semibold">{t('Payment Date')}</span>
+                                <p className="mt-1 text-gray-500">{formatDate(payment.payment_date)}</p>
+                            </div>
+                            <div>
+                                <span className="font-semibold">{t('Customer')}</span>
+                                <p className="mt-1 text-gray-500">{payment.customer?.name || '-'}</p>
+                            </div>
+                            <div>
+                                <span className="font-semibold">{t('Bank Account')}</span>
+                                <p className="mt-1 text-gray-500">
+                                    {payment.bank_account?.account_name || '-'}
+                                    {payment.bank_account?.account_number && ` (${payment.bank_account.account_number})`}
+                                </p>
+                            </div>
+                            <div>
+                                <span className="font-semibold">{t('Payment Amount')}</span>
+                                <p className="mt-1 text-lg font-bold text-green-600">{formatCurrency(payment.payment_amount)}</p>
+                            </div>
+                            <div>
+                                <span className="font-semibold">{t('Status')}</span>
+                                <div className="mt-1">
+                                    <span className={`px-2 py-1 rounded-full text-sm ${
+                                        payment.status === 'cleared' ? 'bg-green-100 text-green-800' :
+                                        payment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                        'bg-red-100 text-red-800'
+                                    }`}>
+                                        {t(payment.status.charAt(0).toUpperCase() + payment.status.slice(1))}
+                                    </span>
+                                </div>
+                            </div>
+                            <div>
+                                <span className="font-semibold">{t('Reference Number')}</span>
+                                <p className="mt-1 text-gray-500">{payment.reference_number || '-'}</p>
+                            </div>
+                            <div>
+                                <span className="font-semibold">{t('Created Date')}</span>
+                                <p className="mt-1 text-gray-500">{formatDate(payment.created_at)}</p>
+                            </div>
+                        </div>
+                        {payment.notes && (
+                            <div className="mt-4">
+                                <span className="text-gray-500">{t('Notes')}</span>
+                                <p className="mt-1 p-3 bg-gray-50 rounded text-sm">{payment.notes}</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Retainer Allocations */}
+                {payment.allocations && payment.allocations.length > 0 ? (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base">{t('Retainer Allocations')}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b">
+                                            <th className="text-left py-2">{t('Retainer Number')}</th>
+                                            <th className="text-left py-2">{t('Retainer Date')}</th>
+                                            <th className="text-right py-2">{t('Retainer Total')}</th>
+                                            <th className="text-right py-2">{t('Allocated Amount')}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {payment.allocations.map((allocation) => (
+                                            <tr key={allocation.id} className="border-b">
+                                                <td className="py-2 font-medium">{allocation.retainer?.retainer_number}</td>
+                                                <td className="py-2">{formatDate(allocation.retainer?.created_at)}</td>
+                                                <td className="py-2 text-right">{formatCurrency(allocation.retainer?.total_amount)}</td>
+                                                <td className="py-2 text-right font-semibold">{formatCurrency(allocation.allocated_amount)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr className="border-t-2 font-semibold">
+                                            <td colSpan={3} className="py-2 text-right">{t('Total Payment:')}</td>
+                                            <td className="py-2 text-right text-lg">{formatCurrency(payment.payment_amount)}</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    /* Single Retainer Information (Backward Compatibility) */
+                    payment.retainer && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base">{t('Retainer Information')}</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b">
+                                                <th className="text-left py-2">{t('Retainer Number')}</th>
+                                                <th className="text-right py-2">{t('Total Amount')}</th>
+                                                <th className="text-right py-2">{t('Paid Amount')}</th>
+                                                <th className="text-right py-2">{t('Balance Amount')}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr className="border-b">
+                                                <td className="py-2 font-medium">{payment.retainer.retainer_number}</td>
+                                                <td className="py-2 text-right">{formatCurrency(payment.retainer.total_amount)}</td>
+                                                <td className="py-2 text-right">{formatCurrency(payment.retainer.paid_amount)}</td>
+                                                <td className="py-2 text-right font-semibold">{formatCurrency(payment.retainer.balance_amount)}</td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr className="border-t-2 font-semibold">
+                                                <td colSpan={3} className="py-2 text-right">{t('Payment Amount:')}</td>
+                                                <td className="py-2 text-right text-lg">{formatCurrency(payment.payment_amount)}</td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )
+                )}
+            </div>
+        </DialogContent>
+    );
+}
