@@ -1,4 +1,4 @@
-import { Palette, Building, Settings as SettingsIcon, Search, HardDrive, Mail, Cookie, Trash2, DollarSign, CreditCard, FileText, Radio } from 'lucide-react';
+import { Palette, Settings as SettingsIcon, Search, HardDrive, Mail, Cookie, Trash2, DollarSign, CreditCard, Radio, KeyRound } from 'lucide-react';
 
 export interface SettingMenuItem {
   order: number;
@@ -10,6 +10,14 @@ export interface SettingMenuItem {
 }
 
 export const getSuperAdminSettings = (t: (key: string) => string): SettingMenuItem[] => [
+  {
+    order: 55,
+    title: t('Social Login Settings'),
+    href: '#social-login-settings',
+    icon: KeyRound,
+    permission: 'edit-social-login-settings',
+    component: 'social-login-settings'
+  },
   {
     order: 10,
     title: t('Brand Settings'),

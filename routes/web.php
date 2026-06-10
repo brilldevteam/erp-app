@@ -132,6 +132,7 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::post('settings/email', [SettingController::class, 'updateEmailSettings'])->name('settings.email.update');
     Route::post('settings/email/test', [SettingController::class, 'testEmail'])->name('settings.email.test');
     Route::post('settings/pusher', [SettingController::class, 'updatePusherSettings'])->name('settings.pusher.update');
+    Route::post('settings/social-login', [SettingController::class, 'updateSocialLoginSettings'])->name('settings.social-login.update');
     Route::post('settings/bank-transfer', [SettingController::class, 'updateBankTransferSettings'])->name('settings.bank-transfer.update');
     Route::post('settings/ai-agent', [SettingController::class, 'updateAIAgentSettings'])->name('settings.ai-agent.update');
     Route::get('settings/ai-agent/providers', [SettingController::class, 'getAIAgentProviders'])->name('settings.ai-agent.providers');

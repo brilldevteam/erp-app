@@ -11,14 +11,15 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Mail;
+use App\Services\SocialAuthSettingsService;
 
 class SettingController extends Controller
 {
-    public function index()
+    public function index(SocialAuthSettingsService $socialAuthSettings)
     {
         if(Auth::user()->can('manage-settings'))
         {
-            $globalSettings = getCompanyAllSetting();
+            $globalSettings = $socialAuthSettings->sanitize(getCompanyAllSetting());
             $emailProviders = config('email-providers');
 
             if(Auth::user()->hasRole('superadmin'))
@@ -36,7 +37,11 @@ class SettingController extends Controller
                 'globalSettings' => $globalSettings,
                 'emailProviders' => $emailProviders,
                 'notifications' => $notifications,
-                'cacheSize' => $this->getCacheSize()
+                'cacheSize' => $this->getCacheSize(),
+                'socialAuthSettings' => Auth::user()->hasRole('superadmin')
+                    && Auth::user()->can('edit-social-login-settings')
+                    ? $socialAuthSettings->adminPayload()
+                    : null,
             ]);
         }
         else
@@ -689,6 +694,32 @@ class SettingController extends Controller
         {
             return back()->with('error', __('Permission denied'));
         }
+    }
+
+    public function updateSocialLoginSettings(
+        Request $request,
+        SocialAuthSettingsService $socialAuthSettings
+    ) {
+        if (!Auth::user()->hasRole('superadmin') || !Auth::user()->can('edit-social-login-settings')) {
+            return back()->with('error', __('Permission denied'));
+        }
+
+        $validated = $request->validate([
+            'settings.social_login_enabled' => ['required', 'boolean'],
+            'settings.google_login_enabled' => ['required', 'boolean'],
+            'settings.google_client_id' => ['nullable', 'string', 'max:500'],
+            'settings.google_client_secret' => ['nullable', 'string', 'max:1000'],
+            'settings.clear_google_client_secret' => ['nullable', 'boolean'],
+            'settings.microsoft_login_enabled' => ['required', 'boolean'],
+            'settings.microsoft_client_id' => ['nullable', 'string', 'max:500'],
+            'settings.microsoft_client_secret' => ['nullable', 'string', 'max:1000'],
+            'settings.clear_microsoft_client_secret' => ['nullable', 'boolean'],
+            'settings.microsoft_tenant_id' => ['nullable', 'string', 'max:255', 'regex:/^[a-zA-Z0-9._-]+$/'],
+        ]);
+
+        $socialAuthSettings->update($validated['settings']);
+
+        return back()->with('success', __('Social login settings saved successfully.'));
     }
 
     public function updateAIAgentSettings(Request $request)

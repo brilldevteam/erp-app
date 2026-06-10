@@ -10,7 +10,7 @@ import { getSettingsComponent } from '@/utils/settings-components';
 
 export default function Settings() {
   const { t } = useTranslation();
-  const { auth, globalSettings = {}, emailProviders = {}, cacheSize = '0.00' } = usePage().props as any;
+  const { auth, globalSettings = {}, emailProviders = {}, cacheSize = '0.00', socialAuthSettings } = usePage().props as any;
   const [activeSection, setActiveSection] = useState('brand-settings');
 
   const userPermissions = auth?.user?.permissions || [];
@@ -101,6 +101,7 @@ export default function Settings() {
                         auth={auth}
                         emailProviders={emailProviders}
                         cacheSize={cacheSize}
+                        socialAuthSettings={socialAuthSettings}
                       />
                     </Suspense>
                   </section>

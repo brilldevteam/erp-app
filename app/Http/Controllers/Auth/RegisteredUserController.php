@@ -4,15 +4,13 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Models\EmailTemplate;
+use App\Services\CompanyRegistrationService;
 
 class RegisteredUserController extends Controller
 {
@@ -36,7 +34,7 @@ class RegisteredUserController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, CompanyRegistrationService $registration): RedirectResponse
     {
         // Check if registration is enabled
         $enableRegistration = admin_setting('enableRegistration');
@@ -45,43 +43,31 @@ class RegisteredUserController extends Controller
             return redirect()->route('login');
         }
 
-        $request->validate([
+        $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
+        ];
+
+        if (filled(admin_setting('termsConditionsUrl'))) {
+            $rules['terms_accepted'] = ['accepted'];
+        }
+
+        $request->validate($rules);
 
         try {
             $enableEmailVerification = admin_setting('enableEmailVerification');
 
             $adminUser = User::where('type', 'superadmin')->first();
-
-            $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-                'email_verified_at' => $enableEmailVerification === 'on' ? null : now(),
-                'type' => 'company',
-                'lang' => admin_setting('defaultLanguage') ?? 'en',
-                'created_by' => $adminUser ? $adminUser->id : null,
-            ]);
-
-            User::CompanySetting($user->id);
-            User::MakeRole($user->id);
-            $user->assignRole($user->type);
+            $user = $registration->create(
+                $request->name,
+                $request->email,
+                $request->password,
+                $enableEmailVerification !== 'on',
+                true
+            );
 
             Auth::login($user);
-
-             // Send welcome email
-            if(admin_setting('New User') == 'on') {
-                $emailData = [
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'password' => $request->password,
-                ];
-
-                EmailTemplate::sendEmailTemplate('New User', [$user->email], $emailData, $adminUser->id);
-            }
 
             if ($enableEmailVerification === 'on') {
                 // Apply dynamic mail configuration

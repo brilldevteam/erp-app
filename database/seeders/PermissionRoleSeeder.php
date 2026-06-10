@@ -118,6 +118,7 @@ class PermissionRoleSeeder extends Seeder
             ['name' => 'manage-email-notification-settings', 'module' => 'settings', 'label' => 'Manage Email Notification Settings'],
             ['name' => 'manage-pusher-settings', 'module' => 'settings', 'label' => 'Manage Pusher Settings'],
             ['name' => 'edit-pusher-settings', 'module' => 'settings', 'label' => 'Edit Pusher Settings'],
+            ['name' => 'edit-social-login-settings', 'module' => 'settings', 'label' => 'Edit Social Login Settings'],
             ['name' => 'manage-ai-agent-settings', 'module' => 'settings', 'label' => 'Manage AI Agent Settings'],
             ['name' => 'edit-ai-agent-settings', 'module' => 'settings', 'label' => 'Edit AI Agent Settings'],
 
@@ -282,7 +283,7 @@ class PermissionRoleSeeder extends Seeder
                     'manage-helpdesk-tickets', 'manage-any-helpdesk-tickets', 'view-helpdesk-tickets', 'create-helpdesk-tickets', 'edit-helpdesk-tickets','delete-helpdesk-tickets',
                     'manage-helpdesk-categories', 'create-helpdesk-categories', 'edit-helpdesk-categories', 'delete-helpdesk-categories',
                     'manage-helpdesk-replies', 'create-helpdesk-replies', 'delete-helpdesk-replies',
-                    'manage-settings', 'edit-settings', 'manage-brand-settings', 'edit-brand-settings', 'manage-system-settings', 'edit-system-settings', 'manage-currency-settings', 'edit-currency-settings', 'manage-cache-settings', 'clear-cache', 'manage-cookie-settings', 'edit-cookie-settings', 'manage-seo-settings', 'edit-seo-settings', 'manage-storage-settings', 'edit-storage-settings', 'manage-email-settings', 'edit-email-settings', 'test-email','manage-email-notification-settings','manage-pusher-settings', 'edit-pusher-settings','manage-notification-templates','edit-notification-templates','manage-bank-transfer-settings', 'edit-bank-transfer-settings',
+                    'manage-settings', 'edit-settings', 'manage-brand-settings', 'edit-brand-settings', 'manage-system-settings', 'edit-system-settings', 'manage-currency-settings', 'edit-currency-settings', 'manage-cache-settings', 'clear-cache', 'manage-cookie-settings', 'edit-cookie-settings', 'manage-seo-settings', 'edit-seo-settings', 'manage-storage-settings', 'edit-storage-settings', 'manage-email-settings', 'edit-email-settings', 'test-email','manage-email-notification-settings','manage-pusher-settings', 'edit-pusher-settings', 'edit-social-login-settings','manage-notification-templates','edit-notification-templates','manage-bank-transfer-settings', 'edit-bank-transfer-settings',
                     'manage-languages','create-languages', 'edit-languages', 'manage-media', 'manage-own-media', 'create-media', 'download-media', 'delete-media', 'manage-media-directories', 'manage-own-media-directories', 'manage-any-media-directories', 'create-media-directories', 'edit-media-directories', 'delete-media-directories',
                     'manage-add-on', 'manage-actions','manage-email-templates', 'edit-email-templates',
                     'manage-plans', 'manage-any-plans', 'manage-own-plans', 'view-plans', 'create-plans', 'edit-plans', 'delete-plans',
