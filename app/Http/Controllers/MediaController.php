@@ -13,60 +13,6 @@ use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 class MediaController extends Controller
 {
-    public function file(string $path)
-    {
-        $path = ltrim(str_replace('\\', '/', $path), '/');
-
-        if ($path === '' || str_contains($path, '..')) {
-            abort(404);
-        }
-
-        $localRoot = realpath(storage_path('app/public/media'));
-        $resolvedLocalPath = realpath(storage_path('app/public/media/' . $path));
-
-        if (
-            $localRoot !== false
-            && $resolvedLocalPath !== false
-            && str_starts_with($resolvedLocalPath, $localRoot . DIRECTORY_SEPARATOR)
-            && is_file($resolvedLocalPath)
-        ) {
-            return response()->file($resolvedLocalPath, [
-                'Cache-Control' => 'public, max-age=86400',
-            ]);
-        }
-
-        // Keep bundled legacy images available while deployments migrate to storage/app/public.
-        $legacyPath = public_path('storage/media/' . $path);
-        $legacyRoot = realpath(public_path('storage/media'));
-        $resolvedLegacyPath = realpath($legacyPath);
-
-        if (
-            $legacyRoot !== false
-            && $resolvedLegacyPath !== false
-            && str_starts_with($resolvedLegacyPath, $legacyRoot . DIRECTORY_SEPARATOR)
-            && is_file($resolvedLegacyPath)
-        ) {
-            return response()->file($resolvedLegacyPath, [
-                'Cache-Control' => 'public, max-age=86400',
-            ]);
-        }
-
-        DynamicStorageService::configureDynamicDisks();
-        $activeDisk = StorageConfigService::getActiveDisk();
-        $storagePath = 'media/' . $path;
-
-        if ($activeDisk !== 'public' && Storage::disk($activeDisk)->exists($storagePath)) {
-            return Storage::disk($activeDisk)->response(
-                $storagePath,
-                basename($path),
-                ['Cache-Control' => 'public, max-age=86400'],
-                'inline'
-            );
-        }
-
-        abort(404);
-    }
-
     public function page()
     {
         if(Auth::user()->can('manage-media')){
@@ -285,7 +231,7 @@ class MediaController extends Controller
                         // Thumbnail generation failed, but continue
                     }
 
-                    $originalUrl = getImageUrlPrefix() . '/' . $hashedName;
+                    $originalUrl = Storage::disk($activeDisk)->url('media/' . $hashedName);
                     $thumbUrl = $originalUrl; // Default to original
 
                     $uploadedMedia[] = [
