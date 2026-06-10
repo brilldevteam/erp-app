@@ -13,6 +13,38 @@ use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 class MediaController extends Controller
 {
+    public function file(string $path)
+    {
+        $path = ltrim(str_replace('\\', '/', $path), '/');
+
+        if ($path === '' || str_contains($path, '..')) {
+            abort(404);
+        }
+
+        $locations = [
+            public_path('storage/media'),
+            storage_path('app/public/media'),
+        ];
+
+        foreach ($locations as $location) {
+            $root = realpath($location);
+            $file = realpath($location . DIRECTORY_SEPARATOR . $path);
+
+            if (
+                $root !== false
+                && $file !== false
+                && str_starts_with($file, $root . DIRECTORY_SEPARATOR)
+                && is_file($file)
+            ) {
+                return response()->file($file, [
+                    'Cache-Control' => 'public, max-age=86400',
+                ]);
+            }
+        }
+
+        abort(404);
+    }
+
     public function page()
     {
         if(Auth::user()->can('manage-media')){
