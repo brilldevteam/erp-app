@@ -1,6 +1,6 @@
 import { FormEventHandler, useEffect } from "react";
 import AuthLayout from "@/layouts/auth-layout";
-import { Head, Link, useForm } from "@inertiajs/react";
+import { Head, Link, useForm, usePage } from "@inertiajs/react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useTranslation } from 'react-i18next';
 import { useFormFields } from '@/hooks/useFormFields';
 import { usePageButtons } from '@/hooks/usePageButtons';
+import SocialAuthButtons from '@/components/social-auth-buttons';
 
 export default function Login({
     status,
@@ -21,6 +22,7 @@ export default function Login({
     enableRegistration?: boolean;
 }) {
     const { t } = useTranslation();
+    const { flash } = usePage().props as any;
     const { data, setData, post, processing, errors, reset } = useForm({
         email: "",
         password: "",
@@ -52,6 +54,11 @@ export default function Login({
             {status && (
                 <div className="mb-4 text-center text-sm font-medium text-green-600">
                     {status}
+                </div>
+            )}
+            {flash?.error && (
+                <div className="mb-4 text-center text-sm font-medium text-destructive">
+                    {flash.error}
                 </div>
             )}
 
@@ -127,6 +134,8 @@ export default function Login({
                     >
                         {processing ? t('Logging in...') : t('Log in')}
                     </Button>
+
+                    <SocialAuthButtons intent="login" />
 
                     {loginButtons.length > 0 && (
                         <div className="space-y-2">

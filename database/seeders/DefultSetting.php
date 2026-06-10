@@ -47,6 +47,12 @@ class DefultSetting extends Seeder
                 'enableEmailVerification' => 'off',
                 'landingPageEnabled' => 'on',
                 'termsConditionsUrl' => '',
+                'social_login_enabled' => 'off',
+                'google_login_enabled' => 'off',
+                'google_client_id' => '',
+                'microsoft_login_enabled' => 'off',
+                'microsoft_client_id' => '',
+                'microsoft_tenant_id' => 'common',
 
                 // Currency Settings
                 'defaultCurrency' => 'USD',

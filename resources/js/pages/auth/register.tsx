@@ -9,10 +9,11 @@ import { FormEventHandler, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePageButtons } from '@/hooks/usePageButtons';
 import { useFormFields } from '@/hooks/useFormFields';
+import SocialAuthButtons from '@/components/social-auth-buttons';
 
 export default function Register() {
     const { t } = useTranslation();
-    const { adminAllSetting } = usePage().props as any;
+    const { adminAllSetting, flash } = usePage().props as any;
     const [agreedToTerms, setAgreedToTerms] = useState(false);
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
@@ -20,6 +21,7 @@ export default function Register() {
         password: '',
         password_confirmation: '',
         recaptcha_token: null,
+        terms_accepted: false,
     });
 
     const formFields = useFormFields('getReCaptchFields', data, setData, errors, 'create', t);
@@ -42,6 +44,11 @@ export default function Register() {
             description={t('Enter your details below to create your account')}
         >
             <Head title={t('Register')} />
+            {flash?.error && (
+                <div className="mb-4 text-center text-sm font-medium text-destructive">
+                    {flash.error}
+                </div>
+            )}
             <form onSubmit={submit} className="flex flex-col gap-6">
                 <div className="grid gap-6">
                     <div className="grid gap-2">
@@ -127,7 +134,11 @@ export default function Register() {
                             <Checkbox
                                 id="terms"
                                 checked={agreedToTerms}
-                                onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
+                                onCheckedChange={(checked) => {
+                                    const accepted = checked as boolean;
+                                    setAgreedToTerms(accepted);
+                                    setData('terms_accepted', accepted);
+                                }}
                                 tabIndex={5}
                             />
                             <label
@@ -144,6 +155,7 @@ export default function Register() {
                                     {t('Terms and Conditions')}
                                 </a>
                             </label>
+                            <InputError message={(errors as any).terms_accepted} />
                         </div>
                     )}
 
@@ -156,6 +168,12 @@ export default function Register() {
                     >
                         {processing ? t('Creating account...') : t('Create an account')}
                     </Button>
+
+                    <SocialAuthButtons
+                        intent="signup"
+                        termsRequired={!!adminAllSetting?.termsConditionsUrl}
+                        termsAccepted={agreedToTerms}
+                    />
 
                     {registerButtons.length > 0 && (
                         <div className="space-y-2">

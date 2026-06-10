@@ -7,6 +7,7 @@ use Inertia\Middleware;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\File;
 use App\Classes\Module;
+use App\Services\SocialAuthSettingsService;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -46,6 +47,8 @@ class HandleInertiaRequests extends Middleware
             $availableLanguages = array_values($languages);
         }
 
+        $socialAuthSettings = app(SocialAuthSettingsService::class);
+
         return [
             ...parent::share($request),
             'auth' => [
@@ -67,12 +70,15 @@ class HandleInertiaRequests extends Middleware
                 'error' => $request->session()->get('error'),
             ],
             'packages' => (new Module())->allModules(),
-            'adminAllSetting' =>   $request->user() ?  getAdminAllSetting() : getAdminAllSetting(true),
+            'adminAllSetting' => $request->user()
+                ? $socialAuthSettings->sanitize(getAdminAllSetting())
+                : $socialAuthSettings->sanitize(getAdminAllSetting(true)),
             'companyAllSetting' => $request->user() ? getCompanyAllSetting($request->user()->id) : [],
             'imageUrlPrefix' =>  getImageUrlPrefix(),
             'baseUrl' =>  url('/'),
             'currencies' => config('default_currency.currencies', []),
             'availableLanguages' => $availableLanguages,
+            'socialAuth' => $socialAuthSettings->publicStatus(),
         ];
     }
 
