@@ -36,9 +36,7 @@ use App\Http\Controllers\AIAgentChatController;
 use Inertia\Inertia;
 
 
-Route::get('/media-files/{path}', [MediaController::class, 'file'])
-    ->where('path', '.*')
-    ->name('media.file');
+Route::get('/media-file', [MediaController::class, 'file'])->name('media.file');
 
 Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     // Route::get('/dashboard', function () {

@@ -13,8 +13,9 @@ use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 class MediaController extends Controller
 {
-    public function file(string $path)
+    public function file(Request $request)
     {
+        $path = (string) $request->query('path', '');
         $path = ltrim(str_replace('\\', '/', $path), '/');
 
         if ($path === '' || str_contains($path, '..')) {
