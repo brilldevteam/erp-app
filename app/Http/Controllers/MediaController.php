@@ -13,6 +13,46 @@ use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 class MediaController extends Controller
 {
+    public function file(string $path)
+    {
+        $path = ltrim(str_replace('\\', '/', $path), '/');
+
+        if ($path === '' || str_contains($path, '..')) {
+            abort(404);
+        }
+
+        DynamicStorageService::configureDynamicDisks();
+        $activeDisk = StorageConfigService::getActiveDisk();
+        $storagePath = 'media/' . $path;
+
+        if (Storage::disk($activeDisk)->exists($storagePath)) {
+            return Storage::disk($activeDisk)->response(
+                $storagePath,
+                basename($path),
+                ['Cache-Control' => 'public, max-age=86400'],
+                'inline'
+            );
+        }
+
+        // Keep bundled legacy images available while deployments migrate to storage/app/public.
+        $legacyPath = public_path('storage/media/' . $path);
+        $legacyRoot = realpath(public_path('storage/media'));
+        $resolvedLegacyPath = realpath($legacyPath);
+
+        if (
+            $legacyRoot !== false
+            && $resolvedLegacyPath !== false
+            && str_starts_with($resolvedLegacyPath, $legacyRoot . DIRECTORY_SEPARATOR)
+            && is_file($resolvedLegacyPath)
+        ) {
+            return response()->file($resolvedLegacyPath, [
+                'Cache-Control' => 'public, max-age=86400',
+            ]);
+        }
+
+        abort(404);
+    }
+
     public function page()
     {
         if(Auth::user()->can('manage-media')){
@@ -231,7 +271,7 @@ class MediaController extends Controller
                         // Thumbnail generation failed, but continue
                     }
 
-                    $originalUrl = Storage::disk($activeDisk)->url('media/' . $hashedName);
+                    $originalUrl = getImageUrlPrefix() . '/' . $hashedName;
                     $thumbUrl = $originalUrl; // Default to original
 
                     $uploadedMedia[] = [

@@ -134,9 +134,9 @@ if (!function_exists('getImageUrlPrefix')) {
                 return $url ? rtrim($url, '/') . '/' . $bucket . '/media' : url('/storage/media/');
 
             case 'local':
-                return url('/storage/media/');
+                return url('/media-files');
             default:
-                return url('/storage/media/');
+                return url('/media-files');
         }
     }
 }
