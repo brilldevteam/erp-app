@@ -21,17 +21,18 @@ class MediaController extends Controller
             abort(404);
         }
 
-        DynamicStorageService::configureDynamicDisks();
-        $activeDisk = StorageConfigService::getActiveDisk();
-        $storagePath = 'media/' . $path;
+        $localRoot = realpath(storage_path('app/public/media'));
+        $resolvedLocalPath = realpath(storage_path('app/public/media/' . $path));
 
-        if (Storage::disk($activeDisk)->exists($storagePath)) {
-            return Storage::disk($activeDisk)->response(
-                $storagePath,
-                basename($path),
-                ['Cache-Control' => 'public, max-age=86400'],
-                'inline'
-            );
+        if (
+            $localRoot !== false
+            && $resolvedLocalPath !== false
+            && str_starts_with($resolvedLocalPath, $localRoot . DIRECTORY_SEPARATOR)
+            && is_file($resolvedLocalPath)
+        ) {
+            return response()->file($resolvedLocalPath, [
+                'Cache-Control' => 'public, max-age=86400',
+            ]);
         }
 
         // Keep bundled legacy images available while deployments migrate to storage/app/public.
@@ -48,6 +49,19 @@ class MediaController extends Controller
             return response()->file($resolvedLegacyPath, [
                 'Cache-Control' => 'public, max-age=86400',
             ]);
+        }
+
+        DynamicStorageService::configureDynamicDisks();
+        $activeDisk = StorageConfigService::getActiveDisk();
+        $storagePath = 'media/' . $path;
+
+        if ($activeDisk !== 'public' && Storage::disk($activeDisk)->exists($storagePath)) {
+            return Storage::disk($activeDisk)->response(
+                $storagePath,
+                basename($path),
+                ['Cache-Control' => 'public, max-age=86400'],
+                'inline'
+            );
         }
 
         abort(404);
