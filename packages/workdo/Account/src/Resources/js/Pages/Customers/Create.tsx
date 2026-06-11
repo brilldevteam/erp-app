@@ -12,16 +12,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CustomerFormData, User } from './types';
 import { useFormFields } from '@/hooks/useFormFields';
 interface CreateCustomerProps {
-    onSuccess: () => void;
+    onSuccess: (userId?: number) => void;
     users: User[];
     auth: {
         user: {
             permissions: string[];
         };
     };
+    returnToCurrentPage?: boolean;
 }
 
-export default function Create({ onSuccess, users = [], auth }: CreateCustomerProps) {
+export default function Create({ onSuccess, users = [], auth, returnToCurrentPage = false }: CreateCustomerProps) {
     const { t } = useTranslation();
     const { data, setData, post, processing, errors } = useForm<CustomerFormData>({
         user_id: undefined,
@@ -79,9 +80,9 @@ export default function Create({ onSuccess, users = [], auth }: CreateCustomerPr
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('account.customers.store'), {
+        post(route('account.customers.store', returnToCurrentPage ? { return_to: 'quotation' } : undefined), {
             onSuccess: () => {
-                onSuccess();
+                onSuccess(data.user_id);
             }
         });
     };
@@ -392,7 +393,7 @@ export default function Create({ onSuccess, users = [], auth }: CreateCustomerPr
                 )}
 
                 <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={onSuccess}>
+                    <Button type="button" variant="outline" onClick={() => onSuccess()}>
                         {t('Cancel')}
                     </Button>
                     <Button type="submit" disabled={processing}>

@@ -24,6 +24,7 @@ use Workdo\Quotation\Events\UpdateQuotation;
 use Workdo\Quotation\Events\DestroyQuotation;
 use Workdo\Quotation\Events\RejectSalesQuotation;
 use Workdo\Quotation\Events\SentSalesQuotation;
+use Workdo\Account\Models\Customer;
 
 class QuotationController extends Controller
 {
@@ -90,10 +91,16 @@ class QuotationController extends Controller
         if (Auth::user()->can('create-quotations')) {
             $customers  = User::where('type', 'client')->select('id', 'name', 'email')->where('created_by', creatorId())->get();
             $warehouses = Warehouse::where('is_active', true)->select('id', 'name', 'address')->where('created_by', creatorId())->get();
+            $customerUsers = User::where('type', 'client')
+                ->where('created_by', creatorId())
+                ->whereNotIn('id', Customer::whereNotNull('user_id')->pluck('user_id'))
+                ->select('id', 'name', 'email', 'mobile_no')
+                ->get();
 
             return Inertia::render('Quotation/Quotations/Create', [
                 'customers'  => $customers,
-                'warehouses' => $warehouses
+                'warehouses' => $warehouses,
+                'customerUsers' => $customerUsers,
             ]);
         } else {
             return back()->with('error', __('Permission denied'));

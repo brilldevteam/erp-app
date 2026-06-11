@@ -73,6 +73,10 @@ class CustomerController extends Controller
 
             CreateCustomer::dispatch($request, $customer);
 
+            if ($request->query('return_to') === 'quotation') {
+                return back()->with('success', __('The customer has been created successfully.'));
+            }
+
             return redirect()->route('account.customers.index')->with('success', __('The customer has been created successfully.'));
         }
         return redirect()->route('account.customers.index')->with('error', __('Permission denied'));

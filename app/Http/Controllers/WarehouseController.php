@@ -46,7 +46,10 @@ class WarehouseController extends Controller
     {
         if(Auth::user()->can('create-warehouses')){
             $validated = $request->validated();
-            $validated['is_active'] = $request->boolean('is_active', true);
+            $isQuotationContext = $request->query('return_to') === 'quotation';
+            $validated['is_active'] = $isQuotationContext
+                ? true
+                : $request->boolean('is_active', true);
 
             $warehouse = new Warehouse();
             $warehouse->name = $validated['name'];
@@ -62,6 +65,12 @@ class WarehouseController extends Controller
 
             // Dispatch event for packages to handle their fields
             CreateWarehouse::dispatch($request, $warehouse);
+
+            if ($isQuotationContext) {
+                return back()
+                    ->with('success', __('The warehouse has been created successfully.'))
+                    ->with('createdWarehouse', $warehouse->only(['id', 'name', 'address']));
+            }
 
             return redirect()->route('warehouses.index')->with('success', __('The warehouse has been created successfully.'));
         }
