@@ -109,7 +109,7 @@ class QuotationController extends Controller
             $quotation->quotation_date  = $request->invoice_date;
             $quotation->due_date        = $request->due_date;
             $quotation->customer_id     = $request->customer_id;
-            $quotation->warehouse_id    = $request->warehouse_id;
+            $quotation->warehouse_id    = $request->filled('warehouse_id') ? $request->warehouse_id : null;
             $quotation->payment_terms   = $request->payment_terms;
             $quotation->notes           = $request->notes;
             $quotation->subtotal        = $totals['subtotal'];
@@ -191,7 +191,7 @@ class QuotationController extends Controller
             $quotation->quotation_date  = $request->invoice_date;
             $quotation->due_date        = $request->due_date;
             $quotation->customer_id     = $request->customer_id;
-            $quotation->warehouse_id    = $request->warehouse_id;
+            $quotation->warehouse_id    = $request->filled('warehouse_id') ? $request->warehouse_id : null;
             $quotation->payment_terms   = $request->payment_terms;
             $quotation->notes           = $request->notes;
             $quotation->subtotal        = $totals['subtotal'];
@@ -428,7 +428,7 @@ class QuotationController extends Controller
               // Create sales invoice from quotation
             $invoice                  = new SalesInvoice();
             $invoice->customer_id     = $quotation->customer_id;
-            $invoice->warehouse_id    = $quotation->warehouse_id ?? 1;
+            $invoice->warehouse_id    = $quotation->warehouse_id;
             $invoice->invoice_date    = now();
             $invoice->due_date        = $quotation->due_date;
             $invoice->subtotal        = $quotation->subtotal;
@@ -497,33 +497,46 @@ class QuotationController extends Controller
     public function getWarehouseProducts(Request $request)
     {
         if (Auth::user()->can('create-quotations') || Auth::user()->can('edit-quotations')) {
-            $warehouseId = $request->warehouse_id;
+            $validated = $request->validate([
+                'warehouse_id' => ['nullable', 'integer', 'exists:warehouses,id'],
+            ]);
+            $warehouseId = $validated['warehouse_id'] ?? null;
 
-            if (!$warehouseId) {
-                return response()->json([]);
+            if ($warehouseId) {
+                $warehouseExists = Warehouse::where('id', $warehouseId)
+                    ->where('created_by', creatorId())
+                    ->exists();
+
+                if (!$warehouseExists) {
+                    return response()->json([], 404);
+                }
             }
 
-            $products = ProductServiceItem::select('id', 'name', 'sku', 'sale_price', 'tax_ids', 'unit', 'type')
+            $productsQuery = ProductServiceItem::select('id', 'name', 'sku', 'sale_price', 'tax_ids', 'unit', 'type')
                 ->where('is_active', true)
-                ->where('created_by', creatorId())
-                ->whereHas('warehouseStocks', function ($q) use ($warehouseId) {
+                ->where('created_by', creatorId());
+
+            if ($warehouseId) {
+                $productsQuery
+                    ->whereHas('warehouseStocks', function ($q) use ($warehouseId) {
                     $q->where('warehouse_id', $warehouseId)
                         ->where('quantity', '>', 0);
                 })
-                ->with(['warehouseStocks' => function ($q) use ($warehouseId) {
-                    $q->where('warehouse_id', $warehouseId);
-                }])
+                    ->with(['warehouseStocks' => function ($q) use ($warehouseId) {
+                        $q->where('warehouse_id', $warehouseId);
+                    }]);
+            }
+
+            $products = $productsQuery
                 ->get()
-                ->map(function ($product) {
-                    $stock = $product->warehouseStocks->first();
-                    return [
+                ->map(function ($product) use ($warehouseId) {
+                    $productData = [
                         'id'             => $product->id,
                         'name'           => $product->name,
                         'sku'            => $product->sku,
                         'sale_price'     => $product->sale_price,
                         'unit'           => $product->unit,
                         'type'           => $product->type,
-                        'stock_quantity' => $stock ? $stock->quantity : 0,
                         'taxes'          => $product->taxes->map(function ($tax) {
                             return [
                                 'id'       => $tax->id,
@@ -532,6 +545,13 @@ class QuotationController extends Controller
                             ];
                         })
                     ];
+
+                    if ($warehouseId) {
+                        $stock = $product->warehouseStocks->first();
+                        $productData['stock_quantity'] = $stock ? $stock->quantity : 0;
+                    }
+
+                    return $productData;
                 });
             return response()->json($products);
         } else {

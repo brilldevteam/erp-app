@@ -11,7 +11,7 @@ class PostSalesInvoiceListener
     {
         $salesInvoice = $event->salesInvoice;
         
-        if ($salesInvoice->type === 'product') {
+        if ($salesInvoice->type === 'product' && $salesInvoice->warehouse_id) {
             foreach ($salesInvoice->items()->get() as $item) {
                 $stock = WarehouseStock::where('warehouse_id', $salesInvoice->warehouse_id)
                     ->where('product_id', $item->product_id)

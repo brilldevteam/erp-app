@@ -398,12 +398,16 @@ export default function Create() {
                                     {data.type !== 'service' && (
                                         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                             <div>
-                                                <Label htmlFor="warehouse_id" required>{t('Warehouse')}</Label>
-                                                <Select value={data.warehouse_id} onValueChange={(value) => setData('warehouse_id', value)} required>
+                                                <Label htmlFor="warehouse_id">{t('Warehouse')}</Label>
+                                                <Select
+                                                    value={data.warehouse_id || 'none'}
+                                                    onValueChange={(value) => setData('warehouse_id', value === 'none' ? '' : value)}
+                                                >
                                                     <SelectTrigger>
                                                         <SelectValue placeholder={t('Select Warehouse')} />
                                                     </SelectTrigger>
                                                     <SelectContent>
+                                                        <SelectItem value="none">{t('No Warehouse')}</SelectItem>
                                                         {warehouses.map((warehouse) => (
                                                             <SelectItem key={warehouse.id} value={warehouse.id.toString()}>
                                                                 {warehouse.name}

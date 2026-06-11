@@ -17,7 +17,7 @@ class StoreQuotationRequest extends FormRequest
             'invoice_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:invoice_date',
             'customer_id' => 'required|exists:users,id',
-            'warehouse_id' => 'required|exists:warehouses,id',
+            'warehouse_id' => 'nullable|exists:warehouses,id',
             'payment_terms' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',

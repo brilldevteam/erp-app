@@ -135,7 +135,9 @@ class SalesInvoiceController extends Controller
             $invoice->invoice_date = $request->invoice_date;
             $invoice->due_date = $request->due_date;
             $invoice->customer_id = $request->customer_id;
-            $invoice->warehouse_id = $request->type === 'product' ? $request->warehouse_id : null;
+            $invoice->warehouse_id = $request->type === 'product' && $request->filled('warehouse_id')
+                ? $request->warehouse_id
+                : null;
             $invoice->type = $request->type ?? 'product';
             $invoice->payment_terms = $request->payment_terms;
             $invoice->notes = $request->notes;
@@ -241,7 +243,9 @@ class SalesInvoiceController extends Controller
             $salesInvoice->invoice_date = $request->invoice_date;
             $salesInvoice->due_date = $request->due_date;
             $salesInvoice->customer_id = $request->customer_id;
-            $salesInvoice->warehouse_id = $salesInvoice->type === 'product' ? $request->warehouse_id : null;
+            $salesInvoice->warehouse_id = $salesInvoice->type === 'product' && $request->filled('warehouse_id')
+                ? $request->warehouse_id
+                : null;
             $salesInvoice->payment_terms = $request->payment_terms;
             $salesInvoice->notes = $request->notes;
             $salesInvoice->subtotal = $totals['subtotal'];
@@ -359,32 +363,36 @@ class SalesInvoiceController extends Controller
     public function getWarehouseProducts(Request $request)
     {
         if(Auth::user()->can('create-sales-invoices') || Auth::user()->can('edit-sales-invoices')){
-            $warehouseId = $request->warehouse_id;
+            $validated = $request->validate([
+                'warehouse_id' => ['nullable', 'integer', 'exists:warehouses,id'],
+            ]);
+            $warehouseId = $validated['warehouse_id'] ?? null;
 
-            if (!$warehouseId) {
-                return response()->json([]);
-            }
-            $products = ProductServiceItem::select('id', 'name', 'sku', 'sale_price', 'tax_ids', 'unit', 'type')
+            $productsQuery = ProductServiceItem::select('id', 'name', 'sku', 'sale_price', 'tax_ids', 'unit', 'type')
                 ->where('is_active', true)
-                ->where('created_by', creatorId())
-                ->whereHas('warehouseStocks', function($q) use ($warehouseId) {
+                ->where('created_by', creatorId());
+
+            if ($warehouseId) {
+                $productsQuery
+                    ->whereHas('warehouseStocks', function($q) use ($warehouseId) {
                     $q->where('warehouse_id', $warehouseId)
                       ->where('quantity', '>', 0);
                 })
-                ->with(['warehouseStocks' => function($q) use ($warehouseId) {
-                    $q->where('warehouse_id', $warehouseId);
-                }])
+                    ->with(['warehouseStocks' => function($q) use ($warehouseId) {
+                        $q->where('warehouse_id', $warehouseId);
+                    }]);
+            }
+
+            $products = $productsQuery
                 ->get()
-                ->map(function ($product) {
-                    $stock = $product->warehouseStocks->first();
-                    return [
+                ->map(function ($product) use ($warehouseId) {
+                    $productData = [
                         'id' => $product->id,
                         'name' => $product->name,
                         'sku' => $product->sku,
                         'sale_price' => $product->sale_price,
                         'unit' => $product->unit,
                         'type' => $product->type,
-                        'stock_quantity' => $stock ? $stock->quantity : 0,
                         'taxes' => $product->taxes->map(function ($tax) {
                             return [
                                 'id' => $tax->id,
@@ -393,6 +401,13 @@ class SalesInvoiceController extends Controller
                             ];
                         })
                     ];
+
+                    if ($warehouseId) {
+                        $stock = $product->warehouseStocks->first();
+                        $productData['stock_quantity'] = $stock ? $stock->quantity : 0;
+                    }
+
+                    return $productData;
                 });
             return response()->json($products);
         }

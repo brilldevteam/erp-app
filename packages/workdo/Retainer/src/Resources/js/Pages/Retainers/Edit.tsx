@@ -56,24 +56,19 @@ export default function Edit() {
     });
 
     useEffect(() => {
-        if (data.warehouse_id) {
-            handleWarehouseChange(data.warehouse_id);
-        }
+        handleWarehouseChange(data.warehouse_id || 'none');
     }, []);
 
-    const handleWarehouseChange = async (warehouseId: string) => {
+    const handleWarehouseChange = async (value: string) => {
+        const warehouseId = value === 'none' ? '' : value;
         setData('warehouse_id', warehouseId);
-        
-        if (warehouseId) {
-            try {
-                const response = await fetch(route('retainers.warehouse.products') + `?warehouse_id=${warehouseId}`);
-                const warehouseProducts = await response.json();
-                setAvailableProducts(warehouseProducts);
-            } catch (error) {
-                console.error('Failed to fetch warehouse products:', error);
-                setAvailableProducts([]);
-            }
-        } else {
+
+        try {
+            const query = warehouseId ? `?warehouse_id=${warehouseId}` : '';
+            const response = await fetch(route('retainers.warehouse.products') + query);
+            setAvailableProducts(await response.json());
+        } catch (error) {
+            console.error('Failed to fetch retainer products:', error);
             setAvailableProducts([]);
         }
     };
@@ -152,14 +147,15 @@ export default function Edit() {
                                 </div>
 
                                 <div>
-                                    <Label htmlFor="warehouse_id" required>
+                                    <Label htmlFor="warehouse_id">
                                         {t('Warehouse')}
                                     </Label>
-                                    <Select value={data.warehouse_id} onValueChange={handleWarehouseChange}>
+                                    <Select value={data.warehouse_id || 'none'} onValueChange={handleWarehouseChange}>
                                         <SelectTrigger>
                                             <SelectValue placeholder={t('Select Warehouse')} />
                                         </SelectTrigger>
                                         <SelectContent>
+                                            <SelectItem value="none">{t('No Warehouse')}</SelectItem>
                                             {warehouses.map((warehouse) => (
                                                 <SelectItem key={warehouse.id} value={warehouse.id.toString()}>
                                                     {warehouse.name} - {warehouse.address}

@@ -28,6 +28,7 @@ export default function Create() {
     const { t } = useTranslation();
     const { customers, warehouses } = usePage<CreateProps>().props;
     const [availableProducts, setAvailableProducts] = useState([]);
+    const noWarehouseValue = 'none';
 
     useFlashMessages();
     const { data, setData, post, processing, errors } = useForm({
@@ -49,32 +50,44 @@ export default function Create() {
         }] as QuotationItem[]
     });
 
-    const handleWarehouseChange = async (warehouseId: string) => {
-        setData('warehouse_id', warehouseId);
+    const emptyItem = (): QuotationItem => ({
+        product_id: 0,
+        quantity: 1,
+        unit_price: 0,
+        discount_percentage: 0,
+        discount_amount: 0,
+        tax_percentage: 0,
+        tax_amount: 0,
+        total_amount: 0
+    });
 
-        if (warehouseId) {
-            try {
-                const response = await fetch(route('quotations.warehouse.products') + `?warehouse_id=${warehouseId}`);
-                const warehouseProducts = await response.json();
-                setAvailableProducts(warehouseProducts);
-            } catch (error) {
-                console.error('Failed to fetch warehouse products:', error);
-                setAvailableProducts([]);
+    const loadProducts = async (warehouseId: string) => {
+        const query = warehouseId ? `?warehouse_id=${warehouseId}` : '';
+
+        try {
+            const response = await fetch(route('quotations.warehouse.products') + query);
+            if (!response.ok) {
+                throw new Error(`Product request failed with status ${response.status}`);
             }
-        } else {
+            setAvailableProducts(await response.json());
+        } catch (error) {
+            console.error('Failed to fetch quotation products:', error);
             setAvailableProducts([]);
         }
+    };
 
-        setData('items', [{
-            product_id: 0,
-            quantity: 1,
-            unit_price: 0,
-            discount_percentage: 0,
-            discount_amount: 0,
-            tax_percentage: 0,
-            tax_amount: 0,
-            total_amount: 0
-        }]);
+    useEffect(() => {
+        loadProducts('');
+    }, []);
+
+    const handleWarehouseChange = (value: string) => {
+        const warehouseId = value === noWarehouseValue ? '' : value;
+        setData(data => ({
+            ...data,
+            warehouse_id: warehouseId,
+            items: [emptyItem()]
+        }));
+        loadProducts(warehouseId);
     };
 
 
@@ -153,14 +166,17 @@ export default function Create() {
                                 </div>
 
                                 <div>
-                                    <Label htmlFor="warehouse_id" required>
+                                    <Label htmlFor="warehouse_id">
                                         {t('Warehouse')}
                                     </Label>
-                                    <Select value={data.warehouse_id} onValueChange={handleWarehouseChange}>
+                                    <Select value={data.warehouse_id || noWarehouseValue} onValueChange={handleWarehouseChange}>
                                         <SelectTrigger>
                                             <SelectValue placeholder={t('Select Warehouse')} />
                                         </SelectTrigger>
                                         <SelectContent>
+                                            <SelectItem value={noWarehouseValue}>
+                                                {t('No Warehouse')}
+                                            </SelectItem>
                                             {warehouses.map((warehouse) => (
                                                 <SelectItem key={warehouse.id} value={warehouse.id.toString()}>
                                                     {warehouse.name} - {warehouse.address}

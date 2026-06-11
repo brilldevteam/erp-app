@@ -29,6 +29,7 @@ export default function Edit() {
     const { t } = useTranslation();
     const { quotation, customers, warehouses } = usePage<EditProps>().props;
     const [availableProducts, setAvailableProducts] = useState([]);
+    const noWarehouseValue = 'none';
 
     useFlashMessages();
     const { data, setData, put, processing, errors } = useForm({
@@ -55,27 +56,45 @@ export default function Edit() {
         }) as QuotationItem[]
     });
 
-    useEffect(() => {
-        if (data.warehouse_id) {
-            handleWarehouseChange(data.warehouse_id);
-        }
-    }, []);
+    const emptyItem = (): QuotationItem => ({
+        product_id: 0,
+        quantity: 1,
+        unit_price: 0,
+        discount_percentage: 0,
+        discount_amount: 0,
+        tax_percentage: 0,
+        tax_amount: 0,
+        total_amount: 0,
+        taxes: []
+    });
 
-    const handleWarehouseChange = async (warehouseId: string) => {
-        setData('warehouse_id', warehouseId);
-        
-        if (warehouseId) {
-            try {
-                const response = await fetch(route('quotations.warehouse.products') + `?warehouse_id=${warehouseId}`);
-                const warehouseProducts = await response.json();
-                setAvailableProducts(warehouseProducts);
-            } catch (error) {
-                console.error('Failed to fetch warehouse products:', error);
-                setAvailableProducts([]);
+    const loadProducts = async (warehouseId: string) => {
+        const query = warehouseId ? `?warehouse_id=${warehouseId}` : '';
+
+        try {
+            const response = await fetch(route('quotations.warehouse.products') + query);
+            if (!response.ok) {
+                throw new Error(`Product request failed with status ${response.status}`);
             }
-        } else {
+            setAvailableProducts(await response.json());
+        } catch (error) {
+            console.error('Failed to fetch quotation products:', error);
             setAvailableProducts([]);
         }
+    };
+
+    useEffect(() => {
+        loadProducts(data.warehouse_id);
+    }, []);
+
+    const handleWarehouseChange = (value: string) => {
+        const warehouseId = value === noWarehouseValue ? '' : value;
+        setData(data => ({
+            ...data,
+            warehouse_id: warehouseId,
+            items: [emptyItem()]
+        }));
+        loadProducts(warehouseId);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -152,14 +171,17 @@ export default function Edit() {
                                 </div>
 
                                 <div>
-                                    <Label htmlFor="warehouse_id" required>
+                                    <Label htmlFor="warehouse_id">
                                         {t('Warehouse')}
                                     </Label>
-                                    <Select value={data.warehouse_id} onValueChange={handleWarehouseChange}>
+                                    <Select value={data.warehouse_id || noWarehouseValue} onValueChange={handleWarehouseChange}>
                                         <SelectTrigger>
                                             <SelectValue placeholder={t('Select Warehouse')} />
                                         </SelectTrigger>
                                         <SelectContent>
+                                            <SelectItem value={noWarehouseValue}>
+                                                {t('No Warehouse')}
+                                            </SelectItem>
                                             {warehouses.map((warehouse) => (
                                                 <SelectItem key={warehouse.id} value={warehouse.id.toString()}>
                                                     {warehouse.name} - {warehouse.address}

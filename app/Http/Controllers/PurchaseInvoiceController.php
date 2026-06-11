@@ -158,7 +158,7 @@ class PurchaseInvoiceController extends Controller
             $invoice->invoice_date = $request->invoice_date;
             $invoice->due_date = $request->due_date;
             $invoice->vendor_id = $request->vendor_id;
-            $invoice->warehouse_id = $request->warehouse_id;
+            $invoice->warehouse_id = $request->filled('warehouse_id') ? $request->warehouse_id : null;
             $invoice->payment_terms = $request->payment_terms;
             $invoice->notes = $request->notes;
             $invoice->subtotal = $totals['subtotal'];
@@ -284,7 +284,7 @@ class PurchaseInvoiceController extends Controller
             $purchaseInvoice->invoice_date = $request->invoice_date;
             $purchaseInvoice->due_date = $request->due_date;
             $purchaseInvoice->vendor_id = $request->vendor_id;
-            $purchaseInvoice->warehouse_id = $request->warehouse_id;
+            $purchaseInvoice->warehouse_id = $request->filled('warehouse_id') ? $request->warehouse_id : null;
             $purchaseInvoice->payment_terms = $request->payment_terms;
             $purchaseInvoice->notes = $request->notes;
             $purchaseInvoice->subtotal = $totals['subtotal'];
