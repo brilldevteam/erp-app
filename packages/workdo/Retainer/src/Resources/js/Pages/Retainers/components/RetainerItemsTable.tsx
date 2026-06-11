@@ -144,7 +144,8 @@ export default function RetainerItemsTable({ items, onChange, errors, products =
                                 <td className="px-4 py-4">
                                     {(() => {
                                         const product = products.find(p => p.id === item.product_id);
-                                        const maxQty = product?.stock_quantity || 999999;
+                                        const hasStockLimit = product?.stock_quantity !== undefined;
+                                        const maxQty = hasStockLimit ? product.stock_quantity : undefined;
                                         return (
                                             <div>
                                                 <Input
@@ -157,9 +158,9 @@ export default function RetainerItemsTable({ items, onChange, errors, products =
                                                     step="1"
                                                     required
                                                 />
-                                                {product && (
+                                                {product && hasStockLimit && (
                                                     <div className="text-xs text-muted-foreground mt-1">
-                                                        {t('Stock')}: {product.stock_quantity || 0}
+                                                        {t('Stock')}: {product.stock_quantity}
                                                     </div>
                                                 )}
                                             </div>

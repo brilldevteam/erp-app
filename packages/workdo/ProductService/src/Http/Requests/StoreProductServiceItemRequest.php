@@ -27,7 +27,7 @@ class StoreProductServiceItemRequest extends FormRequest
             'image' => 'nullable|string',
             'images' => 'nullable|array',
             'images.*' => 'string',
-            'warehouse_id' => 'nullable|exists:warehouses,id|required_unless:type,service',
+            'warehouse_id' => 'nullable|exists:warehouses,id',
             'type' => 'nullable|string|max:255',
         ];
     }

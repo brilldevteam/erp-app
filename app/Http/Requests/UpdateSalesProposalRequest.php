@@ -17,7 +17,7 @@ class UpdateSalesProposalRequest extends FormRequest
             'invoice_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:invoice_date',
             'customer_id' => 'required|integer|exists:users,id',
-            'warehouse_id' => 'required|integer|exists:warehouses,id',
+            'warehouse_id' => 'nullable|integer|exists:warehouses,id',
             'payment_terms' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',

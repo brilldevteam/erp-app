@@ -10,6 +10,10 @@ class PostPurchaseInvoiceListener
     public function handle(PostPurchaseInvoice $event)
     {
         $purchaseInvoice = $event->purchaseInvoice;
+        if (!$purchaseInvoice->warehouse_id) {
+            return;
+        }
+
         foreach ($purchaseInvoice->items()->get() as $item) {
             $stock = WarehouseStock::where('warehouse_id', $purchaseInvoice->warehouse_id)
                 ->where('product_id', $item->product_id)

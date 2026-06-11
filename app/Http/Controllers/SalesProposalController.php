@@ -130,7 +130,7 @@ class SalesProposalController extends Controller
             $proposal->proposal_date = $request->invoice_date;
             $proposal->due_date = $request->due_date;
             $proposal->customer_id = $request->customer_id;
-            $proposal->warehouse_id = $request->warehouse_id;
+            $proposal->warehouse_id = $request->filled('warehouse_id') ? $request->warehouse_id : null;
             $proposal->payment_terms = $request->payment_terms;
             $proposal->notes = $request->notes;
             $proposal->subtotal = $totals['subtotal'];
@@ -211,7 +211,7 @@ class SalesProposalController extends Controller
             $salesProposal->proposal_date = $request->invoice_date;
             $salesProposal->due_date = $request->due_date;
             $salesProposal->customer_id = $request->customer_id;
-            $salesProposal->warehouse_id = $request->warehouse_id;
+            $salesProposal->warehouse_id = $request->filled('warehouse_id') ? $request->warehouse_id : null;
             $salesProposal->payment_terms = $request->payment_terms;
             $salesProposal->notes = $request->notes;
             $salesProposal->subtotal = $totals['subtotal'];
@@ -265,7 +265,7 @@ class SalesProposalController extends Controller
             try {
                 $invoice = new SalesInvoice();
                 $invoice->customer_id = $salesProposal->customer_id;
-                $invoice->warehouse_id = $salesProposal->warehouse_id ?? 1;
+                $invoice->warehouse_id = $salesProposal->warehouse_id;
                 $invoice->invoice_date = now();
                 $invoice->due_date = $salesProposal->due_date;
                 $invoice->subtotal = $salesProposal->subtotal;
@@ -372,32 +372,36 @@ class SalesProposalController extends Controller
     public function getWarehouseProducts(Request $request)
     {
         if(Auth::user()->can('create-sales-proposals') || Auth::user()->can('edit-sales-proposals')){
-            $warehouseId = $request->warehouse_id;
+            $validated = $request->validate([
+                'warehouse_id' => ['nullable', 'integer', 'exists:warehouses,id'],
+            ]);
+            $warehouseId = $validated['warehouse_id'] ?? null;
 
-            if (!$warehouseId) {
-                return response()->json([]);
-            }
-            $products = ProductServiceItem::select('id', 'name', 'sku', 'sale_price', 'tax_ids', 'unit', 'type')
+            $productsQuery = ProductServiceItem::select('id', 'name', 'sku', 'sale_price', 'tax_ids', 'unit', 'type')
                 ->where('is_active', true)
-                ->where('created_by', creatorId())
-                ->whereHas('warehouseStocks', function($q) use ($warehouseId) {
+                ->where('created_by', creatorId());
+
+            if ($warehouseId) {
+                $productsQuery
+                    ->whereHas('warehouseStocks', function($q) use ($warehouseId) {
                     $q->where('warehouse_id', $warehouseId)
                       ->where('quantity', '>', 0);
                 })
-                ->with(['warehouseStocks' => function($q) use ($warehouseId) {
-                    $q->where('warehouse_id', $warehouseId);
-                }])
+                    ->with(['warehouseStocks' => function($q) use ($warehouseId) {
+                        $q->where('warehouse_id', $warehouseId);
+                    }]);
+            }
+
+            $products = $productsQuery
                 ->get()
-                ->map(function ($product) {
-                    $stock = $product->warehouseStocks->first();
-                    return [
+                ->map(function ($product) use ($warehouseId) {
+                    $productData = [
                         'id' => $product->id,
                         'name' => $product->name,
                         'sku' => $product->sku,
                         'sale_price' => $product->sale_price,
                         'unit' => $product->unit,
                         'type' => $product->type,
-                        'stock_quantity' => $stock ? $stock->quantity : 0,
                         'taxes' => $product->taxes->map(function ($tax) {
                             return [
                                 'id' => $tax->id,
@@ -406,6 +410,13 @@ class SalesProposalController extends Controller
                             ];
                         })
                     ];
+
+                    if ($warehouseId) {
+                        $stock = $product->warehouseStocks->first();
+                        $productData['stock_quantity'] = $stock ? $stock->quantity : 0;
+                    }
+
+                    return $productData;
                 });
             return response()->json($products);
         }
