@@ -68,6 +68,7 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
+                'createdWarehouse' => $request->session()->get('createdWarehouse'),
             ],
             'packages' => (new Module())->allModules(),
             'adminAllSetting' => $request->user()

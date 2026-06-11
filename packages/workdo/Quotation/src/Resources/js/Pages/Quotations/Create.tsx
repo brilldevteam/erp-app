@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Head, useForm, usePage, router } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { QuotationItem } from './types';
@@ -14,21 +14,34 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { InputError } from '@/components/ui/input-error';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog } from '@/components/ui/dialog';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Separator } from '@/components/ui/separator';
 import { CalendarDays, Package } from 'lucide-react';
+import CreateCustomer from '../../../../../../Account/src/Resources/js/Pages/Customers/Create';
+import CreateWarehouse from '@/pages/warehouses/create';
 
 interface CreateProps {
     customers: Array<{id: number; name: string; email: string}>;
+    customerUsers: Array<{id: number; name: string; email: string; mobile_no?: string}>;
     warehouses: Array<{id: number; name: string; address: string}>;
+    auth: {
+        user: {
+            permissions?: string[];
+        };
+    };
     [key: string]: any;
 }
 
 export default function Create() {
     const { t } = useTranslation();
-    const { customers, warehouses } = usePage<CreateProps>().props;
+    const { customers, customerUsers, warehouses, auth } = usePage<CreateProps>().props;
     const [availableProducts, setAvailableProducts] = useState([]);
+    const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+    const [isWarehouseModalOpen, setIsWarehouseModalOpen] = useState(false);
     const noWarehouseValue = 'none';
+    const addCustomerValue = 'add-new-customer';
+    const addWarehouseValue = 'add-new-warehouse';
 
     useFlashMessages();
     const { data, setData, post, processing, errors } = useForm({
@@ -81,6 +94,11 @@ export default function Create() {
     }, []);
 
     const handleWarehouseChange = (value: string) => {
+        if (value === addWarehouseValue) {
+            setIsWarehouseModalOpen(true);
+            return;
+        }
+
         const warehouseId = value === noWarehouseValue ? '' : value;
         setData(data => ({
             ...data,
@@ -90,11 +108,34 @@ export default function Create() {
         loadProducts(warehouseId);
     };
 
+    const handleWarehouseCreated = (warehouse?: { id: number; name: string; address: string }) => {
+        setIsWarehouseModalOpen(false);
+        if (warehouse) {
+            handleWarehouseChange(warehouse.id.toString());
+        }
+    };
+
 
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         post(route('quotations.store'));
+    };
+
+    const handleCustomerChange = (value: string) => {
+        if (value === addCustomerValue) {
+            setIsCustomerModalOpen(true);
+            return;
+        }
+
+        setData('customer_id', value);
+    };
+
+    const handleCustomerCreated = (userId?: number) => {
+        setIsCustomerModalOpen(false);
+        if (userId) {
+            setData('customer_id', userId.toString());
+        }
     };
 
     const totals = useTaxCalculator(data.items);
@@ -150,7 +191,7 @@ export default function Create() {
                                     <Label htmlFor="customer_id" required>
                                         {t('Customer')}
                                     </Label>
-                                    <Select value={data.customer_id} onValueChange={(value) => setData('customer_id', value)}>
+                                    <Select value={data.customer_id} onValueChange={handleCustomerChange}>
                                         <SelectTrigger>
                                             <SelectValue placeholder={t('Select Customer')} />
                                         </SelectTrigger>
@@ -160,6 +201,14 @@ export default function Create() {
                                                     {customer.name} - {customer.email}
                                                 </SelectItem>
                                             ))}
+                                            {auth.user.permissions?.includes('create-customers') && (
+                                                <SelectItem
+                                                    value={addCustomerValue}
+                                                    className="mt-1 border-t border-border pt-2 font-medium text-primary focus:text-primary"
+                                                >
+                                                    + {t('Add New Customer')}
+                                                </SelectItem>
+                                            )}
                                         </SelectContent>
                                     </Select>
                                     <InputError message={errors.customer_id} />
@@ -182,6 +231,14 @@ export default function Create() {
                                                     {warehouse.name} - {warehouse.address}
                                                 </SelectItem>
                                             ))}
+                                            {auth.user.permissions?.includes('create-warehouses') && (
+                                                <SelectItem
+                                                    value={addWarehouseValue}
+                                                    className="mt-1 border-t border-border pt-2 font-medium text-primary focus:text-primary"
+                                                >
+                                                    + {t('Add New Warehouse')}
+                                                </SelectItem>
+                                            )}
                                         </SelectContent>
                                     </Select>
                                     <InputError message={errors.warehouse_id} />
@@ -304,6 +361,26 @@ export default function Create() {
                     </div>
                 </form>
             </div>
+
+            <Dialog open={isCustomerModalOpen} onOpenChange={setIsCustomerModalOpen}>
+                {isCustomerModalOpen && (
+                    <CreateCustomer
+                        onSuccess={handleCustomerCreated}
+                        users={customerUsers}
+                        auth={{ user: { permissions: auth.user.permissions ?? [] } }}
+                        returnToCurrentPage
+                    />
+                )}
+            </Dialog>
+
+            <Dialog open={isWarehouseModalOpen} onOpenChange={setIsWarehouseModalOpen}>
+                {isWarehouseModalOpen && (
+                    <CreateWarehouse
+                        onSuccess={handleWarehouseCreated}
+                        quotationContext
+                    />
+                )}
+            </Dialog>
         </AuthenticatedLayout>
     );
 }

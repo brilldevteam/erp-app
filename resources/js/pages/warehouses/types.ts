@@ -34,7 +34,10 @@ export interface EditWarehouseFormData {
     [key: string]: any;
 }
 
-export interface CreateWarehouseProps extends CreateProps {}
+export interface CreateWarehouseProps extends Omit<CreateProps, 'onSuccess'> {
+    onSuccess: (warehouse?: Pick<Warehouse, 'id' | 'name' | 'address'>) => void;
+    quotationContext?: boolean;
+}
 
 export interface EditWarehouseProps extends EditProps<Warehouse> {
     warehouse: Warehouse;

@@ -1,5 +1,5 @@
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useForm, usePage } from "@inertiajs/react";
+import { useForm } from "@inertiajs/react";
 import { useTranslation } from 'react-i18next';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { useFormFields } from '@/hooks/useFormFields';
 
 import { CreateWarehouseProps, CreateWarehouseFormData } from './types';
 
-export default function Create({ onSuccess }: CreateWarehouseProps) {
+export default function Create({ onSuccess, quotationContext = false }: CreateWarehouseProps) {
     const { t } = useTranslation();
     const { data, setData, post, processing, errors } = useForm<CreateWarehouseFormData>({
         name: '',
@@ -34,9 +34,13 @@ export default function Create({ onSuccess }: CreateWarehouseProps) {
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('warehouses.store'), {
-            onSuccess: () => {
-                onSuccess();
+        post(route('warehouses.store', quotationContext ? { return_to: 'quotation' } : undefined), {
+            onSuccess: (page) => {
+                const createdWarehouse = quotationContext
+                    ? (page.props.flash as { createdWarehouse?: { id: number; name: string; address: string } })?.createdWarehouse
+                    : undefined;
+
+                onSuccess(createdWarehouse);
             }
         });
     };
@@ -118,19 +122,21 @@ export default function Create({ onSuccess }: CreateWarehouseProps) {
                         <InputError message={errors.email} />
                     </div>
                 </div>
-                <div>
-                    <Label htmlFor="is_active">{t('Status')}</Label>
-                    <Select value={data.is_active ? "1" : "0"} onValueChange={(value) => setData('is_active', value === "1")}>
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="1">{t('Active')}</SelectItem>
-                            <SelectItem value="0">{t('Inactive')}</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <InputError message={errors.is_active} />
-                </div>
+                {!quotationContext && (
+                    <div>
+                        <Label htmlFor="is_active">{t('Status')}</Label>
+                        <Select value={data.is_active ? "1" : "0"} onValueChange={(value) => setData('is_active', value === "1")}>
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="1">{t('Active')}</SelectItem>
+                                <SelectItem value="0">{t('Inactive')}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <InputError message={errors.is_active} />
+                    </div>
+                )}
                 {customFields.length > 0 && (
                     <div className="space-y-4">
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-1">
@@ -146,7 +152,7 @@ export default function Create({ onSuccess }: CreateWarehouseProps) {
                     <div key={field.id}>{field.component}</div>
                 ))}
                 <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={onSuccess}>
+                    <Button type="button" variant="outline" onClick={() => onSuccess()}>
                         {t('Cancel')}
                     </Button>
                     <Button type="submit" disabled={processing}>
