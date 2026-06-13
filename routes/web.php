@@ -12,6 +12,7 @@ use App\Http\Controllers\SettingController;
 use App\Http\Controllers\TranslationController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\BankTransferPaymentController;
+use App\Http\Controllers\BulkImportController;
 
 use App\Http\Controllers\CouponController;
 use Illuminate\Foundation\Application;
@@ -39,6 +40,15 @@ use Inertia\Inertia;
 Route::get('/media-file', [MediaController::class, 'file'])->name('media.file');
 
 Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
+    Route::prefix('bulk-imports')->name('bulk-imports.')->group(function () {
+        Route::get('{entity}/template', [BulkImportController::class, 'template'])->name('template');
+        Route::post('{entity}', [BulkImportController::class, 'store'])->name('store');
+        Route::get('{entity}/history', [BulkImportController::class, 'history'])->name('history');
+        Route::get('status/{bulkImport}', [BulkImportController::class, 'show'])->name('show');
+        Route::post('{bulkImport}/confirm', [BulkImportController::class, 'confirm'])->name('confirm');
+        Route::get('{bulkImport}/errors', [BulkImportController::class, 'errors'])->name('errors');
+    });
+
     // Route::get('/dashboard', function () {
     //     return Inertia::render('dashboard');
     // })->name('dashboard');

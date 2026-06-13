@@ -21,6 +21,7 @@ import NoRecordsFound from '@/components/no-records-found';
 import { formatCurrency, getImagePath } from '@/utils/helpers';
 import { Item, ItemsIndexProps, ItemFilters } from './types';
 import { usePageButtons } from '@/hooks/usePageButtons';
+import { BulkImportButton } from '@/components/bulk-import-button';
 
 export default function Index() {
     const { t } = useTranslation();
@@ -249,6 +250,10 @@ export default function Index() {
                         {hubspotButtons.map((button) => (
                             <div key={button.id}>{button.component}</div>
                         ))}
+                        {auth.user?.permissions?.includes('create-product-service-item')
+                            && auth.user?.permissions?.includes('import-product-service-items') && (
+                            <BulkImportButton entity="product-service-items" label={t('Products & Services')} />
+                        )}
                         {auth.user?.permissions?.includes('manage-stock') && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>
