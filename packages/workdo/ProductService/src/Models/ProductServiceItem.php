@@ -15,6 +15,7 @@ class ProductServiceItem extends Model
         'tax_ids',
         'category_id',
         'description',
+        'long_description',
         'sale_price',
         'purchase_price',
         'unit',

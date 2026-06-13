@@ -21,6 +21,7 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'manage-own-product-service-item', 'module' => 'product-service-item', 'label' => 'Manage Own Product Service'],
             ['name' => 'view-product-service-item', 'module' => 'product-service-item', 'label' => 'View Product Service'],
             ['name' => 'create-product-service-item', 'module' => 'product-service-item', 'label' => 'Create Product Service'],
+            ['name' => 'import-product-service-items', 'module' => 'product-service-item', 'label' => 'Import Product Service'],
             ['name' => 'edit-product-service-item', 'module' => 'product-service-item', 'label' => 'Edit Product Service'],
             ['name' => 'delete-product-service-item', 'module' => 'product-service-item', 'label' => 'Delete Product Service'],
             

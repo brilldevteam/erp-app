@@ -34,6 +34,7 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'manage-own-customers', 'module' => 'customers', 'label' => 'Manage Own Customers'],
             ['name' => 'view-customers', 'module' => 'customers', 'label' => 'View Customers'],
             ['name' => 'create-customers', 'module' => 'customers', 'label' => 'Create Customers'],
+            ['name' => 'import-customers', 'module' => 'customers', 'label' => 'Import Customers'],
             ['name' => 'edit-customers', 'module' => 'customers', 'label' => 'Edit Customers'],
             ['name' => 'delete-customers', 'module' => 'customers', 'label' => 'Delete Customers'],
 
