@@ -39,7 +39,7 @@ use Inertia\Inertia;
 
 
 Route::get('/media-file', [MediaController::class, 'file'])->name('media.file');
-Route::get('/packages/workdo/{module}/favicon.png', [ModuleAssetController::class, 'favicon'])
+Route::get('/module-assets/{module}/favicon', [ModuleAssetController::class, 'favicon'])
     ->where('module', '[A-Za-z0-9_-]+')
     ->name('module-assets.favicon');
 

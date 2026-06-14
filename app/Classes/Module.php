@@ -54,7 +54,7 @@ class Module
                         $this->alias = $addonJson['alias'] ?? $name;
                         $this->monthly_price = $addonJson['monthly_price'] ?? 0;
                         $this->yearly_price = $addonJson['yearly_price'] ?? 0;
-                        $this->image = $this->addon->image ?? url('/packages/workdo/' . $name . '/favicon.png');
+                        $this->image = $this->addon->image ?? route('module-assets.favicon', ['module' => $name]);
                         $this->description = $addonJson['description'] ?? "";
                         $this->priority = $addonJson['priority'] ?? 10;
                         $this->child_module = $addonJson['child_module'] ?? [];
@@ -71,7 +71,9 @@ class Module
                         $this->alias = $this->addon->name ?? $name;
                         $this->monthly_price = $this->addon->monthly_price ?? 0;
                         $this->yearly_price = $this->addon->yearly_price ?? 0;
-                        $this->image = $this->addon->image ? getImageUrlPrefix().'/'.$this->addon->image : url('/packages/workdo/' . $name . '/favicon.png');
+                        $this->image = $this->addon->image
+                            ? getImageUrlPrefix() . '/' . $this->addon->image
+                            : route('module-assets.favicon', ['module' => $name]);
                         $this->package_name = $this->addon->package_name ?? null;
                         $this->for_admin = $this->addon->for_admin ?? false;
                         $this->is_enable = $this->addon->is_enable ?? false;

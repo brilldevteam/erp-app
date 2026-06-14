@@ -179,7 +179,7 @@ class ModuleController extends Controller
                         'alias' =>  $addon ? $addon->name :$moduleData['alias'],
                         'description' => $moduleData['description'] ?? '',
                         'version' => $moduleData['version'] ?? '1.0.0',
-                        'image' => url('/packages/workdo/' . $moduleName . '/favicon.png'),
+                        'image' => route('module-assets.favicon', ['module' => $moduleName]),
                         'is_enabled' => $addon ? $addon->is_enable : false,
                         'package_name' => $moduleData['package_name'] ?? null,
                         'display' => $moduleData['display'] ?? true,
@@ -402,7 +402,7 @@ class ModuleController extends Controller
                     $modules[] = [
                         'module' => $userModule->module,
                         'alias' => $addon->name,
-                        'image' => url('/packages/workdo/' . $userModule->module . '/favicon.png'),
+                        'image' => route('module-assets.favicon', ['module' => $userModule->module]),
                         'monthly_price' => $addon->monthly_price,
                         'yearly_price' => $addon->yearly_price
                     ];
