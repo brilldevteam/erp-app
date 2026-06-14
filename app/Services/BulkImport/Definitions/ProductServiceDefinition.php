@@ -30,6 +30,29 @@ class ProductServiceDefinition implements EntityDefinition
         ];
     }
 
+    public function requiredFields(): array
+    {
+        return ['name', 'sku'];
+    }
+
+    public function aliases(): array
+    {
+        return [
+            'name' => ['item name', 'product name', 'service name'],
+            'sku' => ['item sku', 'item code', 'product code', 'code'],
+            'type' => ['item type', 'product type'],
+            'category' => ['category name'],
+            'unit' => ['unit name', 'unit of measurement', 'uom'],
+            'taxes' => ['tax', 'tax name'],
+            'sale_price' => ['selling price', 'sales price', 'rate', 'price'],
+            'purchase_price' => ['cost price', 'purchase rate', 'cost'],
+            'description' => ['short description'],
+            'long_description' => ['detailed description'],
+            'warehouse' => ['warehouse name'],
+            'quantity' => ['opening stock', 'opening quantity', 'stock', 'initial stock'],
+        ];
+    }
+
     public function example(): array
     {
         return [
@@ -42,11 +65,20 @@ class ProductServiceDefinition implements EntityDefinition
     {
         return [
             'type accepts product, service, or part.',
-            'category, unit, taxes, and warehouse must match existing tenant setup names.',
+            'category, unit, taxes, and warehouse are optional; supplied names must match existing setup.',
             'Separate multiple tax names with commas, semicolons, or pipes.',
             'warehouse and quantity are optional; service stock values are ignored.',
             'SKU is the duplicate key and is matched without case sensitivity.',
         ];
+    }
+
+    public function prepare(array $row): array
+    {
+        $row['type'] = strtolower($this->text($row['type'] ?? '')) ?: 'product';
+        $row['sale_price'] = $this->nullableText($row['sale_price'] ?? null) ?? 0;
+        $row['purchase_price'] = $this->nullableText($row['purchase_price'] ?? null) ?? 0;
+
+        return $row;
     }
 
     public function identity(array $row): string
@@ -57,7 +89,7 @@ class ProductServiceDefinition implements EntityDefinition
     public function validate(array $row, int $tenantId): array
     {
         $errors = [];
-        foreach (['name', 'sku', 'type', 'category', 'unit', 'taxes', 'sale_price', 'purchase_price'] as $field) {
+        foreach ($this->requiredFields() as $field) {
             if ($this->text($row[$field] ?? '') === '') {
                 $errors[] = ucfirst(str_replace('_', ' ', $field)).' is required.';
             }
@@ -74,10 +106,10 @@ class ProductServiceDefinition implements EntityDefinition
             }
         }
 
-        if (!$this->category($row, $tenantId)) {
+        if ($this->nullableText($row['category'] ?? null) && !$this->category($row, $tenantId)) {
             $errors[] = 'Category was not found for this company.';
         }
-        if (!$this->unit($row, $tenantId)) {
+        if ($this->nullableText($row['unit'] ?? null) && !$this->unit($row, $tenantId)) {
             $errors[] = 'Unit was not found for this company.';
         }
         foreach ($this->split($row['taxes'] ?? '') as $tax) {
@@ -113,6 +145,7 @@ class ProductServiceDefinition implements EntityDefinition
         $item = ProductServiceItem::where('created_by', $tenantId)
             ->whereRaw('LOWER(sku) = ?', [$this->identity($row)])
             ->first();
+        $existingItem = (bool) $item;
 
         if ($item && $strategy === 'skip') {
             return 'skipped';
@@ -132,8 +165,8 @@ class ProductServiceDefinition implements EntityDefinition
             'name' => $this->text($row['name']),
             'sku' => $this->text($row['sku']),
             'type' => strtolower($this->text($row['type'])),
-            'category_id' => $category->id,
-            'unit' => (string) $unit->id,
+            'category_id' => $category?->id,
+            'unit' => $unit ? (string) $unit->id : null,
             'tax_ids' => $taxIds,
             'sale_price' => (float) $row['sale_price'],
             'purchase_price' => (float) $row['purchase_price'],
@@ -143,8 +176,27 @@ class ProductServiceDefinition implements EntityDefinition
         $request = new Request($values);
 
         if ($item) {
-            $item->update($values);
-            UpdateProductServiceItem::dispatch($request, $item);
+            $fieldMap = [
+                'name' => 'name',
+                'sku' => 'sku',
+                'type' => 'type',
+                'category' => 'category_id',
+                'unit' => 'unit',
+                'taxes' => 'tax_ids',
+                'sale_price' => 'sale_price',
+                'purchase_price' => 'purchase_price',
+                'description' => 'description',
+                'long_description' => 'long_description',
+            ];
+            $mapped = $row['_mapped_fields'] ?? [];
+            $updateKeys = array_values(array_filter(
+                $fieldMap,
+                fn ($value, $field) => in_array($field, $mapped, true),
+                ARRAY_FILTER_USE_BOTH
+            ));
+            $updateValues = array_intersect_key($values, array_flip($updateKeys));
+            $item->update($updateValues);
+            UpdateProductServiceItem::dispatch(new Request($updateValues), $item);
             $result = 'updated';
         } else {
             $item = ProductServiceItem::create($values + [
@@ -155,7 +207,9 @@ class ProductServiceDefinition implements EntityDefinition
             $result = 'imported';
         }
 
-        if ($values['type'] !== 'service' && ($warehouseName = $this->nullableText($row['warehouse'] ?? null))) {
+        if ($values['type'] !== 'service'
+            && (!$existingItem || $this->isMapped($row, 'quantity'))
+            && ($warehouseName = $this->nullableText($row['warehouse'] ?? null))) {
             $warehouse = Warehouse::where('created_by', $tenantId)
                 ->whereRaw('LOWER(name) = ?', [strtolower($warehouseName)])
                 ->firstOrFail();
@@ -166,6 +220,11 @@ class ProductServiceDefinition implements EntityDefinition
         }
 
         return $result;
+    }
+
+    private function isMapped(array $row, string $field): bool
+    {
+        return in_array($field, $row['_mapped_fields'] ?? [], true);
     }
 
     private function category(array $row, int $tenantId): ?ProductServiceCategory

@@ -25,7 +25,8 @@ class ValidateBulkImport implements ShouldQueue
 
         try {
             $definition = $registry->get($import->entity_type);
-            $rows = $spreadsheets->read($import, $definition);
+            $metadata = json_decode(Storage::disk('local')->get($import->preview_path), true) ?: [];
+            $rows = $spreadsheets->read($import, $definition, $metadata['mapping'] ?? []);
             $seen = [];
             $invalid = [];
             $valid = 0;

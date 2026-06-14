@@ -14,6 +14,25 @@ interface PreviewRow {
     duplicate: boolean;
 }
 
+interface MappingField {
+    key: string;
+    label: string;
+    required: boolean;
+}
+
+interface SourceHeader {
+    key: string;
+    label: string;
+    samples: string[];
+}
+
+interface MappingData {
+    fields: MappingField[];
+    headers: SourceHeader[];
+    mapping: Record<string, string | null>;
+    sample_rows: Record<string, unknown>[];
+}
+
 interface ImportRecord {
     id: number;
     status: string;
@@ -31,6 +50,7 @@ interface ImportRecord {
     has_errors: boolean;
     created_at: string;
     preview?: PreviewRow[];
+    mapping?: MappingData;
 }
 
 interface BulkImportButtonProps {
@@ -38,7 +58,7 @@ interface BulkImportButtonProps {
     label: string;
 }
 
-const terminalStatuses = ['ready', 'completed', 'failed'];
+const terminalStatuses = ['mapping', 'ready', 'completed', 'failed'];
 
 export function BulkImportButton({ entity, label }: BulkImportButtonProps) {
     const [open, setOpen] = useState(false);
@@ -46,6 +66,7 @@ export function BulkImportButton({ entity, label }: BulkImportButtonProps) {
     const [current, setCurrent] = useState<ImportRecord | null>(null);
     const [history, setHistory] = useState<ImportRecord[]>([]);
     const [strategy, setStrategy] = useState('skip');
+    const [fieldMapping, setFieldMapping] = useState<Record<string, string | null>>({});
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const pollRef = useRef<number | null>(null);
@@ -77,6 +98,7 @@ export function BulkImportButton({ entity, label }: BulkImportButtonProps) {
         try {
             const record = await request(route('bulk-imports.show', id));
             setCurrent(record);
+            if (record.mapping?.mapping) setFieldMapping(record.mapping.mapping);
             if (terminalStatuses.includes(record.status)) {
                 if (pollRef.current) window.clearInterval(pollRef.current);
                 pollRef.current = null;
@@ -119,9 +141,29 @@ export function BulkImportButton({ entity, label }: BulkImportButtonProps) {
                 body: form,
             });
             setCurrent(record);
-            startPolling(record.id);
+            setFieldMapping(record.mapping?.mapping ?? {});
+            setBusy(false);
+            if (!terminalStatuses.includes(record.status)) startPolling(record.id);
         } catch (uploadError) {
             setError(uploadError instanceof Error ? uploadError.message : 'Upload failed.');
+            setBusy(false);
+        }
+    };
+
+    const submitMapping = async () => {
+        if (!current) return;
+        setBusy(true);
+        setError('');
+        try {
+            const record = await request(route('bulk-imports.mapping', current.id), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mapping: fieldMapping }),
+            });
+            setCurrent(record);
+            startPolling(record.id);
+        } catch (mappingError) {
+            setError(mappingError instanceof Error ? mappingError.message : 'Field mapping could not be saved.');
             setBusy(false);
         }
     };
@@ -149,6 +191,7 @@ export function BulkImportButton({ entity, label }: BulkImportButtonProps) {
         setFile(null);
         setCurrent(null);
         setStrategy('skip');
+        setFieldMapping({});
         setError('');
         if (pollRef.current) window.clearInterval(pollRef.current);
         pollRef.current = null;
@@ -178,8 +221,8 @@ export function BulkImportButton({ entity, label }: BulkImportButtonProps) {
                         {!current && (
                             <>
                                 <div className="rounded-lg border bg-muted/30 p-4 text-sm">
-                                    Download a template, keep its columns unchanged, delete the example row,
-                                    and upload no more than 10,000 records.
+                                    Upload your existing CSV/XLSX file and map its columns, or download our template.
+                                    Files may contain up to 10,000 records.
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                     <Button variant="outline" size="sm" asChild>
@@ -228,6 +271,70 @@ export function BulkImportButton({ entity, label }: BulkImportButtonProps) {
                                         </div>
                                         <div className="h-2 overflow-hidden rounded bg-muted">
                                             <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {current.status === 'mapping' && current.mapping && (
+                                    <div className="space-y-4">
+                                        <div className="rounded-lg border bg-muted/30 p-4 text-sm">
+                                            Match your spreadsheet columns to application fields. Required fields are marked
+                                            with an asterisk. Optional columns may be ignored.
+                                        </div>
+                                        <div className="max-h-[45vh] overflow-auto rounded-lg border">
+                                            <table className="w-full text-sm">
+                                                <thead className="sticky top-0 bg-muted">
+                                                    <tr>
+                                                        <th className="p-3 text-left">Application field</th>
+                                                        <th className="p-3 text-left">Spreadsheet column</th>
+                                                        <th className="p-3 text-left">Sample</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {current.mapping.fields.map((field) => {
+                                                        const sourceHeaders = current.mapping?.headers ?? [];
+                                                        const selected = sourceHeaders.find(
+                                                            (header) => header.key === fieldMapping[field.key]
+                                                        );
+                                                        return (
+                                                            <tr key={field.key} className="border-t">
+                                                                <td className="p-3 font-medium">
+                                                                    {field.label}{field.required && <span className="text-destructive"> *</span>}
+                                                                </td>
+                                                                <td className="min-w-56 p-3">
+                                                                    <Select
+                                                                        value={fieldMapping[field.key] ?? '__ignore'}
+                                                                        onValueChange={(value) => setFieldMapping((mapping) => ({
+                                                                            ...mapping,
+                                                                            [field.key]: value === '__ignore' ? null : value,
+                                                                        }))}
+                                                                    >
+                                                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                                                        <SelectContent>
+                                                                            <SelectItem value="__ignore">Do not import</SelectItem>
+                                                                            {sourceHeaders.map((header) => (
+                                                                                <SelectItem key={header.key} value={header.key}>
+                                                                                    {header.label}
+                                                                                </SelectItem>
+                                                                            ))}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                </td>
+                                                                <td className="max-w-64 truncate p-3 text-muted-foreground">
+                                                                    {selected?.samples?.join(' | ') || '—'}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            <Button onClick={submitMapping} disabled={busy}>
+                                                {busy && <LoaderCircle className="h-4 w-4 animate-spin" />}
+                                                Continue to Preview
+                                            </Button>
+                                            <Button variant="outline" onClick={reset}>Choose Another File</Button>
                                         </div>
                                     </div>
                                 )}
@@ -336,7 +443,7 @@ export function BulkImportButton({ entity, label }: BulkImportButtonProps) {
                                             type="button"
                                             className="flex w-full justify-between rounded border p-2 text-left text-sm hover:bg-muted"
                                             onClick={() => {
-                                                setCurrent(item);
+                                                poll(item.id);
                                                 if (!terminalStatuses.includes(item.status)) startPolling(item.id);
                                             }}
                                         >
