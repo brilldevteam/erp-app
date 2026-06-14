@@ -3,8 +3,7 @@
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use App\Classes\Module;
-use App\Events\DefaultData;
-use App\Events\GivePermissionToRole;
+use App\Jobs\InitializePlanData;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\UserActiveModule;
@@ -311,21 +310,23 @@ if (!function_exists('assignPlan')) {
                         ]);
                     }
                 }
-                DefaultData::dispatch($user->id, $modules);
                 $client_role = Role::where('name', 'client')->where('created_by', $user->id)->first();
                 $staff_role = Role::where('name', 'staff')->where('created_by', $user->id)->first();
-
-                if (!empty($client_role)) {
-                    GivePermissionToRole::dispatch($client_role->id, 'client', $modules);
-                }
-                if (!empty($staff_role)) {
-                    GivePermissionToRole::dispatch($staff_role->id, 'staff', $modules);
-                }
             }
             
             $user->total_user = $plan->number_of_users;
             $user->storage_limit = $plan->storage_limit;
             $user->save();
+
+            if (!empty($modules)) {
+                InitializePlanData::dispatch(
+                    $user->id,
+                    $modules,
+                    $client_role?->id,
+                    $staff_role?->id,
+                )->afterCommit();
+            }
+
             // User count management logic
             $users = User::where('created_by', $user->id)->where('is_disable', 0)->get();
             $total = $users->count();
@@ -798,6 +799,5 @@ if (!function_exists('parseBrowserData')) {
         ];
     }
 }
-
 
 
