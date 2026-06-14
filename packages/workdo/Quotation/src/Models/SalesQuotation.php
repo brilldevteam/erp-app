@@ -16,6 +16,8 @@ class SalesQuotation extends Model
 {
     use HasFactory;
 
+    public const CONVERTIBLE_STATUSES = ['draft', 'sent', 'accepted'];
+
     protected $fillable = [
         'quotation_number',
         'revision_number',
@@ -78,6 +80,18 @@ class SalesQuotation extends Model
     public function revisions(): HasMany
     {
         return $this->hasMany(SalesQuotation::class, 'parent_quotation_id');
+    }
+
+    public function invoice(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\SalesInvoice::class, 'invoice_id');
+    }
+
+    public function canConvertToInvoice(): bool
+    {
+        return !$this->converted_to_invoice
+            && !$this->invoice_id
+            && in_array($this->status, self::CONVERTIBLE_STATUSES, true);
     }
 
     protected static function boot()

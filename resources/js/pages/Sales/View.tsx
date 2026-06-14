@@ -105,6 +105,18 @@ export default function View() {
                                         <span className="text-muted-foreground">{t('Invoice Date')}</span>
                                         <span>{formatDate(invoice.invoice_date)}</span>
                                     </div>
+                                    {invoice.quotation && (
+                                        <div className="flex justify-between gap-4">
+                                            <span className="text-muted-foreground">{t('Quotation Reference')}</span>
+                                            <button
+                                                type="button"
+                                                className="font-medium text-blue-600 hover:text-blue-700"
+                                                onClick={() => router.get(route('quotations.show', invoice.quotation!.id))}
+                                            >
+                                                {invoice.quotation.quotation_number}
+                                            </button>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">{t('Due Date')}</span>
                                         <span className={new Date(invoice.due_date) < new Date() ? 'text-red-600' : ''}>

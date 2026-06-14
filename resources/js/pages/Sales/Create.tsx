@@ -23,24 +23,48 @@ import { CalendarDays, Building2, User, FileText, Package } from 'lucide-react';
 interface CreateProps {
     customers: Array<{ id: number; name: string; email: string }>;
     warehouses: Array<{ id: number; name: string; address: string }>;
+    initialProducts?: Array<{
+        id: number;
+        name: string;
+        description?: string;
+        sale_price: number;
+        unit?: string;
+        stock_quantity?: number;
+        taxes?: Array<{ id: number; tax_name: string; rate: number }>;
+    }>;
+    initialInvoice?: {
+        invoice_number: string;
+        quotation_id: number;
+        quotation_number: string;
+        quotation_date: string;
+        invoice_date: string;
+        due_date: string;
+        customer_id: string;
+        warehouse_id: string;
+        type: 'product' | 'service';
+        payment_terms: string;
+        notes: string;
+        items: SalesInvoiceItem[];
+    };
     [key: string]: any;
 }
 
 export default function Create() {
     const { t } = useTranslation();
-    const { customers, warehouses } = usePage<CreateProps>().props;
-    const [availableProducts, setAvailableProducts] = useState([]);
+    const { customers, warehouses, initialInvoice, initialProducts = [] } = usePage<CreateProps>().props;
+    const [availableProducts, setAvailableProducts] = useState<any[]>(initialProducts);
 
     useFlashMessages();
     const { data, setData, post, processing, errors } = useForm({
-        invoice_date: new Date().toISOString().split('T')[0],
-        due_date: '',
-        customer_id: '',
-        warehouse_id: '',
-        type: 'product',
-        payment_terms: '',
-        notes: '',
-        items: [{
+        quotation_id: initialInvoice?.quotation_id ?? null,
+        invoice_date: initialInvoice?.invoice_date ?? new Date().toISOString().split('T')[0],
+        due_date: initialInvoice?.due_date ?? '',
+        customer_id: initialInvoice?.customer_id ?? '',
+        warehouse_id: initialInvoice?.warehouse_id ?? '',
+        type: initialInvoice?.type ?? 'product',
+        payment_terms: initialInvoice?.payment_terms ?? '',
+        notes: initialInvoice?.notes ?? '',
+        items: initialInvoice?.items ?? [{
             product_id: 0,
             quantity: 1,
             unit_price: 0,
@@ -56,21 +80,32 @@ export default function Create() {
     const calendarFields = useFormFields('getCalendarSyncFields', data, setData, errors, 'create', t, 'Sales');
 
     useEffect(() => {
-        handleWarehouseChange('none', false);
+        loadAvailableProducts(data.type, data.warehouse_id);
     }, []);
+
+    const mergeInitialProducts = (products: any[]) => {
+        const merged = new Map<number, any>();
+        [...initialProducts, ...products].forEach((product) => merged.set(product.id, product));
+        return Array.from(merged.values());
+    };
+
+    const loadAvailableProducts = async (type: string, warehouseId: string) => {
+        try {
+            const url = type === 'service'
+                ? route('sales-invoices.services')
+                : route('sales-invoices.warehouse.products') + (warehouseId ? `?warehouse_id=${warehouseId}` : '');
+            const response = await fetch(url);
+            setAvailableProducts(mergeInitialProducts(await response.json()));
+        } catch (error) {
+            console.error('Failed to fetch invoice items:', error);
+            setAvailableProducts(initialProducts);
+        }
+    };
 
     const handleWarehouseChange = async (value: string, resetItems = true) => {
         const warehouseId = value === 'none' ? '' : value;
         setData('warehouse_id', warehouseId);
-
-        try {
-            const query = warehouseId ? `?warehouse_id=${warehouseId}` : '';
-            const response = await fetch(route('sales-invoices.warehouse.products') + query);
-            setAvailableProducts(await response.json());
-        } catch (error) {
-            console.error('Failed to fetch invoice products:', error);
-            setAvailableProducts([]);
-        }
+        await loadAvailableProducts('product', warehouseId);
 
         if (resetItems) {
             setData('items', [{
@@ -86,20 +121,15 @@ export default function Create() {
         }
     };
 
-    const handleTypeChange = async (type: string) => {
+    const handleTypeChange = async (type: 'product' | 'service') => {
         setData('type', type);
 
         if (type === 'service') {
-            try {
-                const response = await fetch(route('sales-invoices.services'));
-                const services = await response.json();
-                setAvailableProducts(services);
-            } catch (error) {
-                setAvailableProducts([]);
-            }
+            setData('warehouse_id', '');
+            await loadAvailableProducts('service', '');
         } else {
             setData('warehouse_id', '');
-            handleWarehouseChange('none', false);
+            await loadAvailableProducts('product', '');
         }
 
         // Reset items when type changes
@@ -154,7 +184,11 @@ export default function Create() {
                                     {t('Sales Invoice Details')}
                                 </CardTitle>
                                 <div className="flex items-center gap-2">
-                                    <RadioGroup value={data.type} onValueChange={handleTypeChange} className="flex gap-4">
+                                    <RadioGroup
+                                        value={data.type}
+                                        onValueChange={(value) => handleTypeChange(value as 'product' | 'service')}
+                                        className="flex gap-4"
+                                    >
                                         <div className="flex items-center gap-2">
                                             <RadioGroupItem value="product" id="type-product" />
                                             <Label htmlFor="type-product" className="cursor-pointer font-normal">{t('Product Wise')}</Label>
@@ -168,6 +202,22 @@ export default function Create() {
                             </div>
                         </CardHeader>
                         <CardContent>
+                            {initialInvoice && (
+                                <div className="mb-5 grid gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4 sm:grid-cols-3">
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">{t('Invoice Number')}</p>
+                                        <p className="font-semibold">{initialInvoice.invoice_number}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">{t('Quotation Reference')}</p>
+                                        <p className="font-semibold">{initialInvoice.quotation_number}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">{t('Quotation Date')}</p>
+                                        <p className="font-semibold">{initialInvoice.quotation_date}</p>
+                                    </div>
+                                </div>
+                            )}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                 <div>
                                     <Label htmlFor="invoice_date" required>
@@ -212,6 +262,7 @@ export default function Create() {
                                         </SelectContent>
                                     </Select>
                                     <InputError message={errors.customer_id} />
+                                    <InputError message={(errors as any).quotation_id} />
                                 </div>
 
                                 {data.type === 'product' && (

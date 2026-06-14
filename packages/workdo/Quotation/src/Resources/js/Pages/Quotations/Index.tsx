@@ -79,22 +79,9 @@ export default function Index() {
         closeDuplicateDialog();
     };
 
-    const [convertState, setConvertState] = useState({ isOpen: false, quotationId: null });
-
-    const openConvertDialog = (quotationId: number) => {
-        setConvertState({ isOpen: true, quotationId });
-    };
-
-    const closeConvertDialog = () => {
-        setConvertState({ isOpen: false, quotationId: null });
-    };
-
-    const confirmConvert = () => {
-        if (convertState.quotationId) {
-            router.post(route('quotations.convert-to-invoice', convertState.quotationId));
-        }
-        closeConvertDialog();
-    };
+    const canConvert = (quotation: Quotation) =>
+        !quotation.converted_to_invoice
+        && ['draft', 'sent', 'accepted'].includes(quotation.status);
 
     const handleFilter = () => {
         router.get(route('quotations.index'), { ...filters, per_page: perPage, sort: sortField, direction: sortDirection, view: viewMode }, {
@@ -197,13 +184,13 @@ export default function Index() {
             key: 'status',
             header: t('Status'),
             sortable: true,
-            render: (value: string) => (
-                <span className={getStatusBadgeClasses(value)}>
-                    {t(value.charAt(0).toUpperCase() + value.slice(1))}
+            render: (value: string, quotation: Quotation) => (
+                <span className={getStatusBadgeClasses(quotation.converted_to_invoice ? 'converted' : value)}>
+                    {t(quotation.converted_to_invoice ? 'Converted' : value.charAt(0).toUpperCase() + value.slice(1))}
                 </span>
             )
         },
-        ...(auth.user?.permissions?.some((p: string) => ['view-quotations', 'edit-quotations', 'delete-quotations', 'sent-quotations', 'print-quotations'].includes(p)) ? [{
+        ...(auth.user?.permissions?.some((p: string) => ['view-quotations', 'edit-quotations', 'delete-quotations', 'sent-quotations', 'print-quotations', 'convert-to-invoice-quotations'].includes(p)) ? [{
             key: 'actions',
             header: t('Actions'),
             render: (_: any, quotation: Quotation) => (
@@ -294,13 +281,14 @@ export default function Index() {
                             </Tooltip>
                         ) : (
                             auth.user?.permissions?.includes('convert-to-invoice-quotations') &&
-                            quotation.status === 'accepted' && (
+                            auth.user?.permissions?.includes('create-sales-invoices') &&
+                            canConvert(quotation) && (
                                 <Tooltip delayDuration={0}>
                                     <TooltipTrigger asChild>
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => openConvertDialog(quotation.id)}
+                                            onClick={() => router.get(route('quotations.convert-to-invoice', quotation.id))}
                                             className="h-8 w-8 p-0 text-indigo-600 hover:text-indigo-700"
                                         >
                                             <RefreshCw className="h-4 w-4" />
@@ -577,8 +565,8 @@ export default function Index() {
                                                             )}
                                                         </div>
                                                     )}
-                                                    <span className={getStatusBadgeClasses(quotation.status)}>
-                                                        {t(quotation.status.charAt(0).toUpperCase() + quotation.status.slice(1))}
+                                                    <span className={getStatusBadgeClasses(quotation.converted_to_invoice ? 'converted' : quotation.status)}>
+                                                        {t(quotation.converted_to_invoice ? 'Converted' : quotation.status.charAt(0).toUpperCase() + quotation.status.slice(1))}
                                                     </span>
                                                 </div>
 
@@ -731,13 +719,14 @@ export default function Index() {
                                                                 </Tooltip>
                                                             ) : (
                                                                 auth.user?.permissions?.includes('convert-to-invoice-quotations') &&
-                                                                quotation.status === 'accepted' && (
+                                                                auth.user?.permissions?.includes('create-sales-invoices') &&
+                                                                canConvert(quotation) && (
                                                                     <Tooltip delayDuration={0}>
                                                                         <TooltipTrigger asChild>
                                                                             <Button
                                                                                 variant="ghost"
                                                                                 size="sm"
-                                                                                onClick={() => openConvertDialog(quotation.id)}
+                                                                                onClick={() => router.get(route('quotations.convert-to-invoice', quotation.id))}
                                                                                 className="h-8 w-8 p-0 text-indigo-600 hover:text-indigo-700"
                                                                             >
                                                                                 <RefreshCw className="h-4 w-4" />
@@ -857,15 +846,6 @@ export default function Index() {
                 confirmText={t('Delete')}
                 onConfirm={confirmDelete}
                 variant="destructive"
-            />
-
-            <ConfirmationDialog
-                open={convertState.isOpen}
-                onOpenChange={closeConvertDialog}
-                title={t('Convert to Invoice')}
-                message={t('Are you sure you want to convert this quotation to invoice?')}
-                confirmText={t('Convert')}
-                onConfirm={confirmConvert}
             />
 
             <ConfirmationDialog

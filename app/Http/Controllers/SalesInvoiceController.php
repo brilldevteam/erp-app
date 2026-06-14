@@ -20,6 +20,8 @@ use App\Events\DestroySalesInvoice;
 use App\Events\PostSalesInvoice;
 use App\Events\EditSalesInvoice;
 use App\Models\EmailTemplate;
+use App\Services\SalesInvoiceService;
+use Workdo\Quotation\Events\ConvertSalesQuotation;
 
 class SalesInvoiceController extends Controller
 {
@@ -126,44 +128,36 @@ class SalesInvoiceController extends Controller
         }
     }
 
-    public function store(StoreSalesInvoiceRequest $request)
+    public function store(StoreSalesInvoiceRequest $request, SalesInvoiceService $invoiceService)
     {
         if(Auth::user()->can('create-sales-invoices')){
-            $totals = $this->calculateTotals($request->items);
+            if (
+                $request->filled('quotation_id')
+                && !Auth::user()->can('convert-to-invoice-quotations')
+            ) {
+                return back()->with('error', __('Permission denied'));
+            }
 
-            $invoice = new SalesInvoice();
-            $invoice->invoice_date = $request->invoice_date;
-            $invoice->due_date = $request->due_date;
-            $invoice->customer_id = $request->customer_id;
-            $invoice->warehouse_id = $request->type === 'product' && $request->filled('warehouse_id')
-                ? $request->warehouse_id
-                : null;
-            $invoice->type = $request->type ?? 'product';
-            $invoice->payment_terms = $request->payment_terms;
-            $invoice->notes = $request->notes;
-            $invoice->subtotal = $totals['subtotal'];
-            $invoice->tax_amount = $totals['tax_amount'];
-            $invoice->discount_amount = $totals['discount_amount'];
-            $invoice->total_amount = $totals['total_amount'];
-            $invoice->balance_amount = $totals['total_amount'];
-            $invoice->creator_id = Auth::id();
-            $invoice->created_by = creatorId();
-            $invoice->save();
-
-            // Create invoice items
-            $this->createInvoiceItems($invoice->id, $request->items);
+            $invoice = $invoiceService->create(
+                $request->validated(),
+                Auth::id(),
+                creatorId(),
+            );
 
             try {
 
                 CreateSalesInvoice::dispatch($request, $invoice);
+                if ($invoice->quotation) {
+                    ConvertSalesQuotation::dispatch($invoice->quotation, $invoice);
+                }
                 // Send sales invoice mail
                 if(company_setting('Sales Invoice') == 'on') {
                     $emailData = [
                         'invoice_number' => $invoice->invoice_number ?? null,
                         'sales_customer_name' => $invoice->customer->name ?? null,
                         'warehouse_name' => $invoice->warehouse->name ?? null,
-                        'total_amount' => $totals['total_amount'] ?? null,
-                        'discount_amount' => $totals['discount_amount'] ?? null,
+                        'total_amount' => $invoice->total_amount,
+                        'discount_amount' => $invoice->discount_amount,
                     ];
                     $message = EmailTemplate::sendEmailTemplate('Sales Invoice', [$invoice->customer->email], $emailData);
                     if($message['is_success'] == false && !empty($message['error'])) {
@@ -192,7 +186,7 @@ class SalesInvoiceController extends Controller
                 return redirect()->route('sales-invoices.index')->with('error', __('Permission denied'));
             }
 
-            $salesInvoice->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'warehouse']);
+            $salesInvoice->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'warehouse', 'quotation']);
 
             return Inertia::render('Sales/View', [
                 'invoice' => $salesInvoice
@@ -368,7 +362,7 @@ class SalesInvoiceController extends Controller
             ]);
             $warehouseId = $validated['warehouse_id'] ?? null;
 
-            $productsQuery = ProductServiceItem::select('id', 'name', 'sku', 'sale_price', 'tax_ids', 'unit', 'type')
+            $productsQuery = ProductServiceItem::select('id', 'name', 'sku', 'description', 'sale_price', 'tax_ids', 'unit', 'type')
                 ->where('is_active', true)
                 ->where('created_by', creatorId());
 
@@ -390,6 +384,7 @@ class SalesInvoiceController extends Controller
                         'id' => $product->id,
                         'name' => $product->name,
                         'sku' => $product->sku,
+                        'description' => $product->description,
                         'sale_price' => $product->sale_price,
                         'unit' => $product->unit,
                         'type' => $product->type,
@@ -419,7 +414,7 @@ class SalesInvoiceController extends Controller
     public function getServices(Request $request)
     {
         if(Auth::user()->can('create-sales-invoices') || Auth::user()->can('edit-sales-invoices')){
-            $services = ProductServiceItem::select('id', 'name', 'sku', 'sale_price', 'tax_ids', 'unit', 'type')
+            $services = ProductServiceItem::select('id', 'name', 'sku', 'description', 'sale_price', 'tax_ids', 'unit', 'type')
                 ->where('is_active', true)
                 ->where('type', 'service')
                 ->where('created_by', creatorId())
@@ -429,6 +424,7 @@ class SalesInvoiceController extends Controller
                         'id' => $service->id,
                         'name' => $service->name,
                         'sku' => $service->sku,
+                        'description' => $service->description,
                         'sale_price' => $service->sale_price,
                         'unit' => $service->unit,
                         'type' => $service->type,

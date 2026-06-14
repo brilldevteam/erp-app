@@ -13,7 +13,7 @@ interface Props {
     items: SalesInvoiceItem[];
     onChange: (items: SalesInvoiceItem[]) => void;
     errors: any;
-    products?: Array<{id: number; name: string; sale_price: number; unit?: string; stock_quantity?: number; taxes?: Array<{id: number; tax_name: string; rate: number}>}>;
+    products?: Array<{id: number; name: string; description?: string; sale_price: number; unit?: string; stock_quantity?: number; taxes?: Array<{id: number; tax_name: string; rate: number}>}>;
     showAddButton?: boolean;
     invoiceType?: string;
 }
@@ -142,6 +142,11 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                         value={item.product_id}
                                         onChange={(productId, product) => handleProductSelect(index, productId, product)}
                                     />
+                                    {products.find((product) => product.id === item.product_id)?.description && (
+                                        <p className="mt-1 text-xs text-muted-foreground">
+                                            {products.find((product) => product.id === item.product_id)?.description}
+                                        </p>
+                                    )}
                                     <InputError message={errors[`items.${index}.product_id`]} />
                                 </td>
                                 {invoiceType === 'product' && (

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class SalesInvoice extends Model
 {
     protected $fillable = [
+        'quotation_id',
         'invoice_number',
         'invoice_date',
         'due_date',
@@ -54,6 +55,14 @@ class SalesInvoice extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class, 'warehouse_id');
+    }
+
+    public function quotation(): BelongsTo
+    {
+        return $this->belongsTo(
+            \Workdo\Quotation\Models\SalesQuotation::class,
+            'quotation_id'
+        );
     }
 
     public function customerDetails(): BelongsTo
