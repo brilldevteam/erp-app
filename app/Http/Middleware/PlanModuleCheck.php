@@ -28,10 +28,15 @@ class PlanModuleCheck
             $planExpired = $user->plan_expire_date && now()->gt($user->plan_expire_date);
             $isTrialActive = ($user->is_trial_done == 2);
 
-            if ($planExpired || ($user->active_plan == 0)) {
+            $hasNoPlan = empty($user->active_plan);
+
+            if ($planExpired || $hasNoPlan) {
                 $allowedRoutes = ['users.leave-impersonation','plans.index', 'plans.subscribe', 'plans.start-trial', 'plans.apply-coupon', 'payment.*.store','payment.*.status', 'bank-transfer.index','plans.assign-free'];
                 if (!$request->routeIs($allowedRoutes)) {
-                    if ($planExpired && $isTrialActive) {
+                    if ($hasNoPlan) {
+                        return redirect()->route('plans.index')
+                            ->with('success', __('Please select a plan to continue.'));
+                    } elseif ($isTrialActive) {
                         // Trial expired
                         return redirect()->route('plans.index')
                             ->with('error', __("Your trial has expired. Please subscribe to a plan"));
