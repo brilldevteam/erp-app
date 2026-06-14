@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { Dialog } from "@/components/ui/dialog";
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Plus, Edit, Trash2, Key, Users as UsersIcon, User as UserIcon, UserCheck, History, Lock } from "lucide-react";
+import { Plus, Edit, Trash2, Key, Users as UsersIcon, User as UserIcon, UserCheck, History, Lock, PackageOpen } from "lucide-react";
 import { getImagePath } from '@/utils/helpers';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FilterButton } from '@/components/ui/filter-button';
@@ -23,12 +23,13 @@ import { ListGridToggle } from '@/components/ui/list-grid-toggle';
 import Create from './create';
 import EditUser from './edit';
 import ChangePassword from './change-password';
+import ChangePlan from './change-plan';
 import NoRecordsFound from '@/components/no-records-found';
 import { User, UsersIndexProps, UserFilters, UserModalState } from './types';
 
 export default function Index() {
     const { t } = useTranslation();
-    const { users, roles, auth } = usePage<UsersIndexProps>().props;
+    const { users, roles, plans, auth } = usePage<UsersIndexProps>().props;
     const urlParams = new URLSearchParams(window.location.search);
 
     const [filters, setFilters] = useState<UserFilters>({
@@ -82,7 +83,7 @@ export default function Index() {
         router.get(route('users.index'), {per_page: perPage, view: viewMode});
     };
 
-    const openModal = (mode: 'add' | 'edit' | 'change-password', data: User | null = null) => {
+    const openModal = (mode: 'add' | 'edit' | 'change-password' | 'change-plan', data: User | null = null) => {
         setModalState({
             isOpen: true,
             mode,
@@ -208,6 +209,23 @@ export default function Index() {
                                     </TooltipTrigger>
                                     <TooltipContent>
                                         <p>{t('Edit')}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                            {auth.user?.permissions?.includes('edit-users') && user.type === 'company' && plans.length > 0 && (
+                                <Tooltip delayDuration={0}>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => openModal('change-plan', user)}
+                                            className="h-8 w-8 p-0 text-emerald-600 hover:text-emerald-700"
+                                        >
+                                            <PackageOpen className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{t('Change Plan')}</p>
                                     </TooltipContent>
                                 </Tooltip>
                             )}
@@ -515,6 +533,21 @@ export default function Index() {
                                                                     <TooltipContent><p>{t('Edit')}</p></TooltipContent>
                                                                 </Tooltip>
                                                             )}
+                                                            {auth.user?.permissions?.includes('edit-users') && user.type === 'company' && plans.length > 0 && (
+                                                                <Tooltip delayDuration={0}>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onClick={() => openModal('change-plan', user)}
+                                                                            className="h-9 w-9 p-0 text-emerald-600 hover:text-emerald-700 rounded-lg transition-colors"
+                                                                        >
+                                                                            <PackageOpen className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent><p>{t('Change Plan')}</p></TooltipContent>
+                                                                </Tooltip>
+                                                            )}
                                                             {auth.user?.permissions?.includes('delete-users') && (
                                                                 <Tooltip delayDuration={0}>
                                                                     <TooltipTrigger asChild>
@@ -572,11 +605,19 @@ export default function Index() {
                         user={modalState.data}
                         onSuccess={closeModal}
                         roles={roles}
+                        plans={plans}
                     />
                 )}
                 {modalState.mode === 'change-password' && modalState.data && (
                     <ChangePassword
                         user={modalState.data}
+                        onSuccess={closeModal}
+                    />
+                )}
+                {modalState.mode === 'change-plan' && modalState.data && (
+                    <ChangePlan
+                        user={modalState.data}
+                        plans={plans}
                         onSuccess={closeModal}
                     />
                 )}

@@ -1706,6 +1706,12 @@
     "Your intelligent assistant is ready to help": "Your intelligent assistant is ready to help",
     "Your plan has expired. Please renew your subscription": "Your plan has expired. Please renew your subscription",
     "Your trial has expired. Please subscribe to a plan": "Your trial has expired. Please subscribe to a plan",
+    "Billing Period": "Billing Period",
+    "Change Plan": "Change Plan",
+    "Select a package": "Select a package",
+    "The package could not be assigned.": "The package could not be assigned.",
+    "d trial": "d trial",
+    "modules": "modules",
     "add-ons": "add-ons",
     "record(s)": "record(s)"
 }

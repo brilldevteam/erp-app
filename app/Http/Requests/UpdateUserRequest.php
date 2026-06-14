@@ -20,6 +20,9 @@ class UpdateUserRequest extends FormRequest
             'email' => 'required|email|unique:users,email,' . $userId,
             'mobile_no' => 'nullable|string|regex:/^\+\d{1,3}\d{9,13}$/',
             'is_enable_login' => 'boolean',
+            'plan_id' => 'nullable|integer|exists:plans,id',
+            'plan_duration' => 'nullable|in:Month,Year',
+            'plan_changed' => 'nullable|boolean',
         ];
     }
 }

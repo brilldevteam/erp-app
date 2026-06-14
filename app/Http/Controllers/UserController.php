@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\LoginHistory;
+use App\Models\Plan;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Http\Requests\ChangePasswordRequest;
@@ -52,6 +53,23 @@ class UserController extends Controller
             return Inertia::render('users/index', [
                 'users' => $users,
                 'roles' => $roles,
+                'plans' => Auth::user()->can('manage-any-plans')
+                    ? Plan::active()
+                        ->latest()
+                        ->get([
+                            'id',
+                            'name',
+                            'description',
+                            'number_of_users',
+                            'storage_limit',
+                            'modules',
+                            'free_plan',
+                            'trial',
+                            'trial_days',
+                            'package_price_monthly',
+                            'package_price_yearly',
+                        ])
+                    : [],
             ]);
         }
         else{
@@ -138,6 +156,27 @@ class UserController extends Controller
             $user->mobile_no = $validated['mobile_no'];
             $user->is_enable_login = $validated['is_enable_login'];
             $user->save();
+
+            if (
+                Auth::user()->can('manage-any-plans')
+                && $user->type === 'company'
+                && !empty($validated['plan_id'])
+                && !empty($validated['plan_changed'])
+            ) {
+                $plan = Plan::active()->findOrFail($validated['plan_id']);
+                $duration = $validated['plan_duration'] ?? 'Month';
+                $result = assignPlan(
+                    $plan->id,
+                    $duration,
+                    implode(',', $plan->modules ?? []),
+                    null,
+                    $user->id,
+                );
+
+                if (!$result['is_success']) {
+                    return back()->with('error', $result['error'] ?? __('The package could not be assigned.'));
+                }
+            }
 
             return back()->with('success', __('The user details are updated successfully.'));
         }
