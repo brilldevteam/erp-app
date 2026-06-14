@@ -8,7 +8,7 @@ import { formatCurrency, formatDate } from '@/utils/helpers';
 import { getStatusBadgeClasses } from './utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { FileText, Download, Send, RefreshCw } from 'lucide-react';
+import { FileText, Download, Send, RefreshCw, Receipt } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ViewProps {
@@ -58,8 +58,8 @@ export default function View() {
                                 )}
                             </div>
                             <div className="flex items-center gap-4">
-                                <span className={getStatusBadgeClasses(quotation.status)}>
-                                    {t(quotation.status.toUpperCase())}
+                                <span className={getStatusBadgeClasses(quotation.converted_to_invoice ? 'converted' : quotation.status)}>
+                                    {t(quotation.converted_to_invoice ? 'Converted' : quotation.status.toUpperCase())}
                                 </span>
                                 <div className="text-right">
                                     <div className="text-2xl font-bold">{formatCurrency(quotation.total_amount)}</div>
@@ -135,17 +135,16 @@ export default function View() {
                                                     {t('Download PDF')}
                                                 </Button>
                                             )}
-                                            {!quotation.converted_to_invoice && auth.user?.permissions?.includes('convert-to-invoice-quotations') && quotation.status === 'accepted' && (
+                                            {!quotation.converted_to_invoice
+                                                && auth.user?.permissions?.includes('convert-to-invoice-quotations')
+                                                && auth.user?.permissions?.includes('create-sales-invoices')
+                                                && ['draft', 'sent', 'accepted'].includes(quotation.status) && (
                                                 <TooltipProvider>
                                                     <Tooltip delayDuration={0}>
                                                         <TooltipTrigger asChild>
                                                             <Button
                                                                 size="sm"
-                                                                onClick={() => router.post(route('quotations.convert-to-invoice', quotation.id), {}, {
-                                                                    onSuccess: () => {
-                                                                        router.reload();
-                                                                    }
-                                                                })}
+                                                                onClick={() => router.get(route('quotations.convert-to-invoice', quotation.id))}
                                                             >
                                                                 <RefreshCw className="h-4 w-4 mr-2" />
                                                                 {t('Convert to Invoice')}
@@ -156,6 +155,15 @@ export default function View() {
                                                         </TooltipContent>
                                                     </Tooltip>
                                                 </TooltipProvider>
+                                            )}
+                                            {quotation.converted_to_invoice && quotation.invoice_id && (
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => router.get(route('sales-invoices.show', quotation.invoice_id))}
+                                                >
+                                                    <Receipt className="h-4 w-4 mr-2" />
+                                                    {t('View Invoice')}
+                                                </Button>
                                             )}
 
                                         </div>

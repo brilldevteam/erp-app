@@ -1,5 +1,6 @@
 export interface SalesInvoice {
     id: number;
+    quotation_id?: number;
     invoice_number: string;
     invoice_date: string;
     due_date: string;
@@ -24,6 +25,10 @@ export interface SalesInvoice {
     customer_details?: CustomerDetails;
     warehouse?: Warehouse;
     items?: SalesInvoiceItem[];
+    quotation?: {
+        id: number;
+        quotation_number: string;
+    };
 }
 
 export interface SalesInvoiceItem {

@@ -12,13 +12,17 @@ export interface Quotation {
     discount_amount: number;
     total_amount: number;
     status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired';
-    display_status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired';
+    display_status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired' | 'converted';
     payment_terms?: string;
     notes?: string;
     creator_id: number;
     created_by: number;
     converted_to_invoice: boolean;
     invoice_id?: number;
+    invoice?: {
+        id: number;
+        invoice_number: string;
+    };
     created_at: string;
     updated_at: string;
     customer?: User;

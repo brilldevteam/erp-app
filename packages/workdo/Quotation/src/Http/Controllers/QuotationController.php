@@ -12,13 +12,10 @@ use App\Models\User;
 use App\Models\Warehouse;
 use Workdo\ProductService\Models\ProductServiceItem;
 use App\Models\SalesInvoice;
-use App\Models\SalesInvoiceItem;
-use App\Models\SalesInvoiceItemTax;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Workdo\Quotation\Events\AcceptSalesQuotation;
-use Workdo\Quotation\Events\ConvertSalesQuotation;
 use Workdo\Quotation\Events\CreateQuotation;
 use Workdo\Quotation\Events\UpdateQuotation;
 use Workdo\Quotation\Events\DestroyQuotation;
@@ -151,7 +148,7 @@ class QuotationController extends Controller
                 return redirect()->route('quotations.index')->with('error', __('Access denied'));
             }
 
-            $quotation->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'warehouse', 'parentQuotation']);
+            $quotation->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'warehouse', 'parentQuotation', 'invoice']);
 
             return Inertia::render('Quotation/Quotations/View', [
                 'quotation' => $quotation
@@ -421,73 +418,96 @@ class QuotationController extends Controller
 
     public function convertToInvoice(SalesQuotation $quotation)
     {
-        if (Auth::user()->can('convert-to-invoice-quotations') && $quotation->created_by == creatorId()) {
-            if ($quotation->status !== 'accepted') {
-                return back()->with('error', __('Only accepted quotations can be converted to invoice.'));
-            }
-
-            if ($quotation->converted_to_invoice) {
-                return back()->with('error', __('Quotation already converted to invoice.'));
-            }
-
-            $quotation->load(['items.taxes']);
-
-              // Create sales invoice from quotation
-            $invoice                  = new SalesInvoice();
-            $invoice->customer_id     = $quotation->customer_id;
-            $invoice->warehouse_id    = $quotation->warehouse_id;
-            $invoice->invoice_date    = now();
-            $invoice->due_date        = $quotation->due_date;
-            $invoice->subtotal        = $quotation->subtotal;
-            $invoice->tax_amount      = $quotation->tax_amount;
-            $invoice->discount_amount = $quotation->discount_amount;
-            $invoice->total_amount    = $quotation->total_amount;
-            $invoice->balance_amount  = $quotation->total_amount;
-            $invoice->paid_amount     = 0;
-            $invoice->status          = 'draft';
-            $invoice->payment_terms   = $quotation->payment_terms;
-            $invoice->notes           = $quotation->notes;
-            $invoice->creator_id      = Auth::id();
-            $invoice->created_by      = creatorId();
-            $invoice->save();
-
-              // Copy quotation items to invoice items
-            foreach ($quotation->items as $quotationItem) {
-                $invoiceItem                      = new SalesInvoiceItem();
-                $invoiceItem->invoice_id          = $invoice->id;
-                $invoiceItem->product_id          = $quotationItem->product_id;
-                $invoiceItem->quantity            = $quotationItem->quantity;
-                $invoiceItem->unit_price          = $quotationItem->unit_price;
-                $invoiceItem->discount_percentage = $quotationItem->discount_percentage;
-                $invoiceItem->discount_amount     = $quotationItem->discount_amount;
-                $invoiceItem->tax_percentage      = $quotationItem->tax_percentage;
-                $invoiceItem->tax_amount          = $quotationItem->tax_amount;
-                $invoiceItem->total_amount        = $quotationItem->total_amount;
-                $invoiceItem->save();
-
-                  // Copy tax details
-                foreach ($quotationItem->taxes as $tax) {
-                    $invoiceTax           = new SalesInvoiceItemTax();
-                    $invoiceTax->item_id  = $invoiceItem->id;
-                    $invoiceTax->tax_name = $tax->tax_name;
-                    $invoiceTax->tax_rate = $tax->tax_rate;
-                    $invoiceTax->save();
-                }
-            }
-
-              // Mark quotation as converted
-            $quotation->converted_to_invoice = true;
-            $quotation->invoice_id           = $invoice->id;
-            $quotation->save();
-            try {
-                ConvertSalesQuotation::dispatch($quotation, $invoice);
-            } catch (\Throwable $th) {
-                return back()->with('error', $th->getMessage());
-            }
-            return back()->with('success', __('Quotation converted to invoice successfully.'));
-        } else {
+        if (
+            !Auth::user()->can('convert-to-invoice-quotations')
+            || !Auth::user()->can('create-sales-invoices')
+            || $quotation->created_by != creatorId()
+        ) {
             return back()->with('error', __('Permission denied'));
         }
+
+        if ($quotation->converted_to_invoice || $quotation->invoice_id) {
+            return back()->with('error', __('This quotation has already been converted to invoice.'));
+        }
+
+        if (!$quotation->canConvertToInvoice()) {
+            return back()->with('error', __('This quotation cannot be converted to invoice.'));
+        }
+
+        $quotation->load(['customer', 'warehouse', 'items.product', 'items.taxes']);
+
+        if (!$quotation->customer) {
+            return back()->with('error', __('A customer is required before converting this quotation.'));
+        }
+
+        if ($quotation->items->isEmpty()) {
+            return back()->with('error', __('At least one line item is required before converting this quotation.'));
+        }
+
+        $type = $quotation->items->every(
+            fn ($item) => $item->product?->type === 'service'
+        ) ? 'service' : 'product';
+
+        $customers = User::where('type', 'client')
+            ->select('id', 'name', 'email')
+            ->where('created_by', creatorId())
+            ->get();
+        $warehouses = Warehouse::where('is_active', true)
+            ->select('id', 'name', 'address')
+            ->where('created_by', creatorId())
+            ->get();
+
+        return Inertia::render('Sales/Create', [
+            'customers' => $customers,
+            'warehouses' => $warehouses,
+            'initialProducts' => $quotation->items
+                ->filter(fn ($item) => $item->product)
+                ->unique('product_id')
+                ->map(fn ($item) => [
+                    'id' => $item->product->id,
+                    'name' => $item->product->name,
+                    'sku' => $item->product->sku,
+                    'description' => $item->product->description,
+                    'sale_price' => (float) $item->product->sale_price,
+                    'unit' => $item->product->unit,
+                    'type' => $item->product->type,
+                    'taxes' => $item->taxes->map(fn ($tax) => [
+                        'id' => $tax->id,
+                        'tax_name' => $tax->tax_name,
+                        'rate' => (float) $tax->tax_rate,
+                    ])->values(),
+                ])
+                ->values(),
+            'initialInvoice' => [
+                'invoice_number' => SalesInvoice::generateInvoiceNumber(),
+                'quotation_id' => $quotation->id,
+                'quotation_number' => $quotation->quotation_number,
+                'quotation_date' => $quotation->quotation_date->format('Y-m-d'),
+                'invoice_date' => $quotation->quotation_date->format('Y-m-d'),
+                'due_date' => $quotation->due_date->format('Y-m-d'),
+                'customer_id' => (string) $quotation->customer_id,
+                'warehouse_id' => $type === 'product' && $quotation->warehouse_id
+                    ? (string) $quotation->warehouse_id
+                    : '',
+                'type' => $type,
+                'payment_terms' => $quotation->payment_terms ?? '',
+                'notes' => $quotation->notes ?? '',
+                'items' => $quotation->items->map(fn ($item) => [
+                    'product_id' => $item->product_id,
+                    'quantity' => $item->quantity,
+                    'unit_price' => (float) $item->unit_price,
+                    'discount_percentage' => (float) $item->discount_percentage,
+                    'discount_amount' => (float) $item->discount_amount,
+                    'tax_percentage' => (float) $item->tax_percentage,
+                    'tax_amount' => (float) $item->tax_amount,
+                    'total_amount' => (float) $item->total_amount,
+                    'taxes' => $item->taxes->map(fn ($tax) => [
+                        'tax_name' => $tax->tax_name,
+                        'tax_rate' => (float) $tax->tax_rate,
+                    ])->values(),
+                ])->values(),
+            ],
+        ]);
     }
 
     private function canAccessQuotation(SalesQuotation $quotation)

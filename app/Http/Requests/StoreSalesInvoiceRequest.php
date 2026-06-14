@@ -17,6 +17,7 @@ class StoreSalesInvoiceRequest extends FormRequest
             'invoice_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:invoice_date',
             'customer_id' => 'required|integer|exists:users,id',
+            'quotation_id' => 'nullable|integer|exists:sales_quotations,id',
             'type' => 'required|in:product,service',
             'warehouse_id' => 'nullable|integer|exists:warehouses,id',
             'payment_terms' => 'nullable|string|max:255',
@@ -26,7 +27,10 @@ class StoreSalesInvoiceRequest extends FormRequest
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.discount_percentage' => 'nullable|numeric|min:0|max:100',
-            'items.*.tax_percentage' => 'nullable|numeric|min:0|max:100'
+            'items.*.tax_percentage' => 'nullable|numeric|min:0|max:100',
+            'items.*.taxes' => 'nullable|array',
+            'items.*.taxes.*.tax_name' => 'required_with:items.*.taxes|string',
+            'items.*.taxes.*.tax_rate' => 'required_with:items.*.taxes|numeric|min:0',
         ];
     }
 

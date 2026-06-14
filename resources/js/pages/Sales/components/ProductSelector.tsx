@@ -6,6 +6,7 @@ import { formatCurrency } from '@/utils/helpers';
 interface Product {
     id: number;
     name: string;
+    description?: string;
     sale_price: number;
     unit?: string;
     taxes?: Array<{id: number; tax_name: string; rate: number}>;
