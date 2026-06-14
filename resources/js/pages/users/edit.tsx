@@ -8,16 +8,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import InputError from "@/components/ui/input-error";
 import { PhoneInputComponent } from "@/components/ui/phone-input";
 import { EditUserProps, EditUserFormData } from './types';
+import PackageSelector from './package-selector';
 
-export default function Edit({ user, onSuccess, roles = {} }: EditUserProps) {
+export default function Edit({ user, onSuccess, roles = {}, plans = [] }: EditUserProps) {
     const { t } = useTranslation();
     const { data, setData, put, processing, errors } = useForm<EditUserFormData>({
         name: user.name,
         email: user.email,
         mobile_no: user.mobile_no,
         is_enable_login: user.is_enable_login,
+        plan_id: user.active_plan?.toString() ?? '',
+        plan_duration: 'Month',
+        plan_changed: false,
     });
-
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         put(route('users.update', user.id), {
@@ -28,7 +31,7 @@ export default function Edit({ user, onSuccess, roles = {} }: EditUserProps) {
     };
 
     return (
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
             <DialogHeader>
                 <DialogTitle>{t('Edit User')}</DialogTitle>
             </DialogHeader>
@@ -79,6 +82,27 @@ export default function Edit({ user, onSuccess, roles = {} }: EditUserProps) {
                     </Select>
                     <InputError message={errors.is_enable_login} />
                 </div>
+                {user.type === 'company' && plans.length > 0 && (
+                    <div className="space-y-4 border-t pt-4">
+                        <PackageSelector
+                            plans={plans}
+                            planId={data.plan_id}
+                            planDuration={data.plan_duration}
+                            onPlanChange={(planId) => setData((current) => ({
+                                ...current,
+                                plan_id: planId,
+                                plan_changed: true,
+                            }))}
+                            onDurationChange={(duration) => setData((current) => ({
+                                ...current,
+                                plan_duration: duration,
+                                plan_changed: true,
+                            }))}
+                            planError={errors.plan_id}
+                            durationError={errors.plan_duration}
+                        />
+                    </div>
+                )}
                 <div className="flex justify-end gap-2">
                     <Button type="button" variant="outline" onClick={onSuccess}>
                         {t('Cancel')}
