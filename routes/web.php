@@ -13,6 +13,7 @@ use App\Http\Controllers\TranslationController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\BankTransferPaymentController;
 use App\Http\Controllers\BulkImportController;
+use App\Http\Controllers\ModuleAssetController;
 
 use App\Http\Controllers\CouponController;
 use Illuminate\Foundation\Application;
@@ -38,6 +39,9 @@ use Inertia\Inertia;
 
 
 Route::get('/media-file', [MediaController::class, 'file'])->name('media.file');
+Route::get('/packages/workdo/{module}/favicon.png', [ModuleAssetController::class, 'favicon'])
+    ->where('module', '[A-Za-z0-9_-]+')
+    ->name('module-assets.favicon');
 
 Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::prefix('bulk-imports')->name('bulk-imports.')->group(function () {
