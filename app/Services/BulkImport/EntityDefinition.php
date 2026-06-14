@@ -8,8 +8,11 @@ interface EntityDefinition
     public function permission(): string;
     public function createPermission(): string;
     public function headers(): array;
+    public function requiredFields(): array;
+    public function aliases(): array;
     public function example(): array;
     public function instructions(): array;
+    public function prepare(array $row): array;
     public function identity(array $row): string;
     public function validate(array $row, int $tenantId): array;
     public function duplicate(array $row, int $tenantId): bool;

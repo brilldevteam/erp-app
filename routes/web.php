@@ -45,6 +45,7 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
         Route::post('{entity}', [BulkImportController::class, 'store'])->name('store');
         Route::get('{entity}/history', [BulkImportController::class, 'history'])->name('history');
         Route::get('status/{bulkImport}', [BulkImportController::class, 'show'])->name('show');
+        Route::post('{bulkImport}/mapping', [BulkImportController::class, 'map'])->name('mapping');
         Route::post('{bulkImport}/confirm', [BulkImportController::class, 'confirm'])->name('confirm');
         Route::get('{bulkImport}/errors', [BulkImportController::class, 'errors'])->name('errors');
     });

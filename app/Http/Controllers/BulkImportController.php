@@ -33,7 +33,12 @@ class BulkImportController extends Controller
             ->deleteFileAfterSend();
     }
 
-    public function store(Request $request, string $entity, BulkImportRegistry $registry): JsonResponse
+    public function store(
+        Request $request,
+        string $entity,
+        BulkImportRegistry $registry,
+        SpreadsheetService $spreadsheets
+    ): JsonResponse
     {
         $this->authorizeEntity($request, $entity, $registry);
         $validated = $request->validate([
@@ -61,16 +66,61 @@ class BulkImportController extends Controller
 
         $import = BulkImport::create([
             'entity_type' => $entity,
-            'status' => 'uploaded',
+            'status' => 'mapping',
             'strategy' => 'skip',
             'original_filename' => $file->getClientOriginalName(),
             'file_path' => $path,
             'tenant_id' => $tenantId,
             'creator_id' => $request->user()->id,
         ]);
-        ValidateBulkImport::dispatch($import->id);
 
-        return response()->json($this->payload($import), 202);
+        try {
+            $metadata = $spreadsheets->inspect($import, $registry->get($entity));
+            $metadataPath = "{$directory}/mapping.json";
+            Storage::disk('local')->put($metadataPath, json_encode($metadata, JSON_UNESCAPED_UNICODE));
+            $import->update(['preview_path' => $metadataPath]);
+        } catch (\Throwable $exception) {
+            $import->update([
+                'status' => 'failed',
+                'failure_message' => $exception->getMessage(),
+            ]);
+        }
+
+        return response()->json($this->payload($import->fresh(), true), 201);
+    }
+
+    public function map(
+        Request $request,
+        BulkImport $bulkImport,
+        BulkImportRegistry $registry,
+        SpreadsheetService $spreadsheets
+    ): JsonResponse {
+        $this->authorizeImport($request, $bulkImport, $registry);
+        abort_unless($bulkImport->status === 'mapping', 409, 'Import is not awaiting field mapping.');
+
+        $validated = $request->validate([
+            'mapping' => ['required', 'array'],
+            'mapping.*' => ['nullable', 'string'],
+        ]);
+        $metadata = json_decode(Storage::disk('local')->get($bulkImport->preview_path), true) ?: [];
+        try {
+            $metadata['mapping'] = $spreadsheets->validateMapping(
+                $validated['mapping'],
+                $registry->get($bulkImport->entity_type),
+                $metadata['headers'] ?? []
+            );
+        } catch (\RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
+        Storage::disk('local')->put(
+            $bulkImport->preview_path,
+            json_encode($metadata, JSON_UNESCAPED_UNICODE)
+        );
+        $bulkImport->update(['status' => 'uploaded', 'failure_message' => null]);
+        ValidateBulkImport::dispatch($bulkImport->id);
+
+        return response()->json($this->payload($bulkImport->fresh()), 202);
     }
 
     public function show(Request $request, BulkImport $bulkImport, BulkImportRegistry $registry): JsonResponse
@@ -183,8 +233,12 @@ class BulkImportController extends Controller
 
         if ($withPreview && $import->preview_path
             && Storage::disk('local')->exists($import->preview_path)) {
-            $rows = json_decode(Storage::disk('local')->get($import->preview_path), true) ?: [];
-            $payload['preview'] = array_slice($rows, 0, 20);
+            $data = json_decode(Storage::disk('local')->get($import->preview_path), true) ?: [];
+            if ($import->status === 'mapping') {
+                $payload['mapping'] = $data;
+            } else {
+                $payload['preview'] = array_slice($data, 0, 20);
+            }
         }
 
         return $payload;

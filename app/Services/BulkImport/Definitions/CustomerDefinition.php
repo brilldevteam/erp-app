@@ -33,6 +33,40 @@ class CustomerDefinition implements EntityDefinition
         ];
     }
 
+    public function requiredFields(): array
+    {
+        return ['user_name', 'user_email'];
+    }
+
+    public function aliases(): array
+    {
+        return [
+            'user_name' => ['user', 'customer name', 'contact name', 'display name', 'name'],
+            'user_email' => ['email', 'email address', 'customer email', 'primary email'],
+            'mobile_no' => ['mobile', 'phone', 'phone number', 'mobile number', 'contact phone'],
+            'company_name' => ['company', 'organization', 'organisation', 'business name'],
+            'contact_person_name' => ['contact person', 'primary contact', 'contact'],
+            'contact_person_email' => ['contact email', 'primary contact email'],
+            'tax_number' => ['tax id', 'tax registration number', 'vat number', 'trn'],
+            'payment_terms' => ['terms', 'payment term'],
+            'billing_name' => ['billing attention', 'billing addressee'],
+            'billing_address_line_1' => ['billing address', 'billing street', 'billing address 1'],
+            'billing_address_line_2' => ['billing address 2', 'billing street 2'],
+            'billing_city' => ['billing town'],
+            'billing_state' => ['billing province', 'billing region'],
+            'billing_country' => ['country'],
+            'billing_zip_code' => ['billing zip', 'billing postal code', 'postal code'],
+            'same_as_billing' => ['shipping same as billing', 'same address'],
+            'shipping_name' => ['shipping attention', 'shipping addressee'],
+            'shipping_address_line_1' => ['shipping address', 'shipping street', 'shipping address 1'],
+            'shipping_address_line_2' => ['shipping address 2', 'shipping street 2'],
+            'shipping_city' => ['shipping town'],
+            'shipping_state' => ['shipping province', 'shipping region'],
+            'shipping_zip_code' => ['shipping zip', 'shipping postal code'],
+            'notes' => ['note', 'remarks', 'comments'],
+        ];
+    }
+
     public function example(): array
     {
         return [
@@ -47,10 +81,26 @@ class CustomerDefinition implements EntityDefinition
     {
         return [
             'user_email is the duplicate key and creates a client user when no compatible user exists.',
+            'Only customer name and email are required; contact and company values default from them.',
+            'Billing and shipping addresses are optional for imports.',
             'same_as_billing accepts yes/no, true/false, or 1/0.',
-            'Shipping fields are required only when same_as_billing is false.',
-            'mobile_no is optional and must include the country code when supplied.',
+            'mobile_no is optional.',
         ];
+    }
+
+    public function prepare(array $row): array
+    {
+        $name = $this->text($row['user_name'] ?? '');
+        $email = strtolower($this->text($row['user_email'] ?? ''));
+        $row['user_name'] = $name;
+        $row['user_email'] = $email;
+        $row['company_name'] = $this->text($row['company_name'] ?? '') ?: $name;
+        $row['contact_person_name'] = $this->text($row['contact_person_name'] ?? '') ?: $name;
+        $row['contact_person_email'] = $this->text($row['contact_person_email'] ?? '') ?: $email;
+        $row['billing_name'] = $this->text($row['billing_name'] ?? '') ?: $row['company_name'];
+        $row['same_as_billing'] = $this->nullableText($row['same_as_billing'] ?? null) ?? 'yes';
+
+        return $row;
     }
 
     public function identity(array $row): string
@@ -61,11 +111,7 @@ class CustomerDefinition implements EntityDefinition
     public function validate(array $row, int $tenantId): array
     {
         $errors = [];
-        foreach ([
-            'user_name', 'user_email', 'company_name', 'contact_person_name',
-            'contact_person_email', 'billing_name', 'billing_address_line_1',
-            'billing_city', 'billing_state', 'billing_country', 'billing_zip_code',
-        ] as $field) {
+        foreach ($this->requiredFields() as $field) {
             if ($this->text($row[$field] ?? '') === '') {
                 $errors[] = ucfirst(str_replace('_', ' ', $field)).' is required.';
             }
@@ -77,11 +123,16 @@ class CustomerDefinition implements EntityDefinition
             }
         }
 
-        if (($mobile = $this->nullableText($row['mobile_no'] ?? null)) && !preg_match('/^\+\d{10,16}$/', $mobile)) {
-            $errors[] = 'Mobile number must include country code.';
+        if (($mobile = $this->nullableText($row['mobile_no'] ?? null))
+            && !preg_match('/^\+?[0-9 ()-]{7,20}$/', $mobile)) {
+            $errors[] = 'Mobile number format is invalid.';
         }
 
-        if (!$this->boolean($row['same_as_billing'] ?? false)) {
+        $hasShippingData = collect([
+            'shipping_name', 'shipping_address_line_1', 'shipping_city',
+            'shipping_state', 'shipping_country', 'shipping_zip_code',
+        ])->contains(fn ($field) => $this->text($row[$field] ?? '') !== '');
+        if (!$this->boolean($row['same_as_billing'] ?? true) && $hasShippingData) {
             foreach ([
                 'shipping_name', 'shipping_address_line_1', 'shipping_city',
                 'shipping_state', 'shipping_country', 'shipping_zip_code',
@@ -135,13 +186,14 @@ class CustomerDefinition implements EntityDefinition
             return 'skipped';
         }
 
-        $user->update([
-            'name' => $this->text($row['user_name']),
-            'mobile_no' => $this->nullableText($row['mobile_no'] ?? null),
-        ]);
+        $userValues = ['name' => $this->text($row['user_name'])];
+        if ($this->isMapped($row, 'mobile_no')) {
+            $userValues['mobile_no'] = $this->nullableText($row['mobile_no'] ?? null);
+        }
+        $user->update($userValues);
 
         $billing = $this->address($row, 'billing');
-        $sameAsBilling = $this->boolean($row['same_as_billing'] ?? false);
+        $sameAsBilling = $this->boolean($row['same_as_billing'] ?? true);
         $values = [
             'user_id' => $user->id,
             'company_name' => $this->text($row['company_name']),
@@ -158,8 +210,22 @@ class CustomerDefinition implements EntityDefinition
         $request = new Request($values);
 
         if ($customer) {
-            $customer->update($values);
-            UpdateCustomer::dispatch($request, $customer);
+            $updateValues = array_intersect_key($values, array_flip(array_filter([
+                'user_id',
+                $this->isMapped($row, 'company_name') ? 'company_name' : null,
+                $this->isMapped($row, 'contact_person_name') ? 'contact_person_name' : null,
+                $this->isMapped($row, 'contact_person_email') ? 'contact_person_email' : null,
+                $this->isMapped($row, 'mobile_no') ? 'contact_person_mobile' : null,
+                $this->isMapped($row, 'tax_number') ? 'tax_number' : null,
+                $this->isMapped($row, 'payment_terms') ? 'payment_terms' : null,
+                $this->hasMappedPrefix($row, 'billing_') ? 'billing_address' : null,
+                ($this->hasMappedPrefix($row, 'shipping_') || $this->isMapped($row, 'same_as_billing'))
+                    ? 'shipping_address' : null,
+                $this->isMapped($row, 'same_as_billing') ? 'same_as_billing' : null,
+                $this->isMapped($row, 'notes') ? 'notes' : null,
+            ])));
+            $customer->update($updateValues);
+            UpdateCustomer::dispatch(new Request($updateValues), $customer);
 
             return 'updated';
         }
@@ -171,5 +237,16 @@ class CustomerDefinition implements EntityDefinition
         CreateCustomer::dispatch($request, $customer);
 
         return 'imported';
+    }
+
+    private function isMapped(array $row, string $field): bool
+    {
+        return in_array($field, $row['_mapped_fields'] ?? [], true);
+    }
+
+    private function hasMappedPrefix(array $row, string $prefix): bool
+    {
+        return collect($row['_mapped_fields'] ?? [])
+            ->contains(fn ($field) => str_starts_with($field, $prefix));
     }
 }

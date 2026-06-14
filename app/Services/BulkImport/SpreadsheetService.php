@@ -14,12 +14,9 @@ class SpreadsheetService
 {
     public const MAX_ROWS = 10000;
 
-    public function read(BulkImport $import, EntityDefinition $definition): array
+    public function inspect(BulkImport $import, EntityDefinition $definition): array
     {
-        $path = Storage::disk('local')->path($import->file_path);
-        $reader = IOFactory::createReaderForFile($path);
-        $reader->setReadDataOnly(false);
-        $spreadsheet = $reader->load($path);
+        $spreadsheet = $this->load($import);
         $sheet = $spreadsheet->getActiveSheet();
         $highestRow = $sheet->getHighestDataRow();
 
@@ -32,17 +29,65 @@ class SpreadsheetService
 
         $highestColumn = $sheet->getHighestDataColumn();
         $rawHeaders = $sheet->rangeToArray("A1:{$highestColumn}1", null, true, false)[0];
-        $headers = array_map(fn ($header) => $this->normalizeHeader($header), $rawHeaders);
-        $expected = $definition->headers();
+        $headers = [];
+        foreach ($rawHeaders as $index => $header) {
+            $label = trim((string) $header);
+            if ($label === '') {
+                continue;
+            }
+            $samples = [];
+            for ($row = 2; $row <= min($highestRow, 5); $row++) {
+                $value = $sheet->getCell([$index + 1, $row])->getCalculatedValue();
+                if ($value !== null && $value !== '') {
+                    $samples[] = (string) $value;
+                }
+            }
+            $headers[] = [
+                'key' => 'column_'.($index + 1),
+                'index' => $index + 1,
+                'label' => $label,
+                'normalized' => $this->normalizeHeader($label),
+                'samples' => array_slice($samples, 0, 3),
+            ];
+        }
 
-        if ($headers !== $expected) {
-            $missing = array_diff($expected, $headers);
-            $extra = array_diff($headers, $expected);
-            $parts = [];
-            if ($missing) $parts[] = 'missing: '.implode(', ', $missing);
-            if ($extra) $parts[] = 'unexpected: '.implode(', ', $extra);
-            if (!$parts) $parts[] = 'columns are not in the template order';
-            throw new RuntimeException('Invalid spreadsheet headers ('.implode('; ', $parts).').');
+        if (!$headers) {
+            throw new RuntimeException('The spreadsheet header row is empty.');
+        }
+
+        $mapping = $this->autoMapping($headers, $definition);
+        $rows = [];
+        for ($rowNumber = 2; $rowNumber <= min($highestRow, 6); $rowNumber++) {
+            $values = [];
+            foreach ($headers as $header) {
+                $values[$header['key']] = $sheet->getCell([$header['index'], $rowNumber])->getCalculatedValue();
+            }
+            if (array_filter($values, fn ($value) => $value !== null && $value !== '')) {
+                $rows[] = $values;
+            }
+        }
+        $spreadsheet->disconnectWorksheets();
+
+        return [
+            'headers' => $headers,
+            'mapping' => $mapping,
+            'fields' => $this->fieldMetadata($definition),
+            'sample_rows' => $rows,
+        ];
+    }
+
+    public function read(BulkImport $import, EntityDefinition $definition, array $mapping): array
+    {
+        $spreadsheet = $this->load($import);
+        $sheet = $spreadsheet->getActiveSheet();
+        $highestRow = $sheet->getHighestDataRow();
+        $highestColumn = $sheet->getHighestDataColumn();
+        $rawHeaders = $sheet->rangeToArray("A1:{$highestColumn}1", null, true, false)[0];
+        $columns = [];
+        foreach ($rawHeaders as $index => $header) {
+            if (trim((string) $header) !== '') {
+                $columns['column_'.($index + 1)] = $index + 1;
+            }
         }
 
         $rows = [];
@@ -54,19 +99,53 @@ class SpreadsheetService
 
             $data = [];
             $formula = false;
-            foreach ($headers as $index => $header) {
-                $cell = $sheet->getCell([$index + 1, $rowNumber]);
+            foreach ($definition->headers() as $field) {
+                $source = $mapping[$field] ?? null;
+                $column = $source ? ($columns[$source] ?? null) : null;
+                if (!$column) {
+                    $data[$field] = null;
+                    continue;
+                }
+                $cell = $sheet->getCell([$column, $rowNumber]);
                 if ($cell->isFormula()) {
                     $formula = true;
                 }
-                $data[$header] = $values[$index] ?? null;
+                $data[$field] = $cell->getCalculatedValue();
             }
-            $rows[] = ['row_number' => $rowNumber, 'data' => $data, 'formula' => $formula];
+            $data['_mapped_fields'] = array_keys(array_filter(
+                $mapping,
+                fn ($source) => $source !== null && $source !== ''
+            ));
+            $rows[] = [
+                'row_number' => $rowNumber,
+                'data' => $definition->prepare($data),
+                'formula' => $formula,
+            ];
         }
 
         $spreadsheet->disconnectWorksheets();
 
         return $rows;
+    }
+
+    public function validateMapping(array $mapping, EntityDefinition $definition, array $sourceHeaders): array
+    {
+        $allowedSources = array_column($sourceHeaders, 'key');
+        $clean = [];
+        foreach ($definition->headers() as $field) {
+            $source = $mapping[$field] ?? null;
+            $clean[$field] = in_array($source, $allowedSources, true) ? $source : null;
+        }
+
+        $missing = array_values(array_filter(
+            $definition->requiredFields(),
+            fn ($field) => empty($clean[$field])
+        ));
+        if ($missing) {
+            throw new RuntimeException('Map the required fields: '.implode(', ', $missing).'.');
+        }
+
+        return $clean;
     }
 
     public function template(EntityDefinition $definition, string $format): string
@@ -87,7 +166,7 @@ class SpreadsheetService
             $notes->setTitle('Instructions');
             $notes->fromArray([
                 ['Bulk Import Instructions'],
-                ['Do not rename, reorder, add, or remove template columns.'],
+                ['You may use this template or upload an existing file and map its columns.'],
                 ['Delete the example row before importing your own data.'],
                 ['Reference names must already exist in your company.'],
                 ['Files may contain at most '.self::MAX_ROWS.' data rows.'],
@@ -129,5 +208,46 @@ class SpreadsheetService
         $header = strtolower(trim((string) $header));
 
         return preg_replace('/[^a-z0-9]+/', '_', $header);
+    }
+
+    private function load(BulkImport $import): Spreadsheet
+    {
+        $path = Storage::disk('local')->path($import->file_path);
+        $reader = IOFactory::createReaderForFile($path);
+        $reader->setReadDataOnly(false);
+
+        return $reader->load($path);
+    }
+
+    private function autoMapping(array $headers, EntityDefinition $definition): array
+    {
+        $lookup = [];
+        foreach ($headers as $header) {
+            $lookup[$header['normalized']] = $header['key'];
+        }
+
+        $mapping = [];
+        foreach ($definition->headers() as $field) {
+            $aliases = [$field, ...($definition->aliases()[$field] ?? [])];
+            $mapping[$field] = null;
+            foreach ($aliases as $alias) {
+                $normalized = $this->normalizeHeader($alias);
+                if (isset($lookup[$normalized])) {
+                    $mapping[$field] = $lookup[$normalized];
+                    break;
+                }
+            }
+        }
+
+        return $mapping;
+    }
+
+    private function fieldMetadata(EntityDefinition $definition): array
+    {
+        return array_map(fn ($field) => [
+            'key' => $field,
+            'label' => ucwords(str_replace('_', ' ', $field)),
+            'required' => in_array($field, $definition->requiredFields(), true),
+        ], $definition->headers());
     }
 }

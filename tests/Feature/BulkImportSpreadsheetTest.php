@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use RuntimeException;
 use Tests\TestCase;
 
 class BulkImportSpreadsheetTest extends TestCase
@@ -38,31 +37,55 @@ class BulkImportSpreadsheetTest extends TestCase
         $sheet->setCellValue('G2', '=50+50');
         $this->storeSpreadsheet($spreadsheet, 'bulk-imports/test/source.xlsx');
 
+        $mapping = [];
+        foreach ($definition->headers() as $index => $field) {
+            $mapping[$field] = 'column_'.($index + 1);
+        }
         $rows = app(SpreadsheetService::class)->read(
             new BulkImport(['file_path' => 'bulk-imports/test/source.xlsx']),
-            $definition
+            $definition,
+            $mapping
         );
 
         $this->assertCount(1, $rows);
         $this->assertSame(2, $rows[0]['row_number']);
         $this->assertTrue($rows[0]['formula']);
+        $this->assertContains('name', $rows[0]['data']['_mapped_fields']);
     }
 
-    public function test_reader_rejects_modified_headers(): void
+    public function test_inspector_accepts_existing_spreadsheet_headers_and_auto_maps_aliases(): void
     {
         Storage::fake('local');
         $spreadsheet = new Spreadsheet();
-        $spreadsheet->getActiveSheet()->fromArray(['name', 'sku'], null, 'A1');
+        $spreadsheet->getActiveSheet()->fromArray(['Item Name', 'Item Code'], null, 'A1');
         $spreadsheet->getActiveSheet()->fromArray(['Example', 'SKU-1'], null, 'A2');
         $this->storeSpreadsheet($spreadsheet, 'bulk-imports/test/source.xlsx');
 
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Invalid spreadsheet headers');
-
-        app(SpreadsheetService::class)->read(
+        $inspection = app(SpreadsheetService::class)->inspect(
             new BulkImport(['file_path' => 'bulk-imports/test/source.xlsx']),
             new ProductServiceDefinition()
         );
+
+        $this->assertSame('column_1', $inspection['mapping']['name']);
+        $this->assertSame('column_2', $inspection['mapping']['sku']);
+        $this->assertSame('Example', $inspection['sample_rows'][0]['column_1']);
+    }
+
+    public function test_mapping_requires_only_identity_fields(): void
+    {
+        $definition = new ProductServiceDefinition();
+        $headers = [
+            ['key' => 'column_1'],
+            ['key' => 'column_2'],
+        ];
+
+        $mapping = app(SpreadsheetService::class)->validateMapping([
+            'name' => 'column_1',
+            'sku' => 'column_2',
+        ], $definition, $headers);
+
+        $this->assertSame('column_1', $mapping['name']);
+        $this->assertNull($mapping['category']);
     }
 
     private function storeSpreadsheet(Spreadsheet $spreadsheet, string $path): void
