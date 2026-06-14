@@ -48,7 +48,7 @@ class PlanController extends Controller
                     return [
                         'module' => $addon->module,
                         'alias' => $addon->name,
-                        'image' => $addon->image ?: url('/packages/workdo/' . $addon->module . '/favicon.png'),
+                        'image' => $addon->image ?: route('module-assets.favicon', ['module' => $addon->module]),
                         'monthly_price' => $addon->monthly_price ?? 0,
                         'yearly_price' => $addon->yearly_price ?? 0,
                     ];
@@ -93,7 +93,7 @@ class PlanController extends Controller
                     return [
                         'module' => $addon->module,
                         'alias' => $addon->name,
-                        'image' => $addon->image ?: url('/packages/workdo/' . $addon->module . '/favicon.png'),
+                        'image' => $addon->image ?: route('module-assets.favicon', ['module' => $addon->module]),
                     ];
                 })->values()->toArray();
             } else {
@@ -106,7 +106,7 @@ class PlanController extends Controller
                     return [
                         'module' => $addon->module,
                         'alias' => $addon->name,
-                        'image' => $addon->image ?: url('/packages/workdo/' . $addon->module . '/favicon.png'),
+                        'image' => $addon->image ?: route('module-assets.favicon', ['module' => $addon->module]),
                     ];
                 })->values()->toArray();
             }
@@ -174,7 +174,7 @@ class PlanController extends Controller
                     return [
                         'module' => $addon->module,
                         'alias' => $addon->name,
-                        'image' => $addon->image ?: url('/packages/workdo/' . $addon->module . '/favicon.png'),
+                        'image' => $addon->image ?: route('module-assets.favicon', ['module' => $addon->module]),
                     ];
                 })->values()->toArray();
             } else {
@@ -187,7 +187,7 @@ class PlanController extends Controller
                     return [
                         'module' => $addon->module,
                         'alias' => $addon->name,
-                        'image' => $addon->image ?: url('/packages/workdo/' . $addon->module . '/favicon.png'),
+                        'image' => $addon->image ?: route('module-assets.favicon', ['module' => $addon->module]),
                     ];
                 })->values()->toArray();
             }
@@ -337,7 +337,7 @@ class PlanController extends Controller
                     return [
                         'module' => $addon->module,
                         'alias' => $addon->name,
-                        'image' => $addon->image ?: url('/packages/workdo/' . $addon->module . '/favicon.png'),
+                        'image' => $addon->image ?: route('module-assets.favicon', ['module' => $addon->module]),
                         'monthly_price' => $addon->monthly_price ?? 0,
                         'yearly_price' => $addon->yearly_price ?? 0,
                     ];
