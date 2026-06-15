@@ -346,6 +346,18 @@ export default function Index() {
                         <div key={button.id}>{button.component}</div>
                     ))}
                     <TooltipProvider>
+                        {auth.user?.permissions?.includes('create-project-task') && (
+                            <Tooltip delayDuration={0}>
+                                <TooltipTrigger asChild>
+                                    <Button size="sm" onClick={() => openModal('add')}>
+                                        <Plus className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{t('Create')}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
                         {project && auth.user?.permissions?.includes('manage-project-task') && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>
