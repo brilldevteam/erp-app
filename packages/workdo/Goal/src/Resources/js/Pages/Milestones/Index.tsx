@@ -28,6 +28,7 @@ export default function Index() {
     const { t } = useTranslation();
     const { milestones, goals, auth } = usePage<MilestonesIndexProps>().props;
     const urlParams = new URLSearchParams(window.location.search);
+    const shouldOpenCreate = urlParams.get('create') === '1' && auth.user?.permissions?.includes('create-goal-milestones');
 
     const [filters, setFilters] = useState<MilestoneFilters>({
         milestone_name: urlParams.get('milestone_name') || '',
@@ -45,8 +46,8 @@ export default function Index() {
     const [sortDirection, setSortDirection] = useState(urlParams.get('direction') || 'asc');
 
     const [modalState, setModalState] = useState<MilestoneModalState>({
-        isOpen: false,
-        mode: '',
+        isOpen: shouldOpenCreate,
+        mode: shouldOpenCreate ? 'add' : '',
         data: null
     });
     const [viewingItem, setViewingItem] = useState<GoalMilestone | null>(null);
@@ -110,6 +111,12 @@ export default function Index() {
 
     const closeModal = () => {
         setModalState({ isOpen: false, mode: '', data: null });
+
+        if (urlParams.get('create') === '1') {
+            const cleanUrl = new URL(window.location.href);
+            cleanUrl.searchParams.delete('create');
+            window.history.replaceState({}, '', cleanUrl.toString());
+        }
     };
 
     const tableColumns = [

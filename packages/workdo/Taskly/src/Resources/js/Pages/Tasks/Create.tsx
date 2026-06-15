@@ -86,9 +86,9 @@ export default function Create({ onSuccess, project, milestones, teamMembers, ta
                             ))}
                         </SelectContent>
                     </Select>
-                    {milestones.length === 0 && auth?.user?.permissions?.includes('create-project-milestone') && (
+                    {milestones.length === 0 && (auth?.user?.permissions?.includes('create-project-milestone') || auth?.user?.permissions?.includes('create-goal-milestones')) && (
                         <p className="text-xs text-gray-500 mb-1">
-                            {t('Create milestone here.')} <button type="button" onClick={(e) => { e.preventDefault(); router.get(route('project.show', project?.id)); }} className="text-blue-600 hover:underline">{t('Create milestone')}</button>
+                            {t('Create milestone here.')} <button type="button" onClick={(e) => { e.preventDefault(); router.get(route('goal.milestones.index'), { create: 1 }); }} className="text-blue-600 hover:underline">{t('Create milestone')}</button>
                         </p>
                     )}
                     <InputError message={errors.milestone_id} />

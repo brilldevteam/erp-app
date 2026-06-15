@@ -131,6 +131,8 @@ createInertiaApp({
                 <Toaster position="top-center" richColors expand={true} />
             </ThemeProvider>
         );
+
+        document.getElementById("app-loader")?.remove();
     },
     progress: {
         color: "#4B5563",
