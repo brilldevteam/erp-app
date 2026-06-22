@@ -24,6 +24,7 @@ export default function DocumentTemplatePreview({
     const config = template.config_json;
     const color = template.primary_color || '#10b981';
     const logo = template.logo_url || document.company.logo;
+    const signature = template.signature_url;
     const alignment = config.header.alignment || 'left';
     const title = document.type === 'invoice' ? 'INVOICE' : 'QUOTATION';
 
@@ -99,7 +100,10 @@ export default function DocumentTemplatePreview({
                     </div>
                     {config.footer.showSignature && (
                         <div className="flex items-end justify-end">
-                            <div className="w-56 border-t pt-2 text-center">{template.signature_text || 'Authorized Signature'}</div>
+                            <div className="w-56 text-center">
+                                {signature && <img src={getImagePath(String(signature))} alt="Signature" className="mx-auto mb-2 max-h-16 max-w-40 object-contain" />}
+                                <div className="border-t pt-2">{template.signature_text || 'Authorized Signature'}</div>
+                            </div>
                         </div>
                     )}
                 </div>

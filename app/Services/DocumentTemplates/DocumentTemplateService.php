@@ -219,6 +219,7 @@ class DocumentTemplateService
             'terms' => '',
             'notes' => '',
             'bank_details' => '',
+            'signature_url' => '',
             'signature_text' => __('Authorized Signature'),
             'created_by' => auth()->id() ?: $companyId,
             'updated_by' => auth()->id() ?: $companyId,
@@ -235,6 +236,7 @@ class DocumentTemplateService
             'terms' => __('Payment is due according to the agreed terms.'),
             'notes' => __('This is a sample preview.'),
             'bank_details' => __('Bank: Sample Bank') . "\n" . __('Account: 000-123456'),
+            'signature_url' => '',
             'signature_text' => __('Authorized Signature'),
         ]);
 
@@ -330,6 +332,7 @@ class DocumentTemplateService
             'terms' => $data['terms'] ?? null,
             'notes' => $data['notes'] ?? null,
             'bank_details' => $data['bank_details'] ?? null,
+            'signature_url' => $data['signature_url'] ?? null,
             'signature_text' => $data['signature_text'] ?? null,
         ];
     }
