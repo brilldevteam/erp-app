@@ -1,6 +1,10 @@
 .env
 /vendor
 /node_modules
+/.composer
+/composer.phar
+/composer-setup.php
+/public/hot
 /storage/logs/*
 /storage/framework/cache/*
 /storage/framework/sessions/*

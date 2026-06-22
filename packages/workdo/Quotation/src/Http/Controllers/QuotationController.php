@@ -22,6 +22,8 @@ use Workdo\Quotation\Events\DestroyQuotation;
 use Workdo\Quotation\Events\RejectSalesQuotation;
 use Workdo\Quotation\Events\SentSalesQuotation;
 use Workdo\Account\Models\Customer;
+use App\Services\Documents\DocumentRenderer;
+use App\Services\Documents\DocumentSettingsService;
 
 class QuotationController extends Controller
 {
@@ -98,6 +100,9 @@ class QuotationController extends Controller
                 'customers'  => $customers,
                 'warehouses' => $warehouses,
                 'customerUsers' => $customerUsers,
+                'documentTemplate' => company_setting('quotation_template', creatorId()) ?: 'zoho',
+                'documentLogo' => company_setting('document_default_logo', creatorId()) ?: '',
+                'templateProfiles' => $this->documentTemplateProfiles('quotation'),
             ]);
         } else {
             return back()->with('error', __('Permission denied'));
@@ -116,6 +121,8 @@ class QuotationController extends Controller
             $quotation->warehouse_id    = $request->filled('warehouse_id') ? $request->warehouse_id : null;
             $quotation->payment_terms   = $request->payment_terms;
             $quotation->notes           = $request->notes;
+            $quotation->template_key    = $request->template_key;
+            $quotation->document_logo   = $request->filled('document_logo') ? basename($request->document_logo) : null;
             $quotation->subtotal        = $totals['subtotal'];
             $quotation->tax_amount      = $totals['tax_amount'];
             $quotation->discount_amount = $totals['discount_amount'];
@@ -177,6 +184,7 @@ class QuotationController extends Controller
                 'quotation'  => $quotation,
                 'customers'  => $customers,
                 'warehouses' => $warehouses
+                ,'templateProfiles' => $this->documentTemplateProfiles('quotation')
             ]);
         } else {
             return redirect()->route('quotations.index')->with('error', __('Permission denied'));
@@ -198,6 +206,9 @@ class QuotationController extends Controller
             $quotation->warehouse_id    = $request->filled('warehouse_id') ? $request->warehouse_id : null;
             $quotation->payment_terms   = $request->payment_terms;
             $quotation->notes           = $request->notes;
+            $quotation->template_key    = $request->template_key;
+            $quotation->document_logo   = $request->filled('document_logo') ? basename($request->document_logo) : null;
+            $quotation->document_snapshot = null;
             $quotation->subtotal        = $totals['subtotal'];
             $quotation->tax_amount      = $totals['tax_amount'];
             $quotation->discount_amount = $totals['discount_amount'];
@@ -330,14 +341,17 @@ class QuotationController extends Controller
         }
     }
 
-    public function print(SalesQuotation $quotation)
+    public function print(Request $request, SalesQuotation $quotation, DocumentRenderer $renderer)
     {
-        if (Auth::user()->can('print-quotations')) {
+        if (Auth::user()->can('print-quotations') && $quotation->created_by == creatorId()) {
             $quotation->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'warehouse']);
+            if ($request->boolean('download')) {
+                return response($renderer->pdf('quotation', $quotation))
+                    ->header('Content-Type', 'application/pdf')
+                    ->header('Content-Disposition', 'attachment; filename="quotation-'.$quotation->quotation_number.'.pdf"');
+            }
 
-            return Inertia::render('Quotation/Quotations/Print', [
-                'quotation' => $quotation
-            ]);
+            return $renderer->preview('quotation', $quotation);
         } else {
             return back()->with('error', __('Permission denied'));
         }
@@ -492,6 +506,8 @@ class QuotationController extends Controller
                 'type' => $type,
                 'payment_terms' => $quotation->payment_terms ?? '',
                 'notes' => $quotation->notes ?? '',
+                'template_key' => $quotation->template_key ?: 'classic',
+                'document_logo' => $quotation->document_logo,
                 'items' => $quotation->items->map(fn ($item) => [
                     'product_id' => $item->product_id,
                     'quantity' => $item->quantity,
@@ -507,6 +523,7 @@ class QuotationController extends Controller
                     ])->values(),
                 ])->values(),
             ],
+            'templateProfiles' => $this->documentTemplateProfiles('invoice'),
         ]);
     }
 
@@ -584,5 +601,14 @@ class QuotationController extends Controller
         } else {
             return response()->json([], 403);
         }
+    }
+
+    private function documentTemplateProfiles(string $type): array
+    {
+        $settings = app(DocumentSettingsService::class);
+
+        return collect(DocumentSettingsService::TEMPLATES)
+            ->mapWithKeys(fn ($template) => [$template => $settings->get(creatorId(), $type, $template)])
+            ->all();
     }
 }

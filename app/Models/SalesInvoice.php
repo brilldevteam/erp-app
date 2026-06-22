@@ -22,6 +22,13 @@ class SalesInvoice extends Model
         'paid_amount',
         'balance_amount',
         'status',
+        'template_key',
+        'document_logo',
+        'document_snapshot',
+        'sent_at',
+        'first_viewed_at',
+        'last_viewed_at',
+        'last_reminded_at',
         'type',
         'payment_terms',
         'notes',
@@ -38,6 +45,11 @@ class SalesInvoice extends Model
         'total_amount' => 'decimal:2',
         'paid_amount' => 'decimal:2',
         'balance_amount' => 'decimal:2'
+        ,'document_snapshot' => 'array'
+        ,'sent_at' => 'datetime'
+        ,'first_viewed_at' => 'datetime'
+        ,'last_viewed_at' => 'datetime'
+        ,'last_reminded_at' => 'datetime'
     ];
 
     protected $appends = ['display_status'];
@@ -80,6 +92,13 @@ class SalesInvoice extends Model
         return $this->hasMany(SalesInvoiceReturn::class, 'original_invoice_id');
     }
 
+    public function documentActivities(): HasMany
+    {
+        return $this->hasMany(DocumentActivity::class, 'document_id')
+            ->where('document_type', 'invoice')
+            ->latest('created_at');
+    }
+
     public function isOverdue(): bool
     {
         return $this->due_date < now() && $this->status !== 'paid';
@@ -106,20 +125,7 @@ class SalesInvoice extends Model
 
     public static function generateInvoiceNumber(): string
     {
-        $year = date('Y');
-        $month = date('m');
-        $lastInvoice = static::where('invoice_number', 'like', "SI-{$year}-{$month}-%")
-            ->where('created_by', creatorId())
-            ->orderBy('invoice_number', 'desc')
-            ->first();
-
-        if ($lastInvoice) {
-            $lastNumber = (int) substr($lastInvoice->invoice_number, -3);
-            $nextNumber = $lastNumber + 1;
-        } else {
-            $nextNumber = 1;
-        }
-
-        return "SI-{$year}-{$month}-" . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        return app(\App\Services\Documents\DocumentNumberService::class)
+            ->next('invoice', static::class, 'invoice_number');
     }
 }

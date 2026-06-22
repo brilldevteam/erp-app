@@ -31,6 +31,16 @@ class SalesQuotation extends Model
         'discount_amount',
         'total_amount',
         'status',
+        'template_key',
+        'document_logo',
+        'document_snapshot',
+        'sent_at',
+        'first_viewed_at',
+        'last_viewed_at',
+        'accepted_at',
+        'rejected_at',
+        'customer_action_name',
+        'customer_action_comment',
         'converted_to_invoice',
         'invoice_id',
         'payment_terms',
@@ -49,6 +59,12 @@ class SalesQuotation extends Model
             'discount_amount' => 'decimal:2',
             'total_amount' => 'decimal:2',
             'converted_to_invoice' => 'boolean',
+            'document_snapshot' => 'array',
+            'sent_at' => 'datetime',
+            'first_viewed_at' => 'datetime',
+            'last_viewed_at' => 'datetime',
+            'accepted_at' => 'datetime',
+            'rejected_at' => 'datetime',
         ];
     }
 
@@ -107,21 +123,8 @@ class SalesQuotation extends Model
 
     public static function generateQuotationNumber(): string
     {
-        $year = date('Y');
-        $month = date('m');
-        $lastQuotation = static::where('quotation_number', 'like', "QT-{$year}-{$month}-%")
-            ->where('created_by', creatorId())
-            ->orderBy('quotation_number', 'desc')
-            ->first();
-
-        if ($lastQuotation) {
-            $lastNumber = (int) substr($lastQuotation->quotation_number, -3);
-            $nextNumber = $lastNumber + 1;
-        } else {
-            $nextNumber = 1;
-        }
-
-        return "QT-{$year}-{$month}-" . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        return app(\App\Services\Documents\DocumentNumberService::class)
+            ->next('quotation', static::class, 'quotation_number');
     }
     public static function GivePermissionToRoles($role_id = null, $rolename = null)
     {

@@ -1,7 +1,5 @@
 <?php
 
-
-
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProfileController;
@@ -236,3 +234,4 @@ Route::any('/meta/callback', [MetaController::class, 'handleWebhook'])->name('me
 require __DIR__.'/installer.php';
 require __DIR__.'/updater.php';
 require __DIR__.'/auth.php';
+require __DIR__.'/documents.php';

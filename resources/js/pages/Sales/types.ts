@@ -17,6 +17,8 @@ export interface SalesInvoice {
     display_status: 'draft' | 'posted' | 'partial' | 'paid' | 'overdue';
     payment_terms?: string;
     notes?: string;
+    template_key?: 'classic' | 'modern' | 'minimal' | 'zoho';
+    document_logo?: string;
     creator_id: number;
     created_by: number;
     created_at: string;

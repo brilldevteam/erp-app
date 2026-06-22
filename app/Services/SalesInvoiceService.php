@@ -28,6 +28,8 @@ class SalesInvoiceService
             $invoice->type = $data['type'];
             $invoice->payment_terms = $data['payment_terms'] ?? null;
             $invoice->notes = $data['notes'] ?? null;
+            $invoice->template_key = $data['template_key'] ?? $quotation?->template_key ?? 'classic';
+            $invoice->document_logo = !empty($data['document_logo']) ? basename($data['document_logo']) : null;
             $invoice->subtotal = $totals['subtotal'];
             $invoice->tax_amount = $totals['tax_amount'];
             $invoice->discount_amount = $totals['discount_amount'];
@@ -40,6 +42,13 @@ class SalesInvoiceService
             $this->createItems($invoice->id, $data['items']);
 
             if ($quotation) {
+                if ($quotation->document_snapshot) {
+                    $snapshot = $quotation->document_snapshot;
+                    $invoiceSettings = app(\App\Services\Documents\DocumentSettingsService::class)->get($creatorId, 'invoice');
+                    $snapshot['settings'] = array_merge($invoiceSettings, ['template_key' => $invoice->template_key]);
+                    $invoice->document_snapshot = $snapshot;
+                }
+                $invoice->save();
                 $quotation->update([
                     'converted_to_invoice' => true,
                     'invoice_id' => $invoice->id,

@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DatePicker } from '@/components/ui/date-picker';
 import { Separator } from '@/components/ui/separator';
 import { CalendarDays, Package } from 'lucide-react';
+import MediaPicker from '@/components/MediaPicker';
 
 interface EditProps {
     quotation: Quotation;
@@ -27,7 +28,7 @@ interface EditProps {
 
 export default function Edit() {
     const { t } = useTranslation();
-    const { quotation, customers, warehouses } = usePage<EditProps>().props;
+    const { quotation, customers, warehouses, templateProfiles = {} } = usePage<EditProps>().props;
     const [availableProducts, setAvailableProducts] = useState([]);
     const noWarehouseValue = 'none';
 
@@ -38,6 +39,8 @@ export default function Edit() {
         customer_id: quotation.customer_id.toString(),
         warehouse_id: quotation.warehouse_id?.toString() || '',
         payment_terms: quotation.payment_terms || '',
+        template_key: quotation.template_key || 'classic',
+        document_logo: quotation.document_logo || '',
         notes: quotation.notes || '',
         items: (quotation.items || []).map(item => {
             const calculations = calculateLineItemAmounts(
@@ -55,6 +58,14 @@ export default function Edit() {
             };
         }) as QuotationItem[]
     });
+
+    const handleTemplateChange = (template: string) => {
+        setData({
+            ...data,
+            template_key: template,
+            document_logo: templateProfiles[template]?.document_default_logo || '',
+        });
+    };
 
     const emptyItem = (): QuotationItem => ({
         product_id: 0,
@@ -193,7 +204,14 @@ export default function Edit() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <div className="mt-4">
+                                <Label>{t('Document Logo')}</Label>
+                                <MediaPicker value={data.document_logo} onChange={(value) => setData('document_logo', Array.isArray(value) ? value[0] || '' : value)} placeholder={t('Select quotation logo...')} />
+                                <InputError message={errors.document_logo} />
+                                <p className="mt-1 text-xs text-muted-foreground">{t('Used only for this quotation and its watermark.')}</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                                 <div>
                                     <Label htmlFor="payment_terms">
                                         {t('Payment Terms')}
@@ -204,6 +222,14 @@ export default function Edit() {
                                         onChange={(e) => setData('payment_terms', e.target.value)}
                                         placeholder={t('e.g., Net 30')}
                                     />
+                                </div>
+
+                                <div>
+                                    <Label>{t('Template')}</Label>
+                                    <Select value={data.template_key} onValueChange={handleTemplateChange}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent><SelectItem value="classic">{t('Classic')}</SelectItem><SelectItem value="modern">{t('Modern')}</SelectItem><SelectItem value="minimal">{t('Minimal')}</SelectItem><SelectItem value="zoho">{t('Zoho')}</SelectItem></SelectContent>
+                                    </Select>
                                 </div>
 
                                 <div>

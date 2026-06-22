@@ -41,6 +41,11 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
         order: 35,
         children: [
             {
+                title: t('Sales Invoice Template'),
+                href: route('documents.settings.type', { type: 'invoice' }),
+                permission: 'manage-document-templates',
+            },
+            {
                 title: t('Sales Invoice'),
                 href: route('sales-invoices.index'),
                 permission: 'manage-sales-invoices',

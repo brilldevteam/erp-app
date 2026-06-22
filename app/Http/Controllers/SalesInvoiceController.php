@@ -21,6 +21,8 @@ use App\Events\PostSalesInvoice;
 use App\Events\EditSalesInvoice;
 use App\Models\EmailTemplate;
 use App\Services\SalesInvoiceService;
+use App\Services\Documents\DocumentRenderer;
+use App\Services\Documents\DocumentSettingsService;
 use Workdo\Quotation\Events\ConvertSalesQuotation;
 
 class SalesInvoiceController extends Controller
@@ -121,6 +123,9 @@ class SalesInvoiceController extends Controller
             return Inertia::render('Sales/Create', [
                 'customers' => $customers,
                 'warehouses' => $warehouses,
+                'documentTemplate' => company_setting('invoice_template', creatorId()) ?: 'zoho',
+                'documentLogo' => company_setting('document_default_logo', creatorId()) ?: '',
+                'templateProfiles' => $this->documentTemplateProfiles('invoice'),
             ]);
         }
         else{
@@ -219,6 +224,7 @@ class SalesInvoiceController extends Controller
                 'invoice' => $salesInvoice,
                 'customers' => $customers,
                 'warehouses' => $warehouses,
+                'templateProfiles' => $this->documentTemplateProfiles('invoice'),
             ]);
         }
         else{
@@ -242,6 +248,9 @@ class SalesInvoiceController extends Controller
                 : null;
             $salesInvoice->payment_terms = $request->payment_terms;
             $salesInvoice->notes = $request->notes;
+            $salesInvoice->template_key = $request->template_key;
+            $salesInvoice->document_logo = $request->filled('document_logo') ? basename($request->document_logo) : null;
+            $salesInvoice->document_snapshot = null;
             $salesInvoice->subtotal = $totals['subtotal'];
             $salesInvoice->tax_amount = $totals['tax_amount'];
             $salesInvoice->discount_amount = $totals['discount_amount'];
@@ -444,17 +453,29 @@ class SalesInvoiceController extends Controller
         }
     }
 
-    public function print(SalesInvoice $salesInvoice)
+    public function print(Request $request, SalesInvoice $salesInvoice, DocumentRenderer $renderer)
     {
-        if(Auth::user()->can('print-sales-invoices')){
+        if(Auth::user()->can('print-sales-invoices') && $salesInvoice->created_by == creatorId()){
             $salesInvoice->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'warehouse']);
+            if ($request->boolean('download')) {
+                return response($renderer->pdf('invoice', $salesInvoice))
+                    ->header('Content-Type', 'application/pdf')
+                    ->header('Content-Disposition', 'attachment; filename="invoice-'.$salesInvoice->invoice_number.'.pdf"');
+            }
 
-            return Inertia::render('Sales/Print', [
-                'invoice' => $salesInvoice
-            ]);
+            return $renderer->preview('invoice', $salesInvoice);
         }
         else{
             return back()->with('error', __('Permission denied'));
         }
+    }
+
+    private function documentTemplateProfiles(string $type): array
+    {
+        $settings = app(DocumentSettingsService::class);
+
+        return collect(DocumentSettingsService::TEMPLATES)
+            ->mapWithKeys(fn ($template) => [$template => $settings->get(creatorId(), $type, $template)])
+            ->all();
     }
 }

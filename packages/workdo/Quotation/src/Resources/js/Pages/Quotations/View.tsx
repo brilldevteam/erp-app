@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { FileText, Download, Send, RefreshCw, Receipt } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import DocumentActions from '@/components/documents/document-actions';
 
 interface ViewProps {
     quotation: Quotation;
@@ -39,6 +40,7 @@ export default function View() {
             <Head title={`${t('Quotation')} #${quotation.quotation_number}`} />
 
             <div className="space-y-6">
+                <DocumentActions type="quotation" id={quotation.id} number={quotation.quotation_number} customerEmail={quotation.customer?.email} />
                 <Card>
                     <CardContent className="p-6">
                         <div className="flex justify-between items-center mb-6">

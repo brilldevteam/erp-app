@@ -12,6 +12,7 @@ import { FileText, Download } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePageButtons } from '@/hooks/usePageButtons';
 import { useFormFields } from '@/hooks/useFormFields';
+import DocumentActions from '@/components/documents/document-actions';
 
 interface ViewProps {
     invoice: SalesInvoice;
@@ -49,6 +50,7 @@ export default function View() {
             <Head title={`${t('Sales Invoice')} #${invoice.invoice_number}`} />
 
             <div className="space-y-6">
+                <DocumentActions type="invoice" id={invoice.id} number={invoice.invoice_number} customerEmail={invoice.customer?.email} balance={Number(invoice.balance_amount)} />
                 <Card>
                     <CardContent className="p-6">
                         <div className="flex justify-between items-center mb-6">

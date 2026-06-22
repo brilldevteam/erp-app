@@ -22,6 +22,8 @@ class StoreSalesInvoiceRequest extends FormRequest
             'warehouse_id' => 'nullable|integer|exists:warehouses,id',
             'payment_terms' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
+            'template_key' => 'required|in:classic,modern,minimal,zoho',
+            'document_logo' => 'nullable|string|max:500',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|integer|min:1',
             'items.*.quantity' => 'required|integer|min:1',

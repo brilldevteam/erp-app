@@ -19,6 +19,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Separator } from '@/components/ui/separator';
 import { CalendarDays, Building2, User, FileText, Package } from 'lucide-react';
+import MediaPicker from '@/components/MediaPicker';
 
 interface CreateProps {
     customers: Array<{ id: number; name: string; email: string }>;
@@ -44,6 +45,8 @@ interface CreateProps {
         type: 'product' | 'service';
         payment_terms: string;
         notes: string;
+        template_key?: 'classic' | 'modern' | 'minimal' | 'zoho';
+        document_logo?: string;
         items: SalesInvoiceItem[];
     };
     [key: string]: any;
@@ -51,7 +54,7 @@ interface CreateProps {
 
 export default function Create() {
     const { t } = useTranslation();
-    const { customers, warehouses, initialInvoice, initialProducts = [] } = usePage<CreateProps>().props;
+    const { customers, warehouses, initialInvoice, initialProducts = [], documentTemplate = 'zoho', documentLogo = '', templateProfiles = {} } = usePage<CreateProps>().props;
     const [availableProducts, setAvailableProducts] = useState<any[]>(initialProducts);
 
     useFlashMessages();
@@ -64,6 +67,8 @@ export default function Create() {
         type: initialInvoice?.type ?? 'product',
         payment_terms: initialInvoice?.payment_terms ?? '',
         notes: initialInvoice?.notes ?? '',
+        template_key: initialInvoice?.template_key ?? documentTemplate,
+        document_logo: initialInvoice?.document_logo ?? templateProfiles[initialInvoice?.template_key ?? documentTemplate]?.document_default_logo ?? documentLogo,
         items: initialInvoice?.items ?? [{
             product_id: 0,
             quantity: 1,
@@ -75,6 +80,14 @@ export default function Create() {
             total_amount: 0
         }] as SalesInvoiceItem[]
     });
+
+    const handleTemplateChange = (template: string) => {
+        setData({
+            ...data,
+            template_key: template,
+            document_logo: templateProfiles[template]?.document_default_logo || '',
+        });
+    };
 
     // Calendar sync fields
     const calendarFields = useFormFields('getCalendarSyncFields', data, setData, errors, 'create', t, 'Sales');
@@ -286,6 +299,20 @@ export default function Create() {
                                         <InputError message={errors.warehouse_id} />
                                     </div>
                                 )}
+                                <div>
+                                    <Label htmlFor="template_key">{t('Template')}</Label>
+                                    <Select value={data.template_key} onValueChange={handleTemplateChange}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent><SelectItem value="classic">{t('Classic')}</SelectItem><SelectItem value="modern">{t('Modern')}</SelectItem><SelectItem value="minimal">{t('Minimal')}</SelectItem><SelectItem value="zoho">{t('Zoho')}</SelectItem></SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            <div className="mt-4">
+                                <Label>{t('Document Logo')}</Label>
+                                <MediaPicker value={data.document_logo} onChange={(value) => setData('document_logo', Array.isArray(value) ? value[0] || '' : value)} placeholder={t('Select invoice logo...')} />
+                                <InputError message={errors.document_logo} />
+                                <p className="mt-1 text-xs text-muted-foreground">{t('This logo appears at the top and as a subtle watermark. It does not change the dashboard logo.')}</p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">

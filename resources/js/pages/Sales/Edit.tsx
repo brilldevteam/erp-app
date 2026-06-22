@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DatePicker } from '@/components/ui/date-picker';
 import { Separator } from '@/components/ui/separator';
 import { CalendarDays, Package } from 'lucide-react';
+import MediaPicker from '@/components/MediaPicker';
 
 interface EditProps {
     invoice: SalesInvoice;
@@ -28,7 +29,7 @@ interface EditProps {
 
 export default function Edit() {
     const { t } = useTranslation();
-    const { invoice, customers, warehouses } = usePage<EditProps>().props;
+    const { invoice, customers, warehouses, templateProfiles = {} } = usePage<EditProps>().props;
     const [availableProducts, setAvailableProducts] = useState([]);
 
     useFlashMessages();
@@ -38,6 +39,8 @@ export default function Edit() {
         customer_id: invoice.customer_id.toString(),
         warehouse_id: invoice.warehouse_id?.toString() || '',
         type: invoice.type || 'product',
+        template_key: invoice.template_key || 'classic',
+        document_logo: invoice.document_logo || '',
         items: (invoice.items || []).map(item => {
             const calculations = calculateLineItemAmounts(
                 item.quantity,
@@ -54,6 +57,14 @@ export default function Edit() {
             };
         }) as SalesInvoiceItem[]
     });
+
+    const handleTemplateChange = (template: 'classic' | 'modern' | 'minimal' | 'zoho') => {
+        setData({
+            ...data,
+            template_key: template,
+            document_logo: templateProfiles[template]?.document_default_logo || '',
+        });
+    };
 
     // Load products for the current warehouse on component mount
     useEffect(() => {
@@ -196,7 +207,14 @@ export default function Edit() {
                                 )}
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <div className="mt-4">
+                                <Label>{t('Document Logo')}</Label>
+                                <MediaPicker value={data.document_logo} onChange={(value) => setData('document_logo', Array.isArray(value) ? value[0] || '' : value)} placeholder={t('Select invoice logo...')} />
+                                <InputError message={errors.document_logo} />
+                                <p className="mt-1 text-xs text-muted-foreground">{t('Used only for this invoice and its watermark.')}</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                                 <div>
                                     <Label htmlFor="payment_terms">
                                         {t('Payment Terms')}
@@ -207,6 +225,14 @@ export default function Edit() {
                                         onChange={(e) => setData('payment_terms', e.target.value)}
                                         placeholder={t('e.g., Net 30')}
                                     />
+                                </div>
+
+                                <div>
+                                    <Label>{t('Template')}</Label>
+                                    <Select value={data.template_key} onValueChange={(value) => handleTemplateChange(value as 'classic' | 'modern' | 'minimal' | 'zoho')}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent><SelectItem value="classic">{t('Classic')}</SelectItem><SelectItem value="modern">{t('Modern')}</SelectItem><SelectItem value="minimal">{t('Minimal')}</SelectItem><SelectItem value="zoho">{t('Zoho')}</SelectItem></SelectContent>
+                                    </Select>
                                 </div>
 
                                 <div>

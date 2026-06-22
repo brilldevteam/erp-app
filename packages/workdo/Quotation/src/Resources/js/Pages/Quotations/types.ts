@@ -15,6 +15,8 @@ export interface Quotation {
     display_status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired' | 'converted';
     payment_terms?: string;
     notes?: string;
+    template_key?: 'classic' | 'modern' | 'minimal' | 'zoho';
+    document_logo?: string;
     creator_id: number;
     created_by: number;
     converted_to_invoice: boolean;

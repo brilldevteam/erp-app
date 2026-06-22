@@ -20,6 +20,7 @@ import { Separator } from '@/components/ui/separator';
 import { CalendarDays, Package } from 'lucide-react';
 import CreateCustomer from '../../../../../../Account/src/Resources/js/Pages/Customers/Create';
 import CreateWarehouse from '@/pages/warehouses/create';
+import MediaPicker from '@/components/MediaPicker';
 
 interface CreateProps {
     customers: Array<{id: number; name: string; email: string}>;
@@ -35,7 +36,7 @@ interface CreateProps {
 
 export default function Create() {
     const { t } = useTranslation();
-    const { customers, customerUsers, warehouses, auth } = usePage<CreateProps>().props;
+    const { customers, customerUsers, warehouses, auth, documentTemplate = 'zoho', documentLogo = '', templateProfiles = {} } = usePage<CreateProps>().props;
     const [availableProducts, setAvailableProducts] = useState([]);
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isWarehouseModalOpen, setIsWarehouseModalOpen] = useState(false);
@@ -50,6 +51,8 @@ export default function Create() {
         customer_id: '',
         warehouse_id: '',
         payment_terms: '',
+        template_key: documentTemplate,
+        document_logo: templateProfiles[documentTemplate]?.document_default_logo || documentLogo,
         notes: '',
         items: [{
             product_id: 0,
@@ -62,6 +65,14 @@ export default function Create() {
             total_amount: 0
         }] as QuotationItem[]
     });
+
+    const handleTemplateChange = (template: string) => {
+        setData({
+            ...data,
+            template_key: template,
+            document_logo: templateProfiles[template]?.document_default_logo || '',
+        });
+    };
 
     const emptyItem = (): QuotationItem => ({
         product_id: 0,
@@ -245,7 +256,14 @@ export default function Create() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <div className="mt-4">
+                                <Label>{t('Document Logo')}</Label>
+                                <MediaPicker value={data.document_logo} onChange={(value) => setData('document_logo', Array.isArray(value) ? value[0] || '' : value)} placeholder={t('Select quotation logo...')} />
+                                <InputError message={errors.document_logo} />
+                                <p className="mt-1 text-xs text-muted-foreground">{t('This logo appears at the top and as a subtle watermark. It does not change the dashboard logo.')}</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                                 <div>
                                     <Label htmlFor="payment_terms">
                                         {t('Payment Terms')}
@@ -256,6 +274,14 @@ export default function Create() {
                                         onChange={(e) => setData('payment_terms', e.target.value)}
                                         placeholder={t('e.g., Net 30')}
                                     />
+                                </div>
+
+                                <div>
+                                    <Label>{t('Template')}</Label>
+                                    <Select value={data.template_key} onValueChange={handleTemplateChange}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent><SelectItem value="classic">{t('Classic')}</SelectItem><SelectItem value="modern">{t('Modern')}</SelectItem><SelectItem value="minimal">{t('Minimal')}</SelectItem><SelectItem value="zoho">{t('Zoho')}</SelectItem></SelectContent>
+                                    </Select>
                                 </div>
 
                                 <div>

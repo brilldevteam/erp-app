@@ -32,7 +32,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 'sslcommerz/*',
                 'twocheckout/*',
                 'payu/*',
-                'powertranz/*'
+                'powertranz/*',
+                'document-payments/webhook/*',
             ]
         );
 
