@@ -86,6 +86,7 @@ class DocumentTemplateService
     {
         return DB::transaction(function () use ($template, $userId, $data) {
             $originalType = $template->type;
+            $wasDefault = (bool) $template->is_default;
             $template->fill($this->attributes($data));
             $template->updated_by = $userId;
             $template->config_json = $this->normalizeConfig($data['config_json'] ?? $template->config_json);
@@ -103,7 +104,15 @@ class DocumentTemplateService
             }
 
             if (!$this->hasDefault($template->company_id, $template->type)) {
-                $template->forceFill(['is_default' => true])->save();
+                $replacement = $wasDefault && !$template->is_default
+                    ? $this->firstActive($template->company_id, $template->type, $template->id)
+                    : null;
+
+                if ($replacement) {
+                    $replacement->update(['is_default' => true]);
+                } elseif ($template->status === DocumentTemplate::STATUS_ACTIVE) {
+                    $template->forceFill(['is_default' => true])->save();
+                }
             }
 
             return $template->refresh();
@@ -364,12 +373,13 @@ class DocumentTemplateService
             ->exists();
     }
 
-    private function firstActive(int $companyId, string $type): ?DocumentTemplate
+    private function firstActive(int $companyId, string $type, ?int $exceptId = null): ?DocumentTemplate
     {
         return DocumentTemplate::query()
             ->forCompany($companyId)
             ->forType($type)
             ->active()
+            ->when($exceptId, fn ($query) => $query->whereKeyNot($exceptId))
             ->oldest()
             ->first();
     }

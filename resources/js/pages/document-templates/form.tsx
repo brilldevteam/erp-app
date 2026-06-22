@@ -14,12 +14,17 @@ import MediaPicker from '@/components/MediaPicker';
 import DocumentTemplatePreview from '@/components/document-templates/document-template-preview';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { DocumentTemplate, DocumentTemplateConfig, TemplateSampleDocument } from '@/types/document-template';
-import { ArrowLeft, Copy, Save, Star } from 'lucide-react';
+import { ArrowLeft, Copy, Save, Star, Trash2 } from 'lucide-react';
 
 interface Props {
     template: DocumentTemplate | null;
     defaultConfig: DocumentTemplateConfig;
     sampleDocument: TemplateSampleDocument;
+    auth: {
+        user: {
+            permissions?: string[];
+        };
+    };
     [key: string]: any;
 }
 
@@ -28,8 +33,10 @@ const itemColumns = ['item', 'description', 'quantity', 'rate', 'tax', 'total'];
 export default function Form() {
     const { t } = useTranslation();
     useFlashMessages();
-    const { template, defaultConfig, sampleDocument } = usePage<Props>().props;
+    const { template, defaultConfig, sampleDocument, auth } = usePage<Props>().props;
     const isEdit = Boolean(template);
+    const permissions = auth.user.permissions || [];
+    const canDelete = permissions.includes('manage-document-templates') || permissions.includes('delete-document-templates');
     const { data, setData, post, put, processing, errors } = useForm({
         name: template?.name || '',
         type: template?.type || 'quotation',
@@ -84,6 +91,14 @@ export default function Form() {
         }
     };
 
+    const deleteTemplate = () => {
+        if (!template || template.is_default || !confirm(t('Delete this template?'))) {
+            return;
+        }
+
+        router.delete(route('document-templates.destroy', template.id));
+    };
+
     return (
         <AuthenticatedLayout breadcrumbs={[{ label: t('Templates'), url: route('document-templates.index') }, { label: isEdit ? t('Edit Template') : t('Create Template') }]} pageTitle={isEdit ? t('Edit Template') : t('Create Template')}>
             <Head title={isEdit ? t('Edit Template') : t('Create Template')} />
@@ -93,6 +108,17 @@ export default function Form() {
                         <Button variant="outline" asChild><Link href={route('document-templates.index')}><ArrowLeft className="mr-2 h-4 w-4" />{t('Back')}</Link></Button>
                         {isEdit && template && <Button type="button" variant="outline" onClick={() => router.post(route('document-templates.duplicate', template.id))}><Copy className="mr-2 h-4 w-4" />{t('Duplicate')}</Button>}
                         {isEdit && template && !template.is_default && data.status === 'active' && <Button type="button" variant="outline" onClick={() => router.post(route('document-templates.default', template.id))}><Star className="mr-2 h-4 w-4" />{t('Set Default')}</Button>}
+                        {isEdit && template && canDelete && (
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                disabled={template.is_default}
+                                title={template.is_default ? t('Default templates cannot be deleted. Set another template as default first.') : undefined}
+                                onClick={deleteTemplate}
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" />{t('Delete')}
+                            </Button>
+                        )}
                     </div>
 
                     <Card>

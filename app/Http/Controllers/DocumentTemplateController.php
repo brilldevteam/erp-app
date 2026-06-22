@@ -80,7 +80,7 @@ class DocumentTemplateController extends Controller
     public function destroy(DocumentTemplate $documentTemplate)
     {
         $this->authorizeCompany($documentTemplate);
-        abort_unless(auth()->user()->can('delete-document-templates'), 403);
+        abort_unless(auth()->user()->can('delete-document-templates') || auth()->user()->can('manage-document-templates'), 403);
 
         $this->templates->delete($documentTemplate);
 
