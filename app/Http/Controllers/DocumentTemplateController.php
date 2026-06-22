@@ -49,11 +49,9 @@ class DocumentTemplateController extends Controller
     {
         abort_unless(auth()->user()->can('create-document-templates'), 403);
 
-        $template = $this->templates->create(creatorId(), auth()->id(), $this->validated($request));
+        $this->templates->create(creatorId(), auth()->id(), $this->validated($request));
 
-        return redirect()
-            ->route('document-templates.edit', $template)
-            ->with('success', __('Template created successfully.'));
+        return back()->with('success', __('Template created successfully.'));
     }
 
     public function edit(DocumentTemplate $documentTemplate)

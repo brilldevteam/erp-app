@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import MediaPicker from '@/components/MediaPicker';
 import DocumentTemplatePreview from '@/components/document-templates/document-template-preview';
+import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { DocumentTemplate, DocumentTemplateConfig, TemplateSampleDocument } from '@/types/document-template';
 import { ArrowLeft, Copy, Save, Star } from 'lucide-react';
 
@@ -26,6 +27,7 @@ const itemColumns = ['item', 'description', 'quantity', 'rate', 'tax', 'total'];
 
 export default function Form() {
     const { t } = useTranslation();
+    useFlashMessages();
     const { template, defaultConfig, sampleDocument } = usePage<Props>().props;
     const isEdit = Boolean(template);
     const { data, setData, post, put, processing, errors } = useForm({
@@ -69,10 +71,16 @@ export default function Form() {
 
     const submit = (event: FormEvent) => {
         event.preventDefault();
+        const redirectAfterMessage = () => {
+            window.setTimeout(() => {
+                router.visit(route('document-templates.index'));
+            }, 1200);
+        };
+
         if (isEdit && template) {
-            put(route('document-templates.update', template.id), { preserveScroll: true });
+            put(route('document-templates.update', template.id), { preserveScroll: true, onSuccess: redirectAfterMessage });
         } else {
-            post(route('document-templates.store'));
+            post(route('document-templates.store'), { preserveScroll: true, onSuccess: redirectAfterMessage });
         }
     };
 
