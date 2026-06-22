@@ -141,6 +141,7 @@ class DocumentTemplateController extends Controller
             'terms' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
             'bank_details' => ['nullable', 'string'],
+            'signature_url' => ['nullable', 'string', 'max:500'],
             'signature_text' => ['nullable', 'string', 'max:255'],
         ]);
     }
