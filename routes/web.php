@@ -13,6 +13,7 @@ use App\Http\Controllers\TranslationController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\BankTransferPaymentController;
 use App\Http\Controllers\BulkImportController;
+use App\Http\Controllers\DocumentTemplateController;
 use App\Http\Controllers\ModuleAssetController;
 
 use App\Http\Controllers\CouponController;
@@ -77,6 +78,11 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
 
 
     Route::resource('roles', RoleController::class);
+
+    Route::get('document-templates/active', [DocumentTemplateController::class, 'active'])->name('document-templates.active');
+    Route::post('document-templates/{documentTemplate}/duplicate', [DocumentTemplateController::class, 'duplicate'])->name('document-templates.duplicate');
+    Route::post('document-templates/{documentTemplate}/default', [DocumentTemplateController::class, 'setDefault'])->name('document-templates.default');
+    Route::resource('document-templates', DocumentTemplateController::class)->except(['show']);
 
     // purchase invoices
     Route::resource('purchase-invoices', PurchaseInvoiceController::class);

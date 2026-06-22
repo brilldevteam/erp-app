@@ -1,6 +1,7 @@
 export interface SalesInvoice {
     id: number;
     quotation_id?: number;
+    document_template_id?: number;
     invoice_number: string;
     invoice_date: string;
     due_date: string;

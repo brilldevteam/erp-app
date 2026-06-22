@@ -22,6 +22,8 @@ use Workdo\Quotation\Events\DestroyQuotation;
 use Workdo\Quotation\Events\RejectSalesQuotation;
 use Workdo\Quotation\Events\SentSalesQuotation;
 use Workdo\Account\Models\Customer;
+use App\Models\DocumentTemplate;
+use App\Services\DocumentTemplates\DocumentTemplateService;
 
 class QuotationController extends Controller
 {
@@ -98,6 +100,7 @@ class QuotationController extends Controller
                 'customers'  => $customers,
                 'warehouses' => $warehouses,
                 'customerUsers' => $customerUsers,
+                'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_QUOTATION),
             ]);
         } else {
             return back()->with('error', __('Permission denied'));
@@ -111,6 +114,9 @@ class QuotationController extends Controller
 
             $quotation                  = new SalesQuotation();
             $quotation->quotation_date  = $request->invoice_date;
+            $quotation->document_template_id = app(DocumentTemplateService::class)
+                ->resolveForDocument(DocumentTemplate::TYPE_QUOTATION, creatorId(), $request->document_template_id)
+                ->id;
             $quotation->due_date        = $request->due_date;
             $quotation->customer_id     = $request->customer_id;
             $quotation->warehouse_id    = $request->filled('warehouse_id') ? $request->warehouse_id : null;
@@ -176,7 +182,8 @@ class QuotationController extends Controller
             return Inertia::render('Quotation/Quotations/Edit', [
                 'quotation'  => $quotation,
                 'customers'  => $customers,
-                'warehouses' => $warehouses
+                'warehouses' => $warehouses,
+                'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_QUOTATION),
             ]);
         } else {
             return redirect()->route('quotations.index')->with('error', __('Permission denied'));
@@ -195,6 +202,9 @@ class QuotationController extends Controller
             $quotation->quotation_date  = $request->invoice_date;
             $quotation->due_date        = $request->due_date;
             $quotation->customer_id     = $request->customer_id;
+            $quotation->document_template_id = app(DocumentTemplateService::class)
+                ->resolveForDocument(DocumentTemplate::TYPE_QUOTATION, creatorId(), $request->document_template_id)
+                ->id;
             $quotation->warehouse_id    = $request->filled('warehouse_id') ? $request->warehouse_id : null;
             $quotation->payment_terms   = $request->payment_terms;
             $quotation->notes           = $request->notes;
@@ -282,6 +292,19 @@ class QuotationController extends Controller
         }
     }
 
+    private function activeTemplates(string $type)
+    {
+        app(DocumentTemplateService::class)->ensureDefault(creatorId(), $type);
+
+        return DocumentTemplate::query()
+            ->forCompany(creatorId())
+            ->forType($type)
+            ->active()
+            ->orderByDesc('is_default')
+            ->orderBy('name')
+            ->get(['id', 'name', 'is_default']);
+    }
+
     public function sent(SalesQuotation $quotation)
     {
         if (Auth::user()->can('sent-quotations') && $quotation->created_by == creatorId()) {
@@ -334,9 +357,17 @@ class QuotationController extends Controller
     {
         if (Auth::user()->can('print-quotations')) {
             $quotation->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'warehouse']);
+            $templateService = app(DocumentTemplateService::class);
+            $template = $templateService->resolveForDocument(
+                DocumentTemplate::TYPE_QUOTATION,
+                creatorId(),
+                $quotation->document_template_id
+            );
 
             return Inertia::render('Quotation/Quotations/Print', [
-                'quotation' => $quotation
+                'quotation' => $quotation,
+                'documentTemplate' => $template,
+                'templateDocument' => $templateService->documentFromModel(DocumentTemplate::TYPE_QUOTATION, $quotation, $template),
             ]);
         } else {
             return back()->with('error', __('Permission denied'));
@@ -460,6 +491,7 @@ class QuotationController extends Controller
         return Inertia::render('Sales/Create', [
             'customers' => $customers,
             'warehouses' => $warehouses,
+            'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_INVOICE),
             'initialProducts' => $quotation->items
                 ->filter(fn ($item) => $item->product)
                 ->unique('product_id')

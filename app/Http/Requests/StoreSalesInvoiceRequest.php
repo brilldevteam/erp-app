@@ -18,6 +18,7 @@ class StoreSalesInvoiceRequest extends FormRequest
             'due_date' => 'required|date|after_or_equal:invoice_date',
             'customer_id' => 'required|integer|exists:users,id',
             'quotation_id' => 'nullable|integer|exists:sales_quotations,id',
+            'document_template_id' => 'nullable|integer|exists:document_templates,id',
             'type' => 'required|in:product,service',
             'warehouse_id' => 'nullable|integer|exists:warehouses,id',
             'payment_terms' => 'nullable|string|max:255',

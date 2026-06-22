@@ -20,7 +20,9 @@ use App\Events\DestroySalesInvoice;
 use App\Events\PostSalesInvoice;
 use App\Events\EditSalesInvoice;
 use App\Models\EmailTemplate;
+use App\Models\DocumentTemplate;
 use App\Services\SalesInvoiceService;
+use App\Services\DocumentTemplates\DocumentTemplateService;
 use Workdo\Quotation\Events\ConvertSalesQuotation;
 
 class SalesInvoiceController extends Controller
@@ -121,6 +123,7 @@ class SalesInvoiceController extends Controller
             return Inertia::render('Sales/Create', [
                 'customers' => $customers,
                 'warehouses' => $warehouses,
+                'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_INVOICE),
             ]);
         }
         else{
@@ -219,6 +222,7 @@ class SalesInvoiceController extends Controller
                 'invoice' => $salesInvoice,
                 'customers' => $customers,
                 'warehouses' => $warehouses,
+                'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_INVOICE),
             ]);
         }
         else{
@@ -237,6 +241,9 @@ class SalesInvoiceController extends Controller
             $salesInvoice->invoice_date = $request->invoice_date;
             $salesInvoice->due_date = $request->due_date;
             $salesInvoice->customer_id = $request->customer_id;
+            $salesInvoice->document_template_id = app(DocumentTemplateService::class)
+                ->resolveForDocument(DocumentTemplate::TYPE_INVOICE, creatorId(), $request->document_template_id)
+                ->id;
             $salesInvoice->warehouse_id = $salesInvoice->type === 'product' && $request->filled('warehouse_id')
                 ? $request->warehouse_id
                 : null;
@@ -330,6 +337,19 @@ class SalesInvoiceController extends Controller
                 }
             }
         }
+    }
+
+    private function activeTemplates(string $type)
+    {
+        app(DocumentTemplateService::class)->ensureDefault(creatorId(), $type);
+
+        return DocumentTemplate::query()
+            ->forCompany(creatorId())
+            ->forType($type)
+            ->active()
+            ->orderByDesc('is_default')
+            ->orderBy('name')
+            ->get(['id', 'name', 'is_default']);
     }
 
     public function post(SalesInvoice $salesInvoice)
@@ -448,9 +468,17 @@ class SalesInvoiceController extends Controller
     {
         if(Auth::user()->can('print-sales-invoices')){
             $salesInvoice->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'warehouse']);
+            $templateService = app(DocumentTemplateService::class);
+            $template = $templateService->resolveForDocument(
+                DocumentTemplate::TYPE_INVOICE,
+                creatorId(),
+                $salesInvoice->document_template_id
+            );
 
             return Inertia::render('Sales/Print', [
-                'invoice' => $salesInvoice
+                'invoice' => $salesInvoice,
+                'documentTemplate' => $template,
+                'templateDocument' => $templateService->documentFromModel(DocumentTemplate::TYPE_INVOICE, $salesInvoice, $template),
             ]);
         }
         else{
