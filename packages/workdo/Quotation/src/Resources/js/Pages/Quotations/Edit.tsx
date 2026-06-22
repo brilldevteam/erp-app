@@ -22,12 +22,13 @@ interface EditProps {
     quotation: Quotation;
     customers: Array<{id: number; name: string; email: string}>;
     warehouses: Array<{id: number; name: string; address: string}>;
+    documentTemplates: Array<{ id: number; name: string; is_default: boolean }>;
     [key: string]: any;
 }
 
 export default function Edit() {
     const { t } = useTranslation();
-    const { quotation, customers, warehouses } = usePage<EditProps>().props;
+    const { quotation, customers, warehouses, documentTemplates = [] } = usePage<EditProps>().props;
     const [availableProducts, setAvailableProducts] = useState([]);
     const noWarehouseValue = 'none';
 
@@ -37,6 +38,7 @@ export default function Edit() {
         due_date: quotation.due_date,
         customer_id: quotation.customer_id.toString(),
         warehouse_id: quotation.warehouse_id?.toString() || '',
+        document_template_id: quotation.document_template_id?.toString() || '',
         payment_terms: quotation.payment_terms || '',
         notes: quotation.notes || '',
         items: (quotation.items || []).map(item => {
@@ -190,6 +192,26 @@ export default function Edit() {
                                         </SelectContent>
                                     </Select>
                                     <InputError message={errors.warehouse_id} />
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="document_template_id">
+                                        {t('Template')}
+                                    </Label>
+                                    <Select value={data.document_template_id || 'default'} onValueChange={(value) => setData('document_template_id', value === 'default' ? '' : value)}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={t('Default Template')} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="default">{t('Default Template')}</SelectItem>
+                                            {documentTemplates.map((template) => (
+                                                <SelectItem key={template.id} value={template.id.toString()}>
+                                                    {template.name}{template.is_default ? ` (${t('Default')})` : ''}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={errors.document_template_id} />
                                 </div>
                             </div>
 

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Models\DocumentTemplate;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Workdo\Account\Models\Customer;
@@ -33,6 +34,7 @@ class SalesQuotation extends Model
         'status',
         'converted_to_invoice',
         'invoice_id',
+        'document_template_id',
         'payment_terms',
         'notes',
         'creator_id',
@@ -85,6 +87,11 @@ class SalesQuotation extends Model
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(\App\Models\SalesInvoice::class, 'invoice_id');
+    }
+
+    public function documentTemplate(): BelongsTo
+    {
+        return $this->belongsTo(DocumentTemplate::class, 'document_template_id');
     }
 
     public function canConvertToInvoice(): bool

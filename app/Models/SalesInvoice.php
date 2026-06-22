@@ -10,6 +10,7 @@ class SalesInvoice extends Model
 {
     protected $fillable = [
         'quotation_id',
+        'document_template_id',
         'invoice_number',
         'invoice_date',
         'due_date',
@@ -63,6 +64,11 @@ class SalesInvoice extends Model
             \Workdo\Quotation\Models\SalesQuotation::class,
             'quotation_id'
         );
+    }
+
+    public function documentTemplate(): BelongsTo
+    {
+        return $this->belongsTo(DocumentTemplate::class, 'document_template_id');
     }
 
     public function customerDetails(): BelongsTo

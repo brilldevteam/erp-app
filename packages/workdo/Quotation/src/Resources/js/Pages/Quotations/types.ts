@@ -19,6 +19,7 @@ export interface Quotation {
     created_by: number;
     converted_to_invoice: boolean;
     invoice_id?: number;
+    document_template_id?: number;
     invoice?: {
         id: number;
         invoice_number: string;

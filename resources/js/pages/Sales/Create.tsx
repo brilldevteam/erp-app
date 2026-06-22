@@ -23,6 +23,7 @@ import { CalendarDays, Building2, User, FileText, Package } from 'lucide-react';
 interface CreateProps {
     customers: Array<{ id: number; name: string; email: string }>;
     warehouses: Array<{ id: number; name: string; address: string }>;
+    documentTemplates: Array<{ id: number; name: string; is_default: boolean }>;
     initialProducts?: Array<{
         id: number;
         name: string;
@@ -41,6 +42,7 @@ interface CreateProps {
         due_date: string;
         customer_id: string;
         warehouse_id: string;
+        document_template_id?: string;
         type: 'product' | 'service';
         payment_terms: string;
         notes: string;
@@ -51,7 +53,7 @@ interface CreateProps {
 
 export default function Create() {
     const { t } = useTranslation();
-    const { customers, warehouses, initialInvoice, initialProducts = [] } = usePage<CreateProps>().props;
+    const { customers, warehouses, documentTemplates = [], initialInvoice, initialProducts = [] } = usePage<CreateProps>().props;
     const [availableProducts, setAvailableProducts] = useState<any[]>(initialProducts);
 
     useFlashMessages();
@@ -61,6 +63,7 @@ export default function Create() {
         due_date: initialInvoice?.due_date ?? '',
         customer_id: initialInvoice?.customer_id ?? '',
         warehouse_id: initialInvoice?.warehouse_id ?? '',
+        document_template_id: initialInvoice?.document_template_id ?? documentTemplates.find((template) => template.is_default)?.id?.toString() ?? '',
         type: initialInvoice?.type ?? 'product',
         payment_terms: initialInvoice?.payment_terms ?? '',
         notes: initialInvoice?.notes ?? '',
@@ -286,6 +289,26 @@ export default function Create() {
                                         <InputError message={errors.warehouse_id} />
                                     </div>
                                 )}
+
+                                <div>
+                                    <Label htmlFor="document_template_id">
+                                        {t('Template')}
+                                    </Label>
+                                    <Select value={data.document_template_id || 'default'} onValueChange={(value) => setData('document_template_id', value === 'default' ? '' : value)}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={t('Default Template')} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="default">{t('Default Template')}</SelectItem>
+                                            {documentTemplates.map((template) => (
+                                                <SelectItem key={template.id} value={template.id.toString()}>
+                                                    {template.name}{template.is_default ? ` (${t('Default')})` : ''}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={errors.document_template_id} />
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">

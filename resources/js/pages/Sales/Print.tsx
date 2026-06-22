@@ -6,15 +6,19 @@ import { formatCurrency, formatDate, getCompanySetting } from '@/utils/helpers';
 import { SalesInvoice } from './types';
 import { usePageButtons } from '@/hooks/usePageButtons';
 import { useFormFields } from '@/hooks/useFormFields';
+import DocumentTemplatePreview from '@/components/document-templates/document-template-preview';
+import { DocumentTemplate, TemplateSampleDocument } from '@/types/document-template';
 
 interface PrintProps {
     invoice: SalesInvoice;
+    documentTemplate?: DocumentTemplate;
+    templateDocument?: TemplateSampleDocument;
     [key: string]: any;
 }
 
 export default function Print() {
     const { t } = useTranslation();
-    const { invoice } = usePage<PrintProps>().props;
+    const { invoice, documentTemplate, templateDocument } = usePage<PrintProps>().props;
     const [isDownloading, setIsDownloading] = useState(false);
     const [fieldsLoaded, setFieldsLoaded] = useState(false);
 
@@ -98,6 +102,12 @@ export default function Print() {
                     </div>
                 </div>
             )}
+
+            {documentTemplate && templateDocument ? (
+                <div className="invoice-container bg-white">
+                    <DocumentTemplatePreview template={documentTemplate} document={templateDocument} />
+                </div>
+            ) : (
 
             <div className="invoice-container bg-white max-w-4xl mx-auto p-8">
                 <div className="flex justify-between items-start mb-8">
@@ -280,6 +290,7 @@ export default function Print() {
                     <p className="text-sm mt-2">{t('Thank you for your business!')}</p>
                 </div>
             </div>
+            )}
 
             <style>{`
                 body {

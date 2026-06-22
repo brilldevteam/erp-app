@@ -5,20 +5,32 @@ namespace App\Services;
 use App\Models\SalesInvoice;
 use App\Models\SalesInvoiceItem;
 use App\Models\SalesInvoiceItemTax;
+use App\Models\DocumentTemplate;
+use App\Services\DocumentTemplates\DocumentTemplateService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Workdo\Quotation\Models\SalesQuotation;
 
 class SalesInvoiceService
 {
+    public function __construct(private readonly DocumentTemplateService $templates)
+    {
+    }
+
     public function create(array $data, int $userId, int $creatorId): SalesInvoice
     {
         return DB::transaction(function () use ($data, $userId, $creatorId) {
             $quotation = $this->lockQuotation($data['quotation_id'] ?? null, $creatorId);
+            $template = $this->templates->resolveForDocument(
+                DocumentTemplate::TYPE_INVOICE,
+                $creatorId,
+                $data['document_template_id'] ?? null
+            );
             $totals = $this->calculateTotals($data['items']);
 
             $invoice = new SalesInvoice();
             $invoice->quotation_id = $quotation?->id;
+            $invoice->document_template_id = $template->id;
             $invoice->invoice_date = $data['invoice_date'];
             $invoice->due_date = $data['due_date'];
             $invoice->customer_id = $data['customer_id'];

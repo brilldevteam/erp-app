@@ -4,15 +4,19 @@ import { useTranslation } from 'react-i18next';
 import html2pdf from 'html2pdf.js';
 import { formatCurrency, formatDate, getCompanySetting } from '@/utils/helpers';
 import { Quotation } from './types';
+import DocumentTemplatePreview from '@/components/document-templates/document-template-preview';
+import { DocumentTemplate, TemplateSampleDocument } from '@/types/document-template';
 
 interface PrintProps {
     quotation: Quotation;
+    documentTemplate?: DocumentTemplate;
+    templateDocument?: TemplateSampleDocument;
     [key: string]: any;
 }
 
 export default function Print() {
     const { t } = useTranslation();
-    const { quotation } = usePage<PrintProps>().props;
+    const { quotation, documentTemplate, templateDocument } = usePage<PrintProps>().props;
     const [isDownloading, setIsDownloading] = useState(false);
 
     useEffect(() => {
@@ -60,6 +64,12 @@ export default function Print() {
                     </div>
                 </div>
             )}
+
+            {documentTemplate && templateDocument ? (
+                <div className="quotation-container bg-white">
+                    <DocumentTemplatePreview template={documentTemplate} document={templateDocument} />
+                </div>
+            ) : (
 
             <div className="quotation-container bg-white max-w-4xl mx-auto p-12">
                 <div className="flex justify-between items-start mb-12">
@@ -212,6 +222,7 @@ export default function Print() {
                     <p className="text-sm mt-2">{t('Thank you for your business!')}</p>
                 </div>
             </div>
+            )}
 
             <style>{`
                 body {
