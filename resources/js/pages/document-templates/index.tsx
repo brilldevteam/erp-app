@@ -29,7 +29,7 @@ export default function Index() {
     const permissions = auth.user.permissions || [];
     const canManage = permissions.includes('manage-document-templates') || permissions.includes('edit-document-templates');
     const canCreate = permissions.includes('create-document-templates');
-    const canDelete = permissions.includes('delete-document-templates');
+    const canDelete = permissions.includes('manage-document-templates') || permissions.includes('delete-document-templates');
     const canSetDefault = permissions.includes('set-default-document-templates');
 
     const changeType = (value: string) => {
@@ -85,7 +85,17 @@ export default function Index() {
                                         {canManage && <Button size="sm" variant="outline" asChild><Link href={route('document-templates.edit', template.id)}><Edit className="mr-1 h-4 w-4" />{t('Edit')}</Link></Button>}
                                         {canCreate && <Button size="sm" variant="outline" onClick={() => router.post(route('document-templates.duplicate', template.id))}><Copy className="mr-1 h-4 w-4" />{t('Duplicate')}</Button>}
                                         {canSetDefault && !template.is_default && template.status === 'active' && <Button size="sm" variant="outline" onClick={() => router.post(route('document-templates.default', template.id))}><Star className="mr-1 h-4 w-4" />{t('Set Default')}</Button>}
-                                        {canDelete && !template.is_default && <Button size="sm" variant="destructive" onClick={() => confirm(t('Delete this template?')) && router.delete(route('document-templates.destroy', template.id))}><Trash2 className="mr-1 h-4 w-4" />{t('Delete')}</Button>}
+                                        {canDelete && (
+                                            <Button
+                                                size="sm"
+                                                variant="destructive"
+                                                disabled={template.is_default}
+                                                title={template.is_default ? t('Default templates cannot be deleted. Set another template as default first.') : undefined}
+                                                onClick={() => !template.is_default && confirm(t('Delete this template?')) && router.delete(route('document-templates.destroy', template.id))}
+                                            >
+                                                <Trash2 className="mr-1 h-4 w-4" />{t('Delete')}
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
                             ))}
