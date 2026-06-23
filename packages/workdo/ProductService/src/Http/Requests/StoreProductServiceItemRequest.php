@@ -16,7 +16,7 @@ class StoreProductServiceItemRequest extends FormRequest
         return [
             'name' => 'required|string|max:255',
             'sku' => 'required|string|max:255',
-            'tax_ids' => 'required|array',
+            'tax_ids' => 'nullable|array',
             'category_id' => 'required|exists:product_service_categories,id',
             'description' => 'nullable|string',
             'long_description' => 'nullable|string',

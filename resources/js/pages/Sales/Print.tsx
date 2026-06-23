@@ -246,7 +246,7 @@ export default function Print() {
                                                 <div className="text-sm">{item.tax_percentage}%</div>
                                                 <div className="text-sm font-medium">{formatCurrency(item.tax_amount)}</div>
                                             </>
-                                        ) : null}
+                                        ) : '-'}
                                     </td>
                                     <td className="text-right py-4 font-semibold">{formatCurrency(item.total_amount)}</td>
                                 </tr>
