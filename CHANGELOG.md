@@ -10,6 +10,7 @@ All notable changes to the Wazely ERP application are documented here.
 ### Improved
 - Enhancements to existing workflows will be listed here before release.
 - Sales invoices now identify customers by company and contact person across selection, list, detail, and print views.
+- Sales invoice lines now support selecting configured tax types and leave untaxed invoice fields blank.
 
 ### Fixed
 - Bug fixes and production stability improvements will be listed here before release.

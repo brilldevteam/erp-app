@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { SalesInvoiceItem } from '../types';
+import { InvoiceTaxOption, SalesInvoiceItem } from '../types';
 import ProductSelector from './ProductSelector';
 import { calculateLineItemAmounts } from './TaxCalculator';
 import { Button } from '@/components/ui/button';
@@ -8,17 +8,19 @@ import { Input } from '@/components/ui/input';
 import { InputError } from '@/components/ui/input-error';
 import { Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/helpers';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Props {
     items: SalesInvoiceItem[];
     onChange: (items: SalesInvoiceItem[]) => void;
     errors: any;
     products?: Array<{id: number; name: string; description?: string; sale_price: number; unit?: string; stock_quantity?: number; taxes?: Array<{id: number; tax_name: string; rate: number}>}>;
+    taxTypes?: InvoiceTaxOption[];
     showAddButton?: boolean;
     invoiceType?: string;
 }
 
-export default function InvoiceItemsTable({ items, onChange, errors, products = [], showAddButton = true, invoiceType = 'product' }: Props) {
+export default function InvoiceItemsTable({ items, onChange, errors, products = [], taxTypes = [], showAddButton = true, invoiceType = 'product' }: Props) {
     const { t } = useTranslation();
 
     const addItem = () => {
@@ -47,13 +49,6 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
 
         const item = newItems[index];
 
-        if (item.tax_percentage === 0 && item.product_id > 0) {
-            const product = products.find(p => p.id === item.product_id);
-            if (product?.taxes?.length) {
-                item.tax_percentage = product.taxes.reduce((sum, tax) => sum + tax.rate, 0);
-            }
-        }
-
         const calculations = calculateLineItemAmounts(
             item.quantity,
             item.unit_price,
@@ -68,10 +63,46 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
         onChange(newItems);
     };
 
+    const getSelectedTaxId = (item: SalesInvoiceItem) => {
+        const currentTax = item.taxes?.[0];
+        if (!currentTax) return undefined;
+
+        return taxTypes.find((tax) =>
+            tax.tax_name === currentTax.tax_name && Number(tax.rate) === Number(currentTax.tax_rate)
+        )?.id.toString();
+    };
+
+    const handleTaxSelect = (index: number, taxId: string) => {
+        const newItems = [...items];
+        const item = { ...newItems[index] };
+        const selectedTax = taxTypes.find((tax) => tax.id.toString() === taxId);
+
+        item.taxes = selectedTax ? [{
+            id: selectedTax.id,
+            tax_name: selectedTax.tax_name,
+            tax_rate: Number(selectedTax.rate)
+        }] : [];
+        item.tax_percentage = selectedTax ? Number(selectedTax.rate) : 0;
+
+        const calculations = calculateLineItemAmounts(
+            item.quantity,
+            item.unit_price,
+            item.discount_percentage,
+            item.tax_percentage
+        );
+
+        item.discount_amount = calculations.discountAmount;
+        item.tax_amount = calculations.taxAmount;
+        item.total_amount = calculations.totalAmount;
+        newItems[index] = item;
+        onChange(newItems);
+    };
+
     const handleProductSelect = (index: number, productId: number, product?: any) => {
         const newItems = [...items];
         const totalTaxRate = product?.taxes?.reduce((sum: number, tax: any) => sum + Number(tax.rate), 0) || 0;
         const taxes = product?.taxes?.map((tax: any) => ({
+            id: tax.id,
             tax_name: tax.tax_name,
             tax_rate: tax.rate
         })) || [];
@@ -202,19 +233,22 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                     />
                                 </td>
                                 <td className="px-4 py-4">
-                                    {item.taxes && item.taxes.length > 0 ? (
-                                        <div className="flex flex-wrap gap-1">
-                                            {item.taxes.map((tax, taxIndex) => (
-                                                <span key={taxIndex} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                    {tax.tax_name} ({tax.tax_rate}%)
-                                                </span>
+                                    <Select
+                                        value={getSelectedTaxId(item) ?? ''}
+                                        onValueChange={(value) => handleTaxSelect(index, value)}
+                                    >
+                                        <SelectTrigger className="w-40">
+                                            <SelectValue placeholder=" " />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">{t('No Tax')}</SelectItem>
+                                            {taxTypes.map((tax) => (
+                                                <SelectItem key={tax.id} value={tax.id.toString()}>
+                                                    {tax.tax_name} ({tax.rate}%)
+                                                </SelectItem>
                                             ))}
-                                        </div>
-                                    ) : item.tax_percentage > 0 ? (
-                                        <span className="text-sm text-blue-800">Tax ({item.tax_percentage}%)</span>
-                                    ) : (
-                                        <span className="text-sm text-muted-foreground">No tax</span>
-                                    )}
+                                        </SelectContent>
+                                    </Select>
                                 </td>
                                 <td className="px-4 py-4">
                                     <span className="text-sm font-medium">

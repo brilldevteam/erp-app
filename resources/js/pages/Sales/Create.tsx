@@ -3,7 +3,7 @@ import { Head, useForm, usePage, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { useFormFields } from '@/hooks/useFormFields';
-import { InvoiceCustomerOption, SalesInvoiceItem } from './types';
+import { InvoiceCustomerOption, InvoiceTaxOption, SalesInvoiceItem } from './types';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import InvoiceItemsTable from './components/InvoiceItemsTable';
 import { useTaxCalculator } from './components/TaxCalculator';
@@ -22,6 +22,7 @@ import { CalendarDays, Building2, User, FileText, Package } from 'lucide-react';
 
 interface CreateProps {
     customers: InvoiceCustomerOption[];
+    taxes: InvoiceTaxOption[];
     warehouses: Array<{ id: number; name: string; address: string }>;
     documentTemplates: Array<{ id: number; name: string; is_default: boolean }>;
     initialProducts?: Array<{
@@ -53,7 +54,7 @@ interface CreateProps {
 
 export default function Create() {
     const { t } = useTranslation();
-    const { customers, warehouses, documentTemplates = [], initialInvoice, initialProducts = [] } = usePage<CreateProps>().props;
+    const { customers, taxes = [], warehouses, documentTemplates = [], initialInvoice, initialProducts = [] } = usePage<CreateProps>().props;
     const [availableProducts, setAvailableProducts] = useState<any[]>(initialProducts);
 
     useFlashMessages();
@@ -424,6 +425,7 @@ export default function Create() {
                                 onChange={(items) => setData('items', items)}
                                 errors={errors}
                                 products={availableProducts}
+                                taxTypes={taxes}
                                 showAddButton={false}
                                 invoiceType={data.type}
                             />

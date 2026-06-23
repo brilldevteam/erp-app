@@ -280,7 +280,7 @@ export default function View() {
                                                             {formatCurrency(item.tax_amount)}
                                                         </div>
                                                     </div>
-                                                ) : '-'}
+                                                ) : null}
                                             </td>
                                             <td className="px-4 py-4 text-right font-semibold">
                                                 {formatCurrency(item.total_amount)}

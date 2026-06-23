@@ -10,6 +10,7 @@ use App\Models\Warehouse;
 use App\Http\Requests\StoreSalesInvoiceRequest;
 use App\Http\Requests\UpdateSalesInvoiceRequest;
 use Workdo\ProductService\Models\ProductServiceItem;
+use Workdo\ProductService\Models\ProductServiceTax;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -41,6 +42,14 @@ class SalesInvoiceController extends Controller
                 'customers.contact_person_name'
             )
             ->get();
+    }
+
+    private function invoiceTaxes()
+    {
+        return ProductServiceTax::query()
+            ->where('created_by', creatorId())
+            ->orderBy('tax_name')
+            ->get(['id', 'tax_name', 'rate']);
     }
 
     private function checkInvoiceAccess(SalesInvoice $salesInvoice)
@@ -138,6 +147,7 @@ class SalesInvoiceController extends Controller
 
             return Inertia::render('Sales/Create', [
                 'customers' => $customers,
+                'taxes' => $this->invoiceTaxes(),
                 'warehouses' => $warehouses,
                 'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_INVOICE),
             ]);
@@ -237,6 +247,7 @@ class SalesInvoiceController extends Controller
             return Inertia::render('Sales/Edit', [
                 'invoice' => $salesInvoice,
                 'customers' => $customers,
+                'taxes' => $this->invoiceTaxes(),
                 'warehouses' => $warehouses,
                 'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_INVOICE),
             ]);

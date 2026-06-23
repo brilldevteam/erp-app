@@ -3,7 +3,7 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { useFormFields } from '@/hooks/useFormFields';
-import { InvoiceCustomerOption, SalesInvoice, SalesInvoiceItem } from './types';
+import { InvoiceCustomerOption, InvoiceTaxOption, SalesInvoice, SalesInvoiceItem } from './types';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import InvoiceItemsTable from './components/InvoiceItemsTable';
 import { useTaxCalculator, calculateLineItemAmounts } from './components/TaxCalculator';
@@ -22,6 +22,7 @@ import { CalendarDays, Package } from 'lucide-react';
 interface EditProps {
     invoice: SalesInvoice;
     customers: InvoiceCustomerOption[];
+    taxes: InvoiceTaxOption[];
     warehouses: Array<{id: number; name: string; address: string}>;
     documentTemplates: Array<{ id: number; name: string; is_default: boolean }>;
     [key: string]: any;
@@ -29,7 +30,7 @@ interface EditProps {
 
 export default function Edit() {
     const { t } = useTranslation();
-    const { invoice, customers, warehouses, documentTemplates = [] } = usePage<EditProps>().props;
+    const { invoice, customers, taxes = [], warehouses, documentTemplates = [] } = usePage<EditProps>().props;
     const [availableProducts, setAvailableProducts] = useState([]);
 
     useFlashMessages();
@@ -322,6 +323,7 @@ export default function Edit() {
                                 onChange={(items) => setData('items', items)}
                                 errors={errors}
                                 products={availableProducts}
+                                taxTypes={taxes}
                                 showAddButton={false}
                                 invoiceType={data.type}
                             />
