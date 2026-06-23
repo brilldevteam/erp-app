@@ -22,14 +22,14 @@ import { formatCurrency, formatDate } from '@/utils/helpers';
 import { getStatusBadgeClasses } from './utils';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import NoRecordsFound from '@/components/no-records-found';
-import { SalesInvoice, SalesFilters } from './types';
+import { InvoiceCustomerOption, SalesInvoice, SalesFilters } from './types';
 interface SalesIndexProps {
     invoices: {
         data: SalesInvoice[];
         links: any[];
         meta: any;
     };
-    customers: Array<{id: number; name: string; email: string}>;
+    customers: InvoiceCustomerOption[];
     warehouses: Array<{id: number; name: string; address: string}>;
     auth: any;
     [key: string]: any;
@@ -131,6 +131,17 @@ export default function Index() {
         router.get(route('sales-invoices.index'), {per_page: perPage, view: viewMode});
     };
 
+    const getCustomerDisplayName = (invoice: SalesInvoice) => {
+        const companyName = invoice.customer_details?.company_name;
+        const contactName = invoice.customer_details?.contact_person_name || invoice.customer?.name;
+
+        if (companyName && contactName && companyName !== contactName) {
+            return `${companyName} — ${contactName}`;
+        }
+
+        return companyName || contactName || '-';
+    };
+
     const tableColumns = [
         {
             key: 'invoice_number',
@@ -146,7 +157,7 @@ export default function Index() {
         {
             key: 'customer',
             header: t('Customer'),
-            render: (value: any) => value?.name || '-'
+            render: (_value: any, invoice: SalesInvoice) => getCustomerDisplayName(invoice)
         },
         {
             key: 'invoice_date',
@@ -408,7 +419,9 @@ export default function Index() {
                                             <SelectContent>
                                                 {customers.map((customer) => (
                                                     <SelectItem key={customer.id} value={customer.id.toString()}>
-                                                        {customer.name}
+                                                        {customer.company_name
+                                                            ? `${customer.company_name} — ${customer.contact_person_name || customer.name}`
+                                                            : customer.name}
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>
@@ -511,7 +524,9 @@ export default function Index() {
                                                 <div className="space-y-3 mb-4">
                                                     <div>
                                                         <p className="text-xs font-medium text-gray-600 mb-1">{t('Customer')}</p>
-                                                        <p className="text-sm text-gray-900 truncate font-medium">{invoice.customer?.name}</p>
+                                                        <p className="text-sm text-gray-900 truncate font-medium">
+                                                            {getCustomerDisplayName(invoice)}
+                                                        </p>
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-3">
                                                         <div>

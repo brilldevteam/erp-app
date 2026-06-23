@@ -27,6 +27,22 @@ use Workdo\Quotation\Events\ConvertSalesQuotation;
 
 class SalesInvoiceController extends Controller
 {
+    private function invoiceCustomers()
+    {
+        return User::query()
+            ->leftJoin('customers', 'customers.user_id', '=', 'users.id')
+            ->where('users.type', 'client')
+            ->where('users.created_by', creatorId())
+            ->select(
+                'users.id',
+                'users.name',
+                'users.email',
+                'customers.company_name',
+                'customers.contact_person_name'
+            )
+            ->get();
+    }
+
     private function checkInvoiceAccess(SalesInvoice $salesInvoice)
     {
         if(Auth::user()->can('manage-any-sales-invoices')) {
@@ -45,7 +61,7 @@ class SalesInvoiceController extends Controller
     public function index(Request $request)
     {
         if(Auth::user()->can('manage-sales-invoices')){
-            $query = SalesInvoice::with(['customer', 'items'])
+            $query = SalesInvoice::with(['customer', 'customerDetails', 'items'])
                 ->where(function($q) {
                     if(Auth::user()->can('manage-any-sales-invoices')) {
                         $q->where('created_by', creatorId());
@@ -99,7 +115,7 @@ class SalesInvoiceController extends Controller
 
         $perPage = $request->get('per_page', 10);
         $invoices = $query->paginate($perPage);
-        $customers = User::where('type', 'client')->select('id', 'name', 'email')->where('created_by', creatorId())->get();
+        $customers = $this->invoiceCustomers();
         $warehouses = Warehouse::where('is_active', true)->select('id', 'name')->where('created_by', creatorId())->get();
 
             return Inertia::render('Sales/Index', [
@@ -117,7 +133,7 @@ class SalesInvoiceController extends Controller
     public function create()
     {
         if(Auth::user()->can('create-sales-invoices')){
-            $customers = User::where('type', 'client')->select('id', 'name', 'email')->where('created_by', creatorId())->get();
+            $customers = $this->invoiceCustomers();
             $warehouses = Warehouse::where('is_active', true)->select('id', 'name', 'address')->where('created_by', creatorId())->get();
 
             return Inertia::render('Sales/Create', [
@@ -215,7 +231,7 @@ class SalesInvoiceController extends Controller
 
             EditSalesInvoice::dispatch($salesInvoice);
 
-            $customers = User::where('type', 'client')->select('id', 'name', 'email')->where('created_by', creatorId())->get();
+            $customers = $this->invoiceCustomers();
             $warehouses = Warehouse::where('is_active', true)->select('id', 'name', 'address')->where('created_by', creatorId())->get();
 
             return Inertia::render('Sales/Edit', [

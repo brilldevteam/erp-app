@@ -3,7 +3,7 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { useFormFields } from '@/hooks/useFormFields';
-import { SalesInvoice, SalesInvoiceItem } from './types';
+import { InvoiceCustomerOption, SalesInvoice, SalesInvoiceItem } from './types';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import InvoiceItemsTable from './components/InvoiceItemsTable';
 import { useTaxCalculator, calculateLineItemAmounts } from './components/TaxCalculator';
@@ -21,7 +21,7 @@ import { CalendarDays, Package } from 'lucide-react';
 
 interface EditProps {
     invoice: SalesInvoice;
-    customers: Array<{id: number; name: string; email: string}>;
+    customers: InvoiceCustomerOption[];
     warehouses: Array<{id: number; name: string; address: string}>;
     documentTemplates: Array<{ id: number; name: string; is_default: boolean }>;
     [key: string]: any;
@@ -167,7 +167,9 @@ export default function Edit() {
                                         <SelectContent searchable>
                                             {customers.map((customer) => (
                                                 <SelectItem key={customer.id} value={customer.id.toString()}>
-                                                    {customer.name} - {customer.email}
+                                                    {customer.company_name
+                                                        ? `${customer.company_name} — ${customer.contact_person_name || customer.name}`
+                                                        : `${customer.name} — ${customer.email}`}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>

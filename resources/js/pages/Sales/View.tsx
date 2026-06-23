@@ -70,7 +70,14 @@ export default function View() {
                             <div>
                                 <h3 className="font-semibold mb-2">{t('CUSTOMER')}</h3>
                                 <div className="text-sm space-y-1">
-                                    <div className="font-medium">{invoice.customer?.name}</div>
+                                    <div className="font-medium">
+                                        {invoice.customer_details?.company_name || invoice.customer?.name || '-'}
+                                    </div>
+                                    {(invoice.customer_details?.contact_person_name || invoice.customer?.name) && (
+                                        <div className="text-muted-foreground">
+                                            {t('Contact Person')}: {invoice.customer_details?.contact_person_name || invoice.customer?.name}
+                                        </div>
+                                    )}
                                     <div className="text-muted-foreground">{invoice.customer?.email}</div>
                                 </div>
                                 {invoice.customer_details?.billing_address && (
