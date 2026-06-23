@@ -26,7 +26,7 @@ class SalesInvoiceReturnItem extends Model
 
     protected $casts = [
         'original_quantity' => 'integer',
-        'return_quantity' => 'integer',
+        'return_quantity' => 'decimal:2',
         'unit_price' => 'decimal:2',
         'discount_percentage' => 'decimal:2',
         'discount_amount' => 'decimal:2',

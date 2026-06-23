@@ -93,7 +93,8 @@ export default function Create() {
         const existingItem = returnItems.find(item => item.original_invoice_item_id === originalInvoiceItemId);
         if (!existingItem) {
             const originalItem = selectedInvoice?.items.find(i => i.id === originalInvoiceItemId);
-            const lineTotal = 1 * unitPrice;
+            const initialQuantity = Math.min(1, maxQuantity);
+            const lineTotal = initialQuantity * unitPrice;
             const discountAmount = (lineTotal * (originalItem?.discount_percentage || 0)) / 100;
             const afterDiscount = lineTotal - discountAmount;
             const taxAmount = (afterDiscount * (originalItem?.tax_percentage || 0)) / 100;
@@ -102,7 +103,7 @@ export default function Create() {
             const newItem = {
                 product_id: productId,
                 original_invoice_item_id: originalInvoiceItemId,
-                return_quantity: 1,
+                return_quantity: initialQuantity,
                 unit_price: unitPrice,
                 reason: '',
                 total_amount: totalAmount
@@ -345,7 +346,7 @@ export default function Create() {
                                                     </td>
                                                     <td className="px-4 py-4">
                                                         <span className="text-sm font-medium">{formatCurrency((() => {
-                                                            const qty = item.available_quantity || item.quantity;
+                                                            const qty = item.available_quantity ?? item.quantity;
                                                             const lineTotal = qty * item.unit_price;
                                                             const discountAmount = (lineTotal * (item.discount_percentage || 0)) / 100;
                                                             const afterDiscount = lineTotal - discountAmount;
@@ -356,8 +357,8 @@ export default function Create() {
                                                     <td className="px-4 py-4 text-center">
                                                         <Button
                                                             type="button"
-                                                            onClick={() => addReturnItem(item.product.id, item.id, item.available_quantity || item.quantity, item.unit_price)}
-                                                            disabled={returnItems.some(ri => ri.original_invoice_item_id === item.id) || (item.available_quantity || 0) <= 0}
+                                                            onClick={() => addReturnItem(item.product.id, item.id, item.available_quantity ?? item.quantity, item.unit_price)}
+                                                            disabled={returnItems.some(ri => ri.original_invoice_item_id === item.id) || (item.available_quantity ?? 0) <= 0}
                                                             size="sm"
                                                         >
                                                             {returnItems.some(ri => ri.original_invoice_item_id === item.id) ? t('Added') : t('Add to Return')}
@@ -399,6 +400,7 @@ export default function Create() {
                                         <tbody className="divide-y divide-border">
                                             {returnItems.map((item) => {
                                                 const originalItem = selectedInvoice?.items.find(i => i.id === item.original_invoice_item_id);
+                                                const availableQuantity = originalItem?.available_quantity ?? originalItem?.quantity ?? 0;
                                                 return (
                                                     <tr key={item.original_invoice_item_id}>
                                                         <td className="px-4 py-4">
@@ -410,12 +412,26 @@ export default function Create() {
                                                         <td className="px-4 py-4">
                                                             <Input
                                                                 type="number"
-                                                                min="1"
-                                                                max={originalItem?.available_quantity || originalItem?.quantity}
+                                                                min="0.01"
+                                                                max={availableQuantity}
+                                                                step="0.01"
                                                                 value={item.return_quantity}
-                                                                onChange={(e) => updateReturnItem(item.original_invoice_item_id, 'return_quantity', parseInt(e.target.value) || 1)}
+                                                                onChange={(e) => {
+                                                                    const requestedQuantity = parseFloat(e.target.value) || 0.01;
+                                                                    updateReturnItem(
+                                                                        item.original_invoice_item_id,
+                                                                        'return_quantity',
+                                                                        Math.min(Math.max(requestedQuantity, 0.01), availableQuantity)
+                                                                    );
+                                                                }}
                                                                 className="w-20 text-sm"
                                                             />
+                                                            <div className="mt-1 text-xs text-muted-foreground">
+                                                                {t('of')} {availableQuantity}
+                                                            </div>
+                                                            <div className={`mt-1 text-xs font-medium ${item.return_quantity < availableQuantity ? 'text-amber-600' : 'text-green-600'}`}>
+                                                                {item.return_quantity < availableQuantity ? t('Partial Return') : t('Full Return')}
+                                                            </div>
                                                         </td>
                                                         <td className="px-4 py-4">
                                                             <span className="text-sm">{formatCurrency(item.unit_price)}</span>
