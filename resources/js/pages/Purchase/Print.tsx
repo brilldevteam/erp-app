@@ -110,7 +110,14 @@ export default function Print() {
                     <div className="w-1/2">
                         <h3 className="font-bold mb-3">{t('VENDOR')}</h3>
                         <div className="text-sm space-y-1">
-                            <p className="font-semibold">{invoice.vendor?.name}</p>
+                            <p className="font-semibold">
+                                {invoice.vendor_details?.company_name || invoice.vendor?.name || '-'}
+                            </p>
+                            {(invoice.vendor_details?.contact_person_name || invoice.vendor?.name) && (
+                                <p>
+                                    {t('Contact Person')}: {invoice.vendor_details?.contact_person_name || invoice.vendor?.name}
+                                </p>
+                            )}
                             <p>{invoice.vendor?.email}</p>
                             {invoice.vendor_details?.billing_address && (
                                 <>

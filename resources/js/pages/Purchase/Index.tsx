@@ -24,14 +24,14 @@ import { getStatusBadgeClasses } from './utils';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 
 import NoRecordsFound from '@/components/no-records-found';
-import { PurchaseInvoice, PurchaseFilters } from './types';
+import { InvoiceVendorOption, PurchaseInvoice, PurchaseFilters } from './types';
 interface PurchaseIndexProps {
     invoices: {
         data: PurchaseInvoice[];
         links: any[];
         meta: any;
     };
-    vendors: Array<{ id: number; name: string; email: string }>;
+    vendors: InvoiceVendorOption[];
     warehouses: Array<{ id: number; name: string; address: string }>;
     products: Array<{ id: number; name: string; price: number; tax_rate?: number }>;
     auth: any;
@@ -127,6 +127,17 @@ export default function Index() {
         router.get(route('purchase-invoices.index'), { per_page: perPage, view: viewMode });
     };
 
+    const getVendorDisplayName = (invoice: PurchaseInvoice) => {
+        const companyName = invoice.vendor_details?.company_name;
+        const contactName = invoice.vendor_details?.contact_person_name || invoice.vendor?.name;
+
+        if (companyName && contactName && companyName !== contactName) {
+            return `${companyName} — ${contactName}`;
+        }
+
+        return companyName || contactName || '-';
+    };
+
 
 
 
@@ -146,7 +157,7 @@ export default function Index() {
         {
             key: 'vendor',
             header: t('Vendor'),
-            render: (value: any) => value?.name || '-'
+            render: (_value: any, invoice: PurchaseInvoice) => getVendorDisplayName(invoice)
         },
         {
             key: 'invoice_date',
@@ -411,7 +422,9 @@ export default function Index() {
                                         <SelectContent>
                                             {vendors.map((vendor) => (
                                                 <SelectItem key={vendor.id} value={vendor.id.toString()}>
-                                                    {vendor.name}
+                                                    {vendor.company_name
+                                                        ? `${vendor.company_name} — ${vendor.contact_person_name || vendor.name}`
+                                                        : vendor.name}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
@@ -515,7 +528,9 @@ export default function Index() {
                                                 <div className="space-y-3 mb-4">
                                                     <div>
                                                         <p className="text-xs font-medium text-gray-600 mb-1">{t('Vendor')}</p>
-                                                        <p className="text-sm text-gray-900 truncate font-medium">{invoice.vendor?.name}</p>
+                                                        <p className="text-sm text-gray-900 truncate font-medium">
+                                                            {getVendorDisplayName(invoice)}
+                                                        </p>
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-3">
                                                         <div>

@@ -47,6 +47,11 @@ export interface User {
     type?: string;
 }
 
+export interface InvoiceVendorOption extends User {
+    company_name?: string;
+    contact_person_name?: string;
+}
+
 export interface VendorDetails {
     id: number;
     user_id: number;
