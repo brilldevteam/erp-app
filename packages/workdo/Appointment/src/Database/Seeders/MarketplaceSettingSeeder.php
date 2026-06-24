@@ -33,7 +33,7 @@ class MarketplaceSettingSeeder extends Seeder
                 'sections' => [
                     'hero' => [
                         'variant' => 'hero1',
-                        'title' => 'Appointment Add-On for WorkDo Dash',
+                        'title' => 'Appointment Add-On for wazely.io',
                         'subtitle' => 'Create appointments with custom questions, share links with clients, and track all submissions with efficient appointment tracking.',
                         'primary_button_text' => 'Install Appointment Module',
                         'primary_button_link' => '#install',

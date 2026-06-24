@@ -33,7 +33,7 @@ class MarketplaceSettingSeeder extends Seeder
                 'sections' => [
                     'hero' => [
                         'variant' => 'hero1',
-                        'title' => 'Recurring Invoice Purchase for WorkDo Dash',
+                        'title' => 'Recurring Invoice Purchase for wazely.io',
                         'subtitle' => 'Automate sales and purchase invoice creation with flexible scheduling and customizable intervals.',
                         'primary_button_text' => 'Install Recurring Invoice Purchase',
                         'primary_button_link' => '#install',

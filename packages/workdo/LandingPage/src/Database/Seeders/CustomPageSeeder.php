@@ -148,8 +148,8 @@ class CustomPageSeeder extends Seeder
                     
                     <div class="space-y-6">
                         <div class="bg-white border rounded-lg p-6">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-3">What is WorkDo Dash?</h3>
-                            <p class="text-gray-600 leading-relaxed">WorkDo Dash is a comprehensive business management platform that helps companies streamline their operations, manage projects, and improve productivity through integrated tools and modules.</p>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-3">What is wazely.io?</h3>
+                            <p class="text-gray-600 leading-relaxed">wazely.io is a comprehensive business management platform that helps companies streamline their operations, manage projects, and improve productivity through integrated tools and modules.</p>
                         </div>
                         
                         <div class="bg-white border rounded-lg p-6">
@@ -164,7 +164,7 @@ class CustomPageSeeder extends Seeder
                         
                         <div class="bg-white border rounded-lg p-6">
                             <h3 class="text-lg font-semibold text-gray-900 mb-3">Can I customize the platform?</h3>
-                            <p class="text-gray-600 leading-relaxed">Yes! WorkDo Dash offers extensive customization options including custom fields, workflows, dashboards, and integrations with third-party tools.</p>
+                            <p class="text-gray-600 leading-relaxed">Yes! wazely.io offers extensive customization options including custom fields, workflows, dashboards, and integrations with third-party tools.</p>
                         </div>
                     </div>
                     

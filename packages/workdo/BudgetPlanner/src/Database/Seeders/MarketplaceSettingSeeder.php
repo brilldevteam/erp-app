@@ -33,7 +33,7 @@ class MarketplaceSettingSeeder extends Seeder
                 'sections' => [
                     'hero' => [
                         'variant' => 'hero1',
-                        'title' => 'Budget Planner Module for WorkDo Dash',
+                        'title' => 'Budget Planner Module for wazely.io',
                         'subtitle' => 'Streamline your budget planner workflow with comprehensive tools and automated management.',
                         'primary_button_text' => 'Install Budget Planner Module',
                         'primary_button_link' => '#install',

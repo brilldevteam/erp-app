@@ -33,7 +33,7 @@ class MarketplaceSettingSeeder extends Seeder
                 'sections' => [
                     'hero' => [
                         'variant' => 'hero1',
-                        'title' => 'Contract Template Add-On for WorkDo Dash',
+                        'title' => 'Contract Template Add-On for wazely.io',
                         'subtitle' => 'Contract templates allow businesses to create, store, and reuse standardized agreements. Users can save finalized contracts as templates and quickly generate new ones by adjusting them.',
                         'primary_button_text' => 'Install Contract Template Add-On',
                         'primary_button_link' => '#install',

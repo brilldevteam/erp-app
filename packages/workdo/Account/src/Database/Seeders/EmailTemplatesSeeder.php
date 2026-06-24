@@ -3847,7 +3847,7 @@ class EmailTemplatesSeeder extends Seeder
                 $emailtemplate=  EmailTemplate::create(
                     [
                     'name' => $eTemp,
-                    'from' => !empty(env('APP_NAME')) ? env('APP_NAME') : 'WorkDo Dash',
+                    'from' => !empty(env('APP_NAME')) ? env('APP_NAME') : 'wazely.io',
                     'module_name' => 'Account',
                     'created_by' => $admin->id,
                     'creator_id' => $admin->id,

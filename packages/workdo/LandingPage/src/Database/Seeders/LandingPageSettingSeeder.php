@@ -25,8 +25,8 @@ class LandingPageSettingSeeder extends Seeder
     private function getDefaultSettings(): array
     {
         return [
-            'company_name' => 'WorkDo Dash',
-            'contact_email' => 'support@workdodash.com',
+            'company_name' => 'wazely.io',
+            'contact_email' => 'support@wazely.io',
             'contact_phone' => '+1 (555) 123-4567',
             'contact_address' => '123 Business Ave, City, State 12345',
             'config_sections' => $this->getDefaultConfigSections()
@@ -48,18 +48,18 @@ class LandingPageSettingSeeder extends Seeder
         return [
             'hero' => [
                 'variant' => 'hero1',
-                'title' => 'Transform Your Business with WorkDo Dash',
+                'title' => 'Transform Your Business with wazely.io',
                 'subtitle' => 'The complete all-in-one business management solution that combines Project Management, Accounting, HRM, CRM, POS, and Product Management into a single powerful platform. Streamline operations, boost productivity, and grow your business with our integrated suite of tools.',
                 'primary_button_text' => 'Start Free Trial',
                 'primary_button_link' => route('register'),
                 'secondary_button_text' => 'Login',
                 'secondary_button_link' => route('login'),
-                'highlight_text' => 'WorkDo Dash',
-                'image' => '/images/hero.png
+                'highlight_text' => 'wazely.io',
+                'image' => '/images/hero.png',
             ],
             'header' => [
                 'variant' => 'header1',
-                'company_name' => 'WorkDo Dash',
+                'company_name' => 'wazely.io',
                 'cta_text' => 'Get Started',
                 'enable_addon_link' => true,
                 'enable_pricing_link' => true,
@@ -133,7 +133,7 @@ class LandingPageSettingSeeder extends Seeder
             ],
             'benefits' => [
                 'variant' => 'benefits1',
-                'title' => 'Why Choose WorkDo Dash?',
+                'title' => 'Why Choose wazely.io?',
                 'benefits' => [
                     ['title' => 'Complete Project Management', 'description' => 'Organize and track all your projects in one place with powerful task management, team collaboration, and progress tracking tools.'],
                     ['title' => 'Integrated Financial System', 'description' => 'Manage your finances seamlessly with comprehensive accounting, invoicing, expense tracking, and real-time financial reporting.'],
@@ -145,20 +145,20 @@ class LandingPageSettingSeeder extends Seeder
             ],
             'gallery' => [
                 'variant' => 'gallery1',
-                'title' => 'See WorkDo Dash in Action',
+                'title' => 'See wazely.io in Action',
                 'subtitle' => 'Explore our intuitive interface and powerful features through real screenshots of our platform',
                 'images' => ['/packages/workdo/LandingPage/src/marketplace/image1.png', '/packages/workdo/LandingPage/src/marketplace/image2.png', '/packages/workdo/LandingPage/src/marketplace/image3.png', '/packages/workdo/LandingPage/src/marketplace/image4.png']
             ],
             'cta' => [
                 'variant' => 'cta1',
                 'title' => 'Ready to Transform Your Business?',
-                'subtitle' => 'Join thousands of businesses already using WorkDo Dash to streamline their operations.',
+                'subtitle' => 'Join thousands of businesses already using wazely.io to streamline their operations.',
                 'primary_button' => 'Start Free Trial',
                 'secondary_button' => 'Contact Sales'
             ],
             'addons' => [
                 'title' => 'Premium Addons',
-                'subtitle' => 'Extend your WorkDo Dash with powerful premium modules designed to enhance your business operations',
+                'subtitle' => 'Extend your wazely.io with powerful premium modules designed to enhance your business operations',
                 'per_page' => 20,
                 'default_price_type' => 'monthly',
                 'card_variant' => 'card1',
@@ -181,7 +181,7 @@ class LandingPageSettingSeeder extends Seeder
             'footer' => [
                 'variant' => 'footer1',
                 'description' => 'The complete business management solution for modern enterprisesThe complete business management solution for modern enterprises.',
-                'email' => 'support@workdodash.com',
+                'email' => 'support@wazely.io',
                 'phone' => '+1 (555) 123-4567',
                 'newsletter_title' => 'Join Our Community',
                 'newsletter_description' => 'We build modern web tools to help you jump-start your daily business work.',

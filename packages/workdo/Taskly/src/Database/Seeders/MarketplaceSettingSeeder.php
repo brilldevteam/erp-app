@@ -33,7 +33,7 @@ class MarketplaceSettingSeeder extends Seeder
                 'sections' => [
                     'hero' => [
                         'variant' => 'hero1',
-                        'title' => 'Taskly Module for WorkDo Dash',
+                        'title' => 'Taskly Module for wazely.io',
                         'subtitle' => 'Streamline your project management workflow with comprehensive task tracking, bug management, and team collaboration tools.',
                         'primary_button_text' => 'Install Taskly Module',
                         'primary_button_link' => '#install',

@@ -81,7 +81,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       />
                     ) : (
                       <div className="text-inherit font-semibold flex items-center text-lg tracking-tight">
-                        {settings.titleText || 'WorkDo'}
+                        {settings.titleText || 'wazely.io'}
                       </div>
                     );
                   })()}
