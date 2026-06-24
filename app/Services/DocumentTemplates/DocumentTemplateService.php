@@ -307,6 +307,7 @@ class DocumentTemplateService
                 'quantity' => (float) $item->quantity,
                 'rate' => (float) $item->unit_price,
                 'tax' => (float) $item->tax_amount,
+                'has_tax' => $item->taxes->isNotEmpty() || (float) $item->tax_percentage > 0,
                 'total' => (float) $item->total_amount,
             ])->values()->all(),
             'totals' => [
