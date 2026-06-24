@@ -6,10 +6,13 @@ All notable changes to the Wazely ERP application are documented here.
 
 ### Added
 - New features currently in development will be listed here before release.
+- Sales returns now support fractional and partial item quantities with remaining-quantity protection.
 
 ### Improved
 - Enhancements to existing workflows will be listed here before release.
 - Sales invoices now identify customers by company and contact person across selection, list, detail, and print views.
+- Sales returns can now be created without a warehouse; returned stock is updated only when a warehouse is selected.
+- Sales invoice lines now support optional configured tax types and display a dash when no tax applies.
 - Sales invoice lines support optional configured tax types, and invoice or quotation documents display a dash when no tax is selected.
 - Product and service items can now be created or edited without assigning a tax.
 

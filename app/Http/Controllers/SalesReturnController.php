@@ -281,7 +281,8 @@ class SalesReturnController extends Controller
         foreach ($items as $item) {
             $originalItem = $originalInvoice->items->where('id', $item['original_invoice_item_id'])->first();
 
-            $lineTotal = $item['return_quantity'] * $item['unit_price'];
+            $unitPrice = $originalItem ? $originalItem->unit_price : $item['unit_price'];
+            $lineTotal = $item['return_quantity'] * $unitPrice;
             $discountPercentage = $originalItem ? $originalItem->discount_percentage : 0;
             $discountAmount = ($lineTotal * $discountPercentage) / 100;
             $afterDiscount = $lineTotal - $discountAmount;
@@ -309,7 +310,8 @@ class SalesReturnController extends Controller
             $originalItem = $originalInvoice->items->where('id', $itemData['original_invoice_item_id'])->first();
 
             // Calculate amounts based on return quantity
-            $lineTotal = $itemData['return_quantity'] * $itemData['unit_price'];
+            $unitPrice = $originalItem ? $originalItem->unit_price : $itemData['unit_price'];
+            $lineTotal = $itemData['return_quantity'] * $unitPrice;
             $discountPercentage = $originalItem ? $originalItem->discount_percentage : 0;
             $discountAmount = ($lineTotal * $discountPercentage) / 100;
             $afterDiscount = $lineTotal - $discountAmount;
@@ -324,7 +326,7 @@ class SalesReturnController extends Controller
             $item->original_invoice_item_id = $itemData['original_invoice_item_id'];
             $item->original_quantity = $originalItem ? $originalItem->quantity : 0;
             $item->return_quantity = $itemData['return_quantity'];
-            $item->unit_price = $itemData['unit_price'];
+            $item->unit_price = $unitPrice;
             $item->discount_percentage = $discountPercentage;
             $item->discount_amount = $discountAmount;
             $item->tax_percentage = $taxPercentage;
