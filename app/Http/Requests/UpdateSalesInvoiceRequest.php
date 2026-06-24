@@ -26,7 +26,10 @@ class UpdateSalesInvoiceRequest extends FormRequest
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.discount_percentage' => 'nullable|numeric|min:0|max:100',
-            'items.*.tax_percentage' => 'nullable|numeric|min:0|max:100'
+            'items.*.tax_percentage' => 'nullable|numeric|min:0|max:100',
+            'items.*.taxes' => 'nullable|array',
+            'items.*.taxes.*.tax_name' => 'required_with:items.*.taxes|string',
+            'items.*.taxes.*.tax_rate' => 'required_with:items.*.taxes|numeric|min:0',
         ];
     }
 

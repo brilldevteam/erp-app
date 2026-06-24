@@ -54,6 +54,17 @@ export interface User {
     type?: string;
 }
 
+export interface InvoiceCustomerOption extends User {
+    company_name?: string;
+    contact_person_name?: string;
+}
+
+export interface InvoiceTaxOption {
+    id: number;
+    tax_name: string;
+    rate: number;
+}
+
 export interface CustomerDetails {
     id: number;
     user_id: number;

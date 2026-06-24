@@ -3,7 +3,7 @@ import { Head, useForm, usePage, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { useFormFields } from '@/hooks/useFormFields';
-import { SalesInvoiceItem } from './types';
+import { InvoiceCustomerOption, InvoiceTaxOption, SalesInvoiceItem } from './types';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import InvoiceItemsTable from './components/InvoiceItemsTable';
 import { useTaxCalculator } from './components/TaxCalculator';
@@ -21,7 +21,8 @@ import { Separator } from '@/components/ui/separator';
 import { CalendarDays, Building2, User, FileText, Package } from 'lucide-react';
 
 interface CreateProps {
-    customers: Array<{ id: number; name: string; email: string }>;
+    customers: InvoiceCustomerOption[];
+    taxes: InvoiceTaxOption[];
     warehouses: Array<{ id: number; name: string; address: string }>;
     documentTemplates: Array<{ id: number; name: string; is_default: boolean }>;
     initialProducts?: Array<{
@@ -53,7 +54,7 @@ interface CreateProps {
 
 export default function Create() {
     const { t } = useTranslation();
-    const { customers, warehouses, documentTemplates = [], initialInvoice, initialProducts = [] } = usePage<CreateProps>().props;
+    const { customers, taxes = [], warehouses, documentTemplates = [], initialInvoice, initialProducts = [] } = usePage<CreateProps>().props;
     const [availableProducts, setAvailableProducts] = useState<any[]>(initialProducts);
 
     useFlashMessages();
@@ -259,7 +260,9 @@ export default function Create() {
                                         <SelectContent searchable>
                                             {customers.map((customer) => (
                                                 <SelectItem key={customer.id} value={customer.id.toString()}>
-                                                    {customer.name} - {customer.email}
+                                                    {customer.company_name
+                                                        ? `${customer.company_name} — ${customer.contact_person_name || customer.name}`
+                                                        : `${customer.name} — ${customer.email}`}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
@@ -422,6 +425,7 @@ export default function Create() {
                                 onChange={(items) => setData('items', items)}
                                 errors={errors}
                                 products={availableProducts}
+                                taxTypes={taxes}
                                 showAddButton={false}
                                 invoiceType={data.type}
                             />

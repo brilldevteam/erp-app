@@ -59,7 +59,6 @@ export default function Create() {
     const validateDetailsTab = () => {
         return data.name.trim() !== '' &&
                data.sku.trim() !== '' &&
-               data.tax_ids.length > 0 &&
                data.category_id !== '';
     };
 
@@ -187,7 +186,7 @@ export default function Create() {
                                             <InputError message={errors.sku} />
                                         </div>
                                         <div>
-                                            <Label htmlFor="tax_ids" required>{t('Tax')}</Label>
+                                            <Label htmlFor="tax_ids">{t('Tax')}</Label>
                                             <MultiSelectEnhanced
                                                 options={taxes.map(tax => ({
                                                     value: tax.id.toString(),
