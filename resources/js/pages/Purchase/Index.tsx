@@ -195,7 +195,7 @@ export default function Index() {
             key: 'tax_amount',
             header: t('Tax'),
             sortable: true,
-            render: (value: number) => formatCurrency(value)
+            render: (value: number) => Number(value) > 0 ? formatCurrency(value) : t('No Tax')
         },
         {
             key: 'total_amount',
@@ -556,7 +556,9 @@ export default function Index() {
                                                             </div>
                                                             <div className="flex justify-between">
                                                                 <span className="text-gray-600">{t('Tax')}:</span>
-                                                                <span className="font-medium">{formatCurrency(invoice.tax_amount)}</span>
+                                                                <span className="font-medium">
+                                                                    {Number(invoice.tax_amount) > 0 ? formatCurrency(invoice.tax_amount) : t('No Tax')}
+                                                                </span>
                                                             </div>
                                                         </div>
                                                         <div className="border-t mt-2 pt-2">

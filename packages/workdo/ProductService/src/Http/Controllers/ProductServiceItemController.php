@@ -89,7 +89,7 @@ class ProductServiceItemController extends Controller
             $item->long_description = $validated['long_description'] ?? null;
             $item->sale_price = $validated['sale_price'];
             $item->purchase_price = $validated['purchase_price'];
-            $item->unit = $validated['unit'] === 'none' ? null : $validated['unit'];
+            $item->unit = ($validated['unit'] ?? null) === 'none' ? null : ($validated['unit'] ?? null);
             $item->type = $validated['type'];
             $item->creator_id = Auth::id();
             $item->created_by = creatorId();
@@ -195,7 +195,7 @@ class ProductServiceItemController extends Controller
             $item->long_description = $validated['long_description'] ?? null;
             $item->sale_price = $validated['sale_price'];
             $item->purchase_price = $validated['purchase_price'];
-            $item->unit = $validated['unit'] === 'none' ? null : $validated['unit'];
+            $item->unit = ($validated['unit'] ?? null) === 'none' ? null : ($validated['unit'] ?? null);
             $item->type = $validated['type'];
 
             // Handle image path from media library

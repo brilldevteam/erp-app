@@ -15,10 +15,11 @@ interface Product {
 interface Props {
     products: Product[];
     value: number;
+    itemType?: string;
     onChange: (productId: number, product?: Product) => void;
 }
 
-export default function ProductSelector({ products, value, onChange }: Props) {
+export default function ProductSelector({ products, value, itemType = 'product', onChange }: Props) {
     const { t } = useTranslation();
 
     const handleChange = (productId: string) => {
@@ -30,7 +31,7 @@ export default function ProductSelector({ products, value, onChange }: Props) {
     return (
         <Select value={value.toString()} onValueChange={handleChange}>
             <SelectTrigger className="w-full">
-                <SelectValue placeholder={t('Select Product')} />
+                <SelectValue placeholder={itemType === 'service' ? t('Select Service') : t('Select Product')} />
             </SelectTrigger>
             <SelectContent searchable>
                 {products.map((product) => (

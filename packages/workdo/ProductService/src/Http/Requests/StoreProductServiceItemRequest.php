@@ -22,7 +22,7 @@ class StoreProductServiceItemRequest extends FormRequest
             'long_description' => 'nullable|string',
             'sale_price' => 'required|numeric|min:0',
             'purchase_price' => 'required|numeric|min:0',
-            'unit' => 'required|string',
+            'unit' => 'nullable|string|required_unless:type,service',
             'quantity' => 'nullable|integer|min:0|required_unless:type,service',
             'image' => 'nullable|string',
             'images' => 'nullable|array',

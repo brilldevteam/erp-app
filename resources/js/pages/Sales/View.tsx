@@ -227,7 +227,9 @@ export default function View() {
                             <table className="min-w-full">
                                 <thead>
                                     <tr className="border-b">
-                                        <th className="px-4 py-3 text-left text-sm font-semibold">{t('Product')}</th>
+                                        <th className="px-4 py-3 text-left text-sm font-semibold">
+                                            {invoice.type === 'service' ? t('Service') : t('Product')}
+                                        </th>
                                         {invoice.type === 'product' && (
                                             <th className="px-4 py-3 text-right text-sm font-semibold">{t('Qty')}</th>
                                         )}
