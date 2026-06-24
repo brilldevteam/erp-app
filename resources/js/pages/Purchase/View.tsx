@@ -217,7 +217,7 @@ export default function View() {
                             <table className="min-w-full">
                                 <thead>
                                     <tr className="border-b">
-                                        <th className="px-4 py-3 text-left text-sm font-semibold">{t('Product / Service')}</th>
+                                        <th className="px-4 py-3 text-left text-sm font-semibold">{t('Item Type (Product / Service / Part)')}</th>
                                         <th className="px-4 py-3 text-right text-sm font-semibold">{t('Qty')}</th>
                                         <th className="px-4 py-3 text-right text-sm font-semibold">{t('Unit Price')}</th>
                                         <th className="px-4 py-3 text-right text-sm font-semibold">{t('Discount')}</th>

@@ -12,7 +12,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Enhancements to existing workflows will be listed here before release.
 - Sales invoices now identify customers by company and contact person across selection, list, detail, and print views.
 - Purchase invoices now identify vendors by company and contact person across selection, list, detail, and print views.
-- Purchase invoice item fields now clearly identify that both products and services can be selected.
+- Item and purchase invoice fields now clearly identify that products, services, and parts can be selected.
 - Sales invoice lines now support optional configured tax types and display a dash when no tax applies.
 - Product and service items can now be created or edited without assigning a tax.
 

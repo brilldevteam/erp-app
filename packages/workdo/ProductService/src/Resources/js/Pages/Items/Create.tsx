@@ -132,7 +132,7 @@ export default function Create() {
                                 <TabsContent value="details" className="space-y-6 mt-6">
                                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                         <div>
-                                            <Label htmlFor="type">{t('Item Type')}</Label>
+                                            <Label htmlFor="type">{t('Item Type (Product / Service / Part)')}</Label>
                                             <Select value={data.type || ''} onValueChange={(value) => {
                                                 setData('type', value);
                                                 if (value === 'service') {
