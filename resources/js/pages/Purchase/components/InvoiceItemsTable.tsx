@@ -109,7 +109,7 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                     <thead>
                         <tr className="border-b border-border">
                             <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                                {t('Product')} <span className="text-red-500">*</span>
+                                {t('Product / Service')} <span className="text-red-500">*</span>
                             </th>
                             <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
                                 {t('Qty')} <span className="text-red-500">*</span>
