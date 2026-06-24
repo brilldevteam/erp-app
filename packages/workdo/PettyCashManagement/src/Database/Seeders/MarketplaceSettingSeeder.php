@@ -33,8 +33,8 @@ class MarketplaceSettingSeeder extends Seeder
                 'sections' => [
                     'hero' => [
                         'variant' => 'hero1',
-                        'title' => 'Petty Cash Management for WorkDo Dash',
-                        'subtitle' => 'Handling petty cash doesn\'t have to be a tedious task. The Petty Cash Management module in Dash SaaS brings structure and ease to the process. By offering a centralized platform to record and monitor transactions, it helps businesses maintain order and transparency in their day-to-day cash dealings, making petty cash management stress-free and efficient.',
+                        'title' => 'Petty Cash Management for wazely.io',
+                        'subtitle' => 'Handling petty cash doesn\'t have to be a tedious task. The Petty Cash Management module in wazely.io brings structure and ease to the process. By offering a centralized platform to record and monitor transactions, it helps businesses maintain order and transparency in their day-to-day cash dealings, making petty cash management stress-free and efficient.',
                         'primary_button_text' => 'Install Petty Cash Module',
                         'primary_button_link' => '#install',
                         'secondary_button_text' => 'Learn More',

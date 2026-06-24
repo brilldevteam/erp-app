@@ -65,7 +65,7 @@ export default function Gallery({ data, getSectionData, updateSectionData, updat
                             <Input
                                 value={getSectionData('gallery').title || ''}
                                 onChange={(e) => updateSectionData('gallery', { title: e.target.value })}
-                                placeholder={t('See WorkDo Dash in Action')}
+                                placeholder={t('See wazely.io in Action')}
                             />
                         </div>
                     </div>

@@ -86,6 +86,7 @@ class DocumentTemplateService
     {
         return DB::transaction(function () use ($template, $userId, $data) {
             $originalType = $template->type;
+            $wasDefault = (bool) $template->is_default;
             $template->fill($this->attributes($data));
             $template->updated_by = $userId;
             $template->config_json = $this->normalizeConfig($data['config_json'] ?? $template->config_json);
@@ -103,7 +104,15 @@ class DocumentTemplateService
             }
 
             if (!$this->hasDefault($template->company_id, $template->type)) {
-                $template->forceFill(['is_default' => true])->save();
+                $replacement = $wasDefault && !$template->is_default
+                    ? $this->firstActive($template->company_id, $template->type, $template->id)
+                    : null;
+
+                if ($replacement) {
+                    $replacement->update(['is_default' => true]);
+                } elseif ($template->status === DocumentTemplate::STATUS_ACTIVE) {
+                    $template->forceFill(['is_default' => true])->save();
+                }
             }
 
             return $template->refresh();
@@ -219,6 +228,7 @@ class DocumentTemplateService
             'terms' => '',
             'notes' => '',
             'bank_details' => '',
+            'signature_url' => '',
             'signature_text' => __('Authorized Signature'),
             'created_by' => auth()->id() ?: $companyId,
             'updated_by' => auth()->id() ?: $companyId,
@@ -235,6 +245,7 @@ class DocumentTemplateService
             'terms' => __('Payment is due according to the agreed terms.'),
             'notes' => __('This is a sample preview.'),
             'bank_details' => __('Bank: Sample Bank') . "\n" . __('Account: 000-123456'),
+            'signature_url' => '',
             'signature_text' => __('Authorized Signature'),
         ]);
 
@@ -307,6 +318,7 @@ class DocumentTemplateService
                 'quantity' => (float) $item->quantity,
                 'rate' => (float) $item->unit_price,
                 'tax' => (float) $item->tax_amount,
+                'has_tax' => $item->taxes->isNotEmpty() || (float) $item->tax_percentage > 0,
                 'total' => (float) $item->total_amount,
             ])->values()->all(),
             'totals' => [
@@ -330,6 +342,7 @@ class DocumentTemplateService
             'terms' => $data['terms'] ?? null,
             'notes' => $data['notes'] ?? null,
             'bank_details' => $data['bank_details'] ?? null,
+            'signature_url' => $data['signature_url'] ?? null,
             'signature_text' => $data['signature_text'] ?? null,
         ];
     }
@@ -361,12 +374,13 @@ class DocumentTemplateService
             ->exists();
     }
 
-    private function firstActive(int $companyId, string $type): ?DocumentTemplate
+    private function firstActive(int $companyId, string $type, ?int $exceptId = null): ?DocumentTemplate
     {
         return DocumentTemplate::query()
             ->forCompany($companyId)
             ->forType($type)
             ->active()
+            ->when($exceptId, fn ($query) => $query->whereKeyNot($exceptId))
             ->oldest()
             ->first();
     }

@@ -108,7 +108,7 @@ export default function Addons(props: AddonsProps) {
                             {addonSettings.title || 'Premium Addons'}
                         </h1>
                         <p className="text-xl text-slate-700 max-w-3xl mx-auto mb-8">
-                            {addonSettings.subtitle || 'Extend your WorkDo Dash with powerful premium modules designed to enhance your business operations'}
+                            {addonSettings.subtitle || 'Extend your wazely.io with powerful premium modules designed to enhance your business operations'}
                         </p>
                         <div className="text-sm text-slate-500">
                             {t('Showing')} {addons.data.length} {t('of')} {addons.total} {t('addons')}

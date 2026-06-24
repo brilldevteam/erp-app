@@ -33,7 +33,7 @@ class MarketplaceSettingSeeder extends Seeder
                 'sections' => [
                     'hero' => [
                         'variant' => 'hero1',
-                        'title' => 'Assets Module for WorkDo Dash',
+                        'title' => 'Assets Module for wazely.io',
                         'subtitle' => 'Streamline your assets workflow with comprehensive tools and automated management.',
                         'primary_button_text' => 'Install Assets Module',
                         'primary_button_link' => '#install',

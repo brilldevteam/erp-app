@@ -33,7 +33,7 @@ class MarketplaceSettingSeeder extends Seeder
                 'sections' => [
                     'hero' => [
                         'variant' => 'hero1',
-                        'title' => 'Stripe Payment Gateway for WorkDo Dash',
+                        'title' => 'Stripe Payment Gateway for wazely.io',
                         'subtitle' => 'Accept payments securely with the world\'s most trusted payment processor.',
                         'primary_button_text' => 'Install Stripe Module',
                         'primary_button_link' => '#install',

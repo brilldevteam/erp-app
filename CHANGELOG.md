@@ -13,6 +13,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Sales invoices now identify customers by company and contact person across selection, list, detail, and print views.
 - Sales returns can now be created without a warehouse; returned stock is updated only when a warehouse is selected.
 - Sales invoice lines now support optional configured tax types and display a dash when no tax applies.
+- Sales invoice lines support optional configured tax types, and invoice or quotation documents display a dash when no tax is selected.
 - Product and service items can now be created or edited without assigning a tax.
 
 ### Fixed

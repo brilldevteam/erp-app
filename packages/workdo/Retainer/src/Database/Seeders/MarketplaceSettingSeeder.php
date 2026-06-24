@@ -33,7 +33,7 @@ class MarketplaceSettingSeeder extends Seeder
                 'sections' => [
                     'hero' => [
                         'variant' => 'hero1',
-                        'title' => 'Retainer Module for WorkDo Dash',
+                        'title' => 'Retainer Module for wazely.io',
                         'subtitle' => 'Streamline your retainer workflow with comprehensive tools and automated management.',
                         'primary_button_text' => 'Install Retainer Module',
                         'primary_button_link' => '#install',

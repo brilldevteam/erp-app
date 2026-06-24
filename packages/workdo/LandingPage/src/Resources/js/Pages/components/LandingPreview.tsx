@@ -34,7 +34,7 @@ export function LandingPreview({ settings }: LandingPreviewProps) {
         return (
           <div key={sectionKey} className="flex justify-between items-center p-3 bg-white border-b shadow-sm">
             <div className="text-sm font-bold" style={{ color: colors.primary }}>
-              {sectionData.company_name || settings?.company_name || 'WorkDo Dash'}
+              {sectionData.company_name || settings?.company_name || 'wazely.io'}
             </div>
             <div className="text-xs text-white px-3 py-1 rounded-full shadow-sm transition-colors" style={{ backgroundColor: colors.primary }}>
               {sectionData.cta_text || t('Get Started')}
@@ -176,7 +176,7 @@ export function LandingPreview({ settings }: LandingPreviewProps) {
             <div className="grid grid-cols-1 gap-3 text-xs">
               <div className="text-center border-b border-gray-700 pb-2">
                 <div className="font-bold text-sm" style={{ color: colors.accent }}>
-                  {settings?.company_name || t('WorkDo Dash')}
+                  {settings?.company_name || t('wazely.io')}
                 </div>
                 <div className="text-gray-400 text-xs mt-1">
                   {sectionData.description?.substring(0, 30) || t('Business solution')}...

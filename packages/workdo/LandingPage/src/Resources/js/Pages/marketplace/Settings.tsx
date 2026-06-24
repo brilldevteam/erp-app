@@ -363,7 +363,7 @@ export default function Settings({ settings, activeModules, selectedModule }: Se
                                                     <Input
                                                         value={getSectionData('hero').subtitle || ''}
                                                         onChange={(e) => updateSectionData('hero', 'subtitle', e.target.value)}
-                                                        placeholder={t('Extend your WorkDo Dash with powerful premium modules...')}
+                                                        placeholder={t('Extend your wazely.io with powerful premium modules...')}
                                                     />
                                                 </div>
                                             </div>

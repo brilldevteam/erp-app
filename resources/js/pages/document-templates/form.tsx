@@ -12,13 +12,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import MediaPicker from '@/components/MediaPicker';
 import DocumentTemplatePreview from '@/components/document-templates/document-template-preview';
+import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { DocumentTemplate, DocumentTemplateConfig, TemplateSampleDocument } from '@/types/document-template';
-import { ArrowLeft, Copy, Save, Star } from 'lucide-react';
+import { ArrowLeft, Copy, Save, Star, Trash2 } from 'lucide-react';
 
 interface Props {
     template: DocumentTemplate | null;
     defaultConfig: DocumentTemplateConfig;
     sampleDocument: TemplateSampleDocument;
+    auth: {
+        user: {
+            permissions?: string[];
+        };
+    };
     [key: string]: any;
 }
 
@@ -26,8 +32,11 @@ const itemColumns = ['item', 'description', 'quantity', 'rate', 'tax', 'total'];
 
 export default function Form() {
     const { t } = useTranslation();
-    const { template, defaultConfig, sampleDocument } = usePage<Props>().props;
+    useFlashMessages();
+    const { template, defaultConfig, sampleDocument, auth } = usePage<Props>().props;
     const isEdit = Boolean(template);
+    const permissions = auth.user.permissions || [];
+    const canDelete = permissions.includes('manage-document-templates') || permissions.includes('delete-document-templates');
     const { data, setData, post, put, processing, errors } = useForm({
         name: template?.name || '',
         type: template?.type || 'quotation',
@@ -39,6 +48,7 @@ export default function Form() {
         terms: template?.terms || '',
         notes: template?.notes || '',
         bank_details: template?.bank_details || '',
+        signature_url: template?.signature_url || '',
         signature_text: template?.signature_text || 'Authorized Signature',
     });
 
@@ -68,11 +78,25 @@ export default function Form() {
 
     const submit = (event: FormEvent) => {
         event.preventDefault();
+        const redirectAfterMessage = () => {
+            window.setTimeout(() => {
+                router.visit(route('document-templates.index'));
+            }, 1200);
+        };
+
         if (isEdit && template) {
-            put(route('document-templates.update', template.id), { preserveScroll: true });
+            put(route('document-templates.update', template.id), { preserveScroll: true, onSuccess: redirectAfterMessage });
         } else {
-            post(route('document-templates.store'));
+            post(route('document-templates.store'), { preserveScroll: true, onSuccess: redirectAfterMessage });
         }
+    };
+
+    const deleteTemplate = () => {
+        if (!template || template.is_default || !confirm(t('Delete this template?'))) {
+            return;
+        }
+
+        router.delete(route('document-templates.destroy', template.id));
     };
 
     return (
@@ -84,6 +108,17 @@ export default function Form() {
                         <Button variant="outline" asChild><Link href={route('document-templates.index')}><ArrowLeft className="mr-2 h-4 w-4" />{t('Back')}</Link></Button>
                         {isEdit && template && <Button type="button" variant="outline" onClick={() => router.post(route('document-templates.duplicate', template.id))}><Copy className="mr-2 h-4 w-4" />{t('Duplicate')}</Button>}
                         {isEdit && template && !template.is_default && data.status === 'active' && <Button type="button" variant="outline" onClick={() => router.post(route('document-templates.default', template.id))}><Star className="mr-2 h-4 w-4" />{t('Set Default')}</Button>}
+                        {isEdit && template && canDelete && (
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                disabled={template.is_default}
+                                title={template.is_default ? t('Default templates cannot be deleted. Set another template as default first.') : undefined}
+                                onClick={deleteTemplate}
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" />{t('Delete')}
+                            </Button>
+                        )}
                     </div>
 
                     <Card>
@@ -154,6 +189,9 @@ export default function Form() {
                             <Field label={t('Terms and Conditions')}><Textarea rows={4} value={data.terms} onChange={(e) => setData('terms', e.target.value)} /></Field>
                             <Field label={t('Notes')}><Textarea rows={3} value={data.notes} onChange={(e) => setData('notes', e.target.value)} /></Field>
                             <Field label={t('Bank Details')}><Textarea rows={4} value={data.bank_details} onChange={(e) => setData('bank_details', e.target.value)} /></Field>
+                            <Field label={t('Signature Image')} error={errors.signature_url}>
+                                <MediaPicker value={data.signature_url} onChange={(value) => setData('signature_url', Array.isArray(value) ? value[0] || '' : value)} placeholder={t('Select signature image...')} />
+                            </Field>
                             <Field label={t('Signature Text')}><Input value={data.signature_text} onChange={(e) => setData('signature_text', e.target.value)} /></Field>
                             <Field label={t('Footer Text')}><Input value={data.config_json.footer.footerText} onChange={(e) => setConfig('footer.footerText', e.target.value)} /></Field>
                         </CardContent>
