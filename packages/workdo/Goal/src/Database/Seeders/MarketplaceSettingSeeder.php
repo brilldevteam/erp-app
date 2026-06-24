@@ -33,7 +33,7 @@ class MarketplaceSettingSeeder extends Seeder
                 'sections' => [
                     'hero' => [
                         'variant' => 'hero1',
-                        'title' => 'Goal Module for WorkDo Dash',
+                        'title' => 'Goal Module for wazely.io',
                         'subtitle' => 'Streamline your goal workflow with comprehensive tools and automated management.',
                         'primary_button_text' => 'Install Goal Module',
                         'primary_button_link' => '#install',

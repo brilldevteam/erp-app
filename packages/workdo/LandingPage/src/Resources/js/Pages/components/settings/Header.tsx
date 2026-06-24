@@ -90,7 +90,7 @@ export default function Header({ data, getSectionData, updateSectionData, update
                             <Input
                                 value={getSectionData('header').company_name || ''}
                                 onChange={(e) => updateSectionData('header', { company_name: e.target.value })}
-                                placeholder={t('WorkDo Dash')}
+                                placeholder={t('wazely.io')}
                             />
                         </div>
                         <div>

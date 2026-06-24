@@ -33,7 +33,7 @@ class MarketplaceSettingSeeder extends Seeder
                 'sections' => [
                     'hero' => [
                         'variant' => 'hero1',
-                        'title' => 'Pos Module for WorkDo Dash',
+                        'title' => 'Pos Module for wazely.io',
                         'subtitle' => 'Streamline your pos workflow with comprehensive tools and automated management.',
                         'primary_button_text' => 'Install Pos Module',
                         'primary_button_link' => '#install',

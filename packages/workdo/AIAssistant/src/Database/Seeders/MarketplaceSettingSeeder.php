@@ -33,7 +33,7 @@ class MarketplaceSettingSeeder extends Seeder
                 'sections'           => [
                     'hero'        => [
                         'variant'               => 'hero1',
-                        'title'                 => 'AI Assistant Add-on for WorkDo Dash',
+                        'title'                 => 'AI Assistant Add-on for wazely.io',
                         'subtitle'              => 'Effortlessly craft tailored content with adjustable character length, multiple result variations, and contextual understanding across all platform modules.',
                         'primary_button_text'   => 'Install AI Assistant Add-on',
                         'primary_button_link'   => '#install',

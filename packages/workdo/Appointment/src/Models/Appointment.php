@@ -80,7 +80,7 @@ class Appointment extends Model
                     ]
                 ]),
                 'title_text' => 'MeetSpace',
-                'footer_text' => '© 2025 WorkDo Dash. All rights reserved.',
+                'footer_text' => '© 2025 wazely.io. All rights reserved.',
             ];
 
             foreach ($defaultSettings as $key => $value) {

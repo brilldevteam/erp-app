@@ -11,7 +11,7 @@ export default function Footer() {
         <div className="bg-gray-800 text-white py-6 mt-auto">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex flex-col sm:flex-row justify-between items-center text-sm">
-                    <p>{appointmentSettings?.footer_text || t('© 2025 WorkDo Dash. All rights reserved.')}</p>
+                    <p>{appointmentSettings?.footer_text || t('© 2025 wazely.io. All rights reserved.')}</p>
                     <div className="flex space-x-6 mt-2 sm:mt-0">
                         <a href={route('appointment.public.privacy-policy', userSlug)} className="hover:text-blue-400 transition-colors">
                             {t('Privacy Policy')}

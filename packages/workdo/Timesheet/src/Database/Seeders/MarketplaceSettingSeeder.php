@@ -33,7 +33,7 @@ class MarketplaceSettingSeeder extends Seeder
                 'sections' => [
                     'hero' => [
                         'variant' => 'hero1',
-                        'title' => 'Timesheet Add-On for WorkDo Dash',
+                        'title' => 'Timesheet Add-On for wazely.io',
                         'subtitle' => 'Easily capture and manage work hours with a system built for flexibility and precision. The Timesheet Add-On allows teams to log time through clock-in/out records, project-based tasks, or manual entries—adapting to every workflow.',
                         'primary_button_text' => 'Install Timesheet Add-On',
                         'primary_button_link' => '#install',

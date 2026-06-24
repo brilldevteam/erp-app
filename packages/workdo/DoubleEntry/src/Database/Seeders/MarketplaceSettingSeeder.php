@@ -33,7 +33,7 @@ class MarketplaceSettingSeeder extends Seeder
                 'sections' => [
                     'hero' => [
                         'variant' => 'hero1',
-                        'title' => 'Double Entry Module for WorkDo Dash',
+                        'title' => 'Double Entry Module for wazely.io',
                         'subtitle' => 'Complete double-entry accounting system with balance sheets, profit & loss statements, and comprehensive financial reports.',
                         'primary_button_text' => 'Install Double Entry Module',
                         'primary_button_link' => '#install',
