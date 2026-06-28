@@ -1,12 +1,53 @@
+import { useEffect, useState } from 'react';
+import { useForm } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CustomerPaymentViewProps } from './types';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import InputError from '@/components/ui/input-error';
+import { CustomerPaymentViewProps, SalesInvoice } from './types';
 import { formatDate, formatCurrency } from '@/utils/helpers';
 
-export default function View({ payment }: CustomerPaymentViewProps) {
+export default function View({ payment, canApplyDeposit = false, onApplied }: CustomerPaymentViewProps) {
     const { t } = useTranslation();
+    const [outstandingInvoices, setOutstandingInvoices] = useState<SalesInvoice[]>([]);
+    const { data, setData, post, processing, errors } = useForm({
+        invoice_id: '',
+        amount: '',
+    });
+
+    useEffect(() => {
+        if (payment.status !== 'cleared' || Number(payment.available_deposit) <= 0 || !canApplyDeposit) {
+            return;
+        }
+
+        fetch(route('account.customer-payments.outstanding-invoices', payment.customer_id))
+            .then((response) => response.json())
+            .then((result) => setOutstandingInvoices(result.invoices || []))
+            .catch(() => setOutstandingInvoices([]));
+    }, [payment.customer_id, payment.status, payment.available_deposit, canApplyDeposit]);
+
+    const handleInvoiceSelect = (invoiceId: string) => {
+        const invoice = outstandingInvoices.find((item) => item.id.toString() === invoiceId);
+        setData((current) => ({
+            ...current,
+            invoice_id: invoiceId,
+            amount: invoice
+                ? Math.min(Number(payment.available_deposit), Number(invoice.balance_amount)).toFixed(2)
+                : '',
+        }));
+    };
+
+    const applyDeposit = (event: React.FormEvent) => {
+        event.preventDefault();
+        post(route('account.customer-payments.apply-deposit', payment.id), {
+            preserveScroll: true,
+            onSuccess: () => onApplied?.(),
+        });
+    };
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -59,6 +100,12 @@ export default function View({ payment }: CustomerPaymentViewProps) {
                                 <p className="mt-1 text-lg font-bold text-green-600">{formatCurrency(payment.payment_amount)}</p>
                             </div>
                             <div>
+                                <span className="font-semibold">{t('Available Deposit')}</span>
+                                <p className="mt-1 text-lg font-bold text-blue-600">
+                                    {Number(payment.available_deposit) > 0 ? formatCurrency(payment.available_deposit) : '-'}
+                                </p>
+                            </div>
+                            <div>
                                 <span className="font-semibold">{t('Status')}</span>
                                 <div className="mt-1">
                                     <span className={`px-2 py-1 rounded-full text-sm ${
@@ -89,6 +136,60 @@ export default function View({ payment }: CustomerPaymentViewProps) {
                         )}
                     </CardContent>
                 </Card>
+
+                {payment.status === 'cleared' && Number(payment.available_deposit) > 0 && canApplyDeposit && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base">{t('Apply Customer Deposit')}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <form onSubmit={applyDeposit} className="space-y-4">
+                                <div>
+                                    <span className="text-sm text-gray-600">
+                                        {t('Available Deposit')}: {formatCurrency(payment.available_deposit)}
+                                    </span>
+                                </div>
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                    <div>
+                                        <Select value={data.invoice_id} onValueChange={handleInvoiceSelect}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={t('Select Outstanding Invoice')} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {outstandingInvoices.map((invoice) => (
+                                                    <SelectItem key={invoice.id} value={invoice.id.toString()}>
+                                                        {invoice.invoice_number} - {formatCurrency(invoice.balance_amount)}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError message={errors.invoice_id} />
+                                    </div>
+                                    <div>
+                                        <Input
+                                            type="number"
+                                            min="0.01"
+                                            step="0.01"
+                                            value={data.amount}
+                                            onChange={(event) => setData('amount', event.target.value)}
+                                            placeholder={t('Amount to Apply')}
+                                        />
+                                        <InputError message={errors.amount} />
+                                    </div>
+                                </div>
+                                {outstandingInvoices.length === 0 ? (
+                                    <p className="text-sm text-gray-500">{t('No outstanding invoices found for this customer')}</p>
+                                ) : (
+                                    <div className="flex justify-end">
+                                        <Button type="submit" disabled={processing || !data.invoice_id || Number(data.amount) <= 0}>
+                                            {processing ? t('Applying...') : t('Apply Deposit')}
+                                        </Button>
+                                    </div>
+                                )}
+                            </form>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Invoice Allocations */}
                 {payment.allocations && payment.allocations.length > 0 && (

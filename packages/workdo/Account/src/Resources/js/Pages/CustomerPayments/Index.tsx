@@ -163,6 +163,11 @@ export default function Index() {
             render: (value: number) => formatCurrency(parseFloat(value.toString()))
         },
         {
+            key: 'available_deposit',
+            header: t('Available Deposit'),
+            render: (value: number) => Number(value) > 0 ? formatCurrency(Number(value)) : '-'
+        },
+        {
             key: 'bank_account',
             header: t('Bank Account'),
             render: (value: any) => value?.account_name || '-'
@@ -430,6 +435,12 @@ export default function Index() {
                                                             <span className="text-sm font-semibold text-gray-900">{t('Amount')}</span>
                                                             <span className="text-lg font-bold text-green-600">{formatCurrency(parseFloat(payment.payment_amount.toString()))}</span>
                                                         </div>
+                                                        {Number(payment.available_deposit) > 0 && (
+                                                            <div className="mt-2 flex justify-between border-t pt-2">
+                                                                <span className="text-xs text-gray-600">{t('Available Deposit')}</span>
+                                                                <span className="text-sm font-semibold text-blue-600">{formatCurrency(Number(payment.available_deposit))}</span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     {payment.notes && (
                                                         <div>
@@ -560,7 +571,13 @@ export default function Index() {
             </Dialog>
 
             <Dialog open={!!viewingItem} onOpenChange={() => setViewingItem(null)}>
-                {viewingItem && <View payment={viewingItem} />}
+                {viewingItem && (
+                    <View
+                        payment={viewingItem}
+                        canApplyDeposit={auth.user?.permissions?.includes('cleared-customer-payments')}
+                        onApplied={() => setViewingItem(null)}
+                    />
+                )}
             </Dialog>
 
             <ConfirmationDialog

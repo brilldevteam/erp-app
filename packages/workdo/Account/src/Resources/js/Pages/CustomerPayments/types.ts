@@ -46,6 +46,7 @@ export interface CustomerPayment {
     bank_account_id: number;
     reference_number?: string;
     payment_amount: number;
+    available_deposit: number;
     status: 'pending' | 'cleared' | 'cancelled';
     notes?: string;
     customer: Customer;
@@ -96,4 +97,6 @@ export interface CreateCustomerPaymentProps {
 
 export interface CustomerPaymentViewProps {
     payment: CustomerPayment;
+    canApplyDeposit?: boolean;
+    onApplied?: () => void;
 }

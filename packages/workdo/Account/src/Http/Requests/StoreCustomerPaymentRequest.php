@@ -44,9 +44,13 @@ class StoreCustomerPaymentRequest extends FormRequest
         $validator->after(function ($validator) {
             $allocations = $this->input('allocations', []);
             $creditNotes = $this->input('credit_notes', []);
-            
-            if (empty($allocations) && empty($creditNotes)) {
-                $validator->errors()->add('allocations', __('At least one invoice allocation or credit note is required.'));
+
+            if (empty($allocations) && !empty($creditNotes)) {
+                $validator->errors()->add('allocations', __('Select an invoice before applying a credit note.'));
+            }
+
+            if (empty($allocations) && (float) $this->input('payment_amount', 0) <= 0) {
+                $validator->errors()->add('payment_amount', __('A customer deposit must be greater than zero.'));
             }
         });
     }
