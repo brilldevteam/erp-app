@@ -386,6 +386,12 @@ export default function Create({ customers, bankAccounts, onSuccess }: CreateCus
                         error={errors.payment_amount}
                         required
                     />
+                    {data.customer_id && selectedAllocations.length === 0 && Number(data.payment_amount) > 0 && (
+                        <div className="mt-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+                            {t('No invoice is selected. This amount will be recorded as an available customer deposit.')}
+                        </div>
+                    )}
+                    <InputError message={errors.allocations} />
                 </div>
 
                 <div>
@@ -406,7 +412,7 @@ export default function Create({ customers, bankAccounts, onSuccess }: CreateCus
                     </Button>
                     <Button
                         type="submit"
-                        disabled={processing || (!selectedAllocations.length && !selectedCreditNotes.length)}
+                        disabled={processing || Number(data.payment_amount) <= 0}
                     >
                         {processing ? t('Creating...') : t('Create')}
                     </Button>

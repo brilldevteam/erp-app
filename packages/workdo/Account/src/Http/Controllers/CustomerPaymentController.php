@@ -14,7 +14,9 @@ use App\Models\User;
 use App\Models\SalesInvoice;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Workdo\Account\Events\CreateCustomerPayment;
 use Workdo\Account\Events\UpdateCustomerPaymentStatus;
@@ -90,11 +92,6 @@ class CustomerPaymentController extends Controller
     public function store(StoreCustomerPaymentRequest $request)
     {
         if(Auth::user()->can('create-customer-payments')){
-            // Validate that at least one invoice allocation exists
-            if (!$request->allocations || count($request->allocations) === 0) {
-                return back()->with('error', __('At least one invoice allocation is required to create a payment.'));
-            }
-
             // Validate credit note amount doesn't exceed invoice allocation amount
             if ($request->credit_notes) {
                 $totalInvoiceAmount = collect($request->allocations)->sum('amount');
@@ -103,6 +100,12 @@ class CustomerPaymentController extends Controller
                 if ($totalCreditNoteAmount > $totalInvoiceAmount) {
                     return back()->with('error', __('Credit note amount cannot exceed the total invoice allocation amount.'));
                 }
+            }
+
+            $totalInvoiceAmount = collect($request->allocations)->sum('amount');
+            $totalCreditNoteAmount = collect($request->credit_notes)->sum('amount');
+            if ($totalInvoiceAmount > (float) $request->payment_amount + $totalCreditNoteAmount) {
+                return back()->with('error', __('Invoice allocations cannot exceed the payment and credit note total.'));
             }
 
             // Create payment
@@ -243,6 +246,84 @@ class CustomerPaymentController extends Controller
         }
         else{
             return back()->with('error', __('Permission denied'));
+        }
+    }
+
+    public function applyDeposit(Request $request, CustomerPayment $customerPayment)
+    {
+        if (!Auth::user()->can('cleared-customer-payments') || $customerPayment->created_by != creatorId()) {
+            return back()->with('error', __('Permission denied'));
+        }
+
+        $validated = $request->validate([
+            'invoice_id' => 'required|integer|exists:sales_invoices,id',
+            'amount' => 'required|numeric|min:0.01',
+        ]);
+
+        try {
+            DB::transaction(function () use ($customerPayment, $validated) {
+                $payment = CustomerPayment::query()
+                    ->whereKey($customerPayment->id)
+                    ->where('created_by', creatorId())
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if ($payment->status !== 'cleared') {
+                    throw ValidationException::withMessages([
+                        'amount' => __('Only cleared customer deposits can be applied.'),
+                    ]);
+                }
+
+                $invoice = SalesInvoice::query()
+                    ->whereKey($validated['invoice_id'])
+                    ->where('customer_id', $payment->customer_id)
+                    ->where('created_by', creatorId())
+                    ->whereIn('status', ['posted', 'partial'])
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$invoice || (float) $invoice->balance_amount <= 0) {
+                    throw ValidationException::withMessages([
+                        'invoice_id' => __('The selected invoice is not available for this deposit.'),
+                    ]);
+                }
+
+                $allocatedAmount = (float) $payment->allocations()->sum('allocated_amount');
+                $creditNoteAmount = (float) $payment->creditNoteApplications()->sum('applied_amount');
+                $cashAppliedAmount = min(
+                    (float) $payment->payment_amount,
+                    max(0, $allocatedAmount - $creditNoteAmount)
+                );
+                $availableDeposit = max(0, (float) $payment->payment_amount - $cashAppliedAmount);
+                $amount = (float) $validated['amount'];
+
+                if ($amount > $availableDeposit || $amount > (float) $invoice->balance_amount) {
+                    throw ValidationException::withMessages([
+                        'amount' => __('The applied amount cannot exceed the available deposit or invoice balance.'),
+                    ]);
+                }
+
+                CustomerPaymentAllocation::create([
+                    'payment_id' => $payment->id,
+                    'invoice_id' => $invoice->id,
+                    'allocated_amount' => $amount,
+                    'creator_id' => Auth::id(),
+                    'created_by' => creatorId(),
+                ]);
+
+                $invoice->paid_amount = (float) $invoice->paid_amount + $amount;
+                $invoice->balance_amount = max(0, (float) $invoice->total_amount - (float) $invoice->paid_amount);
+                $invoice->status = $invoice->balance_amount <= 0 ? 'paid' : 'partial';
+                $invoice->save();
+
+                $this->journalService->createCustomerDepositApplicationJournal($payment, $invoice, $amount);
+            });
+
+            return back()->with('success', __('The customer deposit has been applied successfully.'));
+        } catch (ValidationException $exception) {
+            throw $exception;
+        } catch (\Throwable $exception) {
+            return back()->with('error', $exception->getMessage());
         }
     }
 

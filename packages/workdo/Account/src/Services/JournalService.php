@@ -305,8 +305,8 @@ class JournalService
     }
 
     /**
-     * Creates journal entry for customer payment: Dr: Bank, Cr: A/R
-     * Usage: CustomerPaymentController->updateStatus() when payment is cleared
+     * Creates a cleared customer payment journal. Applied cash credits A/R,
+     * while any unallocated balance credits Customer Deposits.
      */
     public function createCustomerPaymentJournal($customerPayment)
     {
@@ -316,9 +316,25 @@ class JournalService
             throw new \Exception("Bank account must have a GL account assigned");
         }
 
-        // Validate A/R account exists
-        $this->validateAccounts(['1100']);
+        $allocatedAmount = (float) $customerPayment->allocations()->sum('allocated_amount');
+        $creditNoteAmount = (float) $customerPayment->creditNoteApplications()->sum('applied_amount');
+        $cashAppliedAmount = min(
+            (float) $customerPayment->payment_amount,
+            max(0, $allocatedAmount - $creditNoteAmount)
+        );
+        $depositAmount = max(0, (float) $customerPayment->payment_amount - $cashAppliedAmount);
+
+        $requiredAccounts = [];
+        if ($cashAppliedAmount > 0) {
+            $requiredAccounts[] = '1100';
+        }
+        if ($depositAmount > 0) {
+            $requiredAccounts[] = '2350';
+        }
+        $this->validateAccounts($requiredAccounts);
+
         $arAccount = ChartOfAccount::where('account_code', '1100')->where('created_by', creatorId())->first();
+        $depositAccount = ChartOfAccount::where('account_code', '2350')->where('created_by', creatorId())->first();
 
         // Validate amounts balance
         $this->validateBalance($customerPayment->payment_amount, $customerPayment->payment_amount);
@@ -347,22 +363,79 @@ class JournalService
             'created_by' => creatorId()
         ]);
 
-        // Credit: Accounts Receivable
-        JournalEntryItem::create([
-            'journal_entry_id' => $journalEntry->id,
-            'account_id' => $arAccount->id,
-            'description' => 'Payment from customer',
-            'debit_amount' => 0,
-            'credit_amount' => $customerPayment->payment_amount,
-            'creator_id' => Auth::id(),
-            'created_by' => creatorId()
-        ]);
+        if ($cashAppliedAmount > 0) {
+            JournalEntryItem::create([
+                'journal_entry_id' => $journalEntry->id,
+                'account_id' => $arAccount->id,
+                'description' => 'Customer payment applied to invoices',
+                'debit_amount' => 0,
+                'credit_amount' => $cashAppliedAmount,
+                'creator_id' => Auth::id(),
+                'created_by' => creatorId()
+            ]);
+        }
+
+        if ($depositAmount > 0) {
+            JournalEntryItem::create([
+                'journal_entry_id' => $journalEntry->id,
+                'account_id' => $depositAccount->id,
+                'description' => 'Unallocated customer deposit',
+                'debit_amount' => 0,
+                'credit_amount' => $depositAmount,
+                'creator_id' => Auth::id(),
+                'created_by' => creatorId()
+            ]);
+        }
 
         try {
             UpdateBudgetSpending::dispatch($journalEntry);
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
         }
+
+        $this->updateAccountBalances($journalEntry);
+        return $journalEntry;
+    }
+
+    public function createCustomerDepositApplicationJournal($customerPayment, $invoice, float $amount)
+    {
+        $this->validateAccounts(['1100', '2350']);
+        $arAccount = ChartOfAccount::where('account_code', '1100')->where('created_by', creatorId())->first();
+        $depositAccount = ChartOfAccount::where('account_code', '2350')->where('created_by', creatorId())->first();
+        $this->validateBalance($amount, $amount);
+
+        $journalEntry = JournalEntry::create([
+            'journal_date' => now(),
+            'entry_type' => 'automatic',
+            'reference_type' => 'customer_deposit_application',
+            'reference_id' => $customerPayment->id,
+            'description' => 'Customer Deposit Application #' . $customerPayment->payment_number,
+            'total_debit' => $amount,
+            'total_credit' => $amount,
+            'status' => 'posted',
+            'creator_id' => Auth::id(),
+            'created_by' => creatorId()
+        ]);
+
+        JournalEntryItem::create([
+            'journal_entry_id' => $journalEntry->id,
+            'account_id' => $depositAccount->id,
+            'description' => 'Deposit applied to invoice ' . $invoice->invoice_number,
+            'debit_amount' => $amount,
+            'credit_amount' => 0,
+            'creator_id' => Auth::id(),
+            'created_by' => creatorId()
+        ]);
+
+        JournalEntryItem::create([
+            'journal_entry_id' => $journalEntry->id,
+            'account_id' => $arAccount->id,
+            'description' => 'Deposit applied to invoice ' . $invoice->invoice_number,
+            'debit_amount' => 0,
+            'credit_amount' => $amount,
+            'creator_id' => Auth::id(),
+            'created_by' => creatorId()
+        ]);
 
         $this->updateAccountBalances($journalEntry);
         return $journalEntry;

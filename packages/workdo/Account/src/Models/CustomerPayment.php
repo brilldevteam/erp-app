@@ -9,6 +9,10 @@ use App\Models\User;
 
 class CustomerPayment extends Model
 {
+    protected $appends = [
+        'available_deposit',
+    ];
+
     protected $fillable = [
         'payment_number',
         'payment_date',
@@ -45,6 +49,22 @@ class CustomerPayment extends Model
     public function creditNoteApplications(): HasMany
     {
         return $this->hasMany(CreditNoteApplication::class, 'payment_id');
+    }
+
+    public function getAvailableDepositAttribute(): float
+    {
+        $allocatedAmount = $this->relationLoaded('allocations')
+            ? (float) $this->allocations->sum('allocated_amount')
+            : (float) $this->allocations()->sum('allocated_amount');
+        $creditNoteAmount = $this->relationLoaded('creditNoteApplications')
+            ? (float) $this->creditNoteApplications->sum('applied_amount')
+            : (float) $this->creditNoteApplications()->sum('applied_amount');
+        $cashAppliedAmount = min(
+            (float) $this->payment_amount,
+            max(0, $allocatedAmount - $creditNoteAmount)
+        );
+
+        return max(0, (float) $this->payment_amount - $cashAppliedAmount);
     }
 
     protected static function boot()
