@@ -140,7 +140,7 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                     <thead>
                         <tr className="border-b border-border">
                             <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                                {t('Product')} <span className="text-red-500">*</span>
+                                {invoiceType === 'service' ? t('Service') : t('Product')} <span className="text-red-500">*</span>
                             </th>
                             {invoiceType === 'product' && (
                                 <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
@@ -171,6 +171,7 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                     <ProductSelector
                                         products={products}
                                         value={item.product_id}
+                                        itemType={invoiceType}
                                         onChange={(productId, product) => handleProductSelect(index, productId, product)}
                                     />
                                     {products.find((product) => product.id === item.product_id)?.description && (

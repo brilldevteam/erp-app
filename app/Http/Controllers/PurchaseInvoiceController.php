@@ -24,6 +24,22 @@ use App\Models\EmailTemplate;
 
 class PurchaseInvoiceController extends Controller
 {
+    private function invoiceVendors()
+    {
+        return User::query()
+            ->leftJoin('vendors', 'vendors.user_id', '=', 'users.id')
+            ->where('users.type', 'vendor')
+            ->where('users.created_by', creatorId())
+            ->select(
+                'users.id',
+                'users.name',
+                'users.email',
+                'vendors.company_name',
+                'vendors.contact_person_name'
+            )
+            ->get();
+    }
+
     private function checkInvoiceAccess(PurchaseInvoice $purchaseInvoice)
     {
         if(Auth::user()->can('manage-any-purchase-invoices')) {
@@ -42,7 +58,7 @@ class PurchaseInvoiceController extends Controller
     public function index(Request $request)
     {
         if(Auth::user()->can('manage-purchase-invoices')){
-            $query = PurchaseInvoice::with(['vendor', 'items'])
+            $query = PurchaseInvoice::with(['vendor', 'vendorDetails', 'items'])
                 ->where(function($q) {
                     if(Auth::user()->can('manage-any-purchase-invoices')) {
                         $q->where('created_by', creatorId());
@@ -96,7 +112,7 @@ class PurchaseInvoiceController extends Controller
 
         $perPage = $request->get('per_page', 10);
         $invoices = $query->paginate($perPage);
-        $vendors = User::where('type', 'vendor')->select('id', 'name', 'email')->where('created_by', creatorId())->get();
+        $vendors = $this->invoiceVendors();
         $warehouses = Warehouse::where('is_active', true)->select('id', 'name')->where('created_by', creatorId())->get();
 
             return Inertia::render('Purchase/Index', [
@@ -114,7 +130,7 @@ class PurchaseInvoiceController extends Controller
     public function create()
     {
         if(Auth::user()->can('create-purchase-invoices')){
-            $vendors = User::where('type', 'vendor')->select('id', 'name', 'email')->where('created_by', creatorId())->get();
+            $vendors = $this->invoiceVendors();
             $products = ProductServiceItem::select('id', 'name', 'sku', 'purchase_price', 'tax_ids', 'unit', 'type')
             ->where('is_active', true)->where('created_by', creatorId())
             ->get()
@@ -237,7 +253,7 @@ class PurchaseInvoiceController extends Controller
 
             EditPurchaseInvoice::dispatch($purchaseInvoice);
 
-            $vendors = User::where('type', 'vendor')->select('id', 'name', 'email')->where('created_by', creatorId())->get();
+            $vendors = $this->invoiceVendors();
             $products = ProductServiceItem::select('id', 'name', 'sku', 'purchase_price', 'tax_ids', 'unit', 'type')
                 ->where('is_active', true)->where('created_by', creatorId())
                 ->get()

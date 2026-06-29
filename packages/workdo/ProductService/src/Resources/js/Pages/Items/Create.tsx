@@ -64,14 +64,13 @@ export default function Create() {
 
     const validatePricingTab = () => {
         const baseValidation = data.sale_price.trim() !== '' &&
-               data.purchase_price.trim() !== '' &&
-               data.unit !== '';
+               data.purchase_price.trim() !== '';
 
         if (data.type === 'service') {
             return baseValidation;
         }
 
-        return baseValidation && data.quantity.trim() !== '';
+        return baseValidation && data.unit !== '' && data.quantity.trim() !== '';
     };
 
     const nextTab = () => {
@@ -101,7 +100,7 @@ export default function Create() {
         post(route('product-service.items.store'), {
             transform: (data) => {
                 if (data.type === 'service') {
-                    const { quantity, warehouse_id, ...serviceData } = data;
+                    const { quantity, warehouse_id, unit, ...serviceData } = data;
                     return serviceData;
                 }
 
@@ -132,12 +131,13 @@ export default function Create() {
                                 <TabsContent value="details" className="space-y-6 mt-6">
                                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                         <div>
-                                            <Label htmlFor="type">{t('Item Type')}</Label>
+                                            <Label htmlFor="type">{t('Item Type (Product / Service / Part)')}</Label>
                                             <Select value={data.type || ''} onValueChange={(value) => {
                                                 setData('type', value);
                                                 if (value === 'service') {
                                                     setData('quantity', '');
                                                     setData('warehouse_id', '');
+                                                    setData('unit', '');
                                                 }
                                             }}>
                                                 <SelectTrigger>
@@ -302,22 +302,24 @@ export default function Create() {
                                     </div>
 
                                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                        <div>
-                                            <Label htmlFor="unit" required>{t('Unit')}</Label>
-                                            <Select value={data.unit} onValueChange={(value) => setData('unit', value)} required>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('Select Unit')} />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {units.map((unit) => (
-                                                        <SelectItem key={unit.id} value={unit.id.toString()}>
-                                                            {unit.unit_name}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <InputError message={errors.unit} />
-                                        </div>
+                                        {data.type !== 'service' && (
+                                            <div>
+                                                <Label htmlFor="unit" required>{t('Unit')}</Label>
+                                                <Select value={data.unit} onValueChange={(value) => setData('unit', value)} required>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={t('Select Unit')} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {units.map((unit) => (
+                                                            <SelectItem key={unit.id} value={unit.id.toString()}>
+                                                                {unit.unit_name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <InputError message={errors.unit} />
+                                            </div>
+                                        )}
                                         {data.type !== 'service' && (
                                             <div>
                                                 <Label htmlFor="quantity">{t('Quantity')}</Label>

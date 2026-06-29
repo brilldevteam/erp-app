@@ -51,7 +51,7 @@ export default function Edit() {
     const validatePricingTab = () => {
         return data.sale_price.trim() !== '' &&
             data.purchase_price.trim() !== '' &&
-            data.unit !== '';
+            (data.type === 'service' || data.unit !== '');
     };
 
     const nextTab = () => {
@@ -79,6 +79,7 @@ export default function Edit() {
         put(route('product-service.items.update', item.id), {
             transform: (data) => ({
                 ...data,
+                unit: data.type === 'service' ? '' : data.unit,
                 tax_ids: data.tax_ids && data.tax_ids.length > 0 ? data.tax_ids : []
             }),
             onSuccess: () => {
@@ -114,8 +115,13 @@ export default function Edit() {
                                 <TabsContent value="details" className="space-y-6 mt-6">
                                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                         <div>
-                                            <Label htmlFor="type">{t('Item Type')}</Label>
-                                            <Select value={data.type || ''} onValueChange={(value) => setData('type', value)}>
+                                            <Label htmlFor="type">{t('Item Type (Product / Service / Part)')}</Label>
+                                            <Select value={data.type || ''} onValueChange={(value) => {
+                                                setData('type', value);
+                                                if (value === 'service') {
+                                                    setData('unit', '');
+                                                }
+                                            }}>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder={t('Select Type')} />
                                                 </SelectTrigger>
@@ -276,22 +282,24 @@ export default function Edit() {
                                     </div>
 
                                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                        <div>
-                                            <Label htmlFor="unit" required>{t('Unit')}</Label>
-                                            <Select value={data.unit?.toString() || ''} onValueChange={(value) => setData('unit', value)} required>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('Select Unit')} />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {units.map((unit) => (
-                                                        <SelectItem key={unit.id} value={unit.id.toString()}>
-                                                            {unit.unit_name}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <InputError message={errors.unit} />
-                                        </div>
+                                        {data.type !== 'service' && (
+                                            <div>
+                                                <Label htmlFor="unit" required>{t('Unit')}</Label>
+                                                <Select value={data.unit?.toString() || ''} onValueChange={(value) => setData('unit', value)} required>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={t('Select Unit')} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {units.map((unit) => (
+                                                            <SelectItem key={unit.id} value={unit.id.toString()}>
+                                                                {unit.unit_name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <InputError message={errors.unit} />
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="flex justify-between">

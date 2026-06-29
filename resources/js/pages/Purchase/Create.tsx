@@ -3,7 +3,7 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { useFormFields } from '@/hooks/useFormFields';
-import { PurchaseInvoiceItem } from './types';
+import { InvoiceVendorOption, PurchaseInvoiceItem } from './types';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import InvoiceItemsTable from './components/InvoiceItemsTable';
 import { useTaxCalculator } from './components/TaxCalculator';
@@ -20,7 +20,7 @@ import { Separator } from '@/components/ui/separator';
 import { CalendarDays, Building2, User, FileText, Package } from 'lucide-react';
 
 interface CreateProps {
-    vendors: Array<{ id: number; name: string; email: string }>;
+    vendors: InvoiceVendorOption[];
     products: Array<{ id: number; name: string; sku: string; purchase_price: number; unit: string; type: string; taxes: Array<{ id: number; tax_name: string; rate: number }> }>;
     warehouses: Array<{ id: number; name: string; address: string }>;
     [key: string]: any;
@@ -124,7 +124,9 @@ export default function Create() {
                                         <SelectContent searchable>
                                             {vendors.map((vendor) => (
                                                 <SelectItem key={vendor.id} value={vendor.id.toString()}>
-                                                    {vendor.name} - {vendor.email}
+                                                    {vendor.company_name
+                                                        ? `${vendor.company_name} — ${vendor.contact_person_name || vendor.name}`
+                                                        : `${vendor.name} — ${vendor.email}`}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
