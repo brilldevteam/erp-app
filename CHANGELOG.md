@@ -26,6 +26,7 @@ All notable changes to the Wazely ERP application are documented here.
 
 ### Fixed
 - Bug fixes and production stability improvements will be listed here before release.
+- Invoice and quotation template previews now place the document badge on the left when the header is aligned right.
 
 ---
 
