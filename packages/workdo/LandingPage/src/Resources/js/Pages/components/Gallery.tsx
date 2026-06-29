@@ -50,7 +50,7 @@ export default function Gallery({ settings }: GalleryProps) {
     const variant = sectionData.variant || 'gallery1';
     const config = GALLERY_VARIANTS[variant as keyof typeof GALLERY_VARIANTS] || GALLERY_VARIANTS.gallery1;
 
-    const title = sectionData.title || 'See WorkDo Dash in Action';
+    const title = sectionData.title || 'See wazely.io in Action';
     const subtitle = sectionData.subtitle || 'Explore our intuitive interface and powerful features through real screenshots of our platform';
     const colors = settings?.config_sections?.colors || { primary: '#10b981', secondary: '#059669', accent: '#f59e0b' };
     const [currentImageIndex, setCurrentImageIndex] = useState(0);

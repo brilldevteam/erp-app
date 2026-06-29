@@ -33,7 +33,7 @@ class MarketplaceSettingSeeder extends Seeder
                 'sections' => [
                     'hero' => [
                         'variant' => 'hero1',
-                        'title' => 'Account Module for WorkDo Dash',
+                        'title' => 'Account Module for wazely.io',
                         'subtitle' => 'Complete accounting solution with chart of accounts, bank management, revenue & expense tracking, and comprehensive financial reporting.',
                         'primary_button_text' => 'Install Account Module',
                         'primary_button_link' => '#install',

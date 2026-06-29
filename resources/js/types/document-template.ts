@@ -50,6 +50,7 @@ export interface DocumentTemplate {
     terms?: string | null;
     notes?: string | null;
     bank_details?: string | null;
+    signature_url?: string | null;
     signature_text?: string | null;
     created_at?: string;
     updated_at?: string;

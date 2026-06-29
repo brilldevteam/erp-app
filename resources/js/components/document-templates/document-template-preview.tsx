@@ -11,6 +11,7 @@ const labels: Record<string, string> = {
 };
 
 const money = (value: number) => `$${Number(value || 0).toFixed(2)}`;
+const hasTax = (item: Record<string, any>) => Boolean(item.has_tax ?? Number(item.tax) > 0);
 
 export default function DocumentTemplatePreview({
     template,
@@ -24,8 +25,10 @@ export default function DocumentTemplatePreview({
     const config = template.config_json;
     const color = template.primary_color || '#10b981';
     const logo = template.logo_url || document.company.logo;
+    const signature = template.signature_url;
     const alignment = config.header.alignment || 'left';
     const title = document.type === 'invoice' ? 'INVOICE' : 'QUOTATION';
+    const hasAnyTax = document.items.some(hasTax);
 
     return (
         <div className={`bg-white text-slate-900 shadow-sm ${compact ? 'text-[10px]' : 'text-sm'}`}>
@@ -74,7 +77,9 @@ export default function DocumentTemplatePreview({
                             <tr key={index} className="border-b">
                                 {config.itemsTable.columns.map((column) => (
                                     <td key={column} className="px-3 py-3 align-top">
-                                        {['rate', 'tax', 'total'].includes(column) ? money(Number(item[column])) : item[column]}
+                                        {column === 'tax'
+                                            ? hasTax(item) ? money(Number(item.tax)) : '-'
+                                            : ['rate', 'total'].includes(column) ? money(Number(item[column])) : item[column]}
                                     </td>
                                 ))}
                             </tr>
@@ -86,7 +91,7 @@ export default function DocumentTemplatePreview({
                     <div className="w-72 space-y-2 rounded-lg bg-slate-50 p-4">
                         {config.totals.showSubtotal && <TotalRow label="Subtotal" value={money(document.totals.subtotal)} />}
                         {config.totals.showDiscount && <TotalRow label="Discount" value={`-${money(document.totals.discount)}`} />}
-                        {config.totals.showTax && <TotalRow label="Tax" value={money(document.totals.tax)} />}
+                        {config.totals.showTax && <TotalRow label="Tax" value={hasAnyTax ? money(document.totals.tax) : '-'} />}
                         {config.totals.showGrandTotal && <div className="flex justify-between border-t pt-2 text-lg font-bold"><span>Grand Total</span><span>{money(document.totals.grand_total)}</span></div>}
                     </div>
                 </div>
@@ -99,7 +104,10 @@ export default function DocumentTemplatePreview({
                     </div>
                     {config.footer.showSignature && (
                         <div className="flex items-end justify-end">
-                            <div className="w-56 border-t pt-2 text-center">{template.signature_text || 'Authorized Signature'}</div>
+                            <div className="w-56 text-center">
+                                {signature && <img src={getImagePath(String(signature))} alt="Signature" className="mx-auto mb-2 max-h-16 max-w-40 object-contain" />}
+                                <div className="border-t pt-2">{template.signature_text || 'Authorized Signature'}</div>
+                            </div>
                         </div>
                     )}
                 </div>

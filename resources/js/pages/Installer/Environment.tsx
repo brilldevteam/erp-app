@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 export default function Environment({ timezones }: { timezones: string[] }) {
     const { t } = useTranslation();
     const { data, setData, post, processing, errors } = useForm({
-        app_name: 'WorkDo Dash SaaS',
+        app_name: 'wazely.io',
         app_url: window.location.origin,
         app_timezone: 'UTC',
         db_connection: 'mysql',

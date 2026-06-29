@@ -10,6 +10,11 @@ class CompleteSalesReturnListener
     public function handle(CompleteSalesReturn $event)
     {
         $salesReturn = $event->salesReturn;
+
+        if (!$salesReturn->warehouse_id) {
+            return;
+        }
+
         foreach ($salesReturn->items()->get() as $item) {
             $stock = WarehouseStock::where('warehouse_id', $salesReturn->warehouse_id)
                 ->where('product_id', $item->product_id)

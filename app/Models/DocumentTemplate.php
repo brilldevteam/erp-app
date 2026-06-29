@@ -25,6 +25,7 @@ class DocumentTemplate extends Model
         'terms',
         'notes',
         'bank_details',
+        'signature_url',
         'signature_text',
         'created_by',
         'updated_by',

@@ -13,6 +13,6 @@
     <h1>We&rsquo;ll be back soon!</h1>
     <div>
         <p>Sorry for the inconvenience but we&rsquo;re performing some maintenance at the moment, otherwise we&rsquo;ll be back online shortly!</p>
-        <p>&mdash; The <a href="https://workdo.io/">WorkDo</a> Team</p>
+        <p>&mdash; The wazely.io Team</p>
     </div>
 </article>

@@ -102,7 +102,7 @@ export default function Marketplace({ packages = [], settings, landingPageSettin
             '--color-secondary': colorScheme.secondary,
             '--color-accent': colorScheme.accent
         } as React.CSSProperties}>
-            <Head title={`${settings?.title || 'WorkDo Dash Marketplace'} - Premium Packages`}>
+            <Head title={`${settings?.title || 'wazely.io Marketplace'} - Premium Packages`}>
                 {faviconUrl && <link rel="icon" type="image/x-icon" href={faviconUrl} />}
             </Head>
             

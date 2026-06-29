@@ -21,6 +21,7 @@ return new class extends Migration
             $table->text('terms')->nullable();
             $table->text('notes')->nullable();
             $table->text('bank_details')->nullable();
+            $table->string('signature_url', 500)->nullable();
             $table->string('signature_text')->nullable();
             $table->unsignedBigInteger('created_by');
             $table->unsignedBigInteger('updated_by')->nullable();

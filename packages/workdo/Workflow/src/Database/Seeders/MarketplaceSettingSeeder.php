@@ -32,7 +32,7 @@ class MarketplaceSettingSeeder extends Seeder
                 'sections' => [
                     'hero' => [
                         'variant' => 'hero1',
-                        'title' => 'Workflow Automation System for WorkDo Dash',
+                        'title' => 'Workflow Automation System for wazely.io',
                         'subtitle' => 'Automate your business processes with intelligent workflows, conditional triggers, and multi-channel notifications.',
                         'primary_button_text' => 'Install Workflow Module',
                         'primary_button_link' => '#install',

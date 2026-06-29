@@ -1,6 +1,6 @@
 <?php
 
 return [
-    'system' => 'WorkDo Dash SaaS',
+    'system' => 'wazely.io',
     'system_version' => '7.5',
 ];

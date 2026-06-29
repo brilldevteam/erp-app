@@ -33,7 +33,7 @@ class MarketplaceSettingSeeder extends Seeder
                 'sections' => [
                     'hero' => [
                         'variant' => 'hero1',
-                        'title' => 'Contract Add-On for WorkDo Dash',
+                        'title' => 'Contract Add-On for wazely.io',
                         'subtitle' => 'A complete contract management solution to create, manage, sign, and renew contracts. Supports custom types, attachments, comments, signatures, and contract duplication for smooth workflows.',
                         'primary_button_text' => 'Install Contract Add-On',
                         'primary_button_link' => '#install',

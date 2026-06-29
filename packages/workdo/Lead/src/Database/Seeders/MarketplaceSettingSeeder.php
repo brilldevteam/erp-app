@@ -33,7 +33,7 @@ class MarketplaceSettingSeeder extends Seeder
                 'sections' => [
                     'hero' => [
                         'variant' => 'hero1',
-                        'title' => 'CRM Module for WorkDo Dash',
+                        'title' => 'CRM Module for wazely.io',
                         'subtitle' => 'Streamline your CRM workflow with comprehensive tools and automated management.',
                         'primary_button_text' => 'Install CRM Module',
                         'primary_button_link' => '#install',

@@ -33,7 +33,7 @@ class MarketplaceSettingSeeder extends Seeder
                 'sections' => [
                     'hero' => [
                         'variant' => 'hero1',
-                        'title' => 'E-Invoice Module for WorkDo Dash',
+                        'title' => 'E-Invoice Module for wazely.io',
                         'subtitle' => 'Streamline your e-invoice workflow with comprehensive tools and automated management.',
                         'primary_button_text' => 'Install E-Invoice Module',
                         'primary_button_link' => '#install',

@@ -61,7 +61,7 @@ export default function Edit() {
     useFlashMessages();
 
     const templateForm = useForm({
-        from: emailTemplate.from || 'WorkDo Dash',
+        from: emailTemplate.from || 'wazely.io',
     });
 
     const contentForm = useForm({
