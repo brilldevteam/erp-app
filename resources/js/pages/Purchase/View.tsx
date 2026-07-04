@@ -9,7 +9,7 @@ import { getStatusBadgeClasses } from './utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Edit, FileText, ArrowLeft, Building2, User, Calendar, Package, MapPin, Download } from 'lucide-react';
+import { Edit, FileText, ArrowLeft, Building2, User, Calendar, Package, MapPin, Download, Trash2, Paperclip } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePageButtons } from '@/hooks/usePageButtons';
 import { useFormFields } from '@/hooks/useFormFields';
@@ -200,6 +200,61 @@ export default function View() {
                                         </div>
                                     ))}
                                 </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Supporting Documents */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                            <Paperclip className="h-5 w-5" />
+                            {t('Supporting Documents')}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {invoice.attachments && invoice.attachments.length > 0 ? (
+                            <div className="space-y-3">
+                                {invoice.attachments.map((attachment) => (
+                                    <div key={attachment.id} className="flex flex-col gap-3 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <div className="min-w-0">
+                                            <div className="truncate font-medium">{attachment.file_name}</div>
+                                            <div className="text-sm text-muted-foreground">
+                                                {attachment.formatted_size || '-'}
+                                                {attachment.uploader?.name ? ` • ${t('Uploaded by')} ${attachment.uploader.name}` : ''}
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button variant="outline" size="sm" asChild>
+                                                <a href={attachment.download_url} target="_blank" rel="noreferrer">
+                                                    <Download className="mr-2 h-4 w-4" />
+                                                    {t('Download')}
+                                                </a>
+                                            </Button>
+                                            {invoice.status === 'draft' && auth.user?.permissions?.includes('edit-purchase-invoices') && (
+                                                <Button
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        if (confirm(t('Delete this attachment?'))) {
+                                                            router.delete(route('purchase-invoices.attachments.destroy', [invoice.id, attachment.id]), {
+                                                                preserveScroll: true,
+                                                            });
+                                                        }
+                                                    }}
+                                                >
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    {t('Delete')}
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="rounded-md border border-dashed p-6 text-center text-muted-foreground">
+                                {t('No supporting documents attached.')}
                             </div>
                         )}
                     </CardContent>

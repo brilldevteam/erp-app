@@ -23,6 +23,23 @@ export interface PurchaseInvoice {
     vendor_details?: VendorDetails;
     warehouse?: Warehouse;
     items?: PurchaseInvoiceItem[];
+    attachments?: PurchaseInvoiceAttachment[];
+}
+
+export interface PurchaseInvoiceAttachment {
+    id: number;
+    purchase_invoice_id: number;
+    file_name: string;
+    file_path: string;
+    file_type?: string;
+    file_size: number;
+    formatted_size?: string;
+    download_url: string;
+    uploaded_by: number;
+    created_by: number;
+    created_at: string;
+    updated_at: string;
+    uploader?: User;
 }
 
 export interface PurchaseInvoiceItem {

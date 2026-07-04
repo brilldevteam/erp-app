@@ -72,6 +72,11 @@ class PurchaseInvoice extends Model
         return $this->hasMany(PurchaseReturn::class, 'original_invoice_id');
     }
 
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(PurchaseInvoiceAttachment::class);
+    }
+
     public function isOverdue(): bool
     {
         return $this->due_date < now() && $this->status !== 'paid';
