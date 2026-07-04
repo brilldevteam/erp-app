@@ -97,6 +97,12 @@ export const accountCompanyMenu = (t: (key: string) => string) => [
                 order: 100,
             },
             {
+                title: t('Journal Entries'),
+                href: route('account.journal-entries.index'),
+                permission: 'manage-journal-entries',
+                order: 105,
+            },
+            {
                 title: t('Reports'),
                 href: route('account.reports.index'),
                 permission: 'manage-account-reports',

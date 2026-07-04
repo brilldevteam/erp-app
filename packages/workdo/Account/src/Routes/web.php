@@ -21,6 +21,7 @@ use Workdo\Account\Http\Controllers\CreditNoteController;
 use Workdo\Account\Http\Controllers\CustomerPaymentController;
 use Workdo\Account\Http\Controllers\RevenueController;
 use Workdo\Account\Http\Controllers\ExpenseController;
+use Workdo\Account\Http\Controllers\JournalEntryController;
 use Workdo\Account\Http\Controllers\ReportsController;
 use Workdo\Account\Models\AccountType;
 
@@ -87,6 +88,14 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Account'])->group
         Route::post('/{creditNote}/approve', [CreditNoteController::class, 'approve'])->name('approve');
         Route::delete('/{creditNote}', [CreditNoteController::class, 'destroy'])->name('destroy');
         Route::get('/{creditNote}', [CreditNoteController::class, 'show'])->name('show');
+    });
+
+    Route::prefix('account/journal-entries')->name('account.journal-entries.')->group(function () {
+        Route::get('/', [JournalEntryController::class, 'index'])->name('index');
+        Route::get('/create', [JournalEntryController::class, 'create'])->name('create');
+        Route::post('/', [JournalEntryController::class, 'store'])->name('store');
+        Route::get('/{journalEntry}', [JournalEntryController::class, 'show'])->name('show');
+        Route::delete('/{journalEntry}', [JournalEntryController::class, 'destroy'])->name('destroy');
     });
 
     Route::prefix('account/customer-payments')->name('account.customer-payments.')->group(function () {

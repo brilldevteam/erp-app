@@ -8,6 +8,7 @@ All notable changes to the Wazely ERP application are documented here.
 - New features currently in development will be listed here before release.
 - Customer payments can now be recorded as unallocated deposits and applied to outstanding invoices later.
 - Sales returns now support fractional and partial item quantities with remaining-quantity protection.
+- Accountants can now record manual double-entry journal entries with balanced debit and credit lines.
 
 ### Improved
 - Enhancements to existing workflows will be listed here before release.
