@@ -17,7 +17,7 @@ import { InputError } from '@/components/ui/input-error';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Separator } from '@/components/ui/separator';
-import { CalendarDays, Building2, User, Package } from 'lucide-react';
+import { CalendarDays, Building2, User, Package, FileText } from 'lucide-react';
 
 interface EditProps {
     invoice: PurchaseInvoice;
@@ -34,13 +34,15 @@ export default function Edit() {
     useFlashMessages();
 
 
-    const { data, setData, put, processing, errors } = useForm({
+    const { data, setData, post, processing, errors } = useForm({
+        _method: 'put',
         invoice_date: invoice.invoice_date,
         due_date: invoice.due_date,
         vendor_id: invoice.vendor_id.toString(),
         warehouse_id: invoice.warehouse_id?.toString() || '',
         payment_terms: invoice.payment_terms || '',
         notes: invoice.notes || '',
+        attachments: [] as File[],
         items: (invoice.items || []).map(item => {
             const calculations = calculateLineItemAmounts(
                 item.quantity,
@@ -60,7 +62,7 @@ export default function Edit() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        put(route('purchase-invoices.update', invoice.id));
+        post(route('purchase-invoices.update', invoice.id), { forceFormData: true });
     };
 
     const totals = useTaxCalculator(data.items);
@@ -209,6 +211,64 @@ export default function Edit() {
                                     </div>
                                 </div>
                             )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Supporting Documents */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-lg">
+                                <FileText className="h-5 w-5" />
+                                {t('Supporting Documents')}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                {invoice.attachments && invoice.attachments.length > 0 && (
+                                    <div className="rounded-md border p-3 text-sm">
+                                        <div className="mb-2 font-medium">{t('Existing documents')}</div>
+                                        <ul className="space-y-2">
+                                            {invoice.attachments.map((attachment) => (
+                                                <li key={attachment.id} className="flex items-center justify-between gap-3">
+                                                    <span className="truncate text-muted-foreground">{attachment.file_name}</span>
+                                                    <a
+                                                        href={attachment.download_url}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="text-primary hover:underline"
+                                                    >
+                                                        {t('Download')}
+                                                    </a>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                                <div>
+                                    <Label htmlFor="attachments">
+                                        {t('Add supplier invoices, receipts, or other supporting documents')}
+                                    </Label>
+                                    <Input
+                                        id="attachments"
+                                        type="file"
+                                        multiple
+                                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.csv,.txt"
+                                        onChange={(e) => setData('attachments', Array.from(e.target.files || []))}
+                                    />
+                                    <InputError message={(errors as any).attachments} />
+                                    <InputError message={(errors as any)['attachments.0']} />
+                                </div>
+                                {data.attachments.length > 0 && (
+                                    <div className="rounded-md border p-3 text-sm">
+                                        <div className="mb-2 font-medium">{t('New selected files')}</div>
+                                        <ul className="list-inside list-disc space-y-1 text-muted-foreground">
+                                            {data.attachments.map((file, index) => (
+                                                <li key={`${file.name}-${index}`}>{file.name}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
 

@@ -38,6 +38,7 @@ export default function Create() {
         warehouse_id: '',
         payment_terms: '',
         notes: '',
+        attachments: [] as File[],
         items: [{
             product_id: 0,
             quantity: 1,
@@ -55,7 +56,7 @@ export default function Create() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('purchase-invoices.store'));
+        post(route('purchase-invoices.store'), { forceFormData: true });
     };
 
     const totals = useTaxCalculator(data.items);
@@ -212,6 +213,44 @@ export default function Create() {
                                     </div>
                                 </div>
                             )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Supporting Documents */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-lg">
+                                <FileText className="h-5 w-5" />
+                                {t('Supporting Documents')}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-3">
+                                <div>
+                                    <Label htmlFor="attachments">
+                                        {t('Attach supplier invoices, receipts, or other supporting documents')}
+                                    </Label>
+                                    <Input
+                                        id="attachments"
+                                        type="file"
+                                        multiple
+                                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.csv,.txt"
+                                        onChange={(e) => setData('attachments', Array.from(e.target.files || []))}
+                                    />
+                                    <InputError message={(errors as any).attachments} />
+                                    <InputError message={(errors as any)['attachments.0']} />
+                                </div>
+                                {data.attachments.length > 0 && (
+                                    <div className="rounded-md border p-3 text-sm">
+                                        <div className="mb-2 font-medium">{t('Selected files')}</div>
+                                        <ul className="list-inside list-disc space-y-1 text-muted-foreground">
+                                            {data.attachments.map((file, index) => (
+                                                <li key={`${file.name}-${index}`}>{file.name}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
 
