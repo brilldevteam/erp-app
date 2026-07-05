@@ -88,6 +88,8 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::resource('purchase-invoices', PurchaseInvoiceController::class);
     Route::post('purchase-invoices/{purchaseInvoice}/post', [PurchaseInvoiceController::class, 'post'])->name('purchase-invoices.post');
     Route::get('purchase-invoices/{purchaseInvoice}/print', [PurchaseInvoiceController::class, 'print'])->name('purchase-invoices.print');
+    Route::get('purchase-invoices/{purchaseInvoice}/attachments/{attachment}/download', [PurchaseInvoiceController::class, 'downloadAttachment'])->name('purchase-invoices.attachments.download');
+    Route::delete('purchase-invoices/{purchaseInvoice}/attachments/{attachment}', [PurchaseInvoiceController::class, 'destroyAttachment'])->name('purchase-invoices.attachments.destroy');
 
     // sales invoices
     Route::resource('sales-invoices', SalesInvoiceController::class);

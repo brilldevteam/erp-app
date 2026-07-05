@@ -26,7 +26,9 @@ class StorePurchaseInvoiceRequest extends FormRequest
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.discount_percentage' => 'nullable|numeric|min:0|max:100',
-            'items.*.tax_percentage' => 'nullable|numeric|min:0|max:100'
+            'items.*.tax_percentage' => 'nullable|numeric|min:0|max:100',
+            'attachments' => 'nullable|array',
+            'attachments.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx,csv,txt|max:10240'
         ];
     }
 
@@ -37,7 +39,9 @@ class StorePurchaseInvoiceRequest extends FormRequest
             'items.required' => __('At least one item is required.'),
             'items.*.product_id.min' => __('Please select a product for each item.'),
             'items.*.quantity.min' => __('Quantity must be at least 1.'),
-            'items.*.unit_price.min' => __('Unit price must be 0 or greater.')
+            'items.*.unit_price.min' => __('Unit price must be 0 or greater.'),
+            'attachments.*.mimes' => __('Attachments must be PDF, image, document, spreadsheet, CSV, or text files.'),
+            'attachments.*.max' => __('Each attachment must not exceed 10 MB.')
         ];
     }
 }

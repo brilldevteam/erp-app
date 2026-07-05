@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PurchaseInvoice;
+use App\Models\PurchaseInvoiceAttachment;
 use App\Models\PurchaseInvoiceItem;
 use App\Models\PurchaseInvoiceItemTax;
 use App\Models\User;
@@ -13,6 +14,7 @@ use Workdo\ProductService\Models\ProductServiceItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use App\Events\CreatePurchaseInvoice;
 use App\Events\UpdatePurchaseInvoice;
@@ -188,6 +190,7 @@ class PurchaseInvoiceController extends Controller
 
             // Create invoice items
             $this->createInvoiceItems($invoice->id, $request->items);
+            $this->storeAttachments($invoice, $request);
 
             try {
                 CreatePurchaseInvoice::dispatch($request, $invoice);
@@ -227,7 +230,7 @@ class PurchaseInvoiceController extends Controller
                 return redirect()->route('purchase-invoices.index')->with('error', __('Permission denied'));
             }
 
-            $purchaseInvoice->load(['vendor', 'vendorDetails', 'items.product', 'items.taxes', 'warehouse']);
+            $purchaseInvoice->load(['vendor', 'vendorDetails', 'items.product', 'items.taxes', 'warehouse', 'attachments.uploader']);
 
             return Inertia::render('Purchase/View', [
                 'invoice' => $purchaseInvoice
@@ -249,7 +252,7 @@ class PurchaseInvoiceController extends Controller
                 return redirect()->route('purchase-invoices.index')->with('error', __('Cannot update posted invoice.'));
             }
 
-            $purchaseInvoice->load(['items.taxes']);
+            $purchaseInvoice->load(['items.taxes', 'attachments.uploader']);
 
             EditPurchaseInvoice::dispatch($purchaseInvoice);
 
@@ -313,6 +316,7 @@ class PurchaseInvoiceController extends Controller
             // Delete existing items and recreate
             $purchaseInvoice->items()->delete();
             $this->createInvoiceItems($purchaseInvoice->id, $request->items);
+            $this->storeAttachments($purchaseInvoice, $request);
 
             // Dispatch event for packages to handle their fields
             UpdatePurchaseInvoice::dispatch($request, $purchaseInvoice);
@@ -334,6 +338,7 @@ class PurchaseInvoiceController extends Controller
             // Dispatch event before deletion
             DestroyPurchaseInvoice::dispatch($purchaseInvoice);
 
+            Storage::disk('public')->deleteDirectory("purchase-invoices/{$purchaseInvoice->id}");
             $purchaseInvoice->delete();
 
             return redirect()->route('purchase-invoices.index')->with('success', __('The purchase invoice has been deleted.'));
@@ -391,6 +396,66 @@ class PurchaseInvoiceController extends Controller
                 }
             }
         }
+    }
+
+    private function storeAttachments(PurchaseInvoice $invoice, Request $request): void
+    {
+        if (!$request->hasFile('attachments')) {
+            return;
+        }
+
+        foreach ($request->file('attachments', []) as $file) {
+            if (!$file || !$file->isValid()) {
+                continue;
+            }
+
+            $path = $file->store("purchase-invoices/{$invoice->id}/attachments", 'public');
+
+            $invoice->attachments()->create([
+                'file_name' => $file->getClientOriginalName(),
+                'file_path' => $path,
+                'file_type' => $file->getClientMimeType(),
+                'file_size' => $file->getSize(),
+                'uploaded_by' => Auth::id(),
+                'created_by' => creatorId(),
+            ]);
+        }
+    }
+
+    public function downloadAttachment(PurchaseInvoice $purchaseInvoice, PurchaseInvoiceAttachment $attachment)
+    {
+        if(!Auth::user()->can('view-purchase-invoices') || $purchaseInvoice->created_by != creatorId()){
+            return back()->with('error', __('Permission denied'));
+        }
+
+        if(!$this->checkInvoiceAccess($purchaseInvoice) || $attachment->purchase_invoice_id !== $purchaseInvoice->id) {
+            return back()->with('error', __('Permission denied'));
+        }
+
+        if (!Storage::disk('public')->exists($attachment->file_path)) {
+            return back()->with('error', __('Attachment file not found.'));
+        }
+
+        return Storage::disk('public')->download($attachment->file_path, $attachment->file_name);
+    }
+
+    public function destroyAttachment(PurchaseInvoice $purchaseInvoice, PurchaseInvoiceAttachment $attachment)
+    {
+        if(!Auth::user()->can('edit-purchase-invoices') || $purchaseInvoice->created_by != creatorId()){
+            return back()->with('error', __('Permission denied'));
+        }
+
+        if(!$this->checkInvoiceAccess($purchaseInvoice) || $attachment->purchase_invoice_id !== $purchaseInvoice->id) {
+            return back()->with('error', __('Permission denied'));
+        }
+
+        if ($purchaseInvoice->status !== 'draft') {
+            return back()->with('error', __('Attachments can only be deleted while the purchase invoice is in draft status.'));
+        }
+
+        $attachment->delete();
+
+        return back()->with('success', __('Attachment deleted successfully.'));
     }
 
     public function post(PurchaseInvoice $purchaseInvoice)
