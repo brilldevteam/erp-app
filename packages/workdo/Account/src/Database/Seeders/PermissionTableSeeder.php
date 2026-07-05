@@ -105,6 +105,12 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'approve-credit-notes', 'module' => 'credit-notes', 'label' => 'Approve Credit Notes'],
             ['name' => 'delete-credit-notes', 'module' => 'credit-notes', 'label' => 'Delete Credit Notes'],
 
+            // JournalEntry management
+            ['name' => 'manage-journal-entries', 'module' => 'journal-entries', 'label' => 'Manage Journal Entries'],
+            ['name' => 'view-journal-entries', 'module' => 'journal-entries', 'label' => 'View Journal Entries'],
+            ['name' => 'create-journal-entries', 'module' => 'journal-entries', 'label' => 'Create Journal Entries'],
+            ['name' => 'delete-journal-entries', 'module' => 'journal-entries', 'label' => 'Delete Journal Entries'],
+
             // BankTransfer management
             ['name' => 'manage-bank-transfers', 'module' => 'bank-transfers', 'label' => 'Manage Bank Transfers'],
             ['name' => 'manage-any-bank-transfers', 'module' => 'bank-transfers', 'label' => 'Manage All Bank Transfers'],
