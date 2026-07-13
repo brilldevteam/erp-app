@@ -15,9 +15,27 @@ class ImportedClientUserService
 {
     public function create(array $attributes, int $tenantId, int $actorId): User
     {
-        $limit = canCreateUser($tenantId);
-        if (!$limit['can_create']) {
-            throw new RuntimeException($limit['message']);
+        return $this->createUser($attributes, $tenantId, $actorId, true, true);
+    }
+
+    public function createImportContact(array $attributes, int $tenantId, int $actorId): User
+    {
+        return $this->createUser($attributes, $tenantId, $actorId, false, false);
+    }
+
+    private function createUser(
+        array $attributes,
+        int $tenantId,
+        int $actorId,
+        bool $enforceUserLimit,
+        bool $enableLogin
+    ): User
+    {
+        if ($enforceUserLimit) {
+            $limit = canCreateUser($tenantId);
+            if (!$limit['can_create']) {
+                throw new RuntimeException($limit['message']);
+            }
         }
 
         $role = Role::where('name', 'client')
@@ -30,14 +48,15 @@ class ImportedClientUserService
         }
 
         $password = Str::password(14);
-        $verificationEnabled = admin_setting('enableEmailVerification') === 'on';
+        $verificationEnabled = $enableLogin && admin_setting('enableEmailVerification') === 'on';
         $user = User::create([
             'name' => $attributes['name'],
             'email' => strtolower($attributes['email']),
             'mobile_no' => $attributes['mobile_no'] ?? null,
             'password' => Hash::make($password),
             'type' => 'client',
-            'is_enable_login' => true,
+            'is_enable_login' => $enableLogin,
+            'is_disable' => $enableLogin ? 0 : 1,
             'lang' => company_setting('defaultLanguage', $tenantId) ?? 'en',
             'email_verified_at' => $verificationEnabled ? null : now(),
             'creator_id' => $actorId,
@@ -45,9 +64,11 @@ class ImportedClientUserService
         ]);
 
         $user->assignRole($role);
-        CreateUser::dispatch(new Request($attributes), $user);
+        if ($enableLogin) {
+            CreateUser::dispatch(new Request($attributes), $user);
+        }
 
-        if (company_setting('New User', $tenantId) === 'on') {
+        if ($enableLogin && company_setting('New User', $tenantId) === 'on') {
             EmailTemplate::sendEmailTemplate('New User', [$user->email], [
                 'name' => $user->name,
                 'email' => $user->email,

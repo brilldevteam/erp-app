@@ -23,6 +23,7 @@ import { getStatusBadgeClasses } from './utils';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import NoRecordsFound from '@/components/no-records-found';
 import { InvoiceCustomerOption, SalesInvoice, SalesFilters } from './types';
+import { BulkImportButton } from '@/components/bulk-import-button';
 interface SalesIndexProps {
     invoices: {
         data: SalesInvoice[];
@@ -348,6 +349,9 @@ export default function Index() {
                         {boxBtn.map((button) => (
                             <div key={button.id}>{button.component}</div>
                         ))}
+                        {auth.user?.permissions?.includes('import-sales-invoices') && auth.user?.permissions?.includes('create-sales-invoices') && (
+                            <BulkImportButton entity="sales-invoices" label={t('Sales Invoices')} />
+                        )}
                         {auth.user?.permissions?.includes('create-sales-invoices') && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>

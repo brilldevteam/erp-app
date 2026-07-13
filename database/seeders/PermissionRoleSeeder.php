@@ -76,6 +76,7 @@ class PermissionRoleSeeder extends Seeder
             ['name' => 'manage-any-warehouses', 'module' => 'warehouses', 'label' => 'Manage All Warehouses'],
             ['name' => 'manage-own-warehouses', 'module' => 'warehouses', 'label' => 'Manage Own Warehouses'],
             ['name' => 'create-warehouses', 'module' => 'warehouses', 'label' => 'Create Warehouses'],
+            ['name' => 'import-warehouses', 'module' => 'warehouses', 'label' => 'Import Warehouses'],
             ['name' => 'edit-warehouses', 'module' => 'warehouses', 'label' => 'Edit Warehouses'],
             ['name' => 'delete-warehouses', 'module' => 'warehouses', 'label' => 'Delete Warehouses'],
 
@@ -217,6 +218,7 @@ class PermissionRoleSeeder extends Seeder
             ['name' => 'manage-own-purchase-invoices', 'module' => 'purchase-invoices', 'label' => 'Manage Own Purchase Invoices'],
             ['name' => 'view-purchase-invoices', 'module' => 'purchase-invoices', 'label' => 'View Purchase Invoices'],
             ['name' => 'create-purchase-invoices', 'module' => 'purchase-invoices', 'label' => 'Create Purchase Invoices'],
+            ['name' => 'import-purchase-invoices', 'module' => 'purchase-invoices', 'label' => 'Import Purchase Invoices'],
             ['name' => 'edit-purchase-invoices', 'module' => 'purchase-invoices', 'label' => 'Edit Purchase Invoices'],
             ['name' => 'delete-purchase-invoices', 'module' => 'purchase-invoices', 'label' => 'Delete Purchase Invoices'],
             ['name' => 'post-purchase-invoices', 'module' => 'purchase-invoices', 'label' => 'Post Purchase Invoices'],
@@ -238,6 +240,7 @@ class PermissionRoleSeeder extends Seeder
             ['name' => 'manage-own-sales-invoices', 'module' => 'sales-invoices', 'label' => 'Manage Own Sales Invoices'],
             ['name' => 'view-sales-invoices', 'module' => 'sales-invoices', 'label' => 'View Sales Invoices'],
             ['name' => 'create-sales-invoices', 'module' => 'sales-invoices', 'label' => 'Create Sales Invoices'],
+            ['name' => 'import-sales-invoices', 'module' => 'sales-invoices', 'label' => 'Import Sales Invoices'],
             ['name' => 'edit-sales-invoices', 'module' => 'sales-invoices', 'label' => 'Edit Sales Invoices'],
             ['name' => 'delete-sales-invoices', 'module' => 'sales-invoices', 'label' => 'Delete Sales Invoices'],
             ['name' => 'post-sales-invoices', 'module' => 'sales-invoices', 'label' => 'Post Sales Invoices'],
@@ -300,7 +303,7 @@ class PermissionRoleSeeder extends Seeder
                     'manage-dashboard',
                     'manage-users', 'manage-any-users', 'manage-own-users', 'create-users', 'edit-users', 'delete-users', 'change-password-users', 'toggle-status-users', 'impersonate-users', 'view-login-history',
                     'manage-roles', 'view-roles', 'create-roles', 'edit-roles', 'delete-roles',
-                    'manage-warehouses', 'manage-any-warehouses', 'manage-own-warehouses', 'create-warehouses', 'edit-warehouses', 'delete-warehouses',
+                    'manage-warehouses', 'manage-any-warehouses', 'manage-own-warehouses', 'create-warehouses', 'import-warehouses', 'edit-warehouses', 'delete-warehouses',
                     'manage-transfers', 'manage-any-transfers', 'manage-own-transfers', 'create-transfers', 'edit-transfers', 'delete-transfers',
 
 
@@ -314,9 +317,9 @@ class PermissionRoleSeeder extends Seeder
                     'manage-orders', 'view-orders',
                     'manage-profile', 'edit-profile', 'change-password-profile',
                     'manage-messenger', 'send-messages', 'view-messages', 'edit-messages', 'delete-messages', 'toggle-favorite-messages', 'toggle-pinned-messages',
-                    'manage-purchase-invoices', 'manage-any-purchase-invoices', 'manage-own-purchase-invoices', 'view-purchase-invoices', 'create-purchase-invoices', 'edit-purchase-invoices', 'delete-purchase-invoices', 'post-purchase-invoices', 'print-purchase-invoices',
+                    'manage-purchase-invoices', 'manage-any-purchase-invoices', 'manage-own-purchase-invoices', 'view-purchase-invoices', 'create-purchase-invoices', 'import-purchase-invoices', 'edit-purchase-invoices', 'delete-purchase-invoices', 'post-purchase-invoices', 'print-purchase-invoices',
                     'manage-purchase-return-invoices','manage-any-purchase-return-invoices','manage-own-purchase-return-invoices','view-purchase-return-invoices','create-purchase-return-invoices','edit-purchase-return-invoices','delete-purchase-return-invoices','approve-purchase-returns-invoices', 'complete-purchase-returns-invoices',
-                    'manage-sales-invoices', 'manage-any-sales-invoices', 'manage-own-sales-invoices', 'view-sales-invoices', 'create-sales-invoices', 'edit-sales-invoices', 'delete-sales-invoices', 'post-sales-invoices', 'print-sales-invoices',
+                    'manage-sales-invoices', 'manage-any-sales-invoices', 'manage-own-sales-invoices', 'view-sales-invoices', 'create-sales-invoices', 'import-sales-invoices', 'edit-sales-invoices', 'delete-sales-invoices', 'post-sales-invoices', 'print-sales-invoices',
                     'manage-sales-return-invoices','manage-any-sales-return-invoices','manage-own-sales-return-invoices','view-sales-return-invoices','create-sales-return-invoices','delete-sales-return-invoices','approve-sales-returns-invoices', 'complete-sales-returns-invoices',
                     'manage-sales-proposals','manage-any-sales-proposals','manage-own-sales-proposals','view-sales-proposals','create-sales-proposals','edit-sales-proposals','delete-sales-proposals','print-sales-proposals','sent-sales-proposals','accept-sales-proposals','convert-sales-proposals','reject-sales-proposals',
                 ]

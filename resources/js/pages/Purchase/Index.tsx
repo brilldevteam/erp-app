@@ -25,6 +25,7 @@ import { DateRangePicker } from '@/components/ui/date-range-picker';
 
 import NoRecordsFound from '@/components/no-records-found';
 import { InvoiceVendorOption, PurchaseInvoice, PurchaseFilters } from './types';
+import { BulkImportButton } from '@/components/bulk-import-button';
 interface PurchaseIndexProps {
     invoices: {
         data: PurchaseInvoice[];
@@ -348,6 +349,9 @@ export default function Index() {
                         {boxBtn.map((button) => (
                             <div key={button.id}>{button.component}</div>
                         ))}
+                        {auth.user?.permissions?.includes('import-purchase-invoices') && auth.user?.permissions?.includes('create-purchase-invoices') && (
+                            <BulkImportButton entity="purchase-invoices" label={t('Purchase Invoices')} />
+                        )}
                         {auth.user?.permissions?.includes('create-purchase-invoices') && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>

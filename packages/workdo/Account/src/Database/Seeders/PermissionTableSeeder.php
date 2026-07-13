@@ -25,6 +25,7 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'manage-own-vendors', 'module' => 'vendors', 'label' => 'Manage Own Vendors'],
             ['name' => 'view-vendors', 'module' => 'vendors', 'label' => 'View Vendors'],
             ['name' => 'create-vendors', 'module' => 'vendors', 'label' => 'Create Vendors'],
+            ['name' => 'import-vendors', 'module' => 'vendors', 'label' => 'Import Vendors'],
             ['name' => 'edit-vendors', 'module' => 'vendors', 'label' => 'Edit Vendors'],
             ['name' => 'delete-vendors', 'module' => 'vendors', 'label' => 'Delete Vendors'],
 
@@ -44,6 +45,7 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'manage-own-bank-accounts', 'module' => 'bank-accounts', 'label' => 'Manage Own BankAccounts'],
             ['name' => 'view-bank-accounts', 'module' => 'bank-accounts', 'label' => 'View BankAccounts'],
             ['name' => 'create-bank-accounts', 'module' => 'bank-accounts', 'label' => 'Create BankAccounts'],
+            ['name' => 'import-bank-accounts', 'module' => 'bank-accounts', 'label' => 'Import Bank Accounts'],
             ['name' => 'edit-bank-accounts', 'module' => 'bank-accounts', 'label' => 'Edit BankAccounts'],
             ['name' => 'delete-bank-accounts', 'module' => 'bank-accounts', 'label' => 'Delete BankAccounts'],
 
@@ -53,6 +55,7 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'manage-own-account-types', 'module' => 'account-types', 'label' => 'Manage Own AccountTypes'],
             ['name' => 'view-account-types', 'module' => 'account-types', 'label' => 'View AccountTypes'],
             ['name' => 'create-account-types', 'module' => 'account-types', 'label' => 'Create AccountTypes'],
+            ['name' => 'import-account-types', 'module' => 'account-types', 'label' => 'Import Account Types'],
             ['name' => 'edit-account-types', 'module' => 'account-types', 'label' => 'Edit AccountTypes'],
             ['name' => 'delete-account-types', 'module' => 'account-types', 'label' => 'Delete AccountTypes'],
 
@@ -62,6 +65,7 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'manage-own-chart-of-accounts', 'module' => 'chart-of-accounts', 'label' => 'Manage Own ChartOfAccounts'],
             ['name' => 'view-chart-of-accounts', 'module' => 'chart-of-accounts', 'label' => 'View ChartOfAccounts'],
             ['name' => 'create-chart-of-accounts', 'module' => 'chart-of-accounts', 'label' => 'Create ChartOfAccounts'],
+            ['name' => 'import-chart-of-accounts', 'module' => 'chart-of-accounts', 'label' => 'Import Chart Of Accounts'],
             ['name' => 'edit-chart-of-accounts', 'module' => 'chart-of-accounts', 'label' => 'Edit ChartOfAccounts'],
             ['name' => 'delete-chart-of-accounts', 'module' => 'chart-of-accounts', 'label' => 'Delete ChartOfAccounts'],
 
@@ -71,6 +75,7 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'manage-own-vendor-payments', 'module' => 'vendor-payments', 'label' => 'Manage Own Vendor Payments'],
             ['name' => 'view-vendor-payments', 'module' => 'vendor-payments', 'label' => 'View Vendor Payments'],
             ['name' => 'create-vendor-payments', 'module' => 'vendor-payments', 'label' => 'Create Vendor Payments'],
+            ['name' => 'import-vendor-payments', 'module' => 'vendor-payments', 'label' => 'Import Vendor Payments'],
             ['name' => 'cleared-vendor-payments', 'module' => 'vendor-payments', 'label' => 'Cleared Vendor Payments'],
             ['name' => 'delete-vendor-payments', 'module' => 'vendor-payments', 'label' => 'Delete Vendor Payments'],
 
@@ -80,6 +85,7 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'manage-own-customer-payments', 'module' => 'customer-payments', 'label' => 'Manage Own Customer Payments'],
             ['name' => 'view-customer-payments', 'module' => 'customer-payments', 'label' => 'View Customer Payments'],
             ['name' => 'create-customer-payments', 'module' => 'customer-payments', 'label' => 'Create Customer Payments'],
+            ['name' => 'import-customer-payments', 'module' => 'customer-payments', 'label' => 'Import Customer Payments'],
             ['name' => 'cleared-customer-payments', 'module' => 'customer-payments', 'label' => 'Clear Customer Payments'],
             ['name' => 'delete-customer-payments', 'module' => 'customer-payments', 'label' => 'Delete Customer Payments'],
 
@@ -126,6 +132,7 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'manage-any-revenue-categories', 'module' => 'revenue-categories', 'label' => 'Manage All RevenueCategories'],
             ['name' => 'manage-own-revenue-categories', 'module' => 'revenue-categories', 'label' => 'Manage Own RevenueCategories'],
             ['name' => 'create-revenue-categories', 'module' => 'revenue-categories', 'label' => 'Create RevenueCategories'],
+            ['name' => 'import-revenue-categories', 'module' => 'revenue-categories', 'label' => 'Import Revenue Categories'],
             ['name' => 'edit-revenue-categories', 'module' => 'revenue-categories', 'label' => 'Edit RevenueCategories'],
             ['name' => 'delete-revenue-categories', 'module' => 'revenue-categories', 'label' => 'Delete RevenueCategories'],
 
@@ -134,6 +141,7 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'manage-any-expense-categories', 'module' => 'expense-categories', 'label' => 'Manage All ExpenseCategories'],
             ['name' => 'manage-own-expense-categories', 'module' => 'expense-categories', 'label' => 'Manage Own ExpenseCategories'],
             ['name' => 'create-expense-categories', 'module' => 'expense-categories', 'label' => 'Create ExpenseCategories'],
+            ['name' => 'import-expense-categories', 'module' => 'expense-categories', 'label' => 'Import Expense Categories'],
             ['name' => 'edit-expense-categories', 'module' => 'expense-categories', 'label' => 'Edit ExpenseCategories'],
             ['name' => 'delete-expense-categories', 'module' => 'expense-categories', 'label' => 'Delete ExpenseCategories'],
 
@@ -143,6 +151,7 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'manage-own-revenues', 'module' => 'revenues', 'label' => 'Manage Own Revenues'],
             ['name' => 'view-revenues', 'module' => 'revenues', 'label' => 'View Revenues'],
             ['name' => 'create-revenues', 'module' => 'revenues', 'label' => 'Create Revenues'],
+            ['name' => 'import-revenues', 'module' => 'revenues', 'label' => 'Import Revenues'],
             ['name' => 'edit-revenues', 'module' => 'revenues', 'label' => 'Edit Revenues'],
             ['name' => 'delete-revenues', 'module' => 'revenues', 'label' => 'Delete Revenues'],
             ['name' => 'approve-revenues', 'module' => 'revenues', 'label' => 'Approve Revenues'],
@@ -154,6 +163,7 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'manage-own-expenses', 'module' => 'expenses', 'label' => 'Manage Own Expenses'],
             ['name' => 'view-expenses', 'module' => 'expenses', 'label' => 'View Expenses'],
             ['name' => 'create-expenses', 'module' => 'expenses', 'label' => 'Create Expenses'],
+            ['name' => 'import-expenses', 'module' => 'expenses', 'label' => 'Import Expenses'],
             ['name' => 'edit-expenses', 'module' => 'expenses', 'label' => 'Edit Expenses'],
             ['name' => 'delete-expenses', 'module' => 'expenses', 'label' => 'Delete Expenses'],
             ['name' => 'approve-expenses', 'module' => 'expenses', 'label' => 'Approve Expenses'],

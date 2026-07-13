@@ -26,6 +26,7 @@ import NoRecordsFound from '@/components/no-records-found';
 import { BankAccount, BankAccountsIndexProps, BankAccountFilters, BankAccountModalState } from './types';
 import { formatDate, formatTime, formatDateTime, formatCurrency, getImagePath } from '@/utils/helpers';
 import { usePageButtons } from '@/hooks/usePageButtons';
+import { BulkImportButton } from '@/components/bulk-import-button';
 
 export default function Index() {
     const { t } = useTranslation();
@@ -219,6 +220,9 @@ export default function Index() {
                         {boxBtn.map((button) => (
                             <div key={button.id}>{button.component}</div>
                         ))}
+                        {auth.user?.permissions?.includes('import-bank-accounts') && auth.user?.permissions?.includes('create-bank-accounts') && (
+                            <BulkImportButton entity="bank-accounts" label={t('Bank Accounts')} />
+                        )}
                         {auth.user?.permissions?.includes('create-bank-accounts') && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { useDeleteHandler } from '@/hooks/useDeleteHandler';
 import { usePageButtons } from '@/hooks/usePageButtons';
+import { BulkImportButton } from '@/components/bulk-import-button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PerPageSelector } from '@/components/ui/per-page-selector';
@@ -192,6 +193,9 @@ export default function Index() {
                         {boxBtn.map((button) => (
                             <div key={button.id}>{button.component}</div>
                         ))}
+                        {auth.user?.permissions?.includes('import-warehouses') && auth.user?.permissions?.includes('create-warehouses') && (
+                            <BulkImportButton entity="warehouses" label={t('Warehouses')} />
+                        )}
                         {auth.user?.permissions?.includes('create-warehouses') && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>
