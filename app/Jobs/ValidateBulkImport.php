@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\BulkImport;
+use App\Services\BulkImport\AllowsRepeatedIdentity;
 use App\Services\BulkImport\BulkImportRegistry;
 use App\Services\BulkImport\SpreadsheetService;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -26,6 +27,9 @@ class ValidateBulkImport implements ShouldQueue
         try {
             $definition = $registry->get($import->entity_type);
             $metadata = json_decode(Storage::disk('local')->get($import->preview_path), true) ?: [];
+            if (!isset($metadata['mapping'])) {
+                $metadata = $spreadsheets->inspect($import, $definition);
+            }
             $rows = $spreadsheets->read($import, $definition, $metadata['mapping'] ?? []);
             $seen = [];
             $invalid = [];
@@ -40,12 +44,13 @@ class ValidateBulkImport implements ShouldQueue
 
                 if ($identity === '') {
                     $errors[] = 'Duplicate key is required.';
-                } elseif (isset($seen[$identity])) {
+                } elseif (!$definition instanceof AllowsRepeatedIdentity && isset($seen[$identity])) {
                     $errors[] = 'Duplicate key appears more than once in this file.';
                 }
                 $seen[$identity] = true;
 
                 $row['duplicate'] = !$errors && $definition->duplicate($row['data'], $import->tenant_id);
+                $row['data']['_preexisting_duplicate'] = $row['duplicate'];
                 $row['errors'] = array_values(array_unique($errors));
                 unset($row['formula']);
 

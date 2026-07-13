@@ -54,7 +54,7 @@ interface ImportRecord {
 }
 
 interface BulkImportButtonProps {
-    entity: 'customers' | 'product-service-items';
+    entity: string;
     label: string;
 }
 
@@ -406,9 +406,11 @@ export function BulkImportButton({ entity, label }: BulkImportButtonProps) {
                                 )}
 
                                 {current.status === 'completed' && (
-                                    <div className="rounded-lg border bg-green-50 p-4 text-sm text-green-800">
+                                    <div className={`rounded-lg border p-4 text-sm ${current.has_errors ? 'border-amber-200 bg-amber-50 text-amber-800' : 'bg-green-50 text-green-800'}`}>
                                         Imported {current.imported_rows}, updated {current.updated_rows},
-                                        and skipped {current.skipped_rows} records.
+                                        skipped {current.skipped_rows}, and failed {
+                                            Math.max(0, current.processed_rows - current.imported_rows - current.updated_rows - current.skipped_rows)
+                                        } records.
                                     </div>
                                 )}
 

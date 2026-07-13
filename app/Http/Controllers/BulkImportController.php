@@ -9,6 +9,7 @@ use App\Services\BulkImport\BulkImportRegistry;
 use App\Services\BulkImport\SpreadsheetService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -118,7 +119,7 @@ class BulkImportController extends Controller
             json_encode($metadata, JSON_UNESCAPED_UNICODE)
         );
         $bulkImport->update(['status' => 'uploaded', 'failure_message' => null]);
-        ValidateBulkImport::dispatch($bulkImport->id);
+        Bus::dispatchSync(new ValidateBulkImport($bulkImport->id));
 
         return response()->json($this->payload($bulkImport->fresh()), 202);
     }
@@ -145,7 +146,7 @@ class BulkImportController extends Controller
             ->update(['strategy' => $validated['strategy'], 'status' => 'queued']);
         abort_unless($queued === 1, 409, 'Import is not ready.');
 
-        ProcessBulkImport::dispatch($bulkImport->id);
+        Bus::dispatchSync(new ProcessBulkImport($bulkImport->id));
 
         return response()->json($this->payload($bulkImport->fresh()), 202);
     }

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { useDeleteHandler } from '@/hooks/useDeleteHandler';
 import { usePageButtons } from '@/hooks/usePageButtons';
+import { BulkImportButton } from '@/components/bulk-import-button';
 import AuthenticatedLayout from "@/layouts/authenticated-layout";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -229,6 +230,9 @@ export default function Index() {
                         {quickBooksPageBtn.map((button) => (
                             <div key={button.id}>{button.component}</div>
                         ))}
+                        {auth.user?.permissions?.includes('import-chart-of-accounts') && auth.user?.permissions?.includes('create-chart-of-accounts') && (
+                            <BulkImportButton entity="chart-of-accounts" label={t('Chart Of Accounts')} />
+                        )}
                         {auth.user?.permissions?.includes('create-chart-of-accounts') && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>

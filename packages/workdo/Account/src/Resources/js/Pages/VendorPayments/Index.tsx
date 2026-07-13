@@ -24,6 +24,7 @@ import Create from './Create';
 import View from './View';
 import NoRecordsFound from '@/components/no-records-found';
 import { VendorPayment, VendorPaymentsIndexProps, VendorPaymentModalState } from './types';
+import { BulkImportButton } from '@/components/bulk-import-button';
 
 interface VendorPaymentFilters {
     vendor_id: string;
@@ -282,20 +283,25 @@ export default function Index() {
             ]}
             pageTitle={t('Manage Vendor Payments')}
             pageActions={
-                <TooltipProvider>
-                    {auth.user?.permissions?.includes('create-vendor-payments') && (
-                        <Tooltip delayDuration={0}>
-                            <TooltipTrigger asChild>
-                                <Button size="sm" onClick={() => openModal('add')}>
-                                    <Plus className="h-4 w-4" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{t('Create')}</p>
-                            </TooltipContent>
-                        </Tooltip>
+                <div className="flex items-center gap-2">
+                    {auth.user?.permissions?.includes('import-vendor-payments') && auth.user?.permissions?.includes('create-vendor-payments') && (
+                        <BulkImportButton entity="vendor-payments" label={t('Vendor Payments')} />
                     )}
-                </TooltipProvider>
+                    <TooltipProvider>
+                        {auth.user?.permissions?.includes('create-vendor-payments') && (
+                            <Tooltip delayDuration={0}>
+                                <TooltipTrigger asChild>
+                                    <Button size="sm" onClick={() => openModal('add')}>
+                                        <Plus className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{t('Create')}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
+                    </TooltipProvider>
+                </div>
             }
         >
             <Head title={t('Vendor Payments')} />

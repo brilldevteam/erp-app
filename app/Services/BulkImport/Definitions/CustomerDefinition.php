@@ -174,7 +174,7 @@ class CustomerDefinition implements EntityDefinition
             ->first();
 
         if (!$user) {
-            $user = app(ImportedClientUserService::class)->create([
+            $user = app(ImportedClientUserService::class)->createImportContact([
                 'name' => $this->text($row['user_name']),
                 'email' => $email,
                 'mobile_no' => $this->nullableText($row['mobile_no'] ?? null),

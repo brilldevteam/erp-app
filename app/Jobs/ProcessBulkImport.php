@@ -4,7 +4,9 @@ namespace App\Jobs;
 
 use App\Models\BulkImport;
 use App\Models\User;
+use App\Services\BulkImport\AllowsRepeatedIdentity;
 use App\Services\BulkImport\BulkImportRegistry;
+use App\Services\BulkImport\EntityDefinition;
 use App\Services\BulkImport\SpreadsheetService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -39,33 +41,10 @@ class ProcessBulkImport implements ShouldQueue
         try {
             $import->update(['status' => 'importing', 'failure_message' => null]);
 
-            foreach (array_chunk($rows, 100) as $chunk) {
-                foreach ($chunk as $row) {
-                    if (!empty($row['errors'])) {
-                        continue;
-                    }
-
-                    try {
-                        $lockKey = 'bulk-import:'.$import->tenant_id.':'.$import->entity_type.':'
-                            .hash('sha256', $definition->identity($row['data']));
-                        $result = Cache::lock($lockKey, 30)->block(10, fn () => DB::transaction(
-                            fn () => $definition->import(
-                                $row['data'],
-                                $import->strategy,
-                                $import->tenant_id,
-                                $import->creator_id
-                            )
-                        ));
-                        $counts["{$result}_rows"]++;
-                    } catch (Throwable $exception) {
-                        $row['errors'] = [$exception->getMessage()];
-                        $row['result'] = 'failed';
-                        $errorRows[] = $row;
-                    }
-
-                    $counts['processed_rows']++;
-                }
-                $import->update($counts);
+            if ($definition instanceof AllowsRepeatedIdentity) {
+                $this->processRepeatedIdentityRows($import, $definition, $rows, $counts, $errorRows);
+            } else {
+                $this->processSingleIdentityRows($import, $definition, $rows, $counts, $errorRows);
             }
 
             if ($errorRows) {
@@ -81,6 +60,103 @@ class ProcessBulkImport implements ShouldQueue
         } finally {
             Auth::forgetUser();
         }
+    }
+
+    private function processSingleIdentityRows(
+        BulkImport $import,
+        EntityDefinition $definition,
+        array $rows,
+        array &$counts,
+        array &$errorRows
+    ): void {
+        foreach (array_chunk($rows, 100) as $chunk) {
+            foreach ($chunk as $row) {
+                if (!empty($row['errors'])) {
+                    continue;
+                }
+
+                try {
+                    $lockKey = $this->lockKey($import, $definition, $row);
+                    $result = Cache::lock($lockKey, 30)->block(10, fn () => DB::transaction(
+                        fn () => $definition->import(
+                            $row['data'],
+                            $import->strategy,
+                            $import->tenant_id,
+                            $import->creator_id
+                        )
+                    ));
+                    $counts["{$result}_rows"]++;
+                } catch (Throwable $exception) {
+                    $row['errors'] = [$exception->getMessage()];
+                    $row['result'] = 'failed';
+                    $errorRows[] = $row;
+                }
+
+                $counts['processed_rows']++;
+            }
+
+            $import->update($counts);
+        }
+    }
+
+    private function processRepeatedIdentityRows(
+        BulkImport $import,
+        EntityDefinition $definition,
+        array $rows,
+        array &$counts,
+        array &$errorRows
+    ): void {
+        $groups = [];
+
+        foreach ($rows as $row) {
+            if (!empty($row['errors'])) {
+                continue;
+            }
+
+            $groups[$definition->identity($row['data'])][] = $row;
+        }
+
+        foreach (array_chunk($groups, 100, true) as $chunk) {
+            foreach ($chunk as $group) {
+                try {
+                    $lockKey = $this->lockKey($import, $definition, $group[0]);
+                    $results = Cache::lock($lockKey, 30)->block(10, fn () => DB::transaction(function () use ($definition, $group, $import): array {
+                        $results = [];
+
+                        foreach ($group as $row) {
+                            $results[] = $definition->import(
+                                $row['data'],
+                                $import->strategy,
+                                $import->tenant_id,
+                                $import->creator_id
+                            );
+                        }
+
+                        return $results;
+                    }));
+
+                    foreach ($results as $result) {
+                        $counts["{$result}_rows"]++;
+                    }
+                } catch (Throwable $exception) {
+                    foreach ($group as $row) {
+                        $row['errors'] = [$exception->getMessage()];
+                        $row['result'] = 'failed';
+                        $errorRows[] = $row;
+                    }
+                }
+
+                $counts['processed_rows'] += count($group);
+            }
+
+            $import->update($counts);
+        }
+    }
+
+    private function lockKey(BulkImport $import, EntityDefinition $definition, array $row): string
+    {
+        return 'bulk-import:'.$import->tenant_id.':'.$import->entity_type.':'
+            .hash('sha256', $definition->identity($row['data']));
     }
 
     public function failed(Throwable $exception): void

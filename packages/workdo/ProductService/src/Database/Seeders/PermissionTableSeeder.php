@@ -32,6 +32,7 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'manage-any-product-service-categories', 'module' => 'product-service-category', 'label' => 'Manage All Categories'],
             ['name' => 'manage-own-product-service-categories', 'module' => 'product-service-category', 'label' => 'Manage Own Categories'],
             ['name' => 'create-product-service-categories', 'module' => 'product-service-category', 'label' => 'Create Categories'],
+            ['name' => 'import-product-service-categories', 'module' => 'product-service-category', 'label' => 'Import Categories'],
             ['name' => 'edit-product-service-categories', 'module' => 'product-service-category', 'label' => 'Edit Categories'],
             ['name' => 'delete-product-service-categories', 'module' => 'product-service-category', 'label' => 'Delete Categories'],
 
@@ -39,6 +40,7 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'manage-any-product-service-taxes', 'module' => 'product-service-tax', 'label' => 'Manage All Taxes'],
             ['name' => 'manage-own-product-service-taxes', 'module' => 'product-service-tax', 'label' => 'Manage Own Taxes'],
             ['name' => 'create-product-service-taxes', 'module' => 'product-service-tax', 'label' => 'Create Taxes'],
+            ['name' => 'import-product-service-taxes', 'module' => 'product-service-tax', 'label' => 'Import Taxes'],
             ['name' => 'edit-product-service-taxes', 'module' => 'product-service-tax', 'label' => 'Edit Taxes'],
             ['name' => 'delete-product-service-taxes', 'module' => 'product-service-tax', 'label' => 'Delete Taxes'],
 
@@ -46,6 +48,7 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'manage-any-product-service-units', 'module' => 'product-service-unit', 'label' => 'Manage All Units'],
             ['name' => 'manage-own-product-service-units', 'module' => 'product-service-unit', 'label' => 'Manage Own Units'],
             ['name' => 'create-product-service-units', 'module' => 'product-service-unit', 'label' => 'Create Units'],
+            ['name' => 'import-product-service-units', 'module' => 'product-service-unit', 'label' => 'Import Units'],
             ['name' => 'edit-product-service-units', 'module' => 'product-service-unit', 'label' => 'Edit Units'],
             ['name' => 'delete-product-service-units', 'module' => 'product-service-unit', 'label' => 'Delete Units'],
         ];
