@@ -8,6 +8,7 @@ use Workdo\Hrm\Http\Controllers\AllowanceController;
 use Workdo\Hrm\Http\Controllers\DeductionController;
 use Workdo\Hrm\Http\Controllers\LoanController;
 use Workdo\Hrm\Http\Controllers\AttendanceController;
+use Workdo\Hrm\Http\Controllers\AttendanceClockController;
 use Workdo\Hrm\Http\Controllers\ShiftController;
 use Workdo\Hrm\Http\Controllers\LeaveApplicationController;
 use Workdo\Hrm\Http\Controllers\LeaveTypeController;
@@ -278,12 +279,20 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Hrm'])->group(fun
     Route::prefix('hrm/attendances')->name('hrm.attendances.')->group(function () {
         Route::get('/', [AttendanceController::class, 'index'])->name('index');
         Route::post('/', [AttendanceController::class, 'store'])->name('store');
+        Route::post('/clock-in', [AttendanceClockController::class, 'clockIn'])->name('clock-in');
+        Route::post('/pause', [AttendanceClockController::class, 'pause'])->name('pause');
+        Route::post('/resume', [AttendanceClockController::class, 'resume'])->name('resume');
+        Route::post('/clock-out', [AttendanceClockController::class, 'clockOut'])->name('clock-out');
+        Route::put('/work-update', [AttendanceClockController::class, 'updateWorkNote'])->name('work-update');
+        Route::get('/clock-status', [AttendanceClockController::class, 'status'])->name('clock-status');
+        Route::get('/export', [AttendanceController::class, 'export'])->name('export');
+        Route::post('/{attendance}/corrections', [AttendanceClockController::class, 'requestCorrection'])->name('corrections.store');
         Route::put('/{attendance}', [AttendanceController::class, 'update'])->name('update');
         Route::delete('/{attendance}', [AttendanceController::class, 'destroy'])->name('destroy');
-        Route::post('/clock-in', [AttendanceController::class, 'clockIn'])->name('clock-in');
-        Route::post('/clock-out', [AttendanceController::class, 'clockOut'])->name('clock-out');
-        Route::get('/clock-status', [AttendanceController::class, 'getClockStatus'])->name('clock-status');
     });
+
+    Route::put('hrm/attendance-corrections/{correction}', [AttendanceClockController::class, 'reviewCorrection'])
+        ->name('hrm.attendance-corrections.review');
 
     Route::prefix('hrm/set-salary')->name('hrm.set-salary.')->group(function () {
         Route::get('/', [SetSalaryController::class, 'index'])->name('index');

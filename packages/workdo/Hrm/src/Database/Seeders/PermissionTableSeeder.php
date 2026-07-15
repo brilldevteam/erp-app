@@ -291,6 +291,11 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'delete-attendances', 'module' => 'attendances', 'label' => 'Delete Attendances'],
             ['name' => 'clock-in', 'module' => 'attendances', 'label' => 'Clock In'],
             ['name' => 'clock-out', 'module' => 'attendances', 'label' => 'Clock Out'],
+            ['name' => 'pause-attendance', 'module' => 'attendances', 'label' => 'Pause and Resume Own Attendance'],
+            ['name' => 'update-own-work-update', 'module' => 'attendances', 'label' => 'Update Own Daily Work Update'],
+            ['name' => 'request-attendance-correction', 'module' => 'attendances', 'label' => 'Request Attendance Correction'],
+            ['name' => 'review-attendance-corrections', 'module' => 'attendances', 'label' => 'Review Attendance Corrections'],
+            ['name' => 'export-attendances', 'module' => 'attendances', 'label' => 'Export Attendances'],
 
             // Payslip management
             ['name' => 'manage-payslip', 'module' => 'payslip', 'label' => 'Manage Payslip'],

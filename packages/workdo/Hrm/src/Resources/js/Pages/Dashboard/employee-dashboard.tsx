@@ -25,6 +25,7 @@ import {
 import { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import { formatDate, formatTime,formatDateTime } from '@/utils/helpers';
+import TimeClockCard from '../../Components/TimeClockCard';
 
 interface EmployeeDashboardProps {
     message: string;
@@ -38,6 +39,8 @@ interface EmployeeDashboardProps {
         total_awards: number;
         total_warnings: number;
         total_complaints: number;
+        attendance_data?: any;
+        time_clock?: any;
         calendar_events?: Array<{
             id: number;
             title: string;
@@ -225,7 +228,8 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
                 </div>
 
                 {/* Clock In/Out Section */}
-                {(auth.user?.permissions?.includes('clock-in') || auth.user?.permissions?.includes('clock-out')) && (
+                {auth.user?.permissions?.includes('use-staff-time-clock') && <TimeClockCard initialStatus={stats.time_clock} permissions={auth.user?.permissions || []} />}
+                {false && (auth.user?.permissions?.includes('clock-in') || auth.user?.permissions?.includes('clock-out')) && (
                     <div className="grid grid-cols-1 gap-6">
                         <Card className="bg-gradient-to-r from-slate-50 to-slate-100 border-slate-200">
                             <CardContent className="p-6">

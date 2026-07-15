@@ -18,6 +18,7 @@ use Workdo\Hrm\Models\Shift;
 use Workdo\Hrm\Events\CreateEmployee;
 use Workdo\Hrm\Events\DestroyEmployee;
 use Workdo\Hrm\Events\UpdateEmployee;
+use Workdo\Hrm\Models\Attendance;
 
 class EmployeeController extends Controller
 {
@@ -299,6 +300,12 @@ class EmployeeController extends Controller
             return Inertia::render('Hrm/Employees/Show', [
                 'employee' => $employee,
                 'documents' => $documents,
+                'attendanceHistory' => Attendance::with(['shift', 'intervals', 'actionLogs', 'correctionRequests.requester', 'correctionRequests.reviewer'])
+                    ->where('created_by', creatorId())
+                    ->where('employee_id', $employee->user_id)
+                    ->when(request('attendance_from'), fn ($q) => $q->whereDate('date', '>=', request('attendance_from')))
+                    ->when(request('attendance_to'), fn ($q) => $q->whereDate('date', '<=', request('attendance_to')))
+                    ->latest('date')->paginate(15, ['*'], 'attendance_page')->withQueryString(),
             ]);
         } else {
             return redirect()->route('hrm.employees.index')->with('error', __('Permission denied'));

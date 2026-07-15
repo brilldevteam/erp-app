@@ -280,6 +280,11 @@ class HrmUtility extends Model
             'delete-attendances',
             'clock-in',
             'clock-out',
+            'pause-attendance',
+            'update-own-work-update',
+            'request-attendance-correction',
+            'review-attendance-corrections',
+            'export-attendances',
 
             // Payslip management
             'manage-payslip',
@@ -492,10 +497,12 @@ class HrmUtility extends Model
             'manage-attendances',
             'manage-own-attendances',
             'view-attendances',
-            'create-attendances',
-            'edit-attendances',
             'clock-in',
             'clock-out',
+            'pause-attendance',
+            'update-own-work-update',
+            'request-attendance-correction',
+            'use-staff-time-clock',
 
             // Payslip management
             'manage-payslip',

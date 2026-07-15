@@ -26,10 +26,11 @@ import View from './Show';
 import NoRecordsFound from '@/components/no-records-found';
 import { Attendance, AttendancesIndexProps, AttendanceFilters, AttendanceModalState } from './types';
 import { formatDate, formatTime, formatDateTime, formatCurrency, getImagePath } from '@/utils/helpers';
+import TimeClockCard from '../../Components/TimeClockCard';
 
 export default function Index() {
     const { t } = useTranslation();
-    const { attendances, auth, employees, shifts } = usePage<AttendancesIndexProps>().props;
+    const { attendances, auth, employees, shifts, clockStatus, branches = [], departments = [] } = usePage<AttendancesIndexProps>().props;
     const urlParams = new URLSearchParams(window.location.search);
 
     const [filters, setFilters] = useState<AttendanceFilters>({
@@ -38,6 +39,10 @@ export default function Index() {
         employee_id: urlParams.get('employee_id') || '',
         date_from: urlParams.get('date_from') || '',
         date_to: urlParams.get('date_to') || '',
+        work_status: urlParams.get('work_status') || '',
+        branch_id: urlParams.get('branch_id') || '',
+        department_id: urlParams.get('department_id') || '',
+        abnormal: urlParams.get('abnormal') || '',
     });
 
     const [perPage] = useState(urlParams.get('per_page') || '10');
@@ -86,6 +91,10 @@ export default function Index() {
             employee_id: '',
             date_from: '',
             date_to: '',
+            work_status: '',
+            branch_id: '',
+            department_id: '',
+            abnormal: '',
         });
         router.get(route('hrm.attendances.index'), { per_page: perPage, view: viewMode });
     };
@@ -170,6 +179,14 @@ export default function Index() {
                 );
             }
         },
+        {
+            key: 'work_status', header: t('Clock Status'), sortable: false,
+            render: (value: string, row: Attendance) => <div className="flex items-center gap-1"><span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium">{t(value || 'completed')}</span>{row.is_abnormally_long && <span className="text-amber-600">!</span>}{row.is_manual && <span className="text-xs text-violet-700">{t('Manual')}</span>}</div>
+        },
+        {
+            key: 'work_update', header: t('Daily Update'), sortable: false,
+            render: (value: string) => value ? <span className="block max-w-[220px] truncate" title={value}>{value}</span> : '-'
+        },
         ...(auth.user?.permissions?.some((p: string) => ['view-attendances', 'edit-attendances', 'delete-attendances'].includes(p)) ? [{
             key: 'actions',
             header: t('Actions'),
@@ -250,6 +267,10 @@ export default function Index() {
         >
             <Head title={t('Attendances')} />
 
+            {clockStatus && auth.user?.permissions?.includes('use-staff-time-clock') && (
+                <div className="mb-6"><TimeClockCard initialStatus={clockStatus} permissions={auth.user?.permissions || []} /></div>
+            )}
+
             {/* Main Content Card */}
             <Card className="shadow-sm">
                 {/* Search & Controls Header */}
@@ -281,7 +302,7 @@ export default function Index() {
                                     onToggle={() => setShowFilters(!showFilters)}
                                 />
                                 {(() => {
-                                    const activeFilters = [filters.status, filters.employee_id, filters.date_from, filters.date_to].filter(f => f !== '' && f !== null && f !== undefined).length;
+                                    const activeFilters = [filters.status, filters.employee_id, filters.date_from, filters.date_to, filters.work_status, filters.branch_id, filters.department_id, filters.abnormal].filter(f => f !== '' && f !== null && f !== undefined).length;
                                     return activeFilters > 0 && (
                                         <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
                                             {activeFilters}
@@ -296,7 +317,7 @@ export default function Index() {
                 {/* Advanced Filters */}
                 {showFilters && (
                     <CardContent className="p-6 bg-blue-50/30 border-b">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('Employee')}</label>
                                 <Select value={filters.employee_id} onValueChange={(value) => setFilters({ ...filters, employee_id: value })}>
@@ -326,6 +347,22 @@ export default function Index() {
                                 </Select>
                             </div>
                             <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('Clock Status')}</label>
+                                <Select value={filters.work_status} onValueChange={(value) => setFilters({ ...filters, work_status: value })}><SelectTrigger><SelectValue placeholder={t('All Clock Statuses')} /></SelectTrigger><SelectContent><SelectItem value="working">{t('Working')}</SelectItem><SelectItem value="paused">{t('Paused')}</SelectItem><SelectItem value="completed">{t('Completed')}</SelectItem></SelectContent></Select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('Branch')}</label>
+                                <Select value={filters.branch_id} onValueChange={(value) => setFilters({ ...filters, branch_id: value, department_id: '' })}><SelectTrigger><SelectValue placeholder={t('All Branches')} /></SelectTrigger><SelectContent>{branches.map((branch: any) => <SelectItem key={branch.id} value={String(branch.id)}>{branch.branch_name}</SelectItem>)}</SelectContent></Select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('Department')}</label>
+                                <Select value={filters.department_id} onValueChange={(value) => setFilters({ ...filters, department_id: value })}><SelectTrigger><SelectValue placeholder={t('All Departments')} /></SelectTrigger><SelectContent>{departments.filter((department: any) => !filters.branch_id || String(department.branch_id) === filters.branch_id).map((department: any) => <SelectItem key={department.id} value={String(department.id)}>{department.department_name}</SelectItem>)}</SelectContent></Select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('Review Flag')}</label>
+                                <Select value={filters.abnormal} onValueChange={(value) => setFilters({ ...filters, abnormal: value })}><SelectTrigger><SelectValue placeholder={t('All Records')} /></SelectTrigger><SelectContent><SelectItem value="1">{t('Abnormally Long Only')}</SelectItem></SelectContent></Select>
+                            </div>
+                            <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('Date From')}</label>
                                 <DatePicker
                                     value={filters.date_from}
@@ -344,6 +381,7 @@ export default function Index() {
                             <div className="flex items-end gap-2">
                                 <Button onClick={handleFilter} size="sm">{t('Apply')}</Button>
                                 <Button variant="outline" onClick={clearFilters} size="sm">{t('Clear')}</Button>
+                                {auth.user?.permissions?.includes('export-attendances') && <Button variant="outline" size="sm" onClick={() => { const query = new URLSearchParams(Object.entries(filters).filter(([, value]) => value).map(([key, value]) => [key, String(value)])).toString(); window.location.href = `${route('hrm.attendances.export')}?${query}`; }}><Download className="mr-1 h-4 w-4" />{t('Export')}</Button>}
                             </div>
                         </div>
                     </CardContent>

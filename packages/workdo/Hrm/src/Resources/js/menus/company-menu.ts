@@ -6,6 +6,13 @@ declare global {
 
 export const hrmCompanyMenu = (t: (key: string) => string) => [
     {
+        title: t('My Time Clock'),
+        href: route('hrm.attendances.index'),
+        icon: Clock,
+        permission: 'use-staff-time-clock',
+        order: 31,
+    },
+    {
         title: t('HRM Dashboard'),
         href: route('hrm.index'),
         permission: 'manage-hrm-dashboard',

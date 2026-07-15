@@ -14,6 +14,8 @@ use Workdo\Hrm\Models\Holiday;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Workdo\Hrm\Models\IpRestrict;
+use Workdo\Hrm\Services\AttendanceClockService;
+use Illuminate\Validation\ValidationException;
 
 class AttendanceApiController extends Controller
 {
@@ -21,6 +23,7 @@ class AttendanceApiController extends Controller
 
     public function clockInOut(Request $request)
     {
+        abort_unless(Auth::user()->can('use-staff-time-clock'), 403);
         $validator = Validator::make($request->all(), [
             'type' => 'required|in:clockin,clockout',
         ]);
@@ -29,11 +32,84 @@ class AttendanceApiController extends Controller
             return $this->validationErrorResponse($validator->errors());
         }
 
-        if ($request->type == 'clockin') {
-            return $this->clockIn($request);
-        } else {
-            return $this->clockOut($request);
+        if (!$this->ipAllowed($request)) {
+            return $this->errorResponse('This IP is not allowed to use the time clock.');
         }
+
+        try {
+            $clock = app(AttendanceClockService::class);
+            $attendance = $request->type === 'clockin' ? $clock->clockIn() : $clock->clockOut($request->input('work_update'));
+            return $this->successResponse($clock->serialize($attendance), $request->type === 'clockin' ? 'Clocked in successfully.' : 'Clocked out successfully.');
+        } catch (ValidationException $exception) {
+            return $this->errorResponse(collect($exception->errors())->flatten()->first());
+        } catch (\Throwable $exception) {
+            return $this->errorResponse('Something went wrong');
+        }
+    }
+
+    public function pause(Request $request)
+    {
+        abort_unless(Auth::user()->can('use-staff-time-clock'), 403);
+        $validator = Validator::make($request->all(), ['reason' => 'required|in:break,personal,official_duty,other', 'details' => 'nullable|string|max:1000']);
+        if ($validator->fails()) return $this->validationErrorResponse($validator->errors());
+        if (!$this->ipAllowed($request)) return $this->errorResponse('This IP is not allowed to use the time clock.');
+        try {
+            $clock = app(AttendanceClockService::class);
+            return $this->successResponse($clock->serialize($clock->pause($request->reason, $request->details)), 'Work timer paused.');
+        } catch (ValidationException $exception) {
+            return $this->errorResponse(collect($exception->errors())->flatten()->first());
+        }
+    }
+
+    public function resume(Request $request)
+    {
+        abort_unless(Auth::user()->can('use-staff-time-clock'), 403);
+        if (!$this->ipAllowed($request)) return $this->errorResponse('This IP is not allowed to use the time clock.');
+        try {
+            $clock = app(AttendanceClockService::class);
+            return $this->successResponse($clock->serialize($clock->resume()), 'Work timer resumed.');
+        } catch (ValidationException $exception) {
+            return $this->errorResponse(collect($exception->errors())->flatten()->first());
+        }
+    }
+
+    public function status()
+    {
+        abort_unless(Auth::user()->can('use-staff-time-clock'), 403);
+        return $this->successResponse(app(AttendanceClockService::class)->currentStatus(), 'Attendance status retrieved.');
+    }
+
+    public function workUpdate(Request $request)
+    {
+        abort_unless(Auth::user()->can('use-staff-time-clock'), 403);
+        $validator = Validator::make($request->all(), ['work_update' => 'nullable|string|max:5000']);
+        if ($validator->fails()) return $this->validationErrorResponse($validator->errors());
+        try {
+            $clock = app(AttendanceClockService::class);
+            return $this->successResponse($clock->serialize($clock->updateWorkNote($request->work_update)), 'Daily work update saved.');
+        } catch (ValidationException $exception) {
+            return $this->errorResponse(collect($exception->errors())->flatten()->first());
+        }
+    }
+
+    public function requestCorrection(Request $request, Attendance $attendance)
+    {
+        abort_unless(Auth::user()->can('use-staff-time-clock'), 403);
+        $validator = Validator::make($request->all(), ['requested_clock_in' => 'nullable|date', 'requested_clock_out' => 'nullable|date', 'reason' => 'required|string|max:2000']);
+        if ($validator->fails()) return $this->validationErrorResponse($validator->errors());
+        try {
+            $correction = app(AttendanceClockService::class)->requestCorrection($attendance, $validator->validated());
+            return $this->successResponse($correction, 'Attendance correction requested.');
+        } catch (ValidationException $exception) {
+            return $this->errorResponse(collect($exception->errors())->flatten()->first());
+        }
+    }
+
+    private function ipAllowed(Request $request): bool
+    {
+        $setting = getCompanyAllSetting(creatorId());
+        return ($setting['ip_restrict'] ?? 'off') !== 'on'
+            || IpRestrict::where('ip', $request->ip())->where('created_by', creatorId())->exists();
     }
 
     private function clockIn(Request $request)

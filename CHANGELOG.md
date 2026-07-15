@@ -6,6 +6,7 @@ All notable changes to the Wazely ERP application are documented here.
 
 ### Added
 - New features currently in development will be listed here before release.
+- Added a staff-only time clock with clock-in, pause/resume, official-duty tracking, clock-out, daily work updates, HR date-wise review, correction approvals, and immutable attendance history.
 - Expanded Zoho Books-style bulk import support for vendors, warehouses, accounting master data, sales and purchase invoices, customer and vendor payments, revenues, and expenses.
 - Customer payments can now be recorded as unallocated deposits and applied to outstanding invoices later.
 - Sales returns now support fractional and partial item quantities with remaining-quantity protection.

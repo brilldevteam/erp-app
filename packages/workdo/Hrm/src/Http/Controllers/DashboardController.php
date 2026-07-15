@@ -524,6 +524,9 @@ class DashboardController extends Controller
                 'recent_awards' => $recentAwards,
                 'recent_warnings' => $recentWarnings,
                 'attendance_data' => $attendanceData,
+                'time_clock' => Auth::user()->can('use-staff-time-clock')
+                    ? app(\Workdo\Hrm\Services\AttendanceClockService::class)->currentStatus()
+                    : null,
                 'recent_attendance' => $recentAttendance,
             ],
             'message' => __('Employee Dashboard - Your personal workspace.')

@@ -17,14 +17,44 @@ use Workdo\Hrm\Events\DestroyAttendance;
 use Workdo\Hrm\Models\LeaveApplication;
 use Workdo\Hrm\Models\Holiday;
 use Workdo\Hrm\Models\IpRestrict;
+use Workdo\Hrm\Models\AttendanceActionLog;
 
 class AttendanceController extends Controller
 {
+    public function export()
+    {
+        abort_unless(Auth::user()->can('export-attendances'), 403);
+        $query = Attendance::with(['user', 'shift'])->where('created_by', creatorId())
+            ->when(request('employee_id'), fn ($q) => $q->where('employee_id', request('employee_id')))
+            ->when(request('date_from'), fn ($q) => $q->whereDate('date', '>=', request('date_from')))
+            ->when(request('date_to'), fn ($q) => $q->whereDate('date', '<=', request('date_to')))
+            ->when(request('work_status'), fn ($q) => $q->where('work_status', request('work_status')))
+            ->when(request('status'), fn ($q) => $q->where('status', request('status')))
+            ->when(request('abnormal') === '1', fn ($q) => $q->where('is_abnormally_long', true))
+            ->orderByDesc('date');
+
+        return response()->streamDownload(function () use ($query) {
+            $stream = fopen('php://output', 'w');
+            fputcsv($stream, ['Date', 'Employee', 'Clock In', 'Clock Out', 'Clock Status', 'Attendance Status', 'Net Hours', 'Unpaid Pause Hours', 'Official Duty Hours', 'Overtime Hours', 'Daily Work Update', 'Manual', 'Abnormal']);
+            $query->chunk(500, function ($rows) use ($stream) {
+                foreach ($rows as $row) {
+                    fputcsv($stream, [$row->date?->format('Y-m-d'), $row->user?->name, $row->clock_in, $row->clock_out, $row->work_status, $row->status, $row->total_hour, $row->break_hour, round($row->paid_outside_seconds / 3600, 2), $row->overtime_hours, $row->work_update, $row->is_manual ? 'Yes' : 'No', $row->is_abnormally_long ? 'Yes' : 'No']);
+                }
+            });
+            fclose($stream);
+        }, 'attendance-'.now()->format('Y-m-d-His').'.csv', ['Content-Type' => 'text/csv']);
+    }
+
     public function index()
     {
         if (Auth::user()->can('manage-attendances')) {
+            Attendance::where('created_by', creatorId())
+                ->whereIn('work_status', ['working', 'paused'])
+                ->where('clock_in', '<=', now()->subHours(16))
+                ->update(['is_abnormally_long' => true]);
+
             $attendances = Attendance::query()
-                ->with(['user', 'shift'])
+                ->with(['user', 'shift', 'intervals', 'actionLogs', 'correctionRequests.requester', 'correctionRequests.reviewer'])
                 ->where(function ($q) {
                     if (Auth::user()->can('manage-any-attendances')) {
                         $q->where('created_by', creatorId());
@@ -41,6 +71,16 @@ class AttendanceController extends Controller
                 })
                 ->when(request('status') !== null && request('status') !== '', fn($q) => $q->where('status', request('status')))
                 ->when(request('employee_id'), fn($q) => $q->where('employee_id', request('employee_id')))
+                ->when(request('work_status'), fn($q) => $q->where('work_status', request('work_status')))
+                ->when(request('abnormal') === '1', fn($q) => $q->where('is_abnormally_long', true))
+                ->when(request('branch_id'), function ($q) {
+                    $employeeIds = Employee::where('created_by', creatorId())->where('branch_id', request('branch_id'))->pluck('user_id');
+                    $q->whereIn('employee_id', $employeeIds);
+                })
+                ->when(request('department_id'), function ($q) {
+                    $employeeIds = Employee::where('created_by', creatorId())->where('department_id', request('department_id'))->pluck('user_id');
+                    $q->whereIn('employee_id', $employeeIds);
+                })
                 ->when(request('date_from'), fn($q) => $q->where('date', '>=', request('date_from')))
                 ->when(request('date_to'), fn($q) => $q->where('date', '<=', request('date_to')))
                 ->when(request('sort'), fn($q) => $q->orderBy(request('sort'), request('direction', 'asc')), fn($q) => $q->latest())
@@ -51,6 +91,11 @@ class AttendanceController extends Controller
             return Inertia::render('Hrm/Attendances/Index', [
                 'attendances' => $attendances,
                 'employees' => $this->getFilteredEmployees(),
+                'branches' => \Workdo\Hrm\Models\Branch::where('created_by', creatorId())->select('id', 'branch_name')->get(),
+                'departments' => \Workdo\Hrm\Models\Department::where('created_by', creatorId())->select('id', 'department_name', 'branch_id')->get(),
+                'clockStatus' => Auth::user()->can('use-staff-time-clock')
+                    ? app(\Workdo\Hrm\Services\AttendanceClockService::class)->currentStatus()
+                    : null,
             ]);
         } else {
             return back()->with('error', __('Permission denied'));
@@ -104,6 +149,9 @@ class AttendanceController extends Controller
             }
 
             $employee = Employee::with('shift')->where('user_id', $validated['employee_id'])->where('created_by', creatorId())->first();
+            if (!$employee || !$employee->shift) {
+                return redirect()->back()->with('error', __('The selected staff member must be an employee with an assigned shift.'));
+            }
             $shift = $employee ? $employee->shift : null;
 
             // Calculate attendance data first
@@ -128,10 +176,18 @@ class AttendanceController extends Controller
             $attendance->overtime_amount = $calculatedData['overtime_amount'];
             $attendance->status = $calculatedData['status'];
             $attendance->notes = $validated['notes'];
+            $attendance->work_status = 'completed';
+            $attendance->is_manual = true;
             $attendance->creator_id = Auth::id();
             $attendance->created_by = creatorId();
 
             $attendance->save();
+
+            AttendanceActionLog::create([
+                'attendance_id' => $attendance->id, 'actor_id' => Auth::id(), 'action' => 'hr_manual_create',
+                'metadata' => ['clock_in' => $attendance->clock_in, 'clock_out' => $attendance->clock_out, 'notes' => $attendance->notes],
+                'created_by' => creatorId(), 'created_at' => now(),
+            ]);
 
             CreateAttendance::dispatch($request, $attendance);
 
@@ -146,7 +202,9 @@ class AttendanceController extends Controller
     public function update(UpdateAttendanceRequest $request, Attendance $attendance)
     {
         if (Auth::user()->can('edit-attendances')) {
+            abort_unless($attendance->created_by === creatorId(), 404);
             $validated = $request->validated();
+            $originalAttendance = $attendance->only(['employee_id', 'date', 'clock_in', 'clock_out', 'notes']);
 
 
             // Check if employee or date changed and if duplicate exists
@@ -192,6 +250,9 @@ class AttendanceController extends Controller
             }
 
             $employee = Employee::with('shift')->where('user_id', $validated['employee_id'])->where('created_by', creatorId())->first();
+            if (!$employee || !$employee->shift) {
+                return redirect()->back()->with('error', __('The selected staff member must be an employee with an assigned shift.'));
+            }
             $shift = $employee ? $employee->shift : null;
 
             // Calculate attendance data first
@@ -215,6 +276,14 @@ class AttendanceController extends Controller
                 'overtime_amount' => $calculatedData['overtime_amount'],
                 'status' => $calculatedData['status'],
                 'notes' => $validated['notes'],
+                'work_status' => 'completed',
+                'is_manual' => true,
+            ]);
+
+            AttendanceActionLog::create([
+                'attendance_id' => $attendance->id, 'actor_id' => Auth::id(), 'action' => 'hr_manual_override',
+                'metadata' => ['original' => $originalAttendance, 'result' => $attendance->fresh()->only(['employee_id', 'date', 'clock_in', 'clock_out', 'notes'])],
+                'created_by' => creatorId(), 'created_at' => now(),
             ]);
 
             UpdateAttendance::dispatch($request, $attendance);
@@ -228,6 +297,12 @@ class AttendanceController extends Controller
     public function destroy(Attendance $attendance)
     {
         if (Auth::user()->can('delete-attendances')) {
+            abort_unless($attendance->created_by === creatorId(), 404);
+            AttendanceActionLog::create([
+                'attendance_id' => $attendance->id, 'actor_id' => Auth::id(), 'action' => 'hr_delete',
+                'metadata' => $attendance->only(['employee_id', 'date', 'clock_in', 'clock_out', 'total_hour']),
+                'created_by' => creatorId(), 'created_at' => now(),
+            ]);
             DestroyAttendance::dispatch($attendance);
             $attendance->delete();
 
