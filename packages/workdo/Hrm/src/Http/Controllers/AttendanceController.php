@@ -18,6 +18,7 @@ use Workdo\Hrm\Models\LeaveApplication;
 use Workdo\Hrm\Models\Holiday;
 use Workdo\Hrm\Models\IpRestrict;
 use Workdo\Hrm\Models\AttendanceActionLog;
+use App\Services\TimeClockDeviceService;
 
 class AttendanceController extends Controller
 {
@@ -48,6 +49,17 @@ class AttendanceController extends Controller
     public function index()
     {
         if (Auth::user()->can('manage-attendances')) {
+            request()->validate([
+                'attendance_view' => ['nullable', 'in:employees,records'],
+                'date_from' => ['nullable', 'date_format:Y-m-d'],
+                'date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
+                'branch_id' => ['nullable', 'integer'],
+                'department_id' => ['nullable', 'integer'],
+            ]);
+
+            $canManageAny = Auth::user()->can('manage-any-attendances');
+            $attendanceView = $canManageAny ? request('attendance_view', 'employees') : 'records';
+
             Attendance::where('created_by', creatorId())
                 ->whereIn('work_status', ['working', 'paused'])
                 ->where('clock_in', '<=', now()->subHours(16))
@@ -65,9 +77,11 @@ class AttendanceController extends Controller
                     }
                 })
                 ->when(request('search'), function ($q) {
-                    $q->whereHas('user', function ($query) {
-                        $query->where('name', 'like', '%' . request('search') . '%');
-                    })->orWhere('date', 'like', '%' . request('search') . '%');
+                    $q->where(function ($query) {
+                        $query->whereHas('user', function ($user) {
+                            $user->where('name', 'like', '%' . request('search') . '%');
+                        })->orWhere('date', 'like', '%' . request('search') . '%');
+                    });
                 })
                 ->when(request('status') !== null && request('status') !== '', fn($q) => $q->where('status', request('status')))
                 ->when(request('employee_id'), fn($q) => $q->where('employee_id', request('employee_id')))
@@ -90,10 +104,15 @@ class AttendanceController extends Controller
 
             return Inertia::render('Hrm/Attendances/Index', [
                 'attendances' => $attendances,
+                'attendanceView' => $attendanceView,
+                'employeeAttendanceSummaries' => $canManageAny
+                    ? $this->getEmployeeAttendanceSummaries()
+                    : null,
                 'employees' => $this->getFilteredEmployees(),
                 'branches' => \Workdo\Hrm\Models\Branch::where('created_by', creatorId())->select('id', 'branch_name')->get(),
                 'departments' => \Workdo\Hrm\Models\Department::where('created_by', creatorId())->select('id', 'department_name', 'branch_id')->get(),
                 'clockStatus' => Auth::user()->can('use-staff-time-clock')
+                    && app(TimeClockDeviceService::class)->allowsTimeClock(request())
                     ? app(\Workdo\Hrm\Services\AttendanceClockService::class)->currentStatus()
                     : null,
             ]);
@@ -640,5 +659,86 @@ class AttendanceController extends Controller
         return User::emp()->where('created_by', creatorId())
             ->whereIn('id', $employeeQuery->pluck('user_id'))
             ->select('id', 'name')->get();
+    }
+
+    private function getEmployeeAttendanceSummaries()
+    {
+        $employees = Employee::query()
+            ->with([
+                'user:id,name,email,avatar',
+                'branch:id,branch_name',
+                'department:id,department_name',
+                'shift:id,shift_name',
+            ])
+            ->where('created_by', creatorId())
+            ->when(request('search'), function ($query) {
+                $search = request('search');
+                $query->where(function ($query) use ($search) {
+                    $query->where('employee_id', 'like', "%{$search}%")
+                        ->orWhereHas('user', fn ($user) => $user->where('name', 'like', "%{$search}%"));
+                });
+            })
+            ->when(request('branch_id'), fn ($query) => $query->where('branch_id', request('branch_id')))
+            ->when(request('department_id'), fn ($query) => $query->where('department_id', request('department_id')))
+            ->orderBy(
+                User::select('name')->whereColumn('users.id', 'employees.user_id')
+            )
+            ->paginate(request('per_page', 10))
+            ->withQueryString();
+
+        $userIds = collect($employees->items())->pluck('user_id')->filter()->values();
+        $aggregates = collect();
+        $latestStates = collect();
+
+        if ($userIds->isNotEmpty()) {
+            $attendanceScope = Attendance::query()
+                ->where('created_by', creatorId())
+                ->whereIn('employee_id', $userIds)
+                ->when(request('date_from'), fn ($query) => $query->whereDate('date', '>=', request('date_from')))
+                ->when(request('date_to'), fn ($query) => $query->whereDate('date', '<=', request('date_to')));
+
+            $aggregates = (clone $attendanceScope)
+                ->select('employee_id')
+                ->selectRaw('COUNT(*) as record_count')
+                ->selectRaw("SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) as present_count")
+                ->selectRaw("SUM(CASE WHEN status IN ('half day', 'half_day') THEN 1 ELSE 0 END) as half_day_count")
+                ->selectRaw("SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) as absent_count")
+                ->selectRaw('MAX(date) as latest_attendance_date')
+                ->groupBy('employee_id')
+                ->get()
+                ->keyBy('employee_id');
+
+            $latestIds = Attendance::query()
+                ->where('created_by', creatorId())
+                ->whereIn('employee_id', $userIds)
+                ->selectRaw('MAX(id)')
+                ->groupBy('employee_id');
+
+            $latestStates = Attendance::query()
+                ->where('created_by', creatorId())
+                ->whereIn('id', $latestIds)
+                ->pluck('work_status', 'employee_id');
+        }
+
+        return $employees->through(function (Employee $employee) use ($aggregates, $latestStates) {
+            $aggregate = $aggregates->get($employee->user_id);
+
+            return [
+                'id' => $employee->id,
+                'user_id' => $employee->user_id,
+                'employee_id' => $employee->employee_id,
+                'name' => $employee->user?->name,
+                'avatar' => $employee->user?->avatar,
+                'branch' => $employee->branch?->branch_name,
+                'department' => $employee->department?->department_name,
+                'shift' => $employee->getRelation('shift')?->shift_name,
+                'record_count' => (int) ($aggregate?->record_count ?? 0),
+                'present_count' => (int) ($aggregate?->present_count ?? 0),
+                'half_day_count' => (int) ($aggregate?->half_day_count ?? 0),
+                'absent_count' => (int) ($aggregate?->absent_count ?? 0),
+                'latest_attendance_date' => $aggregate?->latest_attendance_date,
+                'current_clock_state' => $latestStates->get($employee->user_id),
+            ];
+        });
     }
 }

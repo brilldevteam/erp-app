@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import AuthenticatedLayout from "@/layouts/authenticated-layout";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { LineChart, PieChart, BarChart } from '@/components/charts';
 import CalendarView from "@/components/calendar-view";
 import { 
@@ -82,6 +81,18 @@ interface HrmProps {
             name: string;
             department: string;
             profile?: string;
+        }>;
+        today_date: string;
+        today_attendance: Array<{
+            employee_id: string;
+            user_id: number;
+            name: string;
+            department: string;
+            profile?: string;
+            clock_in?: string;
+            total_hour: number;
+            attendance_status?: 'present' | 'half day' | 'absent';
+            clock_state: 'not_started' | 'working' | 'paused' | 'completed';
         }>;
     };
 }
@@ -313,80 +324,52 @@ export default function HrmIndex({ message, stats }: HrmProps) {
 
 
 
-                    {/* Quick Actions */}
+                    {/* Today's Attendance */}
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                                <Briefcase className="h-5 w-5" />
-                                {t('Quick Actions')}
+                                <Clock className="h-5 w-5" />
+                                {t("Today's Attendance")}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 space-y-3 pr-2">
-                                <Button 
-                                    className="w-full justify-start" 
-                                    variant="outline"
-                                    onClick={() => window.location.href = route('hrm.employees.create')}
-                                >
-                                    <Users className="h-4 w-4 mr-2" />
-                                    {t('Add New Employee')}
-                                </Button>
-                                <Button 
-                                    className="w-full justify-start" 
-                                    variant="outline"
-                                    onClick={() => window.location.href = route('hrm.attendances.index')}
-                                >
-                                    <Clock className="h-4 w-4 mr-2" />
-                                    {t('Mark Attendance')}
-                                </Button>
-                                <Button 
-                                    className="w-full justify-start" 
-                                    variant="outline"
-                                    onClick={() => window.location.href = route('hrm.leave-applications.index')}
-                                >
-                                    <Calendar className="h-4 w-4 mr-2" />
-                                    {t('Apply for Leave')}
-                                </Button>
-                                <Button 
-                                    className="w-full justify-start" 
-                                    variant="outline"
-                                    onClick={() => window.location.href = route('hrm.payrolls.index')}
-                                >
-                                    <CreditCard className="h-4 w-4 mr-2" />
-                                    {t('Process Payroll')}
-                                </Button>
-                                <Button 
-                                    className="w-full justify-start" 
-                                    variant="outline"
-                                    onClick={() => window.location.href = route('hrm.promotions.index')}
-                                >
-                                    <TrendingUp className="h-4 w-4 mr-2" />
-                                    {t('Create Promotion')}
-                                </Button>
-                                <Button 
-                                    className="w-full justify-start" 
-                                    variant="outline"
-                                    onClick={() => window.location.href = route('hrm.resignations.index')}
-                                >
-                                    <TrendingDown className="h-4 w-4 mr-2" />
-                                    {t('Create Resignation')}
-                                </Button>
-                                <Button 
-                                    className="w-full justify-start" 
-                                    variant="outline"
-                                    onClick={() => window.location.href = route('hrm.holidays.index')}
-                                >
-                                    <CalendarDays className="h-4 w-4 mr-2" />
-                                    {t('Create Holiday')}
-                                </Button>
-                                <Button 
-                                    className="w-full justify-start" 
-                                    variant="outline"
-                                    onClick={() => window.location.href = route('hrm.warnings.index')}
-                                >
-                                    <AlertTriangle className="h-4 w-4 mr-2" />
-                                    {t('Create Warning')}
-                                </Button>
+                                {stats.today_attendance?.length ? stats.today_attendance.map((employee, index) => {
+                                    const stateStyles = {
+                                        not_started: 'bg-gray-100 text-gray-700',
+                                        working: 'bg-green-100 text-green-700',
+                                        paused: 'bg-amber-100 text-amber-700',
+                                        completed: 'bg-blue-100 text-blue-700',
+                                    };
+                                    const attendanceStyles = {
+                                        present: 'bg-emerald-100 text-emerald-700',
+                                        'half day': 'bg-yellow-100 text-yellow-700',
+                                        absent: 'bg-red-100 text-red-700',
+                                    };
+                                    const target = route('hrm.attendances.index', {
+                                        attendance_view: 'records',
+                                        employee_id: employee.user_id,
+                                        date_from: stats.today_date,
+                                        date_to: stats.today_date,
+                                    });
+
+                                    return <button key={employee.user_id} type="button" onClick={() => window.location.href = target} className="flex w-full items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-3 text-left transition-colors hover:bg-gray-50">
+                                        <div className="flex min-w-0 items-center gap-3">
+                                            <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border bg-gray-100">
+                                                {employee.profile ? <img src={getImagePath(employee.profile)} alt={employee.name} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center bg-primary text-sm font-medium text-primary-foreground">{employee.name.charAt(0).toUpperCase()}</div>}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="truncate text-sm font-medium text-gray-900">{employee.name}</p>
+                                                <p className="truncate text-xs text-gray-500">{employee.employee_id} · {employee.department}</p>
+                                                <p className="mt-1 text-xs text-gray-600">{t('In')}: {employee.clock_in ? formatTime(employee.clock_in) : '--:--'} · {Number(employee.total_hour || 0).toFixed(2)}h</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-shrink-0 flex-col items-end gap-1">
+                                            <span className={`rounded-full px-2 py-1 text-xs font-medium ${stateStyles[employee.clock_state]}`}>{t(employee.clock_state === 'not_started' ? 'Not Started' : employee.clock_state.charAt(0).toUpperCase() + employee.clock_state.slice(1))}</span>
+                                            {employee.attendance_status && <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${attendanceStyles[employee.attendance_status]}`}>{t(employee.attendance_status.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '))}</span>}
+                                        </div>
+                                    </button>;
+                                }) : <div className="flex h-40 items-center justify-center text-gray-500"><div className="text-center"><Users className="mx-auto mb-2 h-12 w-12 text-gray-300" /><p className="text-sm">{t('No employees found')}</p></div></div>}
                             </div>
                         </CardContent>
                     </Card>

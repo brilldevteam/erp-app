@@ -12,7 +12,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import AttendanceHistoryPanel from '../../Components/AttendanceHistoryPanel';
 
 export default function Show() {
-    const { employee, documents, attendanceHistory, auth } = usePage<any>().props;
+    const { employee, documents, attendanceHistory, attendanceFilters, attendanceSummary, auth } = usePage<any>().props;
+    const requestedTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
+    const profileTabs = ['employment', 'contact', 'banking', 'hours', 'documents', 'attendance'];
+    const initialTab = requestedTab && profileTabs.includes(requestedTab) ? requestedTab : 'employment';
     const { t } = useTranslation();
 
     const customFields = useFormFields('getCustomFields', { module: 'Hrm', sub_module: 'Employee', id: employee.id }, () => {}, {}, 'view', t);
@@ -151,7 +154,7 @@ export default function Show() {
                         <div className="xl:col-span-3">
                             <Card className="shadow-sm">
                                 <CardContent className="p-6">
-                                    <Tabs defaultValue="employment" className="w-full">
+                                    <Tabs defaultValue={initialTab} className="w-full">
                                         <TabsList className="grid w-full grid-cols-6">
                                             <TabsTrigger value="employment">{t('Employment')}</TabsTrigger>
                                             <TabsTrigger value="contact">{t('Contact')}</TabsTrigger>
@@ -323,7 +326,7 @@ export default function Show() {
                                                 </div>
                                             )}
                                         </TabsContent>
-                                        <TabsContent value="attendance" className="space-y-6 mt-6"><AttendanceHistoryPanel history={attendanceHistory} canReview={auth.user?.permissions?.includes('review-attendance-corrections')} /></TabsContent>
+                                        <TabsContent value="attendance" className="space-y-6 mt-6"><AttendanceHistoryPanel history={attendanceHistory} filters={attendanceFilters} summary={attendanceSummary} canReview={auth.user?.permissions?.includes('review-attendance-corrections')} /></TabsContent>
                                     </Tabs>
                                 </CardContent>
                             </Card>
@@ -335,7 +338,7 @@ export default function Show() {
                 <div className="xl:hidden">
                     <Card className="shadow-sm">
                         <CardContent className="p-2 sm:p-4">
-                            <Tabs defaultValue="employment" className="w-full">
+                            <Tabs defaultValue={initialTab} className="w-full">
                                 <TabsList className="flex w-full overflow-x-auto scrollbar-none gap-0.5 p-0.5">
                                     <TabsTrigger value="employment" className="flex-shrink-0 px-2 py-1.5 text-xs sm:text-sm whitespace-nowrap">{t('Job')}</TabsTrigger>
                                     <TabsTrigger value="contact" className="flex-shrink-0 px-2 py-1.5 text-xs sm:text-sm whitespace-nowrap">{t('Contact')}</TabsTrigger>
@@ -503,7 +506,7 @@ export default function Show() {
                                         </div>
                                     )}
                                 </TabsContent>
-                                <TabsContent value="attendance" className="space-y-2 mt-3"><AttendanceHistoryPanel history={attendanceHistory} canReview={auth.user?.permissions?.includes('review-attendance-corrections')} /></TabsContent>
+                                <TabsContent value="attendance" className="space-y-2 mt-3"><AttendanceHistoryPanel history={attendanceHistory} filters={attendanceFilters} summary={attendanceSummary} canReview={auth.user?.permissions?.includes('review-attendance-corrections')} /></TabsContent>
                             </Tabs>
                         </CardContent>
                     </Card>

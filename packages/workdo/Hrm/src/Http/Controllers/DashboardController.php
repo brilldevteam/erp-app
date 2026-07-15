@@ -21,6 +21,7 @@ use Workdo\Hrm\Models\Event;
 use Workdo\Hrm\Models\Holiday;
 use Workdo\Hrm\Models\Shift;
 use Workdo\Hrm\Models\Warning;
+use App\Services\TimeClockDeviceService;
 
 class DashboardController extends Controller
 {
@@ -157,6 +158,42 @@ class DashboardController extends Controller
                 ];
             });
 
+        $todayAttendanceRecords = Attendance::query()
+            ->where('created_by', $creatorId)
+            ->whereDate('date', $today)
+            ->select(['id', 'employee_id', 'clock_in', 'clock_out', 'total_hour', 'status', 'work_status'])
+            ->orderBy('id')
+            ->get()
+            ->keyBy('employee_id');
+
+        $todayAttendance = Employee::query()
+            ->where('created_by', $creatorId)
+            ->with(['user:id,name,avatar', 'department:id,department_name'])
+            ->get()
+            ->sortBy(fn ($employee) => strtolower($employee->user?->name ?? ''))
+            ->values()
+            ->map(function ($employee) use ($todayAttendanceRecords) {
+                $attendance = $todayAttendanceRecords->get($employee->user_id);
+                $clockState = 'not_started';
+
+                if ($attendance) {
+                    $clockState = $attendance->work_status
+                        ?: ($attendance->clock_out ? 'completed' : 'working');
+                }
+
+                return [
+                    'employee_id' => $employee->employee_id,
+                    'user_id' => $employee->user_id,
+                    'name' => $employee->user?->name ?? __('Unknown'),
+                    'profile' => $employee->user?->avatar ?? '',
+                    'department' => $employee->department?->department_name ?? __('No Department'),
+                    'clock_in' => $attendance?->clock_in?->format('H:i'),
+                    'total_hour' => (float) ($attendance?->total_hour ?? 0),
+                    'attendance_status' => $attendance?->status,
+                    'clock_state' => $clockState,
+                ];
+            });
+
         // Events and Holidays for Calendar
         $events = Event::where('created_by', $creatorId)
             ->where('status', 'approved')
@@ -245,6 +282,8 @@ class DashboardController extends Controller
                 'recent_announcements' => $recentAnnouncements,
                 'employees_on_leave_today' => $employeesOnLeaveToday,
                 'employees_without_attendance' => $employeesWithoutAttendance,
+                'today_attendance' => $todayAttendance,
+                'today_date' => $today->toDateString(),
             ],
             'message' => __('HRM Dashboard - Complete overview of your workforce.')
         ]);
@@ -525,6 +564,7 @@ class DashboardController extends Controller
                 'recent_warnings' => $recentWarnings,
                 'attendance_data' => $attendanceData,
                 'time_clock' => Auth::user()->can('use-staff-time-clock')
+                    && app(TimeClockDeviceService::class)->allowsTimeClock($request)
                     ? app(\Workdo\Hrm\Services\AttendanceClockService::class)->currentStatus()
                     : null,
                 'recent_attendance' => $recentAttendance,

@@ -8,6 +8,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\File;
 use App\Classes\Module;
 use App\Services\SocialAuthSettingsService;
+use App\Services\TimeClockDeviceService;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -80,6 +81,7 @@ class HandleInertiaRequests extends Middleware
             'currencies' => config('default_currency.currencies', []),
             'availableLanguages' => $availableLanguages,
             'socialAuth' => $socialAuthSettings->publicStatus(),
+            'timeClockDeviceAccess' => app(TimeClockDeviceService::class)->access($request),
         ];
     }
 

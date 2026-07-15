@@ -17,6 +17,9 @@ main
 
 ### Improved
 - Enhancements to existing workflows will be listed here before release.
+- Replaced HR dashboard quick actions with a compact, live view of every employee's attendance state for today.
+- Changed HR attendance to an employee-first view with date-filtered profile history, period summaries, and a retained Daily Records view.
+- Restricted staff time-clock actions and work updates to desktop and laptop browsers while retaining read-only attendance history on mobile devices and tablets.
 - Bulk imports now support multi-line invoice records, reference resolution, import permissions, and clearer failed-row reporting.
 - Sales invoices now identify customers by company and contact person across selection, list, detail, and print views.
 - purchase-product-service-label
