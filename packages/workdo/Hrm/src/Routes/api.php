@@ -15,6 +15,11 @@ Route::prefix('api')->middleware(['api.json'])->group(function () {
         
         Route::post('attendence-history', [AttendanceApiController::class, 'history']);
         Route::post('clock-in-out', [AttendanceApiController::class, 'clockInOut']);
+        Route::post('attendance/pause', [AttendanceApiController::class, 'pause']);
+        Route::post('attendance/resume', [AttendanceApiController::class, 'resume']);
+        Route::get('attendance/status', [AttendanceApiController::class, 'status']);
+        Route::put('attendance/work-update', [AttendanceApiController::class, 'workUpdate']);
+        Route::post('attendance/{attendance}/corrections', [AttendanceApiController::class, 'requestCorrection']);
         
         Route::get('get-leaves', [LeaveApiController::class, 'index']);
         Route::post('leave-request', [LeaveApiController::class, 'store']);

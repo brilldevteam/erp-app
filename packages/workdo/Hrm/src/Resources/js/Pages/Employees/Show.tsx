@@ -9,9 +9,10 @@ import { Eye, FileText } from 'lucide-react';
 import { formatDate, getImagePath, formatCurrency } from '@/utils/helpers';
 import { useFormFields } from '@/hooks/useFormFields';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import AttendanceHistoryPanel from '../../Components/AttendanceHistoryPanel';
 
 export default function Show() {
-    const { employee, documents } = usePage<any>().props;
+    const { employee, documents, attendanceHistory, auth } = usePage<any>().props;
     const { t } = useTranslation();
 
     const customFields = useFormFields('getCustomFields', { module: 'Hrm', sub_module: 'Employee', id: employee.id }, () => {}, {}, 'view', t);
@@ -151,12 +152,13 @@ export default function Show() {
                             <Card className="shadow-sm">
                                 <CardContent className="p-6">
                                     <Tabs defaultValue="employment" className="w-full">
-                                        <TabsList className="grid w-full grid-cols-5">
+                                        <TabsList className="grid w-full grid-cols-6">
                                             <TabsTrigger value="employment">{t('Employment')}</TabsTrigger>
                                             <TabsTrigger value="contact">{t('Contact')}</TabsTrigger>
                                             <TabsTrigger value="banking">{t('Banking')}</TabsTrigger>
                                             <TabsTrigger value="hours">{t('Hours & Rates')}</TabsTrigger>
                                             <TabsTrigger value="documents">{t('Documents')}</TabsTrigger>
+                                            <TabsTrigger value="attendance">{t('Attendance')}</TabsTrigger>
                                         </TabsList>
 
                                         <TabsContent value="employment" className="space-y-6 mt-6">
@@ -321,6 +323,7 @@ export default function Show() {
                                                 </div>
                                             )}
                                         </TabsContent>
+                                        <TabsContent value="attendance" className="space-y-6 mt-6"><AttendanceHistoryPanel history={attendanceHistory} canReview={auth.user?.permissions?.includes('review-attendance-corrections')} /></TabsContent>
                                     </Tabs>
                                 </CardContent>
                             </Card>
@@ -339,6 +342,7 @@ export default function Show() {
                                     <TabsTrigger value="banking" className="flex-shrink-0 px-2 py-1.5 text-xs sm:text-sm whitespace-nowrap">{t('Bank')}</TabsTrigger>
                                     <TabsTrigger value="hours" className="flex-shrink-0 px-2 py-1.5 text-xs sm:text-sm whitespace-nowrap">{t('Hours')}</TabsTrigger>
                                     <TabsTrigger value="documents" className="flex-shrink-0 px-2 py-1.5 text-xs sm:text-sm whitespace-nowrap">{t('Docs')}</TabsTrigger>
+                                    <TabsTrigger value="attendance" className="flex-shrink-0 px-2 py-1.5 text-xs sm:text-sm whitespace-nowrap">{t('Attendance')}</TabsTrigger>
                                 </TabsList>
 
                                 <TabsContent value="employment" className="space-y-3 mt-3">
@@ -499,6 +503,7 @@ export default function Show() {
                                         </div>
                                     )}
                                 </TabsContent>
+                                <TabsContent value="attendance" className="space-y-2 mt-3"><AttendanceHistoryPanel history={attendanceHistory} canReview={auth.user?.permissions?.includes('review-attendance-corrections')} /></TabsContent>
                             </Tabs>
                         </CardContent>
                     </Card>

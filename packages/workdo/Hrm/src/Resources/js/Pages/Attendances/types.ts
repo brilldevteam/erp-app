@@ -34,6 +34,17 @@ export interface Attendance {
     overtime_amount?: number;
     status: 'present' | 'half_day' | 'absent';
     notes?: string;
+    work_status?: 'working' | 'paused' | 'completed';
+    elapsed_seconds?: number;
+    unpaid_pause_seconds?: number;
+    paid_outside_seconds?: number;
+    worked_seconds?: number;
+    work_update?: string;
+    is_abnormally_long?: boolean;
+    is_manual?: boolean;
+    intervals?: Array<{ id: number; reason: string; details?: string; counts_as_work: boolean; started_at: string; ended_at?: string }>;
+    correction_requests?: any[];
+    action_logs?: any[];
     user?: User;
     employee?: Employee;
     shift?: Shift;
@@ -64,6 +75,10 @@ export interface AttendanceFilters {
     employee_id: string;
     date_from: string;
     date_to: string;
+    work_status: string;
+    branch_id: string;
+    department_id: string;
+    abnormal: string;
 }
 
 export type PaginatedAttendances = PaginatedData<Attendance>;
@@ -74,6 +89,9 @@ export interface AttendancesIndexProps {
     auth: AuthContext;
     employees: any[];
     shifts: any[];
+    branches?: any[];
+    departments?: any[];
+    clockStatus?: any;
     [key: string]: unknown;
 }
 
