@@ -19,6 +19,7 @@ use Workdo\Hrm\Events\CreateEmployee;
 use Workdo\Hrm\Events\DestroyEmployee;
 use Workdo\Hrm\Events\UpdateEmployee;
 use Workdo\Hrm\Models\Attendance;
+use Carbon\Carbon;
 
 class EmployeeController extends Controller
 {
@@ -297,19 +298,97 @@ class EmployeeController extends Controller
                     ];
                 });
 
+            $attendanceFilters = $this->normalizeAttendanceFilters();
+            $attendanceQuery = Attendance::query()
+                ->where('created_by', creatorId())
+                ->where('employee_id', $employee->user_id)
+                ->when($attendanceFilters['from'], fn ($query, $from) => $query->whereDate('date', '>=', $from))
+                ->when($attendanceFilters['to'], fn ($query, $to) => $query->whereDate('date', '<=', $to));
+
+            $attendanceSummary = (clone $attendanceQuery)
+                ->selectRaw('COUNT(*) as total_records')
+                ->selectRaw("SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) as present_count")
+                ->selectRaw("SUM(CASE WHEN status IN ('half day', 'half_day') THEN 1 ELSE 0 END) as half_day_count")
+                ->selectRaw("SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) as absent_count")
+                ->selectRaw("SUM(CASE WHEN work_status = 'completed' THEN 1 ELSE 0 END) as completed_count")
+                ->selectRaw("SUM(CASE WHEN work_status IN ('working', 'paused') THEN 1 ELSE 0 END) as working_count")
+                ->selectRaw('COALESCE(SUM(total_hour), 0) as net_hours')
+                ->selectRaw('COALESCE(SUM(overtime_hours), 0) as overtime_hours')
+                ->first();
+
             return Inertia::render('Hrm/Employees/Show', [
                 'employee' => $employee,
                 'documents' => $documents,
-                'attendanceHistory' => Attendance::with(['shift', 'intervals', 'actionLogs', 'correctionRequests.requester', 'correctionRequests.reviewer'])
-                    ->where('created_by', creatorId())
-                    ->where('employee_id', $employee->user_id)
-                    ->when(request('attendance_from'), fn ($q) => $q->whereDate('date', '>=', request('attendance_from')))
-                    ->when(request('attendance_to'), fn ($q) => $q->whereDate('date', '<=', request('attendance_to')))
+                'attendanceFilters' => $attendanceFilters,
+                'attendanceSummary' => [
+                    'total_records' => (int) ($attendanceSummary->total_records ?? 0),
+                    'present_count' => (int) ($attendanceSummary->present_count ?? 0),
+                    'half_day_count' => (int) ($attendanceSummary->half_day_count ?? 0),
+                    'absent_count' => (int) ($attendanceSummary->absent_count ?? 0),
+                    'completed_count' => (int) ($attendanceSummary->completed_count ?? 0),
+                    'working_count' => (int) ($attendanceSummary->working_count ?? 0),
+                    'net_hours' => round((float) ($attendanceSummary->net_hours ?? 0), 2),
+                    'overtime_hours' => round((float) ($attendanceSummary->overtime_hours ?? 0), 2),
+                ],
+                'attendanceHistory' => (clone $attendanceQuery)
+                    ->with(['shift', 'intervals', 'actionLogs', 'correctionRequests.requester', 'correctionRequests.reviewer'])
                     ->latest('date')->paginate(15, ['*'], 'attendance_page')->withQueryString(),
             ]);
         } else {
             return redirect()->route('hrm.employees.index')->with('error', __('Permission denied'));
         }
+    }
+
+    private function normalizeAttendanceFilters(): array
+    {
+        $filter = request('attendance_filter', 'month');
+
+        request()->validate([
+            'tab' => ['nullable', 'in:attendance,employment,contact,banking,hours,documents'],
+            'attendance_filter' => ['nullable', 'in:today,yesterday,date,month,range,all'],
+            'attendance_date' => ['nullable', 'required_if:attendance_filter,date', 'date_format:Y-m-d'],
+            'attendance_month' => ['nullable', 'date_format:Y-m'],
+            'attendance_from' => ['nullable', 'required_if:attendance_filter,range', 'date_format:Y-m-d'],
+            'attendance_to' => ['nullable', 'required_if:attendance_filter,range', 'date_format:Y-m-d', 'after_or_equal:attendance_from'],
+            'attendance_page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $today = Carbon::today();
+        $from = null;
+        $to = null;
+        $label = __('All Time');
+
+        if ($filter === 'today') {
+            $from = $to = $today->toDateString();
+            $label = __('Today').' · '.$today->format('M j, Y');
+        } elseif ($filter === 'yesterday') {
+            $from = $to = $today->copy()->subDay()->toDateString();
+            $label = __('Yesterday').' · '.$today->copy()->subDay()->format('M j, Y');
+        } elseif ($filter === 'date') {
+            $from = $to = request('attendance_date');
+            $label = Carbon::parse($from)->format('M j, Y');
+        } elseif ($filter === 'month') {
+            $month = request('attendance_month', $today->format('Y-m'));
+            $monthDate = Carbon::createFromFormat('Y-m', $month)->startOfMonth();
+            $from = $monthDate->toDateString();
+            $to = $monthDate->copy()->endOfMonth()->toDateString();
+            $label = $monthDate->format('F Y');
+        } elseif ($filter === 'range') {
+            $from = request('attendance_from');
+            $to = request('attendance_to');
+            $label = Carbon::parse($from)->format('M j, Y').' – '.Carbon::parse($to)->format('M j, Y');
+        }
+
+        return [
+            'filter' => $filter,
+            'date' => request('attendance_date', $today->toDateString()),
+            'month' => request('attendance_month', $today->format('Y-m')),
+            'from' => $from,
+            'to' => $to,
+            'range_from' => request('attendance_from', $today->copy()->startOfMonth()->toDateString()),
+            'range_to' => request('attendance_to', $today->copy()->endOfMonth()->toDateString()),
+            'label' => $label,
+        ];
     }
 
     public function deleteDocument($employeeId, EmployeeDocument $document)

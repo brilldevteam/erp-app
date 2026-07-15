@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import DesktopOnlyTimeClockAlert from './DesktopOnlyTimeClockAlert';
+import { TimeClockDeviceAccess, useTimeClockDeviceAccess } from '../Hooks/useTimeClockDeviceAccess';
 
 type Interval = {
     id: number;
@@ -35,6 +37,7 @@ export type TimeClockStatus = {
 interface Props {
     initialStatus?: TimeClockStatus | null;
     permissions?: string[];
+    deviceAccess?: TimeClockDeviceAccess | null;
 }
 
 const formatDuration = (seconds = 0) => {
@@ -49,7 +52,17 @@ const reasonLabel = (reason: string) => ({
     break: 'Break', personal: 'Personal', official_duty: 'Official Duty Outside', other: 'Other',
 }[reason] || reason);
 
-export default function TimeClockCard({ initialStatus, permissions = [] }: Props) {
+export default function TimeClockCard(props: Props) {
+    const access = useTimeClockDeviceAccess(props.deviceAccess);
+
+    if (!access.allowed) {
+        return <DesktopOnlyTimeClockAlert message={access.message} />;
+    }
+
+    return <ActiveTimeClockCard {...props} />;
+}
+
+function ActiveTimeClockCard({ initialStatus, permissions = [] }: Props) {
     const { t } = useTranslation();
     const [status, setStatus] = useState<TimeClockStatus>(initialStatus || { work_status: 'not_started' });
     const [tick, setTick] = useState(0);

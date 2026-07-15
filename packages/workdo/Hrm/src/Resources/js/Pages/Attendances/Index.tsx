@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { Dialog } from "@/components/ui/dialog";
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Plus, Edit as EditIcon, Trash2, Eye, Clock as ClockIcon, Download, FileImage } from "lucide-react";
+import { Plus, Edit as EditIcon, Trash2, Eye, Clock as ClockIcon, Download, Users, ListChecks } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FilterButton } from '@/components/ui/filter-button';
 import { Pagination } from "@/components/ui/pagination";
@@ -24,13 +24,13 @@ import Edit from './Edit';
 import View from './Show';
 
 import NoRecordsFound from '@/components/no-records-found';
-import { Attendance, AttendancesIndexProps, AttendanceFilters, AttendanceModalState } from './types';
+import { Attendance, AttendancesIndexProps, AttendanceFilters, AttendanceModalState, EmployeeAttendanceSummary } from './types';
 import { formatDate, formatTime, formatDateTime, formatCurrency, getImagePath } from '@/utils/helpers';
 import TimeClockCard from '../../Components/TimeClockCard';
 
 export default function Index() {
     const { t } = useTranslation();
-    const { attendances, auth, employees, shifts, clockStatus, branches = [], departments = [] } = usePage<AttendancesIndexProps>().props;
+    const { attendances, attendanceView = 'records', employeeAttendanceSummaries, auth, employees, shifts, clockStatus, timeClockDeviceAccess, branches = [], departments = [] } = usePage<AttendancesIndexProps>().props;
     const urlParams = new URLSearchParams(window.location.search);
 
     const [filters, setFilters] = useState<AttendanceFilters>({
@@ -68,7 +68,7 @@ export default function Index() {
     });
 
     const handleFilter = () => {
-        router.get(route('hrm.attendances.index'), { ...filters, per_page: perPage, sort: sortField, direction: sortDirection, view: viewMode }, {
+        router.get(route('hrm.attendances.index'), { ...filters, attendance_view: attendanceView, per_page: perPage, sort: sortField, direction: sortDirection, view: viewMode }, {
             preserveState: true,
             replace: true
         });
@@ -78,7 +78,7 @@ export default function Index() {
         const direction = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
         setSortField(field);
         setSortDirection(direction);
-        router.get(route('hrm.attendances.index'), { ...filters, per_page: perPage, sort: field, direction, view: viewMode }, {
+        router.get(route('hrm.attendances.index'), { ...filters, attendance_view: attendanceView, per_page: perPage, sort: field, direction, view: viewMode }, {
             preserveState: true,
             replace: true
         });
@@ -96,7 +96,26 @@ export default function Index() {
             department_id: '',
             abnormal: '',
         });
-        router.get(route('hrm.attendances.index'), { per_page: perPage, view: viewMode });
+        router.get(route('hrm.attendances.index'), { attendance_view: attendanceView, per_page: perPage, view: viewMode });
+    };
+
+    const switchAttendanceView = (nextView: 'employees' | 'records') => {
+        router.get(route('hrm.attendances.index'), { ...filters, attendance_view: nextView, per_page: perPage, view: viewMode }, {
+            preserveState: false,
+            replace: true,
+        });
+    };
+
+    const openEmployeeAttendance = (employee: EmployeeAttendanceSummary) => {
+        const params: Record<string, string> = { tab: 'attendance' };
+        if (filters.date_from && filters.date_to) {
+            params.attendance_filter = 'range';
+            params.attendance_from = filters.date_from;
+            params.attendance_to = filters.date_to;
+        } else {
+            params.attendance_filter = 'month';
+        }
+        router.get(route('hrm.employees.show', employee.id), params);
     };
 
     const openModal = (mode: 'add' | 'edit' | 'view', data: Attendance | null = null) => {
@@ -267,16 +286,26 @@ export default function Index() {
         >
             <Head title={t('Attendances')} />
 
-            {clockStatus && auth.user?.permissions?.includes('use-staff-time-clock') && (
-                <div className="mb-6"><TimeClockCard initialStatus={clockStatus} permissions={auth.user?.permissions || []} /></div>
+            {auth.user?.permissions?.includes('use-staff-time-clock') && (
+                <div className="mb-6"><TimeClockCard initialStatus={clockStatus} permissions={auth.user?.permissions || []} deviceAccess={timeClockDeviceAccess} /></div>
             )}
 
             {/* Main Content Card */}
             <Card className="shadow-sm">
                 {/* Search & Controls Header */}
                 <CardContent className="p-6 border-b bg-gray-50/50">
-                    <div className="flex items-center justify-between gap-4">
-                        {auth.user?.permissions?.includes('manage-employees') && (
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                        {auth.user?.permissions?.includes('manage-any-attendances') && (
+                            <div className="flex rounded-md border bg-white p-1">
+                                <Button size="sm" variant={attendanceView === 'employees' ? 'default' : 'ghost'} onClick={() => switchAttendanceView('employees')}>
+                                    <Users className="mr-1 h-4 w-4" />{t('Employees')}
+                                </Button>
+                                <Button size="sm" variant={attendanceView === 'records' ? 'default' : 'ghost'} onClick={() => switchAttendanceView('records')}>
+                                    <ListChecks className="mr-1 h-4 w-4" />{t('Daily Records')}
+                                </Button>
+                            </div>
+                        )}
+                        {auth.user?.permissions?.includes('manage-any-attendances') && (
                             <div className="flex-1 max-w-md">
                                 <SearchInput
                                     value={filters.search}
@@ -290,11 +319,11 @@ export default function Index() {
                             <ListGridToggle
                                 currentView={viewMode}
                                 routeName="hrm.attendances.index"
-                                filters={{ ...filters, per_page: perPage }}
+                                filters={{ ...filters, attendance_view: attendanceView, per_page: perPage }}
                             />
                             <PerPageSelector
                                 routeName="hrm.attendances.index"
-                                filters={{ ...filters, view: viewMode }}
+                                filters={{ ...filters, attendance_view: attendanceView, view: viewMode }}
                             />
                             <div className="relative">
                                 <FilterButton
@@ -318,7 +347,7 @@ export default function Index() {
                 {showFilters && (
                     <CardContent className="p-6 bg-blue-50/30 border-b">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div>
+                            {attendanceView === 'records' && <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('Employee')}</label>
                                 <Select value={filters.employee_id} onValueChange={(value) => setFilters({ ...filters, employee_id: value })}>
                                     <SelectTrigger>
@@ -332,8 +361,8 @@ export default function Index() {
                                         ))}
                                     </SelectContent>
                                 </Select>
-                            </div>
-                            <div>
+                            </div>}
+                            {attendanceView === 'records' && <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('Status')}</label>
                                 <Select value={filters.status} onValueChange={(value) => setFilters({ ...filters, status: value })}>
                                     <SelectTrigger>
@@ -345,11 +374,11 @@ export default function Index() {
                                         <SelectItem value="absent">{t('Absent')}</SelectItem>
                                     </SelectContent>
                                 </Select>
-                            </div>
-                            <div>
+                            </div>}
+                            {attendanceView === 'records' && <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('Clock Status')}</label>
                                 <Select value={filters.work_status} onValueChange={(value) => setFilters({ ...filters, work_status: value })}><SelectTrigger><SelectValue placeholder={t('All Clock Statuses')} /></SelectTrigger><SelectContent><SelectItem value="working">{t('Working')}</SelectItem><SelectItem value="paused">{t('Paused')}</SelectItem><SelectItem value="completed">{t('Completed')}</SelectItem></SelectContent></Select>
-                            </div>
+                            </div>}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('Branch')}</label>
                                 <Select value={filters.branch_id} onValueChange={(value) => setFilters({ ...filters, branch_id: value, department_id: '' })}><SelectTrigger><SelectValue placeholder={t('All Branches')} /></SelectTrigger><SelectContent>{branches.map((branch: any) => <SelectItem key={branch.id} value={String(branch.id)}>{branch.branch_name}</SelectItem>)}</SelectContent></Select>
@@ -358,10 +387,10 @@ export default function Index() {
                                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('Department')}</label>
                                 <Select value={filters.department_id} onValueChange={(value) => setFilters({ ...filters, department_id: value })}><SelectTrigger><SelectValue placeholder={t('All Departments')} /></SelectTrigger><SelectContent>{departments.filter((department: any) => !filters.branch_id || String(department.branch_id) === filters.branch_id).map((department: any) => <SelectItem key={department.id} value={String(department.id)}>{department.department_name}</SelectItem>)}</SelectContent></Select>
                             </div>
-                            <div>
+                            {attendanceView === 'records' && <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('Review Flag')}</label>
                                 <Select value={filters.abnormal} onValueChange={(value) => setFilters({ ...filters, abnormal: value })}><SelectTrigger><SelectValue placeholder={t('All Records')} /></SelectTrigger><SelectContent><SelectItem value="1">{t('Abnormally Long Only')}</SelectItem></SelectContent></Select>
-                            </div>
+                            </div>}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('Date From')}</label>
                                 <DatePicker
@@ -387,6 +416,56 @@ export default function Index() {
                     </CardContent>
                 )}
 
+                {attendanceView === 'employees' ? <>
+                    <CardContent className="p-0">
+                        {employeeAttendanceSummaries?.data?.length ? (
+                            viewMode === 'list' ? <div className="overflow-x-auto">
+                                <table className="w-full min-w-[1050px] text-sm">
+                                    <thead className="border-b bg-muted/40 text-left">
+                                        <tr>
+                                            <th className="px-4 py-3 font-medium">{t('Employee')}</th>
+                                            <th className="px-4 py-3 font-medium">{t('Branch / Department')}</th>
+                                            <th className="px-4 py-3 font-medium">{t('Shift')}</th>
+                                            <th className="px-4 py-3 text-center font-medium">{t('Records')}</th>
+                                            <th className="px-4 py-3 text-center font-medium">{t('Present')}</th>
+                                            <th className="px-4 py-3 text-center font-medium">{t('Half Day')}</th>
+                                            <th className="px-4 py-3 text-center font-medium">{t('Absent')}</th>
+                                            <th className="px-4 py-3 font-medium">{t('Latest Attendance')}</th>
+                                            <th className="px-4 py-3 font-medium">{t('Clock Status')}</th>
+                                            <th className="px-4 py-3 font-medium">{t('Actions')}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y">
+                                        {employeeAttendanceSummaries.data.map((employee) => <tr key={employee.id} className="hover:bg-muted/30">
+                                            <td className="px-4 py-3"><button className="text-left font-medium text-primary hover:underline" onClick={() => openEmployeeAttendance(employee)}>{employee.name || '-'}</button><p className="text-xs text-muted-foreground">{employee.employee_id || '-'}</p></td>
+                                            <td className="px-4 py-3">{employee.branch || '-'}<p className="text-xs text-muted-foreground">{employee.department || '-'}</p></td>
+                                            <td className="px-4 py-3">{employee.shift || '-'}</td>
+                                            <td className="px-4 py-3 text-center font-medium">{employee.record_count}</td>
+                                            <td className="px-4 py-3 text-center text-green-700">{employee.present_count}</td>
+                                            <td className="px-4 py-3 text-center text-amber-700">{employee.half_day_count}</td>
+                                            <td className="px-4 py-3 text-center text-red-700">{employee.absent_count}</td>
+                                            <td className="px-4 py-3">{employee.latest_attendance_date ? formatDate(employee.latest_attendance_date) : t('No records')}</td>
+                                            <td className="px-4 py-3"><Badge variant="outline">{t(employee.current_clock_state || 'Not Started')}</Badge></td>
+                                            <td className="px-4 py-3"><Button size="sm" variant="outline" onClick={() => openEmployeeAttendance(employee)}><Eye className="mr-1 h-4 w-4" />{t('View History')}</Button></td>
+                                        </tr>)}
+                                    </tbody>
+                                </table>
+                            </div> : <div className="grid gap-4 p-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                                {employeeAttendanceSummaries.data.map((employee) => <Card key={employee.id} className="transition-shadow hover:shadow-md">
+                                    <CardContent className="space-y-4 p-4">
+                                        <div className="flex items-start justify-between gap-3"><div><button className="font-semibold text-primary hover:underline" onClick={() => openEmployeeAttendance(employee)}>{employee.name || '-'}</button><p className="text-xs text-muted-foreground">{employee.employee_id || '-'}</p></div><Badge variant="outline">{t(employee.current_clock_state || 'Not Started')}</Badge></div>
+                                        <div className="grid grid-cols-2 gap-2 text-sm"><div><p className="text-xs text-muted-foreground">{t('Branch')}</p>{employee.branch || '-'}</div><div><p className="text-xs text-muted-foreground">{t('Department')}</p>{employee.department || '-'}</div><div><p className="text-xs text-muted-foreground">{t('Shift')}</p>{employee.shift || '-'}</div><div><p className="text-xs text-muted-foreground">{t('Latest')}</p>{employee.latest_attendance_date ? formatDate(employee.latest_attendance_date) : '-'}</div></div>
+                                        <div className="grid grid-cols-4 gap-1 text-center text-xs"><MetricBox label={t('Records')} value={employee.record_count} /><MetricBox label={t('Present')} value={employee.present_count} /><MetricBox label={t('Half Day')} value={employee.half_day_count} /><MetricBox label={t('Absent')} value={employee.absent_count} /></div>
+                                        <Button className="w-full" size="sm" variant="outline" onClick={() => openEmployeeAttendance(employee)}>{t('View Attendance')}</Button>
+                                    </CardContent>
+                                </Card>)}
+                            </div>
+                        ) : <NoRecordsFound icon={Users} title={t('No employees found')} description={t('No employees match the selected filters.')} hasFilters={!!(filters.search || filters.branch_id || filters.department_id || filters.date_from || filters.date_to)} onClearFilters={clearFilters} className="py-16" />}
+                    </CardContent>
+                    <CardContent className="border-t bg-gray-50/30 px-4 py-2">
+                        <Pagination data={employeeAttendanceSummaries || { data: [], links: [], meta: {} }} routeName="hrm.attendances.index" filters={{ ...filters, attendance_view: 'employees', per_page: perPage, view: viewMode }} />
+                    </CardContent>
+                </> : <>
                 {/* Table Content */}
                 <CardContent className="p-0">
                     {viewMode === 'list' ? (
@@ -554,9 +633,10 @@ export default function Index() {
                     <Pagination
                         data={attendances || { data: [], links: [], meta: {} }}
                         routeName="hrm.attendances.index"
-                        filters={{ ...filters, per_page: perPage, view: viewMode }}
+                        filters={{ ...filters, attendance_view: 'records', per_page: perPage, view: viewMode }}
                     />
                 </CardContent>
+                </>}
             </Card>
 
             <Dialog open={modalState.isOpen} onOpenChange={closeModal}>
@@ -590,4 +670,8 @@ export default function Index() {
             />
         </AuthenticatedLayout>
     );
+}
+
+function MetricBox({ label, value }: { label: string; value: number }) {
+    return <div className="rounded-md bg-muted/50 px-1 py-2"><p className="text-muted-foreground">{label}</p><p className="font-semibold">{value}</p></div>;
 }

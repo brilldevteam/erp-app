@@ -26,6 +26,7 @@ import { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import { formatDate, formatTime,formatDateTime } from '@/utils/helpers';
 import TimeClockCard from '../../Components/TimeClockCard';
+import { TimeClockDeviceAccess } from '../../Hooks/useTimeClockDeviceAccess';
 
 interface EmployeeDashboardProps {
     message: string;
@@ -83,7 +84,7 @@ interface EmployeeDashboardProps {
 
 export default function EmployeeDashboard({ message, stats }: EmployeeDashboardProps) {
     const { t } = useTranslation();
-    const { auth } = usePage<any>().props;
+    const { auth, timeClockDeviceAccess } = usePage<any>().props as { auth: any; timeClockDeviceAccess?: TimeClockDeviceAccess };
 
     useFlashMessages();
     const [isClockedIn, setIsClockedIn] = useState(stats.attendance_data?.is_clocked_in || false);
@@ -228,7 +229,7 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
                 </div>
 
                 {/* Clock In/Out Section */}
-                {auth.user?.permissions?.includes('use-staff-time-clock') && <TimeClockCard initialStatus={stats.time_clock} permissions={auth.user?.permissions || []} />}
+                {auth.user?.permissions?.includes('use-staff-time-clock') && <TimeClockCard initialStatus={stats.time_clock} permissions={auth.user?.permissions || []} deviceAccess={timeClockDeviceAccess} />}
                 {false && (auth.user?.permissions?.includes('clock-in') || auth.user?.permissions?.includes('clock-out')) && (
                     <div className="grid grid-cols-1 gap-6">
                         <Card className="bg-gradient-to-r from-slate-50 to-slate-100 border-slate-200">

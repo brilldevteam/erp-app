@@ -36,6 +36,7 @@ use Workdo\Hrm\Http\Controllers\EmployeeDocumentTypeController;
 use Workdo\Hrm\Http\Controllers\DesignationController;
 use Workdo\Hrm\Http\Controllers\DepartmentController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Middleware\EnsureDesktopTimeClock;
 use Workdo\Hrm\Http\Controllers\DashboardController;
 use Workdo\Hrm\Http\Controllers\BranchController;
 use Workdo\Hrm\Http\Controllers\HrmDocumentController;
@@ -279,14 +280,16 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Hrm'])->group(fun
     Route::prefix('hrm/attendances')->name('hrm.attendances.')->group(function () {
         Route::get('/', [AttendanceController::class, 'index'])->name('index');
         Route::post('/', [AttendanceController::class, 'store'])->name('store');
-        Route::post('/clock-in', [AttendanceClockController::class, 'clockIn'])->name('clock-in');
-        Route::post('/pause', [AttendanceClockController::class, 'pause'])->name('pause');
-        Route::post('/resume', [AttendanceClockController::class, 'resume'])->name('resume');
-        Route::post('/clock-out', [AttendanceClockController::class, 'clockOut'])->name('clock-out');
-        Route::put('/work-update', [AttendanceClockController::class, 'updateWorkNote'])->name('work-update');
-        Route::get('/clock-status', [AttendanceClockController::class, 'status'])->name('clock-status');
+        Route::middleware(EnsureDesktopTimeClock::class)->group(function () {
+            Route::post('/clock-in', [AttendanceClockController::class, 'clockIn'])->name('clock-in');
+            Route::post('/pause', [AttendanceClockController::class, 'pause'])->name('pause');
+            Route::post('/resume', [AttendanceClockController::class, 'resume'])->name('resume');
+            Route::post('/clock-out', [AttendanceClockController::class, 'clockOut'])->name('clock-out');
+            Route::put('/work-update', [AttendanceClockController::class, 'updateWorkNote'])->name('work-update');
+            Route::get('/clock-status', [AttendanceClockController::class, 'status'])->name('clock-status');
+            Route::post('/{attendance}/corrections', [AttendanceClockController::class, 'requestCorrection'])->name('corrections.store');
+        });
         Route::get('/export', [AttendanceController::class, 'export'])->name('export');
-        Route::post('/{attendance}/corrections', [AttendanceClockController::class, 'requestCorrection'])->name('corrections.store');
         Route::put('/{attendance}', [AttendanceController::class, 'update'])->name('update');
         Route::delete('/{attendance}', [AttendanceController::class, 'destroy'])->name('destroy');
     });

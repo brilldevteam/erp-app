@@ -1,4 +1,5 @@
 import { PaginatedData, ModalState, AuthContext } from '@/types/common';
+import { TimeClockDeviceAccess } from '../../Hooks/useTimeClockDeviceAccess';
 
 export interface Employee {
     id: number;
@@ -81,17 +82,37 @@ export interface AttendanceFilters {
     abnormal: string;
 }
 
+export interface EmployeeAttendanceSummary {
+    id: number;
+    user_id: number;
+    employee_id: string;
+    name: string;
+    avatar?: string;
+    branch?: string;
+    department?: string;
+    shift?: string;
+    record_count: number;
+    present_count: number;
+    half_day_count: number;
+    absent_count: number;
+    latest_attendance_date?: string;
+    current_clock_state?: 'working' | 'paused' | 'completed';
+}
+
 export type PaginatedAttendances = PaginatedData<Attendance>;
 export type AttendanceModalState = ModalState<Attendance>;
 
 export interface AttendancesIndexProps {
     attendances: PaginatedAttendances;
+    attendanceView?: 'employees' | 'records';
+    employeeAttendanceSummaries?: PaginatedData<EmployeeAttendanceSummary> | null;
     auth: AuthContext;
     employees: any[];
     shifts: any[];
     branches?: any[];
     departments?: any[];
     clockStatus?: any;
+    timeClockDeviceAccess?: TimeClockDeviceAccess;
     [key: string]: unknown;
 }
 

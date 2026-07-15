@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Middleware\EnsureDesktopTimeClock;
 use Workdo\Hrm\Http\Controllers\Api\AttendanceApiController;
 use Workdo\Hrm\Http\Controllers\Api\DashboardApiController;
 use Workdo\Hrm\Http\Controllers\Api\HolidayApiController;
@@ -14,12 +15,14 @@ Route::prefix('api')->middleware(['api.json'])->group(function () {
         Route::get('holidays-list', [HolidayApiController::class, 'index']);
         
         Route::post('attendence-history', [AttendanceApiController::class, 'history']);
-        Route::post('clock-in-out', [AttendanceApiController::class, 'clockInOut']);
-        Route::post('attendance/pause', [AttendanceApiController::class, 'pause']);
-        Route::post('attendance/resume', [AttendanceApiController::class, 'resume']);
-        Route::get('attendance/status', [AttendanceApiController::class, 'status']);
-        Route::put('attendance/work-update', [AttendanceApiController::class, 'workUpdate']);
-        Route::post('attendance/{attendance}/corrections', [AttendanceApiController::class, 'requestCorrection']);
+        Route::middleware(EnsureDesktopTimeClock::class)->group(function () {
+            Route::post('clock-in-out', [AttendanceApiController::class, 'clockInOut']);
+            Route::post('attendance/pause', [AttendanceApiController::class, 'pause']);
+            Route::post('attendance/resume', [AttendanceApiController::class, 'resume']);
+            Route::get('attendance/status', [AttendanceApiController::class, 'status']);
+            Route::put('attendance/work-update', [AttendanceApiController::class, 'workUpdate']);
+            Route::post('attendance/{attendance}/corrections', [AttendanceApiController::class, 'requestCorrection']);
+        });
         
         Route::get('get-leaves', [LeaveApiController::class, 'index']);
         Route::post('leave-request', [LeaveApiController::class, 'store']);
