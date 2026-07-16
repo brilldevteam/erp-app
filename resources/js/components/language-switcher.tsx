@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Globe, Settings, Plus } from 'lucide-react';
+import { Settings, Plus } from 'lucide-react';
 import { usePage, router } from '@inertiajs/react';
 import { CreateLanguageModal } from './create-language-modal';
 import languagesData from '@/../lang/language.json';
@@ -74,11 +74,13 @@ export function LanguageSwitcher() {
     return (
         <>
             <Select value={currentLanguage} onValueChange={handleLanguageChange}>
-                <SelectTrigger className="w-auto border-none shadow-none bg-transparent hover:bg-muted/50">
-                    <div className="flex items-center gap-2">
-                        <Globe className="h-4 w-4" />
-                        <span className="text-sm">{currentLang.flag}</span>
-                        <span className="text-sm">{currentLang.name}</span>
+                <SelectTrigger
+                    className="h-8 w-auto gap-1 border-none bg-transparent px-1.5 py-1 shadow-none hover:bg-muted/50 sm:px-2"
+                    aria-label={t('Change language')}
+                >
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-sm" aria-hidden="true">{currentLang.flag}</span>
+                        <span className="text-xs font-medium uppercase">{currentLang.code}</span>
                     </div>
                 </SelectTrigger>
                 <SelectContent align="end">

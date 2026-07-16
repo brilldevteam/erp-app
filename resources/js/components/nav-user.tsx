@@ -61,12 +61,12 @@ export function NavUser({
 
   if (inHeader) {
     return (
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-1 sm:gap-2 md:gap-3">
         <LanguageSwitcher />
 
         <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="flex items-center gap-2 h-9 px-2 rounded-lg hover:bg-accent transition-colors">
+          <Button variant="ghost" className="flex h-9 items-center gap-2 rounded-lg px-0.5 transition-colors hover:bg-accent sm:px-2">
             <Avatar className="h-8 w-8 rounded-full ring-2 ring-gray-200 dark:ring-gray-700">
               {(user as any).avatar && <AvatarImage src={getImagePath((user as any).avatar)} alt={user.name} />}
               <AvatarFallback className="bg-primary/10 text-primary rounded-full font-semibold">{user.name?.charAt(0)?.toUpperCase()}</AvatarFallback>
@@ -75,7 +75,7 @@ export function NavUser({
               <span className="text-sm font-medium leading-none">{user.name}</span>
               <span className="text-xs text-muted-foreground leading-none mt-0.5">{(user as any).type || 'User'}</span>
             </div>
-            <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
+            <ChevronsUpDown className="hidden h-4 w-4 text-muted-foreground sm:block" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64 rounded-xl shadow-lg border-gray-200/50 dark:border-gray-700/50">
