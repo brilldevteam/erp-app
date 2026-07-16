@@ -60,7 +60,7 @@ function AuthenticatedLayoutContent({
             )}
         </Head>
         <div
-            className={settings.layoutDirection === 'rtl' ? 'rtl' : 'ltr'}
+            className={`${settings.layoutDirection === 'rtl' ? 'rtl' : 'ltr'} max-w-full overflow-x-hidden`}
             data-theme={settings.themeMode}
             dir={settings.layoutDirection === 'rtl' ? 'rtl' : 'ltr'}
             style={{ direction: settings.layoutDirection === 'rtl' ? 'rtl' : 'ltr' }}
@@ -68,39 +68,39 @@ function AuthenticatedLayoutContent({
         <SidebarProvider defaultOpen={true}>
             <AppSidebar />
 
-            <SidebarInset className="overflow-visible"
+            <SidebarInset className="max-w-full overflow-x-hidden overflow-y-visible"
                 style={{ direction: settings.layoutDirection === 'rtl' ? 'rtl' : 'ltr' }}
                 dir={settings.layoutDirection === 'rtl' ? 'rtl' : 'ltr'}
             >
                 <header
-                    className={`bg-background/95 backdrop-blur-md flex h-14 shrink-0 items-center gap-2 px-6 py-2 border-b shadow-sm mb-2 justify-between`}
+                    className="mb-2 flex h-12 w-full min-w-0 shrink-0 items-center justify-between gap-1 border-b bg-background/95 px-2 py-2 shadow-sm backdrop-blur-md sm:h-14 sm:gap-2 sm:px-4 md:px-6"
                     >
                     {/* Sidebar + Breadcrumb */}
-                    <div className={`flex items-center gap-2 ${ settings.layoutDirection === "rtl" ? "order-2 flex-row-reverse" : "order-1" }`} >
+                    <div className={`flex min-w-0 flex-1 items-center gap-1 sm:gap-2 ${ settings.layoutDirection === "rtl" ? "order-2 flex-row-reverse" : "order-1" }`} >
                         {/* SidebarTrigger */}
                         <SidebarTrigger className={`-ml-1 ${ settings.layoutDirection === "rtl" ? "order-3" : "order-1" }`} />
 
                         {/* Separator */}
-                        <Separator orientation="vertical" className="mr-2 h-4 order-2" />
+                        <Separator orientation="vertical" className="order-2 hidden h-4 sm:block" />
 
                         {/* Breadcrumb */}
-                        <Breadcrumb className={`${ settings.layoutDirection === "rtl" ? "order-1" : "order-3" }`} >
-                            <BreadcrumbList className={`flex text-sm ${ settings.layoutDirection === "rtl" ? "justify-end" : "justify-start" }`} >
-                            <BreadcrumbItem>
+                        <Breadcrumb className={`min-w-0 flex-1 overflow-hidden ${ settings.layoutDirection === "rtl" ? "order-1" : "order-3" }`} >
+                            <BreadcrumbList className={`flex-nowrap gap-1 overflow-hidden whitespace-nowrap text-xs sm:gap-2 sm:text-sm ${ settings.layoutDirection === "rtl" ? "justify-end" : "justify-start" }`} >
+                            <BreadcrumbItem className="shrink-0">
                                 <BreadcrumbLink asChild>
                                     <Link href={route("dashboard")}>{t('Dashboard')}</Link>
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
                             {breadcrumbs?.map((crumb, index) => (
                                 <Fragment key={index}>
-                                <BreadcrumbSeparator className={settings.layoutDirection === 'rtl' ? 'rotate-180' : ''} />
-                                <BreadcrumbItem>
+                                <BreadcrumbSeparator className={`${index < (breadcrumbs?.length || 0) - 1 ? 'hidden sm:block' : 'shrink-0'} ${settings.layoutDirection === 'rtl' ? 'rotate-180' : ''}`} />
+                                <BreadcrumbItem className={index < (breadcrumbs?.length || 0) - 1 ? 'hidden shrink-0 sm:inline-flex' : 'min-w-0'}>
                                     {crumb.url ? (
-                                    <BreadcrumbLink asChild>
+                                    <BreadcrumbLink asChild className="truncate">
                                         <Link href={crumb.url}>{crumb.label}</Link>
                                     </BreadcrumbLink>
                                     ) : (
-                                    <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                                    <BreadcrumbPage className="truncate">{crumb.label}</BreadcrumbPage>
                                     )}
                                 </BreadcrumbItem>
                                 </Fragment>
@@ -111,7 +111,7 @@ function AuthenticatedLayoutContent({
 
                     {/* NavUser */}
                     <div
-                        className={`flex items-center gap-3 ${
+                        className={`flex shrink-0 items-center gap-1 sm:gap-2 md:gap-3 ${
                         settings.layoutDirection === "rtl" ? "order-1 flex-row-reverse" : "order-2"
                         }`}
                     >
@@ -131,7 +131,7 @@ function AuthenticatedLayoutContent({
                     </div>
                 </header>
 
-                <main className="p-4 md:pt-0 h-full">
+                <main className="h-full min-w-0 max-w-full overflow-x-hidden p-3 sm:p-4 md:pt-0">
                     {pageTitle && (
                         <div className="flex items-center mb-6" dir={settings.layoutDirection}>
                             <h1 className="text-xl font-semibold text-gray-900 dark:text-white flex-1">{pageTitle}</h1>

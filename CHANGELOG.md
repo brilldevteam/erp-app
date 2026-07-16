@@ -17,6 +17,7 @@ main
 
 ### Improved
 - Enhancements to existing workflows will be listed here before release.
+- Improved authenticated mobile layouts with a compact language selector, single-line breadcrumbs, and contained attendance tables to prevent page-level horizontal overflow.
 - Replaced HR dashboard quick actions with a compact, live view of every employee's attendance state for today.
 - Changed HR attendance to an employee-first view with date-filtered profile history, period summaries, and a retained Daily Records view.
 - Restricted staff time-clock actions and work updates to desktop and laptop browsers while retaining read-only attendance history on mobile devices and tablets.

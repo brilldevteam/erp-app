@@ -469,7 +469,7 @@ export default function Index() {
                 {/* Table Content */}
                 <CardContent className="p-0">
                     {viewMode === 'list' ? (
-                        <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 max-h-[70vh] rounded-none w-full">
+                        <div className="max-h-[70vh] w-full overflow-x-auto overflow-y-auto rounded-none scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
                             <div className="min-w-[800px]">
                                 <DataTable
                                     data={attendances?.data || []}
