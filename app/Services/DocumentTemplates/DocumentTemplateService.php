@@ -409,12 +409,29 @@ class DocumentTemplateService
             return [];
         }
 
-        return array_values(array_filter([
-            $address['name'] ?? null,
-            $address['address_line_1'] ?? null,
-            $address['address_line_2'] ?? null,
-            trim(implode(', ', array_filter([$address['city'] ?? null, $address['state'] ?? null]))) ?: null,
-            trim(implode(' ', array_filter([$address['zip_code'] ?? null, $address['country'] ?? null]))) ?: null,
-        ]));
+        $countryCode = strtoupper((string) ($address['country_code'] ?? ''));
+        if ($countryCode === '' && strtolower((string) ($address['country'] ?? '')) === 'qatar') $countryCode = 'QA';
+        if ($countryCode === '' && in_array(strtolower((string) ($address['country'] ?? '')), ['saudi arabia', 'kingdom of saudi arabia'], true)) $countryCode = 'SA';
+
+        $lines = [$address['name'] ?? null];
+        if ($countryCode === 'QA' && !empty(array_filter([$address['zone_number'] ?? null, $address['street_number'] ?? null, $address['building_number'] ?? null]))) {
+            $lines[] = !empty($address['zone_number']) ? __('Zone Number').': '.$address['zone_number'] : null;
+            $lines[] = !empty($address['street_number']) ? __('Street Number').': '.$address['street_number'] : null;
+            $lines[] = !empty($address['building_number']) ? __('Building Number').': '.$address['building_number'] : null;
+        } elseif ($countryCode === 'SA' && !empty(array_filter([$address['building_number'] ?? null, $address['street_name'] ?? null, $address['district'] ?? null, $address['secondary_number'] ?? null]))) {
+            $lines[] = trim(implode(' ', array_filter([$address['building_number'] ?? null, $address['street_name'] ?? null]))) ?: null;
+            $lines[] = $address['district'] ?? null;
+            $lines[] = $address['city'] ?? null;
+            $lines[] = !empty($address['zip_code']) ? __('Postal Code').': '.$address['zip_code'] : null;
+            $lines[] = !empty($address['secondary_number']) ? __('Secondary Number').': '.$address['secondary_number'] : null;
+        } else {
+            $lines[] = $address['address_line_1'] ?? null;
+            $lines[] = $address['address_line_2'] ?? null;
+            $lines[] = trim(implode(', ', array_filter([$address['city'] ?? null, $address['state'] ?? null]))) ?: null;
+            $lines[] = $address['zip_code'] ?? null;
+        }
+        $lines[] = $address['country'] ?? null;
+
+        return array_values(array_filter($lines));
     }
 }

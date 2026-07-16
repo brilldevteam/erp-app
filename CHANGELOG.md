@@ -17,6 +17,7 @@ main
 
 ### Improved
 - Enhancements to existing workflows will be listed here before release.
+- Customer billing and shipping addresses now use a searchable country selector with official Qatar and Saudi Arabia address formats.
 - Improved authenticated mobile layouts with a compact language selector, single-line breadcrumbs, and contained attendance tables to prevent page-level horizontal overflow.
 - Replaced HR dashboard quick actions with a compact, live view of every employee's attendance state for today.
 - Changed HR attendance to an employee-first view with date-filtered profile history, period summaries, and a retained Daily Records view.

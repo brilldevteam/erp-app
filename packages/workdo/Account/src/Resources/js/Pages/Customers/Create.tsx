@@ -11,6 +11,7 @@ import { PhoneInputComponent } from "@/components/ui/phone-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CustomerFormData, User } from './types';
 import { useFormFields } from '@/hooks/useFormFields';
+import { CustomerAddressFields } from '@/components/customer-address-fields';
 interface CreateCustomerProps {
     onSuccess: (userId?: number) => void;
     users: User[];
@@ -34,20 +35,22 @@ export default function Create({ onSuccess, users = [], auth, returnToCurrentPag
         payment_terms: '',
         billing_address: {
             name: '',
+            country_code: '',
+            country: '',
             address_line_1: '',
             address_line_2: '',
             city: '',
             state: '',
-            country: '',
             zip_code: ''
         },
         shipping_address: {
             name: '',
+            country_code: '',
+            country: '',
             address_line_1: '',
             address_line_2: '',
             city: '',
             state: '',
-            country: '',
             zip_code: ''
         },
         same_as_billing: false,
@@ -88,7 +91,7 @@ export default function Create({ onSuccess, users = [], auth, returnToCurrentPag
     };
 
     return (
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
             <DialogHeader>
                 <DialogTitle>{t('Create Customer')}</DialogTitle>
             </DialogHeader>
@@ -183,91 +186,17 @@ export default function Create({ onSuccess, users = [], auth, returnToCurrentPag
                         <InputError message={errors.payment_terms} />
                     </div>
                 </div>
-                <div>
-                    <Label htmlFor="billing_name">{t('Billing Name')}</Label>
-                    <Input
-                        id="billing_name"
-                        value={data.billing_address.name}
-                        onChange={(e) => setData('billing_address', {...data.billing_address, name: e.target.value})}
-                        placeholder={t('Enter billing name')}
-                        required
-                    />
-                    <InputError message={errors['billing_address.name']} />
-                </div>
-                <div>
-                    <Label htmlFor="billing_address">{t('Billing Address')}</Label>
-                    <Input
-                        id="billing_address"
-                        value={data.billing_address.address_line_1}
-                        onChange={(e) => setData('billing_address', {...data.billing_address, address_line_1: e.target.value})}
-                        placeholder={t('Enter address')}
-                        required
-                    />
-                    <InputError message={errors['billing_address.address_line_1']} />
-                </div>
-                <div>
-                    <Label htmlFor="billing_address_2">{t('Address Line 2')}</Label>
-                    <Input
-                        id="billing_address_2"
-                        value={data.billing_address.address_line_2}
-                        onChange={(e) => setData('billing_address', {...data.billing_address, address_line_2: e.target.value})}
-                        placeholder={t('Apartment, suite, etc. (optional)')}
-                    />
-                    <InputError message={errors['billing_address.address_line_2']} />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <Label htmlFor="billing_city">{t('City')}</Label>
-                        <Input
-                            id="billing_city"
-                            value={data.billing_address.city}
-                            onChange={(e) => setData('billing_address', {...data.billing_address, city: e.target.value})}
-                            placeholder={t('Enter city')}
-                            required
-                        />
-                        <InputError message={errors['billing_address.city']} />
+                <CustomerAddressFields
+                    kind="billing"
+                    address={data.billing_address}
+                    onChange={(address) => setData('billing_address', address)}
+                    errors={errors}
+                />
+                {formFields.length > 0 && (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        {formFields.map((field) => <div key={field.id}>{field.component}</div>)}
                     </div>
-                    <div>
-                        <Label htmlFor="billing_state">{t('State')}</Label>
-                        <Input
-                            id="billing_state"
-                            value={data.billing_address.state}
-                            onChange={(e) => setData('billing_address', {...data.billing_address, state: e.target.value})}
-                            placeholder={t('Enter state')}
-                            required
-                        />
-                        <InputError message={errors['billing_address.state']} />
-                    </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <Label htmlFor="billing_country">{t('Country')}</Label>
-                        <Input
-                            id="billing_country"
-                            value={data.billing_address.country}
-                            onChange={(e) => setData('billing_address', {...data.billing_address, country: e.target.value})}
-                            placeholder={t('Enter country')}
-                            required
-                        />
-                        <InputError message={errors['billing_address.country']} />
-                    </div>
-                    <div>
-                        <Label htmlFor="billing_zip">{t('Zip Code')}</Label>
-                        <Input
-                            id="billing_zip"
-                            value={data.billing_address.zip_code}
-                            onChange={(e) => setData('billing_address', {...data.billing_address, zip_code: e.target.value})}
-                            placeholder={t('Enter zip code')}
-                            required
-                        />
-                        <InputError message={errors['billing_address.zip_code']} />
-                    </div>
-                    {formFields.map((field) => (
-                    <div key={field.id}>
-                        {field.component}
-                    </div>
-                ))}
-                </div>
+                )}
                 <div className="flex items-center space-x-2">
                     <Checkbox
                         id="same_as_billing"
@@ -285,86 +214,12 @@ export default function Create({ onSuccess, users = [], auth, returnToCurrentPag
                 {!data.same_as_billing && (
                     <div className="space-y-4 border-t pt-4">
                         <h3 className="text-lg font-medium">{t('Shipping Address')}</h3>
-                        <div>
-                            <Label htmlFor="shipping_name">{t('Shipping Name')}</Label>
-                            <Input
-                                id="shipping_name"
-                                value={data.shipping_address.name}
-                                onChange={(e) => setData('shipping_address', {...data.shipping_address, name: e.target.value})}
-                                placeholder={t('Enter shipping name')}
-                                required
-                            />
-                            <InputError message={errors['shipping_address.name']} />
-                        </div>
-                        <div>
-                            <Label htmlFor="shipping_address">{t('Shipping Address')}</Label>
-                            <Input
-                                id="shipping_address"
-                                value={data.shipping_address.address_line_1}
-                                onChange={(e) => setData('shipping_address', {...data.shipping_address, address_line_1: e.target.value})}
-                                placeholder={t('Enter shipping address')}
-                                required
-                            />
-                            <InputError message={errors['shipping_address.address_line_1']} />
-                        </div>
-                        <div>
-                            <Label htmlFor="shipping_address_2">{t('Address Line 2')}</Label>
-                            <Input
-                                id="shipping_address_2"
-                                value={data.shipping_address.address_line_2}
-                                onChange={(e) => setData('shipping_address', {...data.shipping_address, address_line_2: e.target.value})}
-                                placeholder={t('Apartment, suite, etc. (optional)')}
-                            />
-                            <InputError message={errors['shipping_address.address_line_2']} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <Label htmlFor="shipping_city">{t('City')}</Label>
-                                <Input
-                                    id="shipping_city"
-                                    value={data.shipping_address.city}
-                                    onChange={(e) => setData('shipping_address', {...data.shipping_address, city: e.target.value})}
-                                    placeholder={t('Enter city')}
-                                    required
-                                />
-                                <InputError message={errors['shipping_address.city']} />
-                            </div>
-                            <div>
-                                <Label htmlFor="shipping_state">{t('State')}</Label>
-                                <Input
-                                    id="shipping_state"
-                                    value={data.shipping_address.state}
-                                    onChange={(e) => setData('shipping_address', {...data.shipping_address, state: e.target.value})}
-                                    placeholder={t('Enter state')}
-                                    required
-                                />
-                                <InputError message={errors['shipping_address.state']} />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <Label htmlFor="shipping_country">{t('Country')}</Label>
-                                <Input
-                                    id="shipping_country"
-                                    value={data.shipping_address.country}
-                                    onChange={(e) => setData('shipping_address', {...data.shipping_address, country: e.target.value})}
-                                    placeholder={t('Enter country')}
-                                    required
-                                />
-                                <InputError message={errors['shipping_address.country']} />
-                            </div>
-                            <div>
-                                <Label htmlFor="shipping_zip">{t('Zip Code')}</Label>
-                                <Input
-                                    id="shipping_zip"
-                                    value={data.shipping_address.zip_code}
-                                    onChange={(e) => setData('shipping_address', {...data.shipping_address, zip_code: e.target.value})}
-                                    placeholder={t('Enter zip code')}
-                                    required
-                                />
-                                <InputError message={errors['shipping_address.zip_code']} />
-                            </div>
-                        </div>
+                        <CustomerAddressFields
+                            kind="shipping"
+                            address={data.shipping_address}
+                            onChange={(address) => setData('shipping_address', address)}
+                            errors={errors}
+                        />
                     </div>
                 )}
                 <div>

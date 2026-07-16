@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { FileText, Download, CheckCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AddressDisplay } from '@/components/address-display';
 
 interface ViewProps {
     return: SalesReturn;
@@ -67,11 +68,7 @@ function View() {
                                 {salesReturn.customer_details?.billing_address && (
                                     <div className="mt-3">
                                         <div className="font-medium text-sm mb-1">{t('Billing Address')}</div>
-                                        <div className="text-sm text-muted-foreground space-y-1">
-                                            <div>{salesReturn.customer_details.billing_address.name}</div>
-                                            <div>{salesReturn.customer_details.billing_address.address_line_1}</div>
-                                            <div>{salesReturn.customer_details.billing_address.city}, {salesReturn.customer_details.billing_address.state} {salesReturn.customer_details.billing_address.zip_code}</div>
-                                        </div>
+                                        <AddressDisplay address={salesReturn.customer_details.billing_address} className="space-y-1 text-sm text-muted-foreground" />
                                     </div>
                                 )}
                             </div>
@@ -79,11 +76,7 @@ function View() {
                             {salesReturn.customer_details?.shipping_address && (
                                 <div>
                                     <h3 className="font-semibold mb-2">{t('SHIPPING ADDRESS')}</h3>
-                                    <div className="text-sm text-muted-foreground space-y-1">
-                                        <div>{salesReturn.customer_details.shipping_address.name}</div>
-                                        <div>{salesReturn.customer_details.shipping_address.address_line_1}</div>
-                                        <div>{salesReturn.customer_details.shipping_address.city}, {salesReturn.customer_details.shipping_address.state} {salesReturn.customer_details.shipping_address.zip_code}</div>
-                                    </div>
+                                    <AddressDisplay address={salesReturn.customer_details.shipping_address} className="space-y-1 text-sm text-muted-foreground" />
                                 </div>
                             )}
 

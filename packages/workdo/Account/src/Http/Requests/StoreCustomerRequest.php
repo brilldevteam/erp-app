@@ -3,9 +3,12 @@
 namespace Workdo\Account\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Workdo\Account\Http\Requests\Concerns\ValidatesCustomerAddresses;
 
 class StoreCustomerRequest extends FormRequest
 {
+    use ValidatesCustomerAddresses;
+
     public function authorize()
     {
         return true;
@@ -21,22 +24,10 @@ class StoreCustomerRequest extends FormRequest
             'contact_person_mobile' => 'nullable|string|max:255',
             'tax_number' => 'nullable|string|max:255',
             'payment_terms' => 'nullable|string|max:255',
-            'billing_address.name' => 'required|string|max:255',
-            'billing_address.address_line_1' => 'required|string|max:255',
-            'billing_address.address_line_2' => 'nullable|string|max:255',
-            'billing_address.city' => 'required|string|max:255',
-            'billing_address.state' => 'required|string|max:255',
-            'billing_address.country' => 'required|string|max:255',
-            'billing_address.zip_code' => 'required|string|max:20',
-            'shipping_address.name' => 'required_if:same_as_billing,false|string|max:255',
-            'shipping_address.address_line_1' => 'required_if:same_as_billing,false|string|max:255',
-            'shipping_address.address_line_2' => 'nullable|string|max:255',
-            'shipping_address.city' => 'required_if:same_as_billing,false|string|max:255',
-            'shipping_address.state' => 'required_if:same_as_billing,false|string|max:255',
-            'shipping_address.country' => 'required_if:same_as_billing,false|string|max:255',
-            'shipping_address.zip_code' => 'required_if:same_as_billing,false|string|max:20',
+            'billing_address' => 'required|array',
+            'shipping_address' => 'required_if:same_as_billing,false|array',
             'same_as_billing' => 'boolean',
             'notes' => 'nullable|string',
-        ];
+        ] + $this->customerAddressRules();
     }
 }
