@@ -10,6 +10,8 @@ import { CurrencyInput } from '@/components/ui/currency-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import InputError from '@/components/ui/input-error';
 import { useFormFields } from '@/hooks/useFormFields';
+import { ProjectPropertyFields } from './ProjectPropertyFields';
+import { ProjectPropertyInformation, emptyProjectPropertyInformation } from './types';
 
 interface ProjectItem {
     id: number;
@@ -20,6 +22,7 @@ interface ProjectItem {
     start_date?: string;
     end_date?: string;
     status: 'Ongoing' | 'Onhold' | 'Finished';
+    property_information?: ProjectPropertyInformation | null;
     team_members?: Array<{
         id: number;
         name: string;
@@ -45,6 +48,7 @@ export default function Edit({ item, users, onSuccess }: EditProps) {
         start_date: item.start_date || '',
         end_date: item.end_date || '',
         status: item.status || 'Ongoing',
+        property_information: { ...emptyProjectPropertyInformation(), ...(item.property_information || {}) },
     });
 
     // AI hooks for name and description fields
@@ -62,7 +66,7 @@ export default function Edit({ item, users, onSuccess }: EditProps) {
     };
 
     return (
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
             <DialogHeader>
                 <DialogTitle>{t('Edit Project')}</DialogTitle>
             </DialogHeader>
@@ -116,6 +120,12 @@ export default function Edit({ item, users, onSuccess }: EditProps) {
                         required
                     />
                 </div>
+
+                <ProjectPropertyFields
+                    value={data.property_information}
+                    onChange={(value) => setData('property_information', value)}
+                    errors={errors}
+                />
 
                 <div>
                     <Label htmlFor="status">{t('Status')}</Label>

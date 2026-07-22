@@ -33,6 +33,7 @@ class CustomerAddressValidationTest extends TestCase
                 'name' => 'Doha Customer',
                 'country' => 'Qatar',
                 'country_code' => 'QA',
+                'qid_number' => '28463401022',
                 'zone_number' => '74',
                 'street_number' => '598',
                 'building_number' => '12',
@@ -50,6 +51,7 @@ class CustomerAddressValidationTest extends TestCase
                 'name' => 'Doha Customer',
                 'country' => 'Qatar',
                 'country_code' => 'QA',
+                'qid_number' => '28463',
                 'zone_number' => 'Zone 74',
                 'building_number' => '12',
             ],
@@ -57,6 +59,7 @@ class CustomerAddressValidationTest extends TestCase
         ]);
 
         $this->assertTrue($validator->fails());
+        $this->assertArrayHasKey('billing_address.qid_number', $validator->errors()->toArray());
         $this->assertArrayHasKey('billing_address.zone_number', $validator->errors()->toArray());
         $this->assertArrayHasKey('billing_address.street_number', $validator->errors()->toArray());
     }
@@ -68,6 +71,7 @@ class CustomerAddressValidationTest extends TestCase
                 'name' => 'Riyadh Customer',
                 'country' => 'Saudi Arabia',
                 'country_code' => 'SA',
+                'saudi_identity_number' => '1023456789',
                 'building_number' => '2929',
                 'street_name' => 'Rayhanah Bint Zaid',
                 'district' => 'Al Arid',
@@ -88,6 +92,7 @@ class CustomerAddressValidationTest extends TestCase
                 'name' => 'Riyadh Customer',
                 'country' => 'Saudi Arabia',
                 'country_code' => 'SA',
+                'saudi_identity_number' => '3023456789',
                 'building_number' => '29',
                 'street_name' => 'Rayhanah Bint Zaid',
                 'district' => 'Al Arid',
@@ -99,6 +104,7 @@ class CustomerAddressValidationTest extends TestCase
         ]);
 
         $this->assertTrue($validator->fails());
+        $this->assertArrayHasKey('billing_address.saudi_identity_number', $validator->errors()->toArray());
         $this->assertArrayHasKey('billing_address.building_number', $validator->errors()->toArray());
         $this->assertArrayHasKey('billing_address.zip_code', $validator->errors()->toArray());
         $this->assertArrayHasKey('billing_address.secondary_number', $validator->errors()->toArray());

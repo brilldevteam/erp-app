@@ -415,10 +415,12 @@ class DocumentTemplateService
 
         $lines = [$address['name'] ?? null];
         if ($countryCode === 'QA' && !empty(array_filter([$address['zone_number'] ?? null, $address['street_number'] ?? null, $address['building_number'] ?? null]))) {
+            $lines[] = !empty($address['qid_number']) ? __('QID No.').': '.$address['qid_number'] : null;
             $lines[] = !empty($address['zone_number']) ? __('Zone Number').': '.$address['zone_number'] : null;
             $lines[] = !empty($address['street_number']) ? __('Street Number').': '.$address['street_number'] : null;
             $lines[] = !empty($address['building_number']) ? __('Building Number').': '.$address['building_number'] : null;
         } elseif ($countryCode === 'SA' && !empty(array_filter([$address['building_number'] ?? null, $address['street_name'] ?? null, $address['district'] ?? null, $address['secondary_number'] ?? null]))) {
+            $lines[] = !empty($address['saudi_identity_number']) ? __('National ID / Iqama No.').': '.$address['saudi_identity_number'] : null;
             $lines[] = trim(implode(' ', array_filter([$address['building_number'] ?? null, $address['street_name'] ?? null]))) ?: null;
             $lines[] = $address['district'] ?? null;
             $lines[] = $address['city'] ?? null;

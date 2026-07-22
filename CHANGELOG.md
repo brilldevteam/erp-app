@@ -18,6 +18,8 @@ main
 ### Improved
 - Enhancements to existing workflows will be listed here before release.
 - Customer billing and shipping addresses now use a searchable country selector with official Qatar and Saudi Arabia address formats.
+- Qatar customer addresses now require an 11-digit QID number, while Saudi addresses require a 10-digit National ID or Iqama number.
+- Project property information now uses the reusable country-specific address fields and includes plot, property, map link, and generated location QR details.
 - Improved authenticated mobile layouts with a compact language selector, single-line breadcrumbs, and contained attendance tables to prevent page-level horizontal overflow.
 - Replaced HR dashboard quick actions with a compact, live view of every employee's attendance state for today.
 - Changed HR attendance to an employee-first view with date-filtered profile history, period summaries, and a retained Daily Records view.

@@ -3,9 +3,12 @@
 namespace Workdo\Taskly\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Workdo\Taskly\Http\Requests\Concerns\ValidatesProjectPropertyInformation;
 
 class StoreProjectRequest extends FormRequest
 {
+    use ValidatesProjectPropertyInformation;
+
     public function authorize(): bool
     {
         return true;
@@ -21,6 +24,6 @@ class StoreProjectRequest extends FormRequest
             'budget' => 'required|numeric|min:0',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
-        ];
+        ] + $this->projectPropertyInformationRules();
     }
 }

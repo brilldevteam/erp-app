@@ -1,5 +1,4 @@
-export interface Address {
-    name: string;
+export interface CountryAddress {
     country: string;
     country_code?: string;
     address_line_1?: string;
@@ -15,9 +14,15 @@ export interface Address {
     secondary_number?: string;
 }
 
+export interface Address extends CountryAddress {
+    name: string;
+    qid_number?: string;
+    saudi_identity_number?: string;
+}
+
 export type AddressTranslation = (key: string) => string;
 
-export const addressCountryCode = (address?: Partial<Address> | null): string => {
+export const addressCountryCode = (address?: Partial<CountryAddress> | null): string => {
     const explicitCode = address?.country_code?.trim().toUpperCase();
     if (explicitCode) return explicitCode;
 
@@ -34,8 +39,24 @@ export const formatAddressLines = (
 ): string[] => {
     if (!address) return [];
 
-    const code = addressCountryCode(address);
     const lines = [address.name];
+    const code = addressCountryCode(address);
+
+    if (code === 'QA' && address.qid_number) lines.push(`${translate('QID No.')}: ${address.qid_number}`);
+    if (code === 'SA' && address.saudi_identity_number) lines.push(`${translate('National ID / Iqama No.')}: ${address.saudi_identity_number}`);
+
+    lines.push(...formatCountryAddressLines(address, translate));
+    return lines.filter((line): line is string => Boolean(line?.trim()));
+};
+
+export const formatCountryAddressLines = (
+    address?: Partial<CountryAddress> | null,
+    translate: AddressTranslation = (key) => key,
+): string[] => {
+    if (!address) return [];
+
+    const code = addressCountryCode(address);
+    const lines: Array<string | undefined> = [];
 
     if (code === 'QA' && (address.zone_number || address.street_number || address.building_number)) {
         lines.push(
