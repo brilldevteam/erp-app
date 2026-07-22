@@ -1,5 +1,6 @@
 {
     "Active": "Active",
+    "Amount Paid": "Amount Paid",
     "Apply": "Apply",
     "Assign User": "Assign User",
     "Assigned To": "Assigned To",
@@ -185,6 +186,7 @@
     "No renewals yet": "No renewals yet",
     "Not Calculated": "Not Calculated",
     "Please draw your signature": "Please draw your signature",
+    "Remaining Balance": "Remaining Balance",
     "Renewal Details": "Renewal Details",
     "Renewal Value": "Renewal Value",
     "Renewals": "Renewals",

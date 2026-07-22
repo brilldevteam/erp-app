@@ -16,10 +16,15 @@ class Contract extends Model
 {
     use HasFactory;
 
+    protected $appends = [
+        'remaining_balance',
+    ];
+
     protected $fillable = [
         'subject',
         'user_id',
         'value',
+        'amount_paid',
         'type_id',
         'start_date',
         'end_date',
@@ -54,6 +59,7 @@ class Contract extends Model
         return [
             'user_id' => 'integer',
             'value' => 'decimal:2',
+            'amount_paid' => 'decimal:2',
             'type_id' => 'integer',
             'start_date' => 'date',
             'end_date' => 'date',
@@ -94,6 +100,11 @@ class Contract extends Model
     public function signatures()
     {
         return $this->hasMany(ContractSignature::class)->with('user')->latest();
+    }
+
+    public function getRemainingBalanceAttribute(): float
+    {
+        return (float) $this->value - (float) $this->amount_paid;
     }
 
 

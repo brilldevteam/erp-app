@@ -24,6 +24,8 @@ export interface Contract {
     subject: string;
     user_id: number;
     value?: number;
+    amount_paid?: number;
+    remaining_balance?: number;
     type_id: number;
     start_date: string;
     end_date: string;
@@ -44,6 +46,7 @@ export interface CreateContractFormData {
     subject: string;
     user_id: string;
     value: string;
+    amount_paid: string;
     type_id: string;
     start_date: string;
     end_date: string;
@@ -57,6 +60,7 @@ export interface EditContractFormData {
     subject: string;
     user_id: string;
     value: string;
+    amount_paid: string;
     type_id: string;
     start_date: string;
     end_date: string;
