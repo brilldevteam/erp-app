@@ -19,7 +19,7 @@ import { CurrencyInput } from '@/components/ui/currency-input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatCurrency, formatDate, downloadFile } from '@/utils/helpers';
 import { getImagePath } from '@/utils/helpers';
-import { Plus, Trash2, Edit, FolderKanban, Kanban, List, Bug, CheckSquare, Calendar, Activity, Image, File, FileText, Video, Music, Download, Eye, MapPin, ExternalLink } from "lucide-react";
+import { Plus, Trash2, Edit, FolderKanban, Kanban, List, Bug, CheckSquare, Calendar, Activity, Image, File, FileText, Video, Music, Download, Eye, HardHat, MapPin, ExternalLink } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { DataTable } from "@/components/ui/data-table";
 import NoRecordsFound from '@/components/no-records-found';
@@ -85,6 +85,18 @@ interface ShowProps {
         file_name: string;
         file_path: string;
     }>;
+    projectContracts: Array<{
+        id: number;
+        type: 'main' | 'subcontractor';
+        scope_of_work: string;
+        contract_value: number;
+        amount_paid: number;
+        remaining_balance: number;
+        work_start_date: string;
+        completion_date: string;
+        vendor: { id: number; company_name: string; vendor_code: string };
+        parent_contract?: { id: number; vendor?: { id: number; company_name: string } } | null;
+    }>;
     auth: {
         user: {
             permissions: string[];
@@ -94,7 +106,7 @@ interface ShowProps {
 
 export default function Show() {
     const { t } = useTranslation();
-    const { project, teamMembers, available_clients, projectStats, chartData, chartLines, activityLogs, projectFiles, auth } = usePage<ShowProps>().props;
+    const { project, teamMembers, available_clients, projectStats, chartData, chartLines, activityLogs, projectFiles, projectContracts, auth } = usePage<ShowProps>().props;
     const videoHubButtons = usePageButtons('projectShowButtons', { project });
     const spreadsheetButtons = usePageButtons('spreadsheetBtn', { module: 'Projects', id: project.id });
     const businessProcessMappingButtons = usePageButtons('businessProcessMappingBtn', { module: 'Taskly', submodule: 'Projects', id: project.id });
@@ -107,6 +119,7 @@ export default function Show() {
     const [editingMilestone, setEditingMilestone] = useState<any>(null);
     const [projectEditData, setProjectEditData] = useState<any>(null);
     const [loadingProjectData, setLoadingProjectData] = useState(false);
+    const [contractorType, setContractorType] = useState<'main' | 'subcontractor'>('main');
 
     const [deleteState, setDeleteState] = useState({ isOpen: false, userId: null as number | null, userName: '' });
     const [deleteClientState, setDeleteClientState] = useState({ isOpen: false, clientId: null as number | null, clientName: '' });
@@ -684,6 +697,79 @@ export default function Show() {
                     </CardContent>
                 </Card>
             </div>
+
+            {auth.user?.permissions?.includes('manage-project-contractors') && (
+                <Card className="mt-6 shadow-sm">
+                    <CardHeader className="space-y-4 border-b bg-gray-50/50 p-6">
+                        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                            <CardTitle className="flex items-center gap-2 text-xl">
+                                <HardHat className="h-5 w-5 text-amber-600" />
+                                {t('Contractors')}
+                            </CardTitle>
+                            <Button size="sm" variant="outline" onClick={() => router.get(route('project.contractors.index'), { project_id: project.id, type: contractorType })}>
+                                {t('Manage Contractors')}
+                            </Button>
+                        </div>
+                        <div className="flex border-b">
+                            {(['main', 'subcontractor'] as const).map((type) => (
+                                <button
+                                    key={type}
+                                    type="button"
+                                    onClick={() => setContractorType(type)}
+                                    className={`border-b-2 px-4 py-2 text-sm font-medium ${contractorType === type ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'}`}
+                                >
+                                    {type === 'main' ? t('Main Contractors') : t('Subcontractors')}
+                                </button>
+                            ))}
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        {(projectContracts || []).filter((contract) => contract.type === contractorType).length > 0 ? (
+                            <>
+                                <div className="hidden overflow-x-auto md:block">
+                                    <table className="w-full text-sm">
+                                        <thead className="border-b bg-muted/30 text-left">
+                                            <tr>
+                                                {[t('Contractor Name'), t('Scope of Work'), t('Contract Value'), t('Amount Paid'), t('Remaining Balance'), t('Work Start Date'), t('Completion Date')].map((heading) => (
+                                                    <th key={heading} className="whitespace-nowrap px-4 py-3 font-medium">{heading}</th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {projectContracts.filter((contract) => contract.type === contractorType).map((contract) => (
+                                                <tr key={contract.id} className="border-b last:border-0">
+                                                    <td className="px-4 py-3 font-medium">{contract.vendor.company_name}</td>
+                                                    <td className="px-4 py-3">{contract.scope_of_work}</td>
+                                                    <td className="whitespace-nowrap px-4 py-3">{formatCurrency(contract.contract_value)}</td>
+                                                    <td className="whitespace-nowrap px-4 py-3">{formatCurrency(contract.amount_paid)}</td>
+                                                    <td className={`whitespace-nowrap px-4 py-3 font-medium ${contract.remaining_balance < 0 ? 'text-destructive' : ''}`}>{formatCurrency(contract.remaining_balance)}</td>
+                                                    <td className="whitespace-nowrap px-4 py-3">{formatDate(contract.work_start_date)}</td>
+                                                    <td className="whitespace-nowrap px-4 py-3">{formatDate(contract.completion_date)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div className="grid gap-3 p-3 md:hidden">
+                                    {projectContracts.filter((contract) => contract.type === contractorType).map((contract) => (
+                                        <div key={contract.id} className="space-y-3 rounded-lg border p-4">
+                                            <div><p className="font-semibold">{contract.vendor.company_name}</p><p className="text-sm text-muted-foreground">{contract.scope_of_work}</p></div>
+                                            <div className="grid grid-cols-2 gap-3 text-sm">
+                                                <div><p className="text-muted-foreground">{t('Contract Value')}</p><p>{formatCurrency(contract.contract_value)}</p></div>
+                                                <div><p className="text-muted-foreground">{t('Amount Paid')}</p><p>{formatCurrency(contract.amount_paid)}</p></div>
+                                                <div><p className="text-muted-foreground">{t('Remaining Balance')}</p><p className={contract.remaining_balance < 0 ? 'font-medium text-destructive' : ''}>{formatCurrency(contract.remaining_balance)}</p></div>
+                                                <div><p className="text-muted-foreground">{t('Completion Date')}</p><p>{formatDate(contract.completion_date)}</p></div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        ) : (
+                            <div className="px-4 py-12 text-center text-sm text-muted-foreground">{t('No contractors have been added to this project yet.')}</div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
 
             {(auth.user?.permissions?.includes('manage-project-milestone')) && (
                 <Card className="mt-6 shadow-sm">

@@ -3,7 +3,7 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { useFormFields } from '@/hooks/useFormFields';
-import { InvoiceVendorOption, PurchaseInvoice, PurchaseInvoiceItem } from './types';
+import { InvoiceVendorOption, ProjectContractOption, PurchaseInvoice, PurchaseInvoiceItem } from './types';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import InvoiceItemsTable from './components/InvoiceItemsTable';
 import { useTaxCalculator, calculateLineItemAmounts } from './components/TaxCalculator';
@@ -24,12 +24,13 @@ interface EditProps {
     vendors: InvoiceVendorOption[];
     products: Array<{id: number; name: string; sku: string; purchase_price: number; unit: string; type: string; taxes: Array<{id: number; tax_name: string; rate: number}>}>;
     warehouses: Array<{id: number; name: string; address: string}>;
+    projectContracts: ProjectContractOption[];
     [key: string]: any;
 }
 
 export default function Edit() {
     const { t } = useTranslation();
-    const { invoice, vendors, products, warehouses } = usePage<EditProps>().props;
+    const { invoice, vendors, products, warehouses, projectContracts } = usePage<EditProps>().props;
 
     useFlashMessages();
 
@@ -39,6 +40,7 @@ export default function Edit() {
         invoice_date: invoice.invoice_date,
         due_date: invoice.due_date,
         vendor_id: invoice.vendor_id.toString(),
+        project_contract_id: invoice.project_contract_id?.toString() || '',
         warehouse_id: invoice.warehouse_id?.toString() || '',
         payment_terms: invoice.payment_terms || '',
         notes: invoice.notes || '',
@@ -124,7 +126,7 @@ export default function Edit() {
                                     <Label htmlFor="vendor_id" required>
                                         {t('Vendor')}
                                     </Label>
-                                    <Select value={data.vendor_id} onValueChange={(value) => setData('vendor_id', value)}>
+                                    <Select value={data.vendor_id} onValueChange={(value) => setData((current) => ({ ...current, vendor_id: value, project_contract_id: '' }))}>
                                         <SelectTrigger>
                                             <SelectValue placeholder={t('Select Vendor')} />
                                         </SelectTrigger>
@@ -139,6 +141,25 @@ export default function Edit() {
                                         </SelectContent>
                                     </Select>
                                     <InputError message={errors.vendor_id} />
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="project_contract_id">{t('Project Contract')}</Label>
+                                    <Select value={data.project_contract_id || 'none'} onValueChange={(value) => setData('project_contract_id', value === 'none' ? '' : value)}>
+                                        <SelectTrigger><SelectValue placeholder={t('Select Project Contract')} /></SelectTrigger>
+                                        <SelectContent searchable>
+                                            <SelectItem value="none">{t('No Project Contract')}</SelectItem>
+                                            {projectContracts.filter((contract) => contract.vendor_user_id.toString() === data.vendor_id).map((contract) => (
+                                                <SelectItem key={contract.id} value={contract.id.toString()}>
+                                                    {contract.project.name} — {contract.scope_of_work} ({contract.type === 'main' ? t('Main Contractor') : t('Subcontractor')})
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={(errors as any).project_contract_id} />
+                                    {data.vendor_id && projectContracts.filter((contract) => contract.vendor_user_id.toString() === data.vendor_id).length === 0 && (
+                                        <p className="mt-1 text-xs text-muted-foreground">{t('No project contracts are available for this vendor.')}</p>
+                                    )}
                                 </div>
 
                                 <div>

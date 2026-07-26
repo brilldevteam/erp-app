@@ -30,7 +30,9 @@ use Workdo\Taskly\Models\ProjectBug;
 use Workdo\Taskly\Models\ProjectClient;
 use Workdo\Taskly\Models\ProjectUser;
 use Workdo\Taskly\Models\ProjectFile;
+use Workdo\Taskly\Models\ProjectContract;
 use App\Models\EmailTemplate;
+use Illuminate\Support\Facades\Schema;
 
 class ProjectController extends Controller
 {
@@ -232,6 +234,33 @@ class ProjectController extends Controller
                     ];
                 });
 
+            $projectContracts = Schema::hasTable('project_contracts') ? ProjectContract::query()
+                ->where('project_id', $project->id)
+                ->where('created_by', creatorId())
+                ->with([
+                    'vendor:id,company_name,vendor_code',
+                    'parentContract:id,vendor_id',
+                    'parentContract.vendor:id,company_name',
+                ])
+                ->withSum('purchaseInvoices as amount_paid', 'paid_amount')
+                ->orderBy('type')
+                ->orderBy('work_start_date')
+                ->get()
+                ->map(function (ProjectContract $contract) {
+                    $financials = $contract->financialSummary();
+
+                    return [
+                        'id' => $contract->id,
+                        'type' => $contract->type,
+                        'scope_of_work' => $contract->scope_of_work,
+                        ...$financials,
+                        'work_start_date' => $contract->work_start_date?->format('Y-m-d'),
+                        'completion_date' => $contract->completion_date?->format('Y-m-d'),
+                        'vendor' => $contract->vendor,
+                        'parent_contract' => $contract->parentContract,
+                    ];
+                }) : collect();
+
             return Inertia::render('Taskly/Project/View', [
                 'project' => $project,
                 'teamMembers' => $teamMembers,
@@ -246,6 +275,7 @@ class ProjectController extends Controller
                 'chartLines' => $chartLines,
                 'activityLogs' => $activityLogs,
                 'projectFiles' => ProjectFile::where('project_id', $project->id)->get(),
+                'projectContracts' => $projectContracts,
             ]);
         } else {
             return back()->with('error', __('Permission denied'));

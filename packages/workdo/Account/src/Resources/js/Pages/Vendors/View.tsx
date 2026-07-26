@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Building2 } from 'lucide-react';
 import { Vendor } from './types';
 import { useFormFields } from '@/hooks/useFormFields';
+import { formatCurrency, formatDate } from '@/utils/helpers';
 
 interface ViewProps {
     vendor: Vendor;
@@ -105,6 +106,37 @@ export default function View({ vendor }: ViewProps) {
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">{t('Notes')}</label>
                         <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{vendor.notes}</p>
+                    </div>
+                )}
+
+                {vendor.project_contracts && vendor.project_contracts.length > 0 && (
+                    <div className="space-y-3">
+                        <label className="text-sm font-medium text-gray-700">{t('Project Contracts')}</label>
+                        <div className="space-y-3">
+                            {vendor.project_contracts.map((contract) => {
+                                const amountPaid = Number(contract.amount_paid || 0);
+                                const remaining = Number(contract.contract_value) - amountPaid;
+                                return (
+                                    <div key={contract.id} className="rounded-lg border p-3 text-sm">
+                                        <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+                                            <div>
+                                                <p className="font-medium">{contract.project?.name || t('Project')}</p>
+                                                <p className="text-muted-foreground">{contract.scope_of_work}</p>
+                                            </div>
+                                            <span className="rounded-full bg-muted px-2 py-1 text-xs">
+                                                {contract.type === 'main' ? t('Main Contractor') : t('Subcontractor')}
+                                            </span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                                            <div><p className="text-muted-foreground">{t('Contract Value')}</p><p>{formatCurrency(contract.contract_value)}</p></div>
+                                            <div><p className="text-muted-foreground">{t('Amount Paid')}</p><p>{formatCurrency(amountPaid)}</p></div>
+                                            <div><p className="text-muted-foreground">{t('Remaining Balance')}</p><p className={remaining < 0 ? 'font-medium text-destructive' : ''}>{formatCurrency(remaining)}</p></div>
+                                            <div><p className="text-muted-foreground">{t('Completion Date')}</p><p>{formatDate(contract.completion_date)}</p></div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                 )}
 

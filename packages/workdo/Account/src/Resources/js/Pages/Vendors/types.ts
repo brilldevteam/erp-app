@@ -30,6 +30,16 @@ export interface Vendor {
     is_active: boolean;
     notes?: string;
     created_at: string;
+    project_contracts?: Array<{
+        id: number;
+        type: 'main' | 'subcontractor';
+        scope_of_work: string;
+        contract_value: number;
+        amount_paid?: number;
+        work_start_date: string;
+        completion_date: string;
+        project?: { id: number; name: string };
+    }>;
 }
 
 export interface VendorFormData {
@@ -58,6 +68,7 @@ export interface CreateVendorFormData {
     shipping_address: Address;
     same_as_billing: boolean;
     notes: string;
+    return_to?: string;
 }
 
 export interface User {
@@ -80,6 +91,8 @@ export interface VendorsIndexProps {
     vendors: PaginatedVendors;
     users: User[];
     auth: AuthContext;
+    openCreate?: boolean;
+    returnTo?: string | null;
     [key: string]: unknown;
 }
 
@@ -87,6 +100,7 @@ export interface CreateVendorProps {
     onSuccess: () => void;
     users?: User[];
     auth?: any;
+    returnTo?: string | null;
 }
 
 export interface EditVendorProps {

@@ -8,6 +8,7 @@ use Workdo\Taskly\Http\Controllers\TaskStageController;
 use Workdo\Taskly\Http\Controllers\BugStageController;
 use Workdo\Taskly\Http\Controllers\ProjectBugController;
 use Workdo\Taskly\Http\Controllers\ProjectReportController;
+use Workdo\Taskly\Http\Controllers\ProjectContractController;
 
 // API Routes for other packages
 Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Taskly'])->prefix('api/taskly')->name('api.taskly.')->group(function () {
@@ -33,6 +34,12 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Taskly'])->group(
     // Project report routes
     Route::get('/project/report', [ProjectReportController::class, 'index'])->name('project.report.index');
     Route::get('/project/report/{id}', [ProjectReportController::class, 'show'])->name('project.report.show');
+
+    // Project contractor routes - must come before generic project routes
+    Route::get('/project/contractors', [ProjectContractController::class, 'index'])->name('project.contractors.index');
+    Route::post('/project/contractors', [ProjectContractController::class, 'store'])->name('project.contractors.store');
+    Route::put('/project/contractors/{projectContract}', [ProjectContractController::class, 'update'])->name('project.contractors.update');
+    Route::delete('/project/contractors/{projectContract}', [ProjectContractController::class, 'destroy'])->name('project.contractors.destroy');
     // Task comments and subtasks
     Route::get('/project/tasks/{task}/comments', [ProjectTaskController::class, 'getComments'])->name('project.tasks.comments.index');
     Route::post('/project/tasks/{task}/comments', [ProjectTaskController::class, 'storeComment'])->name('project.tasks.comments.store');
