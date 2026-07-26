@@ -1,5 +1,6 @@
 {
     "Active": "نشط",
+    "Amount Paid": "المبلغ المدفوع",
     "Apply": "تطبيق",
     "Assign User": "تعيين المستخدم",
     "Assigned To": "مُعيّن",
@@ -185,6 +186,7 @@
     "No renewals yet": "لا تجديد بعد",
     "Not Calculated": "غير محاسبة",
     "Please draw your signature": "رجاءً وقع",
+    "Remaining Balance": "الرصيد المتبقي",
     "Renewal Details": "تفاصيل التجديد",
     "Renewal Value": "القيمة المتجددة",
     "Renewals": "التجديدات",

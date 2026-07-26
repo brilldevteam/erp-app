@@ -19,6 +19,7 @@ export default function EditContract({ contract, onSuccess }: EditContractProps)
         subject: contract.subject ?? '',
         user_id: contract.user_id?.toString() ?? '',
         value: contract.value?.toString() ?? '',
+        amount_paid: contract.amount_paid?.toString() ?? '',
         type_id: contract.type_id?.toString() ?? '',
         start_date: contract.start_date || '',
         end_date: contract.end_date || '',
@@ -59,13 +60,29 @@ export default function EditContract({ contract, onSuccess }: EditContractProps)
                     {subjectAI.map(field => <div key={field.id}>{field.component}</div>)}
                 </div>
 
-                <div>
+                <div className="grid grid-cols-2 gap-4">
                     <CurrencyInput
                         label={t('Value')}
                         value={data.value}
                         onChange={(value) => setData('value', value)}
                         error={errors.value}
                         required
+                    />
+
+                    <CurrencyInput
+                        label={t('Amount Paid')}
+                        value={data.amount_paid}
+                        onChange={(value) => setData('amount_paid', value)}
+                        error={errors.amount_paid}
+                    />
+                </div>
+
+                <div>
+                    <CurrencyInput
+                        label={t('Remaining Balance')}
+                        value={((parseFloat(data.value || '0') - parseFloat(data.amount_paid || '0')) || 0).toFixed(2)}
+                        onChange={() => {}}
+                        disabled
                     />
                 </div>
 
