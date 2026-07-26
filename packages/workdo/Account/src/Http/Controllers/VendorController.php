@@ -12,6 +12,7 @@ use Workdo\Account\Http\Requests\UpdateVendorRequest;
 use Workdo\Account\Events\CreateVendor;
 use Workdo\Account\Events\UpdateVendor;
 use Workdo\Account\Events\DestroyVendor;
+use Illuminate\Support\Facades\Schema;
 
 class VendorController extends Controller
 {
@@ -20,6 +21,14 @@ class VendorController extends Controller
         if(Auth::user()->can('manage-vendors')){
             $vendors = Vendor::query()
                 ->with('user:id,name,avatar,is_disable')
+                ->when(Schema::hasTable('project_contracts'), function ($query) {
+                    $query->with(['projectContracts' => function ($contractQuery) {
+                        $contractQuery->where('created_by', creatorId())
+                            ->with('project:id,name')
+                            ->withSum('purchaseInvoices as amount_paid', 'paid_amount')
+                            ->latest();
+                    }]);
+                })
                 ->where(function($q) {
                     if(Auth::user()->can('manage-any-vendors')) {
                         $q->where('created_by', creatorId());
@@ -45,6 +54,8 @@ class VendorController extends Controller
             return Inertia::render('Account/Vendors/Index', [
                 'vendors' => $vendors,
                 'users' => $users,
+                'openCreate' => request()->boolean('create'),
+                'returnTo' => request('return_to') === 'project.contractors.index' ? request('return_to') : null,
             ]);
         }
         return back()->with('error', __('Permission denied'));
@@ -75,7 +86,11 @@ class VendorController extends Controller
 
             CreateVendor::dispatch($request, $vendor);
 
-            return redirect()->route('account.vendors.index')->with('success', __('The vendor has been created successfully.'));
+            $redirectRoute = ($validated['return_to'] ?? null) === 'project.contractors.index'
+                ? 'project.contractors.index'
+                : 'account.vendors.index';
+
+            return redirect()->route($redirectRoute)->with('success', __('The vendor has been created successfully.'));
         }
         return redirect()->route('account.vendors.index')->with('error', __('Permission denied'));
     }
@@ -107,6 +122,9 @@ class VendorController extends Controller
     public function destroy(Vendor $vendor)
     {
         if(Auth::user()->can('delete-vendors')){
+            if (Schema::hasTable('project_contracts') && $vendor->projectContracts()->exists()) {
+                return back()->with('error', __('This vendor cannot be deleted because project contracts are linked to it.'));
+            }
             DestroyVendor::dispatch($vendor);
             $vendor->delete();
             return back()->with('success', __('The vendor has been deleted.'));

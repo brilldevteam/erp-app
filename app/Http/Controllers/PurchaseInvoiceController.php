@@ -22,6 +22,8 @@ use App\Events\DestroyPurchaseInvoice;
 use App\Events\PostPurchaseInvoice;
 use App\Events\EditPurchaseInvoice;
 use App\Models\EmailTemplate;
+use Illuminate\Support\Facades\Schema;
+use Workdo\Taskly\Models\ProjectContract;
 
 
 class PurchaseInvoiceController extends Controller
@@ -56,6 +58,29 @@ class PurchaseInvoiceController extends Controller
             return true;
         }
         return false;
+    }
+
+    private function projectContractOptions()
+    {
+        if (!Schema::hasTable('project_contracts')) {
+            return collect();
+        }
+
+        return ProjectContract::query()
+            ->where('created_by', creatorId())
+            ->whereHas('project', fn ($query) => $query->accessibleTo(Auth::user()))
+            ->whereHas('vendor', fn ($query) => $query->whereNotNull('user_id'))
+            ->with(['project:id,name', 'vendor:id,user_id,company_name'])
+            ->orderBy('project_id')
+            ->orderBy('scope_of_work')
+            ->get()
+            ->map(fn ($contract) => [
+                'id' => $contract->id,
+                'vendor_user_id' => $contract->vendor->user_id,
+                'type' => $contract->type,
+                'scope_of_work' => $contract->scope_of_work,
+                'project' => $contract->project,
+            ]);
     }
     public function index(Request $request)
     {
@@ -160,6 +185,7 @@ class PurchaseInvoiceController extends Controller
                 'vendors' => $vendors,
                 'products' => $products,
                 'warehouses' => $warehouses,
+                'projectContracts' => $this->projectContractOptions(),
             ]);
         }
         else{
@@ -176,6 +202,7 @@ class PurchaseInvoiceController extends Controller
             $invoice->invoice_date = $request->invoice_date;
             $invoice->due_date = $request->due_date;
             $invoice->vendor_id = $request->vendor_id;
+            $invoice->project_contract_id = $request->filled('project_contract_id') ? $request->project_contract_id : null;
             $invoice->warehouse_id = $request->filled('warehouse_id') ? $request->warehouse_id : null;
             $invoice->payment_terms = $request->payment_terms;
             $invoice->notes = $request->notes;
@@ -285,6 +312,7 @@ class PurchaseInvoiceController extends Controller
                 'vendors' => $vendors,
                 'products' => $products,
                 'warehouses' => $warehouses,
+                'projectContracts' => $this->projectContractOptions(),
             ]);
         }
         else{
@@ -303,6 +331,7 @@ class PurchaseInvoiceController extends Controller
             $purchaseInvoice->invoice_date = $request->invoice_date;
             $purchaseInvoice->due_date = $request->due_date;
             $purchaseInvoice->vendor_id = $request->vendor_id;
+            $purchaseInvoice->project_contract_id = $request->filled('project_contract_id') ? $request->project_contract_id : null;
             $purchaseInvoice->warehouse_id = $request->filled('warehouse_id') ? $request->warehouse_id : null;
             $purchaseInvoice->payment_terms = $request->payment_terms;
             $purchaseInvoice->notes = $request->notes;

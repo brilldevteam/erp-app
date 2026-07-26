@@ -39,6 +39,7 @@ class StoreVendorRequest extends FormRequest
             'shipping_address.country' => 'required_if:same_as_billing,false|string|max:255',
             'shipping_address.zip_code' => 'required_if:same_as_billing,false|string|max:20',
             'notes' => 'nullable|string',
+            'return_to' => 'nullable|in:project.contractors.index',
         ];
     }
 }

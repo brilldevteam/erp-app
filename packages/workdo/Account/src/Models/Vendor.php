@@ -48,6 +48,11 @@ class Vendor extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function projectContracts()
+    {
+        return $this->hasMany(\Workdo\Taskly\Models\ProjectContract::class);
+    }
+
     protected static function boot()
     {
         parent::boot();

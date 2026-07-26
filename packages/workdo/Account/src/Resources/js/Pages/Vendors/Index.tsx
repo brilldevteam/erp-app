@@ -27,7 +27,7 @@ import { usePageButtons } from '@/hooks/usePageButtons';
 import { BulkImportButton } from '@/components/bulk-import-button';
 
 export default function Index() {
-    const { vendors, users, auth } = usePage<VendorsIndexProps>().props;
+    const { vendors, users, auth, openCreate, returnTo } = usePage<VendorsIndexProps>().props;
     const { t } = useTranslation();
     const urlParams = new URLSearchParams(window.location.search);
 
@@ -42,8 +42,8 @@ export default function Index() {
     const [sortDirection, setSortDirection] = useState(urlParams.get('direction') || 'asc');
     const [viewMode, setViewMode] = useState<'list' | 'grid'>(urlParams.get('view') as 'list' | 'grid' || 'list');
     const [modalState, setModalState] = useState<VendorModalState>({
-        isOpen: false,
-        mode: '',
+        isOpen: Boolean(openCreate),
+        mode: openCreate ? 'add' : '',
         data: null
     });
     const [viewingItem, setViewingItem] = useState<Vendor | null>(null);
@@ -530,7 +530,7 @@ export default function Index() {
 
             <Dialog open={modalState.isOpen} onOpenChange={closeModal}>
                 {modalState.mode === 'add' && (
-                    <Create onSuccess={closeModal} users={users} auth={auth} />
+                    <Create onSuccess={closeModal} users={users} auth={auth} returnTo={returnTo} />
                 )}
                 {modalState.mode === 'edit' && modalState.data && (
                     <Edit

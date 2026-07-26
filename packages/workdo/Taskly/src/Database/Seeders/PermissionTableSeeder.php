@@ -27,6 +27,11 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'delete-project', 'module' => 'project', 'label' => 'Delete Project'],
             ['name' => 'duplicate-project', 'module' => 'project', 'label' => 'Duplicate Project'],
 
+            ['name' => 'manage-project-contractors', 'module' => 'project-contractor', 'label' => 'Manage Project Contractors'],
+            ['name' => 'create-project-contractors', 'module' => 'project-contractor', 'label' => 'Create Project Contractors'],
+            ['name' => 'edit-project-contractors', 'module' => 'project-contractor', 'label' => 'Edit Project Contractors'],
+            ['name' => 'delete-project-contractors', 'module' => 'project-contractor', 'label' => 'Delete Project Contractors'],
+
             ['name' => 'manage-project-report', 'module' => 'project-report', 'label' => 'Manage Project Report'],
             ['name' => 'view-project-report', 'module' => 'project-report', 'label' => 'View Project Report'],
 

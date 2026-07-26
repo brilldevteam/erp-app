@@ -4,6 +4,7 @@ export interface PurchaseInvoice {
     invoice_date: string;
     due_date: string;
     vendor_id: number;
+    project_contract_id?: number;
     warehouse_id?: number;
     subtotal: number;
     tax_amount: number;
@@ -67,6 +68,14 @@ export interface User {
 export interface InvoiceVendorOption extends User {
     company_name?: string;
     contact_person_name?: string;
+}
+
+export interface ProjectContractOption {
+    id: number;
+    vendor_user_id: number;
+    type: 'main' | 'subcontractor';
+    scope_of_work: string;
+    project: { id: number; name: string };
 }
 
 export interface VendorDetails {

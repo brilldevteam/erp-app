@@ -13,6 +13,7 @@ All notable changes to the Wazely ERP application are documented here.
 manual-journal-entries
 - Accountants can now record manual double-entry journal entries with balanced debit and credit lines.
 - Purchase invoices now support attaching supplier invoices, receipts, and other supporting documents.
+- Projects now support main contractors and subcontractors backed by vendors, with contract scopes, dates, accounting-linked payments, and remaining balances.
 main
 
 ### Improved

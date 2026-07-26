@@ -13,6 +13,7 @@ class PurchaseInvoice extends Model
         'invoice_date',
         'due_date',
         'vendor_id',
+        'project_contract_id',
         'warehouse_id',
         'subtotal',
         'tax_amount',
@@ -60,6 +61,11 @@ class PurchaseInvoice extends Model
     public function vendorDetails(): BelongsTo
     {
         return $this->belongsTo(\Workdo\Account\Models\Vendor::class, 'vendor_id', 'user_id');
+    }
+
+    public function projectContract(): BelongsTo
+    {
+        return $this->belongsTo(\Workdo\Taskly\Models\ProjectContract::class);
     }
 
     public function paymentAllocations(): HasMany

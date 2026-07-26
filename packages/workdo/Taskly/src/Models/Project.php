@@ -58,6 +58,29 @@ class Project extends Model
         return $this->hasMany(\Workdo\Taskly\Models\ProjectFile::class);
     }
 
+    public function contracts()
+    {
+        return $this->hasMany(ProjectContract::class);
+    }
+
+    public function scopeAccessibleTo($query, User $user)
+    {
+        $query->where('created_by', creatorId());
+
+        if ($user->can('manage-any-project')) {
+            return $query;
+        }
+
+        if ($user->can('manage-own-project')) {
+            return $query->where(function ($subQuery) use ($user) {
+                $subQuery->where('creator_id', $user->id)
+                    ->orWhereHas('teamMembers', fn ($teamQuery) => $teamQuery->where('users.id', $user->id));
+            });
+        }
+
+        return $query->whereRaw('1 = 0');
+    }
+
     protected function casts(): array
     {
         return [
@@ -77,7 +100,8 @@ class Project extends Model
             'manage-project-task',
             'manage-own-project-task',
             'manage-project-bug',
-            'manage-own-project-bug'
+            'manage-own-project-bug',
+            'manage-project-contractors'
         ];
 
         $client_permission = [

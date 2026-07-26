@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\ValidProjectContractForVendor;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StorePurchaseInvoiceRequest extends FormRequest
@@ -17,6 +18,7 @@ class StorePurchaseInvoiceRequest extends FormRequest
             'invoice_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:invoice_date',
             'vendor_id' => 'required|exists:users,id',
+            'project_contract_id' => ['nullable', 'integer', new ValidProjectContractForVendor($this->input('vendor_id'))],
             'warehouse_id' => 'nullable|exists:warehouses,id',
             'payment_terms' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
@@ -36,6 +38,7 @@ class StorePurchaseInvoiceRequest extends FormRequest
     {
         return [
             'vendor_id.exists' => __('Selected vendor does not exist.'),
+            'project_contract_id.integer' => __('The selected project contract is invalid.'),
             'items.required' => __('At least one item is required.'),
             'items.*.product_id.min' => __('Please select a product for each item.'),
             'items.*.quantity.min' => __('Quantity must be at least 1.'),

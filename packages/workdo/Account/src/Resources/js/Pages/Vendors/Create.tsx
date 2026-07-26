@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CreateVendorProps, CreateVendorFormData } from './types';
 import { useFormFields } from '@/hooks/useFormFields';
 
-export default function Create({ onSuccess, users = [], auth }: CreateVendorProps) {
+export default function Create({ onSuccess, users = [], auth, returnTo }: CreateVendorProps) {
     const { t } = useTranslation();
     const { data, setData, post, processing, errors } = useForm<CreateVendorFormData>({
         user_id: '0',
@@ -42,6 +42,7 @@ export default function Create({ onSuccess, users = [], auth }: CreateVendorProp
         },
         same_as_billing: false,
         notes: '',
+        return_to: returnTo || '',
     });
 
     const customFields = useFormFields('getCustomFields', { ...data, module: 'Account', sub_module: 'Vendor' }, setData, errors, 'create', t);
