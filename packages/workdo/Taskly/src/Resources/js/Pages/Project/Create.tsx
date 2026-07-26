@@ -9,6 +9,8 @@ import { MultiSelectEnhanced } from '@/components/ui/multi-select-enhanced';
 import { DatePicker } from '@/components/ui/date-picker';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { useFormFields } from '@/hooks/useFormFields';
+import { ProjectPropertyFields } from './ProjectPropertyFields';
+import { emptyProjectPropertyInformation } from './types';
 
 interface CreateProps {
     onSuccess: () => void;
@@ -29,6 +31,7 @@ export default function Create({ onSuccess, users }: CreateProps) {
         budget: 0,
         start_date: '',
         end_date: '',
+        property_information: emptyProjectPropertyInformation(),
     });
 
     // AI hooks for name and description fields
@@ -46,7 +49,7 @@ export default function Create({ onSuccess, users }: CreateProps) {
     };
 
     return (
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
             <DialogHeader>
                 <DialogTitle>{t('Create Project')}</DialogTitle>
             </DialogHeader>
@@ -105,6 +108,12 @@ export default function Create({ onSuccess, users }: CreateProps) {
                     )}
                     {errors.user_ids && <p className="text-sm text-red-500 mt-1">{errors.user_ids}</p>}
                 </div>
+
+                <ProjectPropertyFields
+                    value={data.property_information}
+                    onChange={(value) => setData('property_information', value)}
+                    errors={errors}
+                />
 
                 <div>
                     <CurrencyInput

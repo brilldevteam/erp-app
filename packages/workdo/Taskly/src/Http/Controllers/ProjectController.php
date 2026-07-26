@@ -110,6 +110,7 @@ class ProjectController extends Controller
             $project                = new Project();
             $project->name          = $validated['name'];
             $project->description   = $validated['description'];
+            $project->property_information = $validated['property_information'];
             $project->budget        = $validated['budget'];
             $project->start_date    = $validated['start_date'];
             $project->end_date      = $validated['end_date'];
@@ -255,7 +256,7 @@ class ProjectController extends Controller
     {
         if (Auth::user()->can('edit-project') && $project->created_by == creatorId()) {
             return response()->json([
-                'project' => $project->only(['id', 'name', 'description', 'budget', 'start_date', 'end_date', 'status'])
+                'project' => $project->only(['id', 'name', 'description', 'property_information', 'budget', 'start_date', 'end_date', 'status'])
             ]);
         } else {
             return response()->json(['error' => 'Permission denied'], 403);
@@ -270,6 +271,7 @@ class ProjectController extends Controller
 
             $project->name         = $validated['name'];
             $project->description  = $validated['description'];
+            $project->property_information = $validated['property_information'];
             $project->budget       = $validated['budget'];
             $project->start_date   = $validated['start_date'];
             $project->end_date     = $validated['end_date'];

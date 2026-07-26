@@ -6,6 +6,7 @@ import { formatCurrency, formatDate, getCompanySetting } from '@/utils/helpers';
 import { Quotation } from './types';
 import DocumentTemplatePreview from '@/components/document-templates/document-template-preview';
 import { DocumentTemplate, TemplateSampleDocument } from '@/types/document-template';
+import { AddressDisplay } from '@/components/address-display';
 
 interface PrintProps {
     quotation: Quotation;
@@ -105,11 +106,7 @@ export default function Print() {
                             <p className="font-semibold">{quotation.customer?.name}</p>
                             <p>{quotation.customer?.email}</p>
                             {quotation.customer_details?.billing_address && (
-                                <>
-                                    <p>{quotation.customer_details.billing_address.name}</p>
-                                    <p>{quotation.customer_details.billing_address.address_line_1}</p>
-                                    <p>{quotation.customer_details.billing_address.city}, {quotation.customer_details.billing_address.state} {quotation.customer_details.billing_address.zip_code}</p>
-                                </>
+                                <AddressDisplay address={quotation.customer_details.billing_address} />
                             )}
                         </div>
                     </div>
@@ -117,11 +114,7 @@ export default function Print() {
                         <h3 className="font-bold mb-3">{t('SHIP TO')}</h3>
                         <div className="text-sm space-y-1">
                             {quotation.customer_details?.shipping_address ? (
-                                <>
-                                    <p className="font-semibold">{quotation.customer_details.shipping_address.name}</p>
-                                    <p>{quotation.customer_details.shipping_address.address_line_1}</p>
-                                    <p>{quotation.customer_details.shipping_address.city}, {quotation.customer_details.shipping_address.state} {quotation.customer_details.shipping_address.zip_code}</p>
-                                </>
+                                <AddressDisplay address={quotation.customer_details.shipping_address} />
                             ) : (
                                 <p className="text-gray-500">{t('Same as billing address')}</p>
                             )}

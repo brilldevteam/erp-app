@@ -8,6 +8,7 @@ import { usePageButtons } from '@/hooks/usePageButtons';
 import { useFormFields } from '@/hooks/useFormFields';
 import DocumentTemplatePreview from '@/components/document-templates/document-template-preview';
 import { DocumentTemplate, TemplateSampleDocument } from '@/types/document-template';
+import { AddressDisplay } from '@/components/address-display';
 
 interface PrintProps {
     invoice: SalesInvoice;
@@ -159,11 +160,7 @@ export default function Print() {
                             )}
                             <p>{invoice.customer?.email}</p>
                             {invoice.customer_details?.billing_address && (
-                                <>
-                                    <p>{invoice.customer_details.billing_address.name}</p>
-                                    <p>{invoice.customer_details.billing_address.address_line_1}</p>
-                                    <p>{invoice.customer_details.billing_address.city}, {invoice.customer_details.billing_address.state} {invoice.customer_details.billing_address.zip_code}</p>
-                                </>
+                                <AddressDisplay address={invoice.customer_details.billing_address} />
                             )}
                         </div>
                     </div>
@@ -171,11 +168,7 @@ export default function Print() {
                         <h3 className="font-bold mb-3">{t('SHIP TO')}</h3>
                         <div className="text-sm space-y-1">
                             {invoice.customer_details?.shipping_address ? (
-                                <>
-                                    <p className="font-semibold">{invoice.customer_details.shipping_address.name}</p>
-                                    <p>{invoice.customer_details.shipping_address.address_line_1}</p>
-                                    <p>{invoice.customer_details.shipping_address.city}, {invoice.customer_details.shipping_address.state} {invoice.customer_details.shipping_address.zip_code}</p>
-                                </>
+                                <AddressDisplay address={invoice.customer_details.shipping_address} />
                             ) : (
                                 <p className="text-gray-500">{t('Same as billing address')}</p>
                             )}

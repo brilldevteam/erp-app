@@ -1,4 +1,19 @@
 import { PaginatedData, ModalState, AuthContext, CreateProps, EditProps } from '@/types/common';
+import { CountryAddress } from '@/types/address';
+
+export interface ProjectPropertyInformation extends CountryAddress {
+    plot_number: string;
+    property_number: string;
+    location_url: string;
+}
+
+export const emptyProjectPropertyInformation = (): ProjectPropertyInformation => ({
+    country: '',
+    country_code: '',
+    plot_number: '',
+    property_number: '',
+    location_url: '',
+});
 
 export interface Project {
     id: number;
@@ -8,6 +23,7 @@ export interface Project {
     start_date?: string;
     end_date?: string;
     status: 'Ongoing' | 'Onhold' | 'Finished';
+    property_information?: ProjectPropertyInformation | null;
     team_members?: Array<{
         id: number;
         name: string;
@@ -23,6 +39,7 @@ export interface ProjectFormData {
     end_date?: string;
     status: 'Ongoing' | 'Onhold' | 'Finished';
     user_ids?: number[];
+    property_information: ProjectPropertyInformation;
 }
 
 export interface CreateProjectProps extends CreateProps {
@@ -65,4 +82,6 @@ export interface ProjectFormErrors {
     end_date?: string;
     status?: string;
     user_ids?: string;
+    property_information?: string;
+    [key: `property_information.${string}`]: string | undefined;
 }

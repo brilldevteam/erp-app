@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Building2 } from 'lucide-react';
 import { Customer } from './types';
 import { useFormFields } from '@/hooks/useFormFields';
+import { AddressDisplay } from '@/components/address-display';
 
 interface ViewProps {
     customer: Customer;
@@ -66,22 +67,14 @@ export default function View({ customer }: ViewProps) {
                 {customer.billing_address && (
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">{t('Billing Address')}</label>
-                        <div className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                            {customer.billing_address.address && <p>{customer.billing_address.address}</p>}
-                            {customer.billing_address.city && <p>{customer.billing_address.city}, {customer.billing_address.state} {customer.billing_address.zip_code}</p>}
-                            {customer.billing_address.country && <p>{customer.billing_address.country}</p>}
-                        </div>
+                        <AddressDisplay address={customer.billing_address} className="rounded bg-gray-50 p-2 text-sm text-gray-900" />
                     </div>
                 )}
 
                 {customer.shipping_address && !customer.same_as_billing && (
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">{t('Shipping Address')}</label>
-                        <div className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                            {customer.shipping_address.address && <p>{customer.shipping_address.address}</p>}
-                            {customer.shipping_address.city && <p>{customer.shipping_address.city}, {customer.shipping_address.state} {customer.shipping_address.zip_code}</p>}
-                            {customer.shipping_address.country && <p>{customer.shipping_address.country}</p>}
-                        </div>
+                        <AddressDisplay address={customer.shipping_address} className="rounded bg-gray-50 p-2 text-sm text-gray-900" />
                     </div>
                 )}
 

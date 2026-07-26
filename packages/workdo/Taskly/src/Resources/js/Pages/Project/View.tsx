@@ -19,7 +19,7 @@ import { CurrencyInput } from '@/components/ui/currency-input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatCurrency, formatDate, downloadFile } from '@/utils/helpers';
 import { getImagePath } from '@/utils/helpers';
-import { Plus, Trash2, Edit, FolderKanban, Kanban, List, Bug, CheckSquare, Calendar, Activity, Image, File, FileText, Video, Music, Download, Eye } from "lucide-react";
+import { Plus, Trash2, Edit, FolderKanban, Kanban, List, Bug, CheckSquare, Calendar, Activity, Image, File, FileText, Video, Music, Download, Eye, MapPin, ExternalLink } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { DataTable } from "@/components/ui/data-table";
 import NoRecordsFound from '@/components/no-records-found';
@@ -29,6 +29,10 @@ import { LineChart } from '@/components/charts/LineChart';
 import MediaPicker from "@/components/MediaPicker";
 import axios from 'axios';
 import { useFormFields } from '@/hooks/useFormFields';
+import { LocationQrCode } from '@/components/location-qr-code';
+import { formatCountryAddressLines } from '@/types/address';
+import { ProjectPropertyFields } from './ProjectPropertyFields';
+import { ProjectPropertyInformation, emptyProjectPropertyInformation } from './types';
 
 
 
@@ -36,6 +40,11 @@ interface Project {
     id: number;
     name: string;
     description?: string;
+    budget?: number;
+    start_date?: string;
+    end_date?: string;
+    status: 'Ongoing' | 'Onhold' | 'Finished';
+    property_information?: ProjectPropertyInformation | null;
     user: { id: number; name: string; };
     creator: { id: number; name: string; };
     team_members: Array<{ id: number; name: string; }>;
@@ -157,6 +166,7 @@ export default function Show() {
         start_date: '',
         end_date: '',
         status: 'Ongoing',
+        property_information: emptyProjectPropertyInformation(),
     });
 
     const { data: imagesData, setData: setImagesData, post: postImages, processing: imagesProcessing, errors: imagesErrors, reset: resetImages } = useForm({
@@ -187,6 +197,7 @@ export default function Show() {
                 start_date: projectData.start_date || '',
                 end_date: projectData.end_date || '',
                 status: projectData.status || 'Ongoing',
+                property_information: { ...emptyProjectPropertyInformation(), ...(projectData.property_information || {}) },
             });
             setIsEditProjectModalOpen(true);
         } catch (error) {
@@ -502,6 +513,54 @@ export default function Show() {
                     </CardContent>
                 </Card>
             </div>
+
+            <Card className="mb-6 shadow-sm">
+                <CardHeader className="border-b bg-gray-50/50 p-6">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                        <MapPin className="h-5 w-5 text-blue-600" />
+                        {t('Project Property Information')}
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                    {project.property_information ? (
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,1fr)_10rem]">
+                            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                                <div>
+                                    <span className="block text-sm font-medium text-gray-600">{t('Property Address')}</span>
+                                    <div className="mt-1 space-y-1 text-sm text-gray-900">
+                                        {formatCountryAddressLines(project.property_information, t).map((line, index) => <p key={index}>{line}</p>)}
+                                    </div>
+                                </div>
+                                <div className="space-y-4">
+                                    <div>
+                                        <span className="block text-sm font-medium text-gray-600">{t('Plot Number')}</span>
+                                        <span className="text-sm text-gray-900">{project.property_information.plot_number}</span>
+                                    </div>
+                                    <div>
+                                        <span className="block text-sm font-medium text-gray-600">{t('Property Number')}</span>
+                                        <span className="text-sm text-gray-900">{project.property_information.property_number}</span>
+                                    </div>
+                                    <div>
+                                        <span className="block text-sm font-medium text-gray-600">{t('Location Map Link')}</span>
+                                        <a
+                                            href={project.property_information.location_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="mt-1 inline-flex max-w-full items-center gap-1 break-all text-sm text-blue-600 hover:underline"
+                                        >
+                                            {project.property_information.location_url}
+                                            <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <LocationQrCode url={project.property_information.location_url} className="self-start" />
+                        </div>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">{t('Not provided')}</p>
+                    )}
+                </CardContent>
+            </Card>
 
 
 
@@ -1240,7 +1299,7 @@ export default function Show() {
             />
 
             <Dialog open={isEditProjectModalOpen} onOpenChange={setIsEditProjectModalOpen}>
-                <DialogContent>
+                <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>{t('Edit Project')}</DialogTitle>
                     </DialogHeader>
@@ -1290,6 +1349,12 @@ export default function Show() {
                                     required
                                 />
                             </div>
+
+                            <ProjectPropertyFields
+                                value={editProjectData.property_information}
+                                onChange={(value) => setEditProjectData('property_information', value)}
+                                errors={editProjectErrors}
+                            />
 
                             <div>
                                 <Label htmlFor="edit_project_status">{t('Status')}</Label>
