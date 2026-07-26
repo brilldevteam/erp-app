@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import html2pdf from 'html2pdf.js';
 import { formatCurrency, formatDate, getCompanySetting } from '@/utils/helpers';
 import { Retainer } from './types';
+import { AddressDisplay } from '@/components/address-display';
 
 interface PrintProps {
     retainer: Retainer;
@@ -95,11 +96,7 @@ export default function Print() {
                             <p className="font-semibold">{retainer.customer?.name}</p>
                             <p>{retainer.customer?.email}</p>
                             {retainer.customer_details?.billing_address && (
-                                <>
-                                    <p>{retainer.customer_details.billing_address.name}</p>
-                                    <p>{retainer.customer_details.billing_address.address_line_1}</p>
-                                    <p>{retainer.customer_details.billing_address.city}, {retainer.customer_details.billing_address.state} {retainer.customer_details.billing_address.zip_code}</p>
-                                </>
+                                <AddressDisplay address={retainer.customer_details.billing_address} />
                             )}
                         </div>
                     </div>
@@ -107,11 +104,7 @@ export default function Print() {
                         <h3 className="font-bold mb-3">{t('SHIP TO')}</h3>
                         <div className="text-sm space-y-1">
                             {retainer.customer_details?.shipping_address ? (
-                                <>
-                                    <p className="font-semibold">{retainer.customer_details.shipping_address.name}</p>
-                                    <p>{retainer.customer_details.shipping_address.address_line_1}</p>
-                                    <p>{retainer.customer_details.shipping_address.city}, {retainer.customer_details.shipping_address.state} {retainer.customer_details.shipping_address.zip_code}</p>
-                                </>
+                                <AddressDisplay address={retainer.customer_details.shipping_address} />
                             ) : (
                                 <p className="text-gray-500">{t('Same as billing address')}</p>
                             )}

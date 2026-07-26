@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { FileText, Download } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AddressDisplay } from '@/components/address-display';
 import { usePageButtons } from '@/hooks/usePageButtons';
 import { useFormFields } from '@/hooks/useFormFields';
 
@@ -83,11 +84,7 @@ export default function View() {
                                 {invoice.customer_details?.billing_address && (
                                     <div className="mt-3">
                                         <div className="font-medium text-sm mb-1">{t('Billing Address')}</div>
-                                        <div className="text-sm text-muted-foreground space-y-1">
-                                            <div>{invoice.customer_details.billing_address.name}</div>
-                                            <div>{invoice.customer_details.billing_address.address_line_1}</div>
-                                            <div>{invoice.customer_details.billing_address.city}, {invoice.customer_details.billing_address.state} {invoice.customer_details.billing_address.zip_code}</div>
-                                        </div>
+                                        <AddressDisplay address={invoice.customer_details.billing_address} className="space-y-1 text-sm text-muted-foreground" />
                                     </div>
                                 )}
                             </div>
@@ -95,11 +92,7 @@ export default function View() {
                             {invoice.customer_details?.shipping_address && (
                                 <div>
                                     <h3 className="font-semibold mb-2">{t('SHIPPING ADDRESS')}</h3>
-                                    <div className="text-sm text-muted-foreground space-y-1">
-                                        <div>{invoice.customer_details.shipping_address.name}</div>
-                                        <div>{invoice.customer_details.shipping_address.address_line_1}</div>
-                                        <div>{invoice.customer_details.shipping_address.city}, {invoice.customer_details.shipping_address.state} {invoice.customer_details.shipping_address.zip_code}</div>
-                                    </div>
+                                    <AddressDisplay address={invoice.customer_details.shipping_address} className="space-y-1 text-sm text-muted-foreground" />
                                 </div>
                             )}
                             {pageButtons.length > 0 && pageButtons.map((button, index) => (

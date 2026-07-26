@@ -17,6 +17,7 @@ class StoreContractRequest extends FormRequest
             'subject' => 'required|max:255',
             'user_id' => 'required|exists:users,id',
             'value' => 'required',
+            'amount_paid' => 'nullable|numeric|min:0',
             'type_id' => 'required|exists:contract_types,id',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',

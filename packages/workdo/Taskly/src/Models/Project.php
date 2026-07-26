@@ -15,6 +15,7 @@ class Project extends Model
     protected $fillable = [
         'name',
         'description',
+        'property_information',
         'budget',
         'start_date',
         'end_date',
@@ -87,6 +88,7 @@ class Project extends Model
             'budget' => 'decimal:2',
             'start_date' => 'date',
             'end_date' => 'date',
+            'property_information' => 'array',
         ];
     }
 

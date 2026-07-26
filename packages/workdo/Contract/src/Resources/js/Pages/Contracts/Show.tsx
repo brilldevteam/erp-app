@@ -374,6 +374,22 @@ export default function Show() {
 
                                     <div className="space-y-2">
                                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                            <DollarSign className="h-4 w-4" />
+                                            {t('Amount Paid')}
+                                        </div>
+                                        <p className="font-medium text-lg">{contract.amount_paid ? formatCurrency(contract.amount_paid) : formatCurrency(0)}</p>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                            <DollarSign className="h-4 w-4" />
+                                            {t('Remaining Balance')}
+                                        </div>
+                                        <p className="font-medium text-lg">{formatCurrency(contract.remaining_balance ?? ((contract.value ?? 0) - (contract.amount_paid ?? 0)))}</p>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                             <Calendar className="h-4 w-4" />
                                             {t('Start Date')}
                                         </div>
