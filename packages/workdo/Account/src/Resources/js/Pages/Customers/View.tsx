@@ -15,7 +15,7 @@ export default function View({ customer }: ViewProps) {
     const customFields = useFormFields('getCustomFields', { ...customer, module: 'Account', sub_module: 'Customer', id: customer.id }, () => { }, {}, 'view', t);
 
     return (
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl">
             <DialogHeader className="pb-4 border-b">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary/10 rounded-lg">

@@ -19,6 +19,7 @@ main
 
 ### Improved
 - Enhancements to existing workflows will be listed here before release.
+- Customer create, edit, and view dialogs now use a single vertical scrollbar.
 - Customer billing and shipping addresses now use a searchable country selector with official Qatar and Saudi Arabia address formats.
 - Qatar customer addresses now require an 11-digit QID number, while Saudi addresses require a 10-digit National ID or Iqama number.
 - Project property information now uses the reusable country-specific address fields and includes plot, property, map link, and generated location QR details.
