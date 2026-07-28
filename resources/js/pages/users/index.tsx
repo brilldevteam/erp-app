@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { Dialog } from "@/components/ui/dialog";
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Plus, Edit, Trash2, Key, Users as UsersIcon, User as UserIcon, UserCheck, History, Lock, PackageOpen } from "lucide-react";
+import { Plus, Edit, Trash2, Key, Users as UsersIcon, User as UserIcon, UserCheck, History, Lock, PackageOpen, Mail } from "lucide-react";
 import { getImagePath } from '@/utils/helpers';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FilterButton } from '@/components/ui/filter-button';
@@ -97,6 +97,14 @@ export default function Index() {
             mode: '',
             data: null
         });
+    };
+
+    const sendPasswordReset = (user: User) => {
+        if (confirm(t('Send a password reset link to this user?'))) {
+            router.post(route('users.send-password-reset', user.id), {}, {
+                preserveScroll: true,
+            });
+        }
     };
 
     const tableColumns = [
@@ -197,6 +205,18 @@ export default function Index() {
                                     </TooltipTrigger>
                                     <TooltipContent>
                                         <p>{t('Change Password')}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                            {auth.user?.permissions?.includes('change-password-users') && (
+                                <Tooltip delayDuration={0}>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="sm" onClick={() => sendPasswordReset(user)} className="h-8 w-8 p-0 text-teal-600 hover:text-teal-700">
+                                            <Mail className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{t('Send Password Reset Link')}</p>
                                     </TooltipContent>
                                 </Tooltip>
                             )}
@@ -516,6 +536,21 @@ export default function Index() {
                                                                         </Button>
                                                                     </TooltipTrigger>
                                                                     <TooltipContent><p>{t('Change Password')}</p></TooltipContent>
+                                                                </Tooltip>
+                                                            )}
+                                                            {auth.user?.permissions?.includes('change-password-users') && (
+                                                                <Tooltip delayDuration={0}>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onClick={() => sendPasswordReset(user)}
+                                                                            className="h-9 w-9 p-0 text-teal-600 hover:text-teal-700 rounded-lg transition-colors"
+                                                                        >
+                                                                            <Mail className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent><p>{t('Send Password Reset Link')}</p></TooltipContent>
                                                                 </Tooltip>
                                                             )}
                                                             {auth.user?.permissions?.includes('edit-users') && (

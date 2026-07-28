@@ -76,8 +76,9 @@ export default function Show() {
     const [showSignatureModal, setShowSignatureModal] = useState(false);
     const [isEditingDescription, setIsEditingDescription] = useState(false);
 
-    const { data, setData, put, processing } = useForm({
+    const { data, setData, put, processing, transform } = useForm({
         subject: contract.subject,
+        scopeOfWork: contract.scope_of_work || '',
         user_id: contract.user?.id || '',
         value: contract.value || '',
         type_id: contract.contract_type?.id || '',
@@ -100,6 +101,13 @@ export default function Show() {
     };
 
     const handleSaveDescription = () => {
+        const payload = {
+            ...data,
+            scope_of_work: data.scopeOfWork,
+        };
+        delete (payload as any).scopeOfWork;
+
+        transform(() => payload as any);
         put(route('contract.update', contract.id), {
             onSuccess: () => {
                 setIsEditingDescription(false);
@@ -111,6 +119,7 @@ export default function Show() {
     const handleCancelEdit = () => {
         setData({
             subject: contract.subject,
+            scopeOfWork: contract.scope_of_work || '',
             user_id: contract.user?.id || '',
             value: contract.value || '',
             type_id: contract.contract_type?.id || '',
@@ -362,6 +371,16 @@ export default function Show() {
                                             {t('Contract Type')}
                                         </div>
                                         <p className="font-medium">{contract.contract_type?.name || t('Not Set')}</p>
+                                    </div>
+
+                                    <div className="space-y-2 col-span-full">
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                            <FileText className="h-4 w-4" />
+                                            {t('Scope of Work')}
+                                        </div>
+                                        <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-700 whitespace-pre-wrap break-words">
+                                            {contract.scope_of_work || t('Not Set')}
+                                        </div>
                                     </div>
 
                                     <div className="space-y-2">

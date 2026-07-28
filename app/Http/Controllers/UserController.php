@@ -16,6 +16,7 @@ use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Password;
 
 class UserController extends Controller
 {
@@ -190,9 +191,31 @@ class UserController extends Controller
         if(Auth::user()->can('change-password-users') && $user->created_by == creatorId() ){
             $validated = $request->validated();
             $user->password = Hash::make($validated['password']);
+            $user->password_changed_at = now();
             $user->save();
 
             return redirect()->route('users.index')->with('success', __('The password changed successfully.'));
+        }
+        else{
+            return redirect()->route('users.index')->with('error', __('Permission denied'));
+        }
+    }
+
+    public function sendPasswordReset(User $user)
+    {
+        if(Auth::user()->can('change-password-users') && $user->created_by == creatorId() ){
+            try {
+                SetConfigEmail(creatorId());
+                $status = Password::sendResetLink(['email' => $user->email]);
+
+                if ($status === Password::RESET_LINK_SENT) {
+                    return back()->with('success', __('Password reset link sent successfully.'));
+                }
+
+                return back()->with('error', __($status));
+            } catch (\Throwable $e) {
+                return back()->with('error', $e->getMessage() ?: __('Unable to send password reset link.'));
+            }
         }
         else{
             return redirect()->route('users.index')->with('error', __('Permission denied'));

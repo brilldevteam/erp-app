@@ -22,6 +22,7 @@ export interface ContractSignature {
 export interface Contract {
     id: number;
     subject: string;
+    scope_of_work?: string;
     user_id: number;
     value?: number;
     amount_paid?: number;
@@ -44,6 +45,7 @@ export interface Contract {
 
 export interface CreateContractFormData {
     subject: string;
+    scopeOfWork: string;
     user_id: string;
     value: string;
     amount_paid: string;
@@ -58,6 +60,7 @@ export interface CreateContractFormData {
 
 export interface EditContractFormData {
     subject: string;
+    scopeOfWork: string;
     user_id: string;
     value: string;
     amount_paid: string;

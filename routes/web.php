@@ -9,6 +9,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\SecurityController;
 use App\Http\Controllers\TranslationController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\BankTransferPaymentController;
@@ -66,9 +67,14 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    Route::get('/security', [SecurityController::class, 'index'])->name('security.index');
+    Route::post('/security/logout-other-sessions', [SecurityController::class, 'logoutOtherSessions'])->name('security.logout-other-sessions');
+    Route::delete('/security/sessions/{sessionId}', [SecurityController::class, 'destroySession'])->name('security.sessions.destroy');
+
     // Resource management routes
     Route::resource('users', UserController::class);
     Route::patch('users/{user}/change-password', [UserController::class, 'changePassword'])->name('users.change-password');
+    Route::post('users/{user}/send-password-reset', [UserController::class, 'sendPasswordReset'])->name('users.send-password-reset');
     Route::post('users/{user}/impersonate', [UserController::class, 'impersonate'])->name('users.impersonate');
     Route::post('users/leave-impersonation', [UserController::class, 'leaveImpersonation'])->name('users.leave-impersonation');
     Route::get('users/login/history', [UserController::class, 'loginHistory'])->name('users.login-history');

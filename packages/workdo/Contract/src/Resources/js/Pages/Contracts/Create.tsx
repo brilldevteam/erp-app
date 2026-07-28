@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from '@/components/ui/label';
 import InputError from '@/components/ui/input-error';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -15,8 +16,9 @@ import { useFormFields } from '@/hooks/useFormFields';
 export default function Create({ onSuccess }: CreateContractProps) {
     const { users, contracttypes } = usePage<any>().props;
     const { t } = useTranslation();
-    const { data, setData, post, processing, errors } = useForm<CreateContractFormData>({
+    const { data, setData, post, processing, errors, transform } = useForm<CreateContractFormData>({
         subject: '',
+        scopeOfWork: '',
         user_id: '',
         value: '',
         amount_paid: '',
@@ -35,6 +37,13 @@ export default function Create({ onSuccess }: CreateContractProps) {
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+        const payload = {
+            ...data,
+            scope_of_work: data.scopeOfWork,
+        };
+        delete (payload as any).scopeOfWork;
+
+        transform(() => payload as any);
         post(route('contract.store'), {
             onSuccess: () => {
                 onSuccess();
@@ -62,6 +71,19 @@ export default function Create({ onSuccess }: CreateContractProps) {
                         <InputError message={errors.subject} />
                     </div>
                     {subjectAI.map(field => <div key={field.id}>{field.component}</div>)}
+                </div>
+
+                <div>
+                    <Label htmlFor="scopeOfWork" required>{t('Scope of Work')}</Label>
+                    <Textarea
+                        id="scopeOfWork"
+                        value={data.scopeOfWork}
+                        onChange={(e) => setData('scopeOfWork', e.target.value)}
+                        placeholder={t('Enter the scope of work...')}
+                        rows={6}
+                        required
+                    />
+                    <InputError message={(errors as any).scope_of_work || errors.scopeOfWork} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

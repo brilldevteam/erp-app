@@ -15,6 +15,8 @@ manual-journal-entries
 - Purchase invoices now support attaching supplier invoices, receipts, and other supporting documents.
 - Projects now support main contractors and subcontractors backed by vendors, with contract scopes, dates, accounting-linked payments, and remaining balances.
 - Contracts now track amount paid, with the remaining balance calculated automatically.
+- Contracts now include a required plain-text Scope of Work field with multiline input support and preserved formatting on detail pages.
+- Added Zoho-style Security Settings with password changes, active sessions, logout-other-devices support, login history, and admin reset-link sending.
 main
 
 ### Improved
@@ -40,10 +42,12 @@ main
 - Sales invoice lines now support optional configured tax types and display a dash when no tax applies.
 - Sales invoice lines support optional configured tax types, and invoice or quotation documents display a dash when no tax is selected.
 - Product and service items can now be created or edited without assigning a tax.
+- Updated profile/security separation so profile details and password security are managed on separate pages.
 
 ### Fixed
 - Bug fixes and production stability improvements will be listed here before release.
 - Invoice and quotation template previews now place the document badge on the left when the header is aligned right.
+- Fixed PHP 8.5 database configuration deprecation output for MySQL SSL CA attributes.
 
 ---
 
