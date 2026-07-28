@@ -29,11 +29,14 @@ interface BrandContextType {
 const BrandContext = createContext<BrandContextType | undefined>(undefined);
 
 export function BrandProvider({ children }: { children: ReactNode }) {
-  const { adminAllSetting, companyAllSetting, auth } = usePage().props as any;
+  const { adminAllSetting, companyAllSetting, loginBrandSetting, auth } = usePage().props as any;
+  const isGuest = !auth?.user?.id;
   const isSuperAdmin = auth?.user?.roles?.includes('superadmin');
 
   let globalSettings;
-  if(isSuperAdmin != undefined) {
+  if (isGuest && loginBrandSetting && Object.keys(loginBrandSetting).length > 0) {
+        globalSettings = loginBrandSetting;
+    } else if(isSuperAdmin != undefined) {
         globalSettings = isSuperAdmin ? adminAllSetting : companyAllSetting;
     } else {
         globalSettings = adminAllSetting ;

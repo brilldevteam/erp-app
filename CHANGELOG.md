@@ -21,6 +21,7 @@ main
 
 ### Improved
 - Enhancements to existing workflows will be listed here before release.
+- Login page now uses saved brand theme colors and logo styling with a responsive desktop/mobile layout.
 - Customer create, edit, and view dialogs now use a single vertical scrollbar.
 - Customer billing and shipping addresses now use a searchable country selector with official Qatar and Saudi Arabia address formats.
 - Qatar customer addresses now require an 11-digit QID number, while Saudi addresses require a 10-digit National ID or Iqama number.

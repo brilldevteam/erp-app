@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { useFormFields } from '@/hooks/useFormFields';
 import { usePageButtons } from '@/hooks/usePageButtons';
 import SocialAuthButtons from '@/components/social-auth-buttons';
+import { LockKeyhole, Mail } from 'lucide-react';
 
 export default function Login({
     status,
@@ -66,18 +67,22 @@ export default function Login({
                 <div className="grid gap-6">
                     <div className="grid gap-2">
                         <Label htmlFor="email">{t('Email Address')}</Label>
-                        <Input
-                            id="email"
-                            type="email"
-                            name="email"
-                            value={data.email}
-                            onChange={(e) => setData('email', e.target.value)}
-                            required
-                            autoFocus
-                            tabIndex={1}
-                            autoComplete="email"
-                            placeholder="email@example.com"
-                        />
+                        <div className="relative">
+                            <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+                            <Input
+                                id="email"
+                                type="email"
+                                name="email"
+                                value={data.email}
+                                onChange={(e) => setData('email', e.target.value)}
+                                required
+                                autoFocus
+                                tabIndex={1}
+                                autoComplete="email"
+                                placeholder="email@example.com"
+                                className="h-12 pl-10"
+                            />
+                        </div>
                         <InputError message={errors.email} />
                     </div>
 
@@ -94,17 +99,21 @@ export default function Login({
                                 </Link>
                             )}
                         </div>
-                        <Input
-                            id="password"
-                            type="password"
-                            name="password"
-                            value={data.password}
-                            onChange={(e) => setData('password', e.target.value)}
-                            required
-                            tabIndex={2}
-                            autoComplete="current-password"
-                            placeholder={t('Password')}
-                        />
+                        <div className="relative">
+                            <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+                            <Input
+                                id="password"
+                                type="password"
+                                name="password"
+                                value={data.password}
+                                onChange={(e) => setData('password', e.target.value)}
+                                required
+                                tabIndex={2}
+                                autoComplete="current-password"
+                                placeholder={t('Password')}
+                                className="h-12 pl-10"
+                            />
+                        </div>
                         <InputError message={errors.password} />
                     </div>
 
@@ -127,7 +136,7 @@ export default function Login({
 
                     <Button
                         type="submit"
-                        className="mt-4 w-full"
+                        className="mt-2 h-12 w-full font-semibold"
                         tabIndex={4}
                         disabled={processing}
                         data-test="login-button"

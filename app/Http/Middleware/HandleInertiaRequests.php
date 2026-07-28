@@ -7,6 +7,7 @@ use Inertia\Middleware;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\File;
 use App\Classes\Module;
+use App\Models\Setting;
 use App\Services\SocialAuthSettingsService;
 use App\Services\TimeClockDeviceService;
 
@@ -76,6 +77,7 @@ class HandleInertiaRequests extends Middleware
                 ? $socialAuthSettings->sanitize(getAdminAllSetting())
                 : $socialAuthSettings->sanitize(getAdminAllSetting(true)),
             'companyAllSetting' => $request->user() ? getCompanyAllSetting($request->user()->id) : [],
+            'loginBrandSetting' => $request->user() ? [] : $this->getPublicLoginBrandSetting(),
             'imageUrlPrefix' =>  getImageUrlPrefix(),
             'baseUrl' =>  url('/'),
             'currencies' => config('default_currency.currencies', []),
@@ -124,5 +126,31 @@ class HandleInertiaRequests extends Middleware
     private function isInstalled(): bool
     {
         return File::exists(storage_path('installed'));
+    }
+
+    private function getPublicLoginBrandSetting(): array
+    {
+        $brandKeys = [
+            'logo_dark',
+            'logo_light',
+            'favicon',
+            'titleText',
+            'footerText',
+            'layoutDirection',
+            'themeMode',
+            'themeColor',
+            'customColor',
+        ];
+
+        $latestBrandSetting = Setting::whereIn('key', $brandKeys)
+            ->where('is_public', 1)
+            ->latest('updated_at')
+            ->first();
+
+        if (!$latestBrandSetting) {
+            return getAdminAllSetting(true);
+        }
+
+        return getCompanyAllSetting($latestBrandSetting->created_by, true) ?: getAdminAllSetting(true);
     }
 }
