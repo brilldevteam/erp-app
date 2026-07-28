@@ -22,6 +22,7 @@ class Contract extends Model
 
     protected $fillable = [
         'subject',
+        'scope_of_work',
         'user_id',
         'value',
         'amount_paid',

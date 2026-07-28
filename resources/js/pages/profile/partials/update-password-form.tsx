@@ -8,6 +8,7 @@ import { InputError } from "@/components/ui/input-error";
 import { Button } from "@/components/ui/button";
 import { usePage } from "@inertiajs/react";
 import { PageProps } from "@/types";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function UpdatePasswordForm({
     className = "",
@@ -31,6 +32,7 @@ export default function UpdatePasswordForm({
         current_password: "",
         password: "",
         password_confirmation: "",
+        logout_other_devices: false,
     });
 
     const updatePassword: FormEventHandler = (e) => {
@@ -56,6 +58,12 @@ export default function UpdatePasswordForm({
     return (
         <section className={className}>
             <form onSubmit={updatePassword} className="mt-6 space-y-6">
+                {auth.impersonating && (
+                    <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        {t('Leave Login As User to change password.')}
+                    </div>
+                )}
+
                 <div>
                     <Label htmlFor="current_password">{t('Current Password')}</Label>
 
@@ -95,6 +103,9 @@ export default function UpdatePasswordForm({
                     />
 
                     <InputError message={errors.password} className="mt-2" />
+                    <p className="mt-2 text-xs text-gray-500">
+                        {t('Use at least 8 characters with uppercase, lowercase, number, and symbol.')}
+                    </p>
                 </div>
 
                 <div>
@@ -121,9 +132,18 @@ export default function UpdatePasswordForm({
                     />
                 </div>
 
+                <Label className="flex items-center gap-3 text-sm font-normal">
+                    <Checkbox
+                        checked={data.logout_other_devices}
+                        onCheckedChange={(checked) => setData('logout_other_devices', checked === true)}
+                        disabled={processing || auth.impersonating}
+                    />
+                    {t('Log out from other devices after changing password')}
+                </Label>
+
                 {auth.user?.permissions?.includes('change-password-profile') && (
                     <div className="flex items-center justify-end gap-4">
-                        <Button disabled={processing}>{t('Save Changes')}</Button>
+                        <Button disabled={processing || auth.impersonating}>{t('Save Changes')}</Button>
                     </div>
                 )}
             </form>

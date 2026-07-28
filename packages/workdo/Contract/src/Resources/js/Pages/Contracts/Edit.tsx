@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from '@/components/ui/label';
 import InputError from '@/components/ui/input-error';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -15,8 +16,9 @@ import { useFormFields } from '@/hooks/useFormFields';
 export default function EditContract({ contract, onSuccess }: EditContractProps) {
     const { users, contracttypes } = usePage<any>().props;
     const { t } = useTranslation();
-    const { data, setData, put, processing, errors } = useForm<EditContractFormData>({
+    const { data, setData, put, processing, errors, transform } = useForm<EditContractFormData>({
         subject: contract.subject ?? '',
+        scopeOfWork: contract.scope_of_work ?? '',
         user_id: contract.user_id?.toString() ?? '',
         value: contract.value?.toString() ?? '',
         amount_paid: contract.amount_paid?.toString() ?? '',
@@ -31,6 +33,13 @@ export default function EditContract({ contract, onSuccess }: EditContractProps)
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+        const payload = {
+            ...data,
+            scope_of_work: data.scopeOfWork,
+        };
+        delete (payload as any).scopeOfWork;
+
+        transform(() => payload as any);
         put(route('contract.update', contract.id), {
             onSuccess: () => {
                 onSuccess();
@@ -58,6 +67,19 @@ export default function EditContract({ contract, onSuccess }: EditContractProps)
                         <InputError message={errors.subject} />
                     </div>
                     {subjectAI.map(field => <div key={field.id}>{field.component}</div>)}
+                </div>
+
+                <div>
+                    <Label htmlFor="scopeOfWork" required>{t('Scope of Work')}</Label>
+                    <Textarea
+                        id="scopeOfWork"
+                        value={data.scopeOfWork}
+                        onChange={(e) => setData('scopeOfWork', e.target.value)}
+                        placeholder={t('Enter the scope of work...')}
+                        rows={6}
+                        required
+                    />
+                    <InputError message={(errors as any).scope_of_work || errors.scopeOfWork} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

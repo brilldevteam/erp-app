@@ -7,6 +7,7 @@ import {
   Moon,
   Sun,
   Monitor,
+  ShieldCheck,
 } from "lucide-react"
 import { useTranslation } from 'react-i18next'
 import { LanguageSwitcher } from './language-switcher'
@@ -101,6 +102,14 @@ export function NavUser({
                 </Link>
               </DropdownMenuItem>
             )}
+            {auth.user?.permissions?.includes('change-password-profile') && (
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link href={route('security.index')}>
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  {t('Security Settings')}
+                </Link>
+              </DropdownMenuItem>
+            )}
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20">
@@ -165,6 +174,14 @@ export function NavUser({
                   <Link href={route('profile.edit')}>
                     <BadgeCheck className="mr-2 h-4 w-4" />
                     {t('Edit Profile')}
+                  </Link>
+                </DropdownMenuItem>
+              )}
+              {auth.user?.permissions?.includes('change-password-profile') && (
+                <DropdownMenuItem asChild>
+                  <Link href={route('security.index')}>
+                    <ShieldCheck className="mr-2 h-4 w-4" />
+                    {t('Security Settings')}
                   </Link>
                 </DropdownMenuItem>
               )}

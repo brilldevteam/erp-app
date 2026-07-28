@@ -15,6 +15,7 @@ class StoreContractRequest extends FormRequest
     {
         return [
             'subject' => 'required|max:255',
+            'scope_of_work' => 'required|string',
             'user_id' => 'required|exists:users,id',
             'value' => 'required',
             'amount_paid' => 'nullable|numeric|min:0',
