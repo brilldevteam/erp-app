@@ -98,6 +98,24 @@ class ForceLogoutOtherDevicesTest extends TestCase
             ]);
     }
 
+    public function test_legacy_web_session_without_version_is_revoked_after_security_revoke(): void
+    {
+        $user = User::factory()->create([
+            'security_version' => 2,
+            'security_revoked_at' => now(),
+            'security_revoked_reason' => AuthSessionService::LOGOUT_OTHER_DEVICES,
+        ]);
+
+        $this->actingAs($user)
+            ->getJson('/_test/protected-session')
+            ->assertUnauthorized()
+            ->assertJson([
+                'success' => false,
+                'code' => 'SESSION_REVOKED',
+                'reason' => AuthSessionService::LOGOUT_OTHER_DEVICES,
+            ]);
+    }
+
     public function test_incorrect_current_password_does_not_revoke_sessions(): void
     {
         $user = $this->userWithPasswordPermission();
@@ -116,7 +134,14 @@ class ForceLogoutOtherDevicesTest extends TestCase
 
     private function userWithPasswordPermission(): User
     {
-        Permission::findOrCreate('change-password-profile');
+        Permission::firstOrCreate(
+            ['name' => 'change-password-profile', 'guard_name' => 'web'],
+            [
+                'add_on' => 'Base',
+                'module' => 'profile',
+                'label' => 'Change Password Profile',
+            ],
+        );
 
         $user = User::factory()->create(['security_version' => 1]);
         $user->givePermissionTo('change-password-profile');

@@ -99,6 +99,10 @@ class AuthSessionService
         $sessionVersion = $request->session()->get(self::SESSION_KEY);
 
         if ($sessionVersion === null) {
+            if ($user->security_revoked_at !== null) {
+                return false;
+            }
+
             $request->session()->put(self::SESSION_KEY, $currentVersion);
 
             return true;
