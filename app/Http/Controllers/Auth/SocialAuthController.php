@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\CompanyRegistrationService;
+use App\Services\AuthSessionService;
 use App\Services\LoginHistoryService;
 use App\Services\SocialAuthSettingsService;
 use App\Services\SocialOAuthService;
@@ -65,7 +66,8 @@ class SocialAuthController extends Controller
         string $provider,
         SocialOAuthService $oauth,
         CompanyRegistrationService $registration,
-        LoginHistoryService $loginHistory
+        LoginHistoryService $loginHistory,
+        AuthSessionService $authSessions
     ): RedirectResponse {
         if (!in_array($provider, self::PROVIDERS, true)) {
             abort(404);
@@ -154,6 +156,7 @@ class SocialAuthController extends Controller
 
             Auth::login($user, true);
             $request->session()->regenerate();
+            $authSessions->initializeWebSession($request);
             $loginHistory->record($request, $user);
 
             return redirect()->route($createdCompany ? 'plans.index' : 'dashboard');

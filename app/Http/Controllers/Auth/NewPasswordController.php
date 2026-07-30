@@ -13,6 +13,7 @@ use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Services\AuthSessionService;
 
 class NewPasswordController extends Controller
 {
@@ -32,7 +33,7 @@ class NewPasswordController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, AuthSessionService $authSessions): RedirectResponse
     {
         $request->validate([
             'token' => 'required',
@@ -45,11 +46,14 @@ class NewPasswordController extends Controller
         // database. Otherwise we will parse the error and return the response.
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
-            function ($user) use ($request) {
+            function ($user) use ($request, $authSessions) {
                 $user->forceFill([
                     'password' => Hash::make($request->password),
+                    'password_changed_at' => now(),
                     'remember_token' => Str::random(60),
                 ])->save();
+
+                $authSessions->revokeAllDevices($user, AuthSessionService::PASSWORD_RESET);
 
                 event(new PasswordReset($user));
             }

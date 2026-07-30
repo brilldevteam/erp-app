@@ -11,6 +11,22 @@ import { Toaster } from "sonner";
 import { Suspense } from "react";
 import axios from "axios";
 
+const notifySessionRevoked = (payload?: { reason?: string }) => {
+    window.dispatchEvent(new CustomEvent('erp:session-revoked', { detail: payload || {} }));
+};
+
+const parseSessionRevokedResponse = async (response: Response) => {
+    if (response.status !== 401) {
+        return null;
+    }
+
+    try {
+        const payload = await response.clone().json();
+        return payload?.code === 'SESSION_REVOKED' ? payload : null;
+    } catch {
+        return null;
+    }
+};
 
 // Silent CSRF token refresh
 const refreshToken = async () => {
@@ -36,6 +52,11 @@ router.on('before', (event) => {
 
 router.on('error', async (event) => {
     const errors = event.detail.errors;
+    if (errors && Object.values(errors).some(e => String(e).includes('SESSION_REVOKED'))) {
+        notifySessionRevoked();
+        return;
+    }
+
     if (errors && (errors[419] || errors['419'] || Object.values(errors).some(e => String(e).includes('419')))) {
         await refreshToken();
     }
@@ -60,6 +81,12 @@ window.fetch = async (...args) => {
     }
 
     const response = await originalFetch(...args);
+    const revokedPayload = await parseSessionRevokedResponse(response);
+
+    if (revokedPayload) {
+        notifySessionRevoked({ reason: revokedPayload.reason });
+        return response;
+    }
 
     // Fallback: retry on 419 error
     if (response.status === 419) {

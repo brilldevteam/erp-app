@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
 use App\Services\LoginHistoryService;
+use App\Services\AuthSessionService;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -32,11 +33,12 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request, LoginHistoryService $loginHistory): RedirectResponse
+    public function store(LoginRequest $request, LoginHistoryService $loginHistory, AuthSessionService $authSessions): RedirectResponse
     {
         $request->authenticate();
 
         $request->session()->regenerate();
+        $authSessions->initializeWebSession($request);
 
         // Log login history
         $loginHistory->record($request, Auth::user());

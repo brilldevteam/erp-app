@@ -6,7 +6,7 @@ use Workdo\Taskly\Http\Controllers\Api\ProjectApiController;
 use Workdo\Taskly\Http\Controllers\Api\TaskApiController;
 
 Route::prefix('api')->middleware(['api.json'])->group(function () {
-    Route::group(['middleware' => ['auth:sanctum'], 'prefix' => 'taskly'], function () {
+    Route::group(['middleware' => ['auth:sanctum', 'auth.session.current'], 'prefix' => 'taskly'], function () {
         Route::get('users', [ProjectApiController::class, 'getUsers']);
 
         Route::get('home',[DashboardApiController::class,'index']);

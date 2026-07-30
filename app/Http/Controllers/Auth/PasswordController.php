@@ -11,13 +11,14 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\Rules\Password;
+use App\Services\AuthSessionService;
 
 class PasswordController extends Controller
 {
     /**
      * Update the user's password.
      */
-    public function update(Request $request): RedirectResponse
+    public function update(Request $request, AuthSessionService $authSessions): RedirectResponse
     {
         if(Auth::user()->can('change-password-profile') && Auth::user()->id === $request->user()->id){
             if (Session::has('impersonator_id')) {
@@ -34,18 +35,20 @@ class PasswordController extends Controller
                 'logout_other_devices' => ['nullable', 'boolean'],
             ]);
 
-            $request->user()->update([
-                'password' => Hash::make($validated['password']),
-                'password_changed_at' => now(),
-            ]);
+            DB::transaction(function () use ($request, $validated, $authSessions): void {
+                $request->user()->forceFill([
+                    'password' => Hash::make($validated['password']),
+                    'password_changed_at' => now(),
+                ])->save();
 
-            if ($request->boolean('logout_other_devices')) {
                 $request->session()->regenerate();
-                DB::table(config('session.table', 'sessions'))
-                    ->where('user_id', $request->user()->id)
-                    ->where('id', '!=', $request->session()->getId())
-                    ->delete();
-            }
+
+                if ($request->boolean('logout_other_devices')) {
+                    $authSessions->revokeOtherDevices($request->user(), $request, AuthSessionService::PASSWORD_CHANGED);
+                } else {
+                    $authSessions->initializeWebSession($request);
+                }
+            });
 
             try {
                 SetConfigEmail(creatorId());
