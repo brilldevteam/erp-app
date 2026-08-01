@@ -14,6 +14,7 @@ use App\Services\BulkImport\Definitions\ProductServiceDefinition;
 use App\Services\BulkImport\Definitions\ProductServiceTaxDefinition;
 use App\Services\BulkImport\Definitions\ProductServiceUnitDefinition;
 use App\Services\BulkImport\Definitions\PurchaseInvoiceDefinition;
+use App\Services\BulkImport\Definitions\QuotationDefinition;
 use App\Services\BulkImport\Definitions\RevenueCategoryDefinition;
 use App\Services\BulkImport\Definitions\RevenueDefinition;
 use App\Services\BulkImport\Definitions\SalesInvoiceDefinition;
@@ -39,6 +40,7 @@ class BulkImportRegistry
             'revenue-categories' => new RevenueCategoryDefinition(),
             'expense-categories' => new ExpenseCategoryDefinition(),
             'bank-accounts' => new BankAccountDefinition(),
+            'quotations' => new QuotationDefinition(),
             'sales-invoices' => new SalesInvoiceDefinition(),
             'purchase-invoices' => new PurchaseInvoiceDefinition(),
             'customer-payments' => new CustomerPaymentDefinition(),

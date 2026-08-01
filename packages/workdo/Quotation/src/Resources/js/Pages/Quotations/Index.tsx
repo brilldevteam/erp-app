@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { useDeleteHandler } from '@/hooks/useDeleteHandler';
 import { usePageButtons } from '@/hooks/usePageButtons';
+import { BulkImportButton } from '@/components/bulk-import-button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PerPageSelector } from '@/components/ui/per-page-selector';
 import AuthenticatedLayout from "@/layouts/authenticated-layout";
@@ -400,6 +401,9 @@ export default function Index() {
                         {dropboxBtn.map((button) => (
                             <div key={button.id}>{button.component}</div>
                         ))}
+                        {auth.user?.permissions?.includes('import-quotations') && auth.user?.permissions?.includes('create-quotations') && (
+                            <BulkImportButton entity="quotations" label={t('Quotations')} />
+                        )}
                         {auth.user?.permissions?.includes('create-quotations') && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>
