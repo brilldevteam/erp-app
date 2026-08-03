@@ -35,6 +35,7 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'edit-petty-cashes', 'module' => 'petty-cashes', 'label' => 'Edit Petty Cashes'],
             ['name' => 'delete-petty-cashes', 'module' => 'petty-cashes', 'label' => 'Delete Petty Cashes'],
             ['name' => 'approve-petty-cashes', 'module' => 'petty-cashes', 'label' => 'Approve Petty Cashes'],
+            ['name' => 'import-petty-cashes', 'module' => 'petty-cashes', 'label' => 'Import Petty Cashes'],
 
             // PettyCashRequest management
             ['name' => 'manage-petty-cash-requests', 'module' => 'petty-cash-requests', 'label' => 'Manage Petty Cash Requests'],
