@@ -4,9 +4,11 @@ namespace App\Services\BulkImport;
 
 use App\Services\BulkImport\Definitions\AccountTypeDefinition;
 use App\Services\BulkImport\Definitions\BankAccountDefinition;
+use App\Services\BulkImport\Definitions\BankTransferDefinition;
 use App\Services\BulkImport\Definitions\ChartOfAccountDefinition;
 use App\Services\BulkImport\Definitions\CustomerDefinition;
 use App\Services\BulkImport\Definitions\CustomerPaymentDefinition;
+use App\Services\BulkImport\Definitions\JournalEntryDefinition;
 use App\Services\BulkImport\Definitions\ExpenseCategoryDefinition;
 use App\Services\BulkImport\Definitions\ExpenseDefinition;
 use App\Services\BulkImport\Definitions\ProductServiceCategoryDefinition;
@@ -41,6 +43,7 @@ class BulkImportRegistry
             'revenue-categories' => new RevenueCategoryDefinition(),
             'expense-categories' => new ExpenseCategoryDefinition(),
             'bank-accounts' => new BankAccountDefinition(),
+            'bank-transfers' => new BankTransferDefinition(),
             'quotations' => new QuotationDefinition(),
             'sales-invoices' => new SalesInvoiceDefinition(),
             'purchase-invoices' => new PurchaseInvoiceDefinition(),
@@ -48,6 +51,7 @@ class BulkImportRegistry
             'vendor-payments' => new VendorPaymentDefinition(),
             'revenues' => new RevenueDefinition(),
             'expenses' => new ExpenseDefinition(),
+            'journal-entries' => new JournalEntryDefinition(),
             'petty-cashes' => new PettyCashDefinition(),
         ];
     }

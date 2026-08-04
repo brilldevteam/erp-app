@@ -115,6 +115,7 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'manage-journal-entries', 'module' => 'journal-entries', 'label' => 'Manage Journal Entries'],
             ['name' => 'view-journal-entries', 'module' => 'journal-entries', 'label' => 'View Journal Entries'],
             ['name' => 'create-journal-entries', 'module' => 'journal-entries', 'label' => 'Create Journal Entries'],
+            ['name' => 'import-journal-entries', 'module' => 'journal-entries', 'label' => 'Import Journal Entries'],
             ['name' => 'delete-journal-entries', 'module' => 'journal-entries', 'label' => 'Delete Journal Entries'],
 
             // BankTransfer management
@@ -123,6 +124,7 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'manage-own-bank-transfers', 'module' => 'bank-transfers', 'label' => 'Manage Own Bank Transfers'],
             ['name' => 'view-bank-transfers', 'module' => 'bank-transfers', 'label' => 'View Bank Transfers'],
             ['name' => 'create-bank-transfers', 'module' => 'bank-transfers', 'label' => 'Create Bank Transfers'],
+            ['name' => 'import-bank-transfers', 'module' => 'bank-transfers', 'label' => 'Import Bank Transfers'],
             ['name' => 'edit-bank-transfers', 'module' => 'bank-transfers', 'label' => 'Edit Bank Transfers'],
             ['name' => 'delete-bank-transfers', 'module' => 'bank-transfers', 'label' => 'Delete Bank Transfers'],
             ['name' => 'process-bank-transfers', 'module' => 'bank-transfers', 'label' => 'Process Bank Transfers'],

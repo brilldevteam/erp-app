@@ -5,6 +5,7 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Added
+- Added bulk import support for Bank Transfers and Journal Entries, including import permissions and page-level Import actions.
 - New features currently in development will be listed here before release.
 - Added server-enforced logout from other devices with session version checks, API token revocation, active session status polling, and forced session-ended modal.
 - Added a staff-only time clock with clock-in, pause/resume, official-duty tracking, clock-out, daily work updates, HR date-wise review, correction approvals, and immutable attendance history.
@@ -59,6 +60,7 @@ main
 ## [2026-06] Feature Update
 
 ### Added
+- Added bulk import support for Bank Transfers and Journal Entries, including import permissions and page-level Import actions.
 - Social login for Google and Microsoft.
 - Admin-controlled social login settings for enabling providers and managing credentials.
 - Bulk import for customers and products/services.
@@ -89,3 +91,4 @@ main
 - Bulk import requires a running Laravel queue worker.
 - Frontend changes require rebuilding Vite assets for production.
 - Media and module asset fixes require correct public storage handling on hosting.
+
