@@ -42,13 +42,14 @@ type LoginHistoryRecord = {
 
 type SecurityPageProps = PageProps<{
     sessions: SecuritySession[];
+    sessionListingAvailable: boolean;
     loginHistories: LoginHistoryRecord[];
 }>;
 
 export default function SecurityIndex() {
     const { t } = useTranslation();
     const pageProps = usePage<SecurityPageProps>().props;
-    const { sessions, loginHistories } = pageProps;
+    const { sessions, sessionListingAvailable, loginHistories } = pageProps;
     useFlashMessages();
 
     const {
@@ -124,7 +125,9 @@ export default function SecurityIndex() {
                     </CardHeader>
                     <CardContent className="space-y-6 p-6">
                         <div className="divide-y rounded-md border">
-                            {sessions.length === 0 ? (
+                            {!sessionListingAvailable ? (
+                                <div className="p-4 text-sm text-gray-500">{t('Active session listing requires database session storage.')}</div>
+                            ) : sessions.length === 0 ? (
                                 <div className="p-4 text-sm text-gray-500">{t('No active sessions found.')}</div>
                             ) : sessions.map((session) => (
                                 <div key={session.id} className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">

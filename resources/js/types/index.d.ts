@@ -8,6 +8,7 @@ export interface User {
     email_verified_at?: string;
     lang?: string;
     permissions?: string[];
+    security_version?: number;
 }
 
 export interface NavItem {
