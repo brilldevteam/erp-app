@@ -13,6 +13,7 @@ use App\Services\BulkImport\Definitions\ProductServiceCategoryDefinition;
 use App\Services\BulkImport\Definitions\ProductServiceDefinition;
 use App\Services\BulkImport\Definitions\ProductServiceTaxDefinition;
 use App\Services\BulkImport\Definitions\ProductServiceUnitDefinition;
+use App\Services\BulkImport\Definitions\PettyCashDefinition;
 use App\Services\BulkImport\Definitions\PurchaseInvoiceDefinition;
 use App\Services\BulkImport\Definitions\QuotationDefinition;
 use App\Services\BulkImport\Definitions\RevenueCategoryDefinition;
@@ -47,6 +48,7 @@ class BulkImportRegistry
             'vendor-payments' => new VendorPaymentDefinition(),
             'revenues' => new RevenueDefinition(),
             'expenses' => new ExpenseDefinition(),
+            'petty-cashes' => new PettyCashDefinition(),
         ];
     }
 

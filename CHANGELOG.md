@@ -18,6 +18,7 @@ manual-journal-entries
 - Contracts now track amount paid, with the remaining balance calculated automatically.
 - Contracts now include a required plain-text Scope of Work field with multiline input support and preserved formatting on detail pages.
 - Added Zoho-style Security Settings with password changes, active sessions, logout-other-devices support, login history, and admin reset-link sending.
+- Added bulk import support for Petty Cash records, including templates, validation, duplicate handling, and the Petty Cash page import action.
 - Added bulk import support for quotations, including templates, validation, duplicate handling, and the Quotations page import action.
 main
 
