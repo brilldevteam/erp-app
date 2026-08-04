@@ -51,6 +51,7 @@ main
 ### Fixed
 - Bug fixes and production stability improvements will be listed here before release.
 - Invoice and quotation template previews now place the document badge on the left when the header is aligned right.
+- Document template previews now use saved currency settings instead of hardcoded dollar formatting.
 - Fixed PHP 8.5 database configuration deprecation output for MySQL SSL CA attributes.
 
 ---
