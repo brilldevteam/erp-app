@@ -11,12 +11,13 @@ use Workdo\Hrm\Models\Employee;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+use App\Services\AuthSessionService;
 
 class AuthApiController extends Controller
 {
     use ApiResponseTrait;
-    public function login(Request $request)
+    public function login(Request $request, AuthSessionService $authSessions)
     {
         try {
             $validator = Validator::make(
@@ -36,7 +37,9 @@ class AuthApiController extends Controller
                 return $this->errorResponse('The provided credentials are incorrect.');
             }
             $user->tokens()->delete();
-            $token = $user->createToken('api-token')->plainTextToken;
+            $newToken = $user->createToken('api-token');
+            $authSessions->assignTokenVersion($newToken->accessToken, $user);
+            $token = $newToken->plainTextToken;
 
             $module_name = $request->module;
             if (!empty($module_name)) {
@@ -85,17 +88,19 @@ class AuthApiController extends Controller
         }
     }
 
-    public function refresh(Request $request)
+    public function refresh(Request $request, AuthSessionService $authSessions)
     {
         $user = $request->user();
         $user->currentAccessToken()->delete();
-        $token = $user->createToken('api-token')->plainTextToken;
+        $newToken = $user->createToken('api-token');
+        $authSessions->assignTokenVersion($newToken->accessToken, $user);
+        $token = $newToken->plainTextToken;
 
         $data = ['user' => $this->getUserArray($user->id), 'token' => $token];
         return $this->successResponse($data, 'Token refreshed successfully');
     }
 
-    public function changePassword(Request $request)
+    public function changePassword(Request $request, AuthSessionService $authSessions)
     {
         try {
             $validator = Validator::make($request->all(), [
@@ -116,8 +121,16 @@ class AuthApiController extends Controller
                 return $this->errorResponse('The provided password and old password are same.');
             }
 
-            $user->password = Hash::make($request->password);
-            $user->save();
+            DB::transaction(function () use ($request, $user, $authSessions): void {
+                $user->forceFill([
+                    'password' => Hash::make($request->password),
+                    'password_changed_at' => now(),
+                ])->save();
+
+                $authSessions->revokeOtherDevices($user, $request, AuthSessionService::PASSWORD_CHANGED);
+            });
+
+            $user->refresh();
             $data = $this->getUserArray($user->id);
 
             return $this->successResponse($data, 'Password changed successfully');

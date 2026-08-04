@@ -30,6 +30,9 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at',
             'password',
             'password_changed_at',
+            'security_version',
+            'security_revoked_at',
+            'security_revoked_reason',
             'type',
             'avatar',
             'lang',
@@ -68,6 +71,8 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password_changed_at' => 'datetime',
+            'security_revoked_at' => 'datetime',
+            'security_version' => 'integer',
             'password' => 'hashed',
             'is_trial_done' => 'integer',
         ];

@@ -6,6 +6,7 @@ All notable changes to the Wazely ERP application are documented here.
 
 ### Added
 - New features currently in development will be listed here before release.
+- Added server-enforced logout from other devices with session version checks, API token revocation, active session status polling, and forced session-ended modal.
 - Added a staff-only time clock with clock-in, pause/resume, official-duty tracking, clock-out, daily work updates, HR date-wise review, correction approvals, and immutable attendance history.
 - Expanded Zoho Books-style bulk import support for vendors, warehouses, accounting master data, sales and purchase invoices, customer and vendor payments, revenues, and expenses.
 - Customer payments can now be recorded as unallocated deposits and applied to outstanding invoices later.
@@ -18,6 +19,7 @@ manual-journal-entries
 - Contracts now include a required plain-text Scope of Work field with multiline input support and preserved formatting on detail pages.
 - Added Zoho-style Security Settings with password changes, active sessions, logout-other-devices support, login history, and admin reset-link sending.
 - Added bulk import support for Petty Cash records, including templates, validation, duplicate handling, and the Petty Cash page import action.
+- Added bulk import support for quotations, including templates, validation, duplicate handling, and the Quotations page import action.
 main
 
 ### Improved
