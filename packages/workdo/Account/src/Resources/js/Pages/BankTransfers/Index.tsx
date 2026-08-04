@@ -5,6 +5,7 @@ import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { useDeleteHandler } from '@/hooks/useDeleteHandler';
 import AuthenticatedLayout from "@/layouts/authenticated-layout";
 import { Button } from '@/components/ui/button';
+import { BulkImportButton } from '@/components/bulk-import-button';
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { Dialog } from "@/components/ui/dialog";
@@ -255,20 +256,25 @@ export default function Index() {
             ]}
             pageTitle={t('Manage Bank Transfers')}
             pageActions={
-                <TooltipProvider>
-                    {auth.user?.permissions?.includes('create-bank-transfers') && (
-                        <Tooltip delayDuration={0}>
-                            <TooltipTrigger asChild>
-                                <Button size="sm" onClick={() => openModal('add')}>
-                                    <Plus className="h-4 w-4" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{t('Create')}</p>
-                            </TooltipContent>
-                        </Tooltip>
+                <div className="flex items-center gap-2">
+                    {auth.user?.permissions?.includes('import-bank-transfers') && auth.user?.permissions?.includes('create-bank-transfers') && (
+                        <BulkImportButton entity="bank-transfers" label={t('Bank Transfers')} />
                     )}
-                </TooltipProvider>
+                    <TooltipProvider>
+                        {auth.user?.permissions?.includes('create-bank-transfers') && (
+                            <Tooltip delayDuration={0}>
+                                <TooltipTrigger asChild>
+                                    <Button size="sm" onClick={() => openModal('add')}>
+                                        <Plus className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{t('Create')}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
+                    </TooltipProvider>
+                </div>
             }
         >
             <Head title={t('Bank Transfers')} />
