@@ -9,6 +9,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use App\Services\AuthSessionService;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -22,6 +23,7 @@ class SecurityController extends Controller
 
         return Inertia::render('security/index', [
             'sessions' => $this->sessions($request),
+            'sessionListingAvailable' => config('session.driver') === 'database',
             'loginHistories' => $this->loginHistories($request),
         ]);
     }
@@ -44,7 +46,7 @@ class SecurityController extends Controller
         return back()->with('success', __('The session has been logged out successfully.'));
     }
 
-    public function logoutOtherSessions(Request $request): RedirectResponse
+    public function logoutOtherSessions(Request $request, AuthSessionService $authSessions): RedirectResponse
     {
         if (!Auth::user()->can('change-password-profile')) {
             return back()->with('error', __('Permission denied'));
@@ -58,17 +60,28 @@ class SecurityController extends Controller
             return back()->with('error', __('The current password is incorrect.'));
         }
 
-        DB::table(config('session.table', 'sessions'))
-            ->where('user_id', Auth::id())
-            ->where('id', '!=', $request->session()->getId())
-            ->delete();
+        DB::transaction(function () use ($request, $authSessions): void {
+            $authSessions->revokeOtherDevices($request->user(), $request, AuthSessionService::LOGOUT_OTHER_DEVICES);
+        });
 
         return back()->with('success', __('Other sessions have been logged out successfully.'));
+    }
+
+    public function sessionStatus(Request $request): array
+    {
+        return [
+            'active' => true,
+            'security_version' => (int) ($request->user()->security_version ?? 1),
+        ];
     }
 
     private function sessions(Request $request): array
     {
         $currentSessionId = $request->session()->getId();
+
+        if (config('session.driver') !== 'database') {
+            return [];
+        }
 
         return DB::table(config('session.table', 'sessions'))
             ->where('user_id', Auth::id())

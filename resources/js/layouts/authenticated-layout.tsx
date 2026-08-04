@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { UserX, Bot } from "lucide-react";
 import { useFormFields } from '@/hooks/useFormFields';
 import { getImagePath } from '@/utils/helpers';
+import { SessionRevocationProvider } from '@/contexts/session-revocation-context';
 
 function AuthenticatedLayoutContent({
     header,
@@ -172,7 +173,9 @@ export default function AuthenticatedLayout(props: PropsWithChildren<{
 }>) {
     return (
         <BrandProvider>
-            <AuthenticatedLayoutContent {...props} />
+            <SessionRevocationProvider>
+                <AuthenticatedLayoutContent {...props} />
+            </SessionRevocationProvider>
         </BrandProvider>
     );
 }

@@ -17,10 +17,13 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
             \App\Http\Middleware\UpdateUserActiveStatus::class,
+            \App\Http\Middleware\EnsureAuthSessionIsCurrent::class,
+            \App\Http\Middleware\PreventAuthenticatedResponseCaching::class,
         ]);
         $middleware->alias([
             'PlanModuleCheck' => \App\Http\Middleware\PlanModuleCheck::class,
-            'api.json' => \App\Http\Middleware\ApiForceJson::class
+            'api.json' => \App\Http\Middleware\ApiForceJson::class,
+            'auth.session.current' => \App\Http\Middleware\EnsureAuthSessionIsCurrent::class,
         ]);
 
         $middleware->validateCsrfTokens(

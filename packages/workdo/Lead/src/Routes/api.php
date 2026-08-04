@@ -7,7 +7,7 @@ use Workdo\Lead\Http\Controllers\Api\LeadStageApiController;
 use Workdo\Lead\Http\Controllers\Api\PipelineApiController;
 
 Route::prefix('api')->middleware(['api.json'])->group(function () {
-    Route::group(['middleware' => ['auth:sanctum'], 'prefix' => 'lead'], function () {
+    Route::group(['middleware' => ['auth:sanctum', 'auth.session.current'], 'prefix' => 'lead'], function () {
         
         // Dashboard Routes
         Route::post('home', [DashboardApiController::class, 'index']);

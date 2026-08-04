@@ -1,6 +1,14 @@
 import axios from "axios";
 window.axios = axios;
 
+const notifySessionRevoked = (payload?: { reason?: string }) => {
+    window.dispatchEvent(new CustomEvent('erp:session-revoked', { detail: payload || {} }));
+};
+
+const isSessionRevokedResponse = (response: any) => {
+    return response?.status === 401 && response?.data?.code === 'SESSION_REVOKED';
+};
+
 window.axios.defaults.headers.common["X-Requested-With"] = "XMLHttpRequest";
 
 // Set CSRF token from meta tag
@@ -15,6 +23,11 @@ if (token) {
 window.axios.interceptors.response.use(
     (response) => response,
     async (error) => {
+        if (isSessionRevokedResponse(error.response)) {
+            notifySessionRevoked({ reason: error.response.data.reason });
+            return Promise.reject(error);
+        }
+
         if (error.response?.status === 419) {
             try {
                 const response = await fetch(window.location.href, { method: 'GET' });

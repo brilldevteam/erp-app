@@ -15,7 +15,9 @@ use App\Services\BulkImport\Definitions\ProductServiceCategoryDefinition;
 use App\Services\BulkImport\Definitions\ProductServiceDefinition;
 use App\Services\BulkImport\Definitions\ProductServiceTaxDefinition;
 use App\Services\BulkImport\Definitions\ProductServiceUnitDefinition;
+use App\Services\BulkImport\Definitions\PettyCashDefinition;
 use App\Services\BulkImport\Definitions\PurchaseInvoiceDefinition;
+use App\Services\BulkImport\Definitions\QuotationDefinition;
 use App\Services\BulkImport\Definitions\RevenueCategoryDefinition;
 use App\Services\BulkImport\Definitions\RevenueDefinition;
 use App\Services\BulkImport\Definitions\SalesInvoiceDefinition;
@@ -42,6 +44,7 @@ class BulkImportRegistry
             'expense-categories' => new ExpenseCategoryDefinition(),
             'bank-accounts' => new BankAccountDefinition(),
             'bank-transfers' => new BankTransferDefinition(),
+            'quotations' => new QuotationDefinition(),
             'sales-invoices' => new SalesInvoiceDefinition(),
             'purchase-invoices' => new PurchaseInvoiceDefinition(),
             'customer-payments' => new CustomerPaymentDefinition(),
@@ -49,6 +52,7 @@ class BulkImportRegistry
             'revenues' => new RevenueDefinition(),
             'expenses' => new ExpenseDefinition(),
             'journal-entries' => new JournalEntryDefinition(),
+            'petty-cashes' => new PettyCashDefinition(),
         ];
     }
 

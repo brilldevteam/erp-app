@@ -9,7 +9,7 @@ use Workdo\Hrm\Http\Controllers\Api\LeaveApiController;
 use Workdo\Hrm\Http\Controllers\Api\LeaveTypeApiController;
 
 Route::prefix('api')->middleware(['api.json'])->group(function () {
-    Route::group(['middleware' => ['auth:sanctum'], 'prefix' => 'hrm'], function () {
+    Route::group(['middleware' => ['auth:sanctum', 'auth.session.current'], 'prefix' => 'hrm'], function () {
         Route::get('home', [DashboardApiController::class, 'index']);
         Route::post('events', [DashboardApiController::class, 'getEvents']);
         Route::get('holidays-list', [HolidayApiController::class, 'index']);

@@ -45,7 +45,7 @@ Route::get('/module-assets/{module}/favicon', [ModuleAssetController::class, 'fa
     ->where('module', '[A-Za-z0-9_-]+')
     ->name('module-assets.favicon');
 
-Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
+Route::middleware(['auth', 'auth.session.current', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::prefix('bulk-imports')->name('bulk-imports.')->group(function () {
         Route::get('{entity}/template', [BulkImportController::class, 'template'])->name('template');
         Route::post('{entity}', [BulkImportController::class, 'store'])->name('store');
@@ -68,6 +68,7 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('/security', [SecurityController::class, 'index'])->name('security.index');
+    Route::get('/security/session-status', [SecurityController::class, 'sessionStatus'])->name('security.session-status');
     Route::post('/security/logout-other-sessions', [SecurityController::class, 'logoutOtherSessions'])->name('security.logout-other-sessions');
     Route::delete('/security/sessions/{sessionId}', [SecurityController::class, 'destroySession'])->name('security.sessions.destroy');
 

@@ -1,5 +1,5 @@
 import { DocumentTemplate, DocumentTemplateConfig, TemplateSampleDocument } from '@/types/document-template';
-import { getImagePath } from '@/utils/helpers';
+import { formatCurrency, getImagePath } from '@/utils/helpers';
 
 const labels: Record<string, string> = {
     item: 'Item',
@@ -10,7 +10,7 @@ const labels: Record<string, string> = {
     total: 'Total',
 };
 
-const money = (value: number) => `$${Number(value || 0).toFixed(2)}`;
+const money = (value: number) => formatCurrency(value);
 const hasTax = (item: Record<string, any>) => Boolean(item.has_tax ?? Number(item.tax) > 0);
 
 export default function DocumentTemplatePreview({
@@ -102,7 +102,7 @@ export default function DocumentTemplatePreview({
                 <div className="mt-6 flex justify-end">
                     <div className="w-72 space-y-2 rounded-lg bg-slate-50 p-4">
                         {config.totals.showSubtotal && <TotalRow label="Subtotal" value={money(document.totals.subtotal)} />}
-                        {config.totals.showDiscount && <TotalRow label="Discount" value={`-${money(document.totals.discount)}`} />}
+                        {config.totals.showDiscount && <TotalRow label="Discount" value={`-${money(Number(document.totals.discount || 0))}`} />}
                         {config.totals.showTax && <TotalRow label="Tax" value={hasAnyTax ? money(document.totals.tax) : '-'} />}
                         {config.totals.showGrandTotal && <div className="flex justify-between border-t pt-2 text-lg font-bold"><span>Grand Total</span><span>{money(document.totals.grand_total)}</span></div>}
                     </div>
