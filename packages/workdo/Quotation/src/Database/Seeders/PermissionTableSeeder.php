@@ -21,6 +21,7 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'manage-own-quotations', 'module' => 'quotation', 'label' => 'Manage Own Quotation'],
             ['name' => 'view-quotations', 'module' => 'quotation', 'label' => 'View Quotation'],
             ['name' => 'create-quotations', 'module' => 'quotation', 'label' => 'Create Quotation'],
+            ['name' => 'import-quotations', 'module' => 'quotation', 'label' => 'Import Quotation'],
             ['name' => 'edit-quotations', 'module' => 'quotation', 'label' => 'Edit Quotation'],
             ['name' => 'delete-quotations', 'module' => 'quotation', 'label' => 'Delete Quotation'],
             ['name' => 'print-quotations', 'module' => 'quotation', 'label' => 'Print Quotation'],
