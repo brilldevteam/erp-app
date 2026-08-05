@@ -22,6 +22,7 @@ manual-journal-entries
 - Added bulk import support for Petty Cash records, including templates, validation, duplicate handling, and the Petty Cash page import action.
 - Added bulk import support for quotations, including templates, validation, duplicate handling, and the Quotations page import action.
 main
+- Customer, vendor, lead, and user records can now be created and imported without an email address; login access is automatically disabled until a real email is added.
 
 ### Improved
 - Enhancements to existing workflows will be listed here before release.
@@ -48,12 +49,16 @@ main
 - Sales invoice lines support optional configured tax types, and invoice or quotation documents display a dash when no tax is selected.
 - Product and service items can now be created or edited without assigning a tax.
 - Updated profile/security separation so profile details and password security are managed on separate pages.
+- Bulk imports for customers, vendors, sales and purchase invoices, quotations, and customer/vendor payments now identify records by name instead of requiring an email address, matching real-world data exports that often omit emails.
+- Warehouse imports now require a complete address (address, city, and zip code) to prevent incomplete location records.
 
 ### Fixed
 - Bug fixes and production stability improvements will be listed here before release.
 - Invoice and quotation template previews now place the document badge on the left when the header is aligned right.
 - Document template previews now use saved currency settings instead of hardcoded dollar formatting.
 - Fixed PHP 8.5 database configuration deprecation output for MySQL SSL CA attributes.
+- Fixed a crash when importing customers or leads without an email address caused by a non-nullable database column.
+- Fixed the Manage Users grid view hiding all actions (edit, delete, change plan) for any user with login disabled, instead of only hiding the login-specific actions.
 
 ---
 

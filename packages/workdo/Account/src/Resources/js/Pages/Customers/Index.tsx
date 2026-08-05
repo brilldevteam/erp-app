@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Plus, Edit as EditIcon, Trash2, Building2, User as UserIcon, Lock, FileText, Eye } from "lucide-react";
+import { Plus, Edit as EditIcon, Trash2, Building2, User as UserIcon, FileText, Eye } from "lucide-react";
 import { getImagePath } from '@/utils/helpers';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DataTable } from "@/components/ui/data-table";
@@ -182,64 +182,53 @@ export default function Index() {
             header: t('Actions'),
             render: (_: any, customer: Customer) => (
                 <div className="flex gap-1">
-                    {customer.user?.is_disable === 1 ? (
-                        <Tooltip delayDuration={0}>
-                            <TooltipTrigger asChild>
-                                <div className="h-8 w-8 p-0 flex items-center justify-center text-gray-400">
-                                    <Lock className="h-4 w-4" />
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent><p>{t('User is disabled')}</p></TooltipContent>
-                        </Tooltip>
-                    ) : (
-                        <TooltipProvider>
-                            {auth.user?.permissions?.includes('view-customer-detail-report') && (
-                                <Tooltip delayDuration={0}>
-                                    <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="sm" onClick={() => router.visit(route('account.reports.customer-detail', customer.user_id))} className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700">
-                                            <FileText className="h-4 w-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>{t('View Report')}</p></TooltipContent>
-                                </Tooltip>
-                            )}
-                            {auth.user?.permissions?.includes('view-customers') && (
-                                <Tooltip delayDuration={0}>
-                                    <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="sm" onClick={() => setViewingItem(customer)} className="h-8 w-8 p-0 text-green-600 hover:text-green-700">
-                                            <Eye className="h-4 w-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>{t('View')}</p></TooltipContent>
-                                </Tooltip>
-                            )}
-                            {auth.user?.permissions?.includes('edit-customers') && (
-                                <Tooltip delayDuration={0}>
-                                    <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="sm" onClick={() => openModal('edit', customer)} className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700">
-                                            <EditIcon className="h-4 w-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>{t('Edit')}</p></TooltipContent>
-                                </Tooltip>
-                            )}
-                            {auth.user?.permissions?.includes('delete-customers') && (
-                                <Tooltip delayDuration={0}>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => openDeleteDialog(customer.id)}
-                                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>{t('Delete')}</p></TooltipContent>
-                                </Tooltip>
-                            )}
-                        </TooltipProvider>
-                    )}
+                    <TooltipProvider>
+                        {auth.user?.permissions?.includes('view-customer-detail-report') && (
+                            <Tooltip delayDuration={0}>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="sm" onClick={() => router.visit(route('account.reports.customer-detail', customer.user_id))} className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700">
+                                        <FileText className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>{t('View Report')}</p></TooltipContent>
+                            </Tooltip>
+                        )}
+                        {auth.user?.permissions?.includes('view-customers') && (
+                            <Tooltip delayDuration={0}>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="sm" onClick={() => setViewingItem(customer)} className="h-8 w-8 p-0 text-green-600 hover:text-green-700">
+                                        <Eye className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>{t('View')}</p></TooltipContent>
+                            </Tooltip>
+                        )}
+                        {auth.user?.permissions?.includes('edit-customers') && (
+                            <Tooltip delayDuration={0}>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="sm" onClick={() => openModal('edit', customer)} className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700">
+                                        <EditIcon className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>{t('Edit')}</p></TooltipContent>
+                            </Tooltip>
+                        )}
+                        {auth.user?.permissions?.includes('delete-customers') && (
+                            <Tooltip delayDuration={0}>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => openDeleteDialog(customer.id)}
+                                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>{t('Delete')}</p></TooltipContent>
+                            </Tooltip>
+                        )}
+                    </TooltipProvider>
                 </div>
             )
         }] : [])
@@ -455,74 +444,61 @@ export default function Index() {
                                                         </Tooltip>
                                                     )}
                                                     <div className="flex gap-1">
-                                                        {customer.user?.is_disable === 1 ? (
-                                                            <Tooltip delayDuration={0}>
-                                                                <TooltipTrigger asChild>
-                                                                    <div className="h-8 w-8 p-0 flex items-center justify-center text-gray-400">
-                                                                        <Lock className="h-4 w-4" />
-                                                                    </div>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>{t('User is disabled')}</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        ) : (
-                                                            <TooltipProvider>
-                                                                {auth.user?.permissions?.includes('view-customer-detail-report') && (
-                                                                    <Tooltip delayDuration={0}>
-                                                                        <TooltipTrigger asChild>
-                                                                            <Button variant="ghost" size="sm" onClick={() => router.visit(route('account.reports.customer-detail', customer.user_id))} className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700">
-                                                                                <FileText className="h-4 w-4" />
-                                                                            </Button>
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent>
-                                                                            <p>{t('View Report')}</p>
-                                                                        </TooltipContent>
-                                                                    </Tooltip>
-                                                                )}
-                                                                {auth.user?.permissions?.includes('view-customers') && (
-                                                                    <Tooltip delayDuration={0}>
-                                                                        <TooltipTrigger asChild>
-                                                                            <Button variant="ghost" size="sm" onClick={() => setViewingItem(customer)} className="h-8 w-8 p-0 text-green-600 hover:text-green-700">
-                                                                                <Eye className="h-4 w-4" />
-                                                                            </Button>
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent>
-                                                                            <p>{t('View')}</p>
-                                                                        </TooltipContent>
-                                                                    </Tooltip>
-                                                                )}
-                                                                {auth.user?.permissions?.includes('edit-customers') && (
-                                                                    <Tooltip delayDuration={0}>
-                                                                        <TooltipTrigger asChild>
-                                                                            <Button variant="ghost" size="sm" onClick={() => openModal('edit', customer)} className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700">
-                                                                                <EditIcon className="h-4 w-4" />
-                                                                            </Button>
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent>
-                                                                            <p>{t('Edit')}</p>
-                                                                        </TooltipContent>
-                                                                    </Tooltip>
-                                                                )}
-                                                                {auth.user?.permissions?.includes('delete-customers') && (
-                                                                    <Tooltip delayDuration={0}>
-                                                                        <TooltipTrigger asChild>
-                                                                            <Button
-                                                                                variant="ghost"
-                                                                                size="sm"
-                                                                                onClick={() => openDeleteDialog(customer.id)}
-                                                                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                                                            >
-                                                                                <Trash2 className="h-4 w-4" />
-                                                                            </Button>
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent>
-                                                                            <p>{t('Delete')}</p>
-                                                                        </TooltipContent>
+                                                        <TooltipProvider>
+                                                            {auth.user?.permissions?.includes('view-customer-detail-report') && (
+                                                                <Tooltip delayDuration={0}>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button variant="ghost" size="sm" onClick={() => router.visit(route('account.reports.customer-detail', customer.user_id))} className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700">
+                                                                            <FileText className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>{t('View Report')}</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            )}
+                                                            {auth.user?.permissions?.includes('view-customers') && (
+                                                                <Tooltip delayDuration={0}>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button variant="ghost" size="sm" onClick={() => setViewingItem(customer)} className="h-8 w-8 p-0 text-green-600 hover:text-green-700">
+                                                                            <Eye className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>{t('View')}</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            )}
+                                                            {auth.user?.permissions?.includes('edit-customers') && (
+                                                                <Tooltip delayDuration={0}>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button variant="ghost" size="sm" onClick={() => openModal('edit', customer)} className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700">
+                                                                            <EditIcon className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>{t('Edit')}</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            )}
+                                                            {auth.user?.permissions?.includes('delete-customers') && (
+                                                                <Tooltip delayDuration={0}>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onClick={() => openDeleteDialog(customer.id)}
+                                                                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                                                        >
+                                                                            <Trash2 className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>{t('Delete')}</p>
+                                                                    </TooltipContent>
                                                                     </Tooltip>
                                                                 )}
                                                             </TooltipProvider>
-                                                        )}
                                                     </div>
                                                 </div>
                                             </div>

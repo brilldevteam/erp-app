@@ -18,9 +18,16 @@ class ImportedClientUserService
         return $this->createUser($attributes, $tenantId, $actorId, true, true);
     }
 
-    public function createImportContact(array $attributes, int $tenantId, int $actorId): User
+    public function createImportContact(array $attributes, int $tenantId, int $actorId, string $roleName = 'client'): User
     {
-        return $this->createUser($attributes, $tenantId, $actorId, false, false);
+        return $this->createUser(
+            $attributes,
+            $tenantId,
+            $actorId,
+            false,
+            filter_var($attributes['email'] ?? null, FILTER_VALIDATE_EMAIL) !== false,
+            $roleName
+        );
     }
 
     private function createUser(
@@ -28,7 +35,8 @@ class ImportedClientUserService
         int $tenantId,
         int $actorId,
         bool $enforceUserLimit,
-        bool $enableLogin
+        bool $enableLogin,
+        string $roleName = 'client'
     ): User
     {
         if ($enforceUserLimit) {
@@ -38,23 +46,26 @@ class ImportedClientUserService
             }
         }
 
-        $role = Role::where('name', 'client')
+        $role = Role::where('name', $roleName)
             ->where('created_by', $tenantId)
             ->where('guard_name', 'web')
             ->first();
 
         if (!$role) {
-            throw new RuntimeException('Client role is missing for this company.');
+            throw new RuntimeException(ucfirst($roleName).' role is missing for this company.');
         }
 
+        $email = strtolower(trim((string) ($attributes['email'] ?? '')));
+        $enableLogin = $enableLogin && filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+        $email = $enableLogin ? $email : $this->placeholderEmail($tenantId);
         $password = Str::password(14);
         $verificationEnabled = $enableLogin && admin_setting('enableEmailVerification') === 'on';
         $user = User::create([
             'name' => $attributes['name'],
-            'email' => strtolower($attributes['email']),
+            'email' => $email,
             'mobile_no' => $attributes['mobile_no'] ?? null,
             'password' => Hash::make($password),
-            'type' => 'client',
+            'type' => $roleName,
             'is_enable_login' => $enableLogin,
             'is_disable' => $enableLogin ? 0 : 1,
             'lang' => company_setting('defaultLanguage', $tenantId) ?? 'en',
@@ -82,5 +93,14 @@ class ImportedClientUserService
         }
 
         return $user;
+    }
+
+    private function placeholderEmail(int $tenantId): string
+    {
+        do {
+            $email = 'imported.customer.'.$tenantId.'.'.Str::lower(Str::random(16)).'@import.local';
+        } while (User::where('email', $email)->exists());
+
+        return $email;
     }
 }

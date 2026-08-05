@@ -67,13 +67,13 @@ export default function Create({ onSuccess }: CreateLeadProps) {
                     </div>
 
                     <div>
-                        <Label htmlFor="email" required>{t('Email')}</Label>
+                        <Label htmlFor="email">{t('Email')}</Label>
                         <Input
                             id="email"
                             type="email"
                             value={data.email}
                             onChange={(e) => setData('email', e.target.value)}
-                            placeholder={t('Enter Email')}
+                            placeholder={t('Enter Email (optional)')}
                         />
                         <InputError message={errors.email} />
                     </div>

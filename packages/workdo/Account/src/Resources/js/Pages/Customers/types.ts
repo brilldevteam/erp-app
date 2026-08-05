@@ -8,7 +8,7 @@ export interface Customer {
   customer_code: string;
   company_name: string;
   contact_person_name: string;
-  contact_person_email: string;
+  contact_person_email?: string | null;
   contact_person_mobile?: string;
   tax_number?: string;
   payment_terms?: string;
@@ -23,6 +23,9 @@ export interface Customer {
   user?: {
     id: number;
     name: string;
+    email?: string | null;
+    is_disable?: number;
+    is_enable_login?: boolean;
     avatar?: string;
   };
   creator?: {

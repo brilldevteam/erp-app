@@ -9,7 +9,7 @@ export default function ChangePlan({ user, plans, onSuccess }: ChangePlanProps) 
     const { t } = useTranslation();
     const { data, setData, put, processing, errors } = useForm<EditUserFormData>({
         name: user.name,
-        email: user.email,
+        email: user.email ?? '',
         mobile_no: user.mobile_no,
         is_enable_login: user.is_enable_login,
         plan_id: user.active_plan?.toString() ?? '',

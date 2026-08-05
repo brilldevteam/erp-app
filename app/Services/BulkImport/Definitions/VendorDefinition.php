@@ -6,10 +6,8 @@ use App\Models\User;
 use App\Services\BulkImport\Concerns\NormalizesImportValues;
 use App\Services\BulkImport\Definitions\Concerns\ResolvesImportReferences;
 use App\Services\BulkImport\EntityDefinition;
+use App\Services\BulkImport\ImportedClientUserService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
-use RuntimeException;
 use Spatie\Permission\Models\Role;
 use Workdo\Account\Events\CreateVendor;
 use Workdo\Account\Events\UpdateVendor;
@@ -36,7 +34,7 @@ class VendorDefinition implements EntityDefinition
         ];
     }
 
-    public function requiredFields(): array { return ['vendor_name', 'vendor_email']; }
+    public function requiredFields(): array { return ['vendor_name']; }
 
     public function aliases(): array
     {
@@ -63,8 +61,9 @@ class VendorDefinition implements EntityDefinition
     public function instructions(): array
     {
         return [
-            'vendor_email is the duplicate key and creates a vendor user when no vendor user exists.',
-            'Only vendor name and email are required.',
+            'vendor_email is optional. Vendors without an email are imported with login access disabled.',
+            'When vendor_email is blank, duplicate matching uses company_name/vendor_name.',
+            'Only vendor name is required.',
             'Billing and shipping addresses are optional.',
         ];
     }
@@ -82,7 +81,16 @@ class VendorDefinition implements EntityDefinition
         return $row;
     }
 
-    public function identity(array $row): string { return strtolower($this->text($row['vendor_email'] ?? '')); }
+    public function identity(array $row): string
+    {
+        $email = strtolower($this->text($row['vendor_email'] ?? ''));
+
+        if ($email !== '') {
+            return 'email:'.$email;
+        }
+
+        return 'vendor:'.strtolower($this->text($row['company_name'] ?? $row['vendor_name'] ?? ''));
+    }
 
     public function validate(array $row, int $tenantId): array
     {
@@ -92,13 +100,19 @@ class VendorDefinition implements EntityDefinition
                 $errors[] = ucfirst(str_replace('_', ' ', $field)).' is required.';
             }
         }
-        if (($email = $this->identity($row)) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+
+        if (($email = $this->nullableText($row['vendor_email'] ?? null)) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors[] = 'Vendor email is invalid.';
         }
-        $user = User::whereRaw('LOWER(email) = ?', [$this->identity($row)])->first();
-        if ($user && ($user->created_by !== $tenantId || $user->type !== 'vendor')) {
-            $errors[] = 'Vendor email belongs to another account or an incompatible user type.';
+
+        $email = strtolower($this->text($row['vendor_email'] ?? ''));
+        if ($email !== '') {
+            $user = User::whereRaw('LOWER(email) = ?', [$email])->first();
+            if ($user && ($user->created_by !== $tenantId || $user->type !== 'vendor')) {
+                $errors[] = 'Vendor email belongs to another account or an incompatible user type.';
+            }
         }
+
         if (!Role::where('name', 'vendor')->where('guard_name', 'web')->where('created_by', $tenantId)->exists()) {
             $errors[] = 'The vendor role is not configured for this company.';
         }
@@ -108,36 +122,36 @@ class VendorDefinition implements EntityDefinition
 
     public function duplicate(array $row, int $tenantId): bool
     {
+        $email = strtolower($this->text($row['vendor_email'] ?? ''));
+        if ($email !== '') {
+            return Vendor::where('created_by', $tenantId)
+                ->whereHas('user', fn ($query) => $query->whereRaw('LOWER(email) = ?', [$email]))
+                ->exists();
+        }
+
         return Vendor::where('created_by', $tenantId)
-            ->whereHas('user', fn ($query) => $query->whereRaw('LOWER(email) = ?', [$this->identity($row)]))
+            ->whereRaw('LOWER(company_name) = ?', [strtolower($this->text($row['company_name'] ?? $row['vendor_name'] ?? ''))])
             ->exists();
     }
 
     public function import(array $row, string $strategy, int $tenantId, int $actorId): string
     {
-        $user = User::where('created_by', $tenantId)
-            ->where('type', 'vendor')
-            ->whereRaw('LOWER(email) = ?', [$this->identity($row)])
-            ->first();
+        $email = strtolower($this->text($row['vendor_email'] ?? ''));
+        $user = $email !== ''
+            ? User::where('created_by', $tenantId)
+                ->where('type', 'vendor')
+                ->whereRaw('LOWER(email) = ?', [$email])
+                ->first()
+            : Vendor::where('created_by', $tenantId)
+                ->whereRaw('LOWER(company_name) = ?', [strtolower($this->text($row['company_name'] ?? $row['vendor_name'] ?? ''))])
+                ->first()?->user;
 
         if (!$user) {
-            $role = Role::where('name', 'vendor')->where('created_by', $tenantId)->where('guard_name', 'web')->first();
-            if (!$role) {
-                throw new RuntimeException('Vendor role is missing for this company.');
-            }
-            $user = User::create([
+            $user = app(ImportedClientUserService::class)->createImportContact([
                 'name' => $this->text($row['vendor_name']),
-                'email' => $this->identity($row),
+                'email' => $email,
                 'mobile_no' => $this->nullableText($row['mobile_no'] ?? null),
-                'password' => Hash::make(Str::password(14)),
-                'type' => 'vendor',
-                'is_enable_login' => true,
-                'lang' => company_setting('defaultLanguage', $tenantId) ?? 'en',
-                'email_verified_at' => now(),
-                'creator_id' => $actorId,
-                'created_by' => $tenantId,
-            ]);
-            $user->assignRole($role);
+            ], $tenantId, $actorId, 'vendor');
         }
 
         $vendor = Vendor::where('created_by', $tenantId)->where('user_id', $user->id)->first();
@@ -151,7 +165,7 @@ class VendorDefinition implements EntityDefinition
             'user_id' => $user->id,
             'company_name' => $this->text($row['company_name']),
             'contact_person_name' => $this->text($row['vendor_name']),
-            'contact_person_email' => $this->identity($row),
+            'contact_person_email' => $this->nullableText($row['vendor_email'] ?? null),
             'contact_person_mobile' => $this->nullableText($row['mobile_no'] ?? null),
             'tax_number' => $this->nullableText($row['tax_number'] ?? null),
             'payment_terms' => $this->nullableText($row['payment_terms'] ?? null),

@@ -64,8 +64,7 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                         type="email"
                         value={data.contact_person_email}
                         onChange={(e) => setData('contact_person_email', e.target.value)}
-                        placeholder={t('Enter email address')}
-                        required
+                        placeholder={t('Enter email address (optional)')}
                     />
                     <InputError message={errors.contact_person_email} />
                 </div>

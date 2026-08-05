@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
@@ -88,19 +89,21 @@ class UserController extends Controller
 
             $validated = $request->validated();
             $validated['is_enable_login'] = $request->boolean('is_enable_login', true);
+            $hasLoginEmail = filter_var($validated['email'] ?? null, FILTER_VALIDATE_EMAIL) !== false;
 
-            $role = Role::find($validated['type']);
+            $role = Role::find($validated['type'] ?? null);
             $enableEmailVerification = admin_setting('enableEmailVerification');
 
             $user = new User();
             $user->name = $validated['name'];
-            $user->email = $validated['email'];
-            $user->mobile_no = $validated['mobile_no'];
-            $user->password = Hash::make($validated['password']);
+            $user->email = $hasLoginEmail ? strtolower($validated['email']) : $this->placeholderEmail();
+            $user->mobile_no = $validated['mobile_no'] ?? null;
+            $user->password = Hash::make($validated['password'] ?? Str::password(14));
             $user->type = Auth::user()->type == 'superadmin' ? 'company' : ($role->name ?? 'staff');
             $user->is_enable_login = $validated['is_enable_login'];
+            $user->is_disable = $validated['is_enable_login'] ? 0 : 1;
             $user->lang = company_setting('defaultLanguage') ?? 'en';
-            $user->email_verified_at = $enableEmailVerification === 'on' ? null : now();
+            $user->email_verified_at = $enableEmailVerification === 'on' && $hasLoginEmail ? null : now();
             $user->creator_id = Auth::id();
             $user->created_by = creatorId();
             $user->save();
@@ -118,7 +121,7 @@ class UserController extends Controller
             CreateUser::dispatch($request, $user);
 
              // Send welcome email
-            if(company_setting('New User') == 'on') {
+            if($validated['is_enable_login'] && $hasLoginEmail && company_setting('New User') == 'on') {
                 $emailData = [
                     'name' => $user->name,
                     'email' => $user->email,
@@ -133,7 +136,7 @@ class UserController extends Controller
                 }
             }
 
-            if ($enableEmailVerification === 'on') {
+            if ($validated['is_enable_login'] && $hasLoginEmail && $enableEmailVerification === 'on') {
                 // Apply dynamic mail configuration
                 SetConfigEmail(creatorId());
                 $user->sendEmailVerificationNotification();
@@ -151,11 +154,13 @@ class UserController extends Controller
         if(Auth::user()->can('edit-users')){
             $validated = $request->validated();
             $validated['is_enable_login'] = $request->boolean('is_enable_login', true);
+            $hasLoginEmail = filter_var($validated['email'] ?? null, FILTER_VALIDATE_EMAIL) !== false;
 
             $user->name = $validated['name'];
-            $user->email = $validated['email'];
-            $user->mobile_no = $validated['mobile_no'];
+            $user->email = $hasLoginEmail ? strtolower($validated['email']) : ($this->isPlaceholderEmail($user->email) ? $user->email : $this->placeholderEmail());
+            $user->mobile_no = $validated['mobile_no'] ?? null;
             $user->is_enable_login = $validated['is_enable_login'];
+            $user->is_disable = $validated['is_enable_login'] ? 0 : 1;
             $user->save();
 
             if (
@@ -204,6 +209,10 @@ class UserController extends Controller
     public function sendPasswordReset(User $user)
     {
         if(Auth::user()->can('change-password-users') && $user->created_by == creatorId() ){
+            if ($this->isPlaceholderEmail($user->email)) {
+                return back()->with('error', __('This user does not have a valid email address.'));
+            }
+
             try {
                 SetConfigEmail(creatorId());
                 $status = Password::sendResetLink(['email' => $user->email]);
@@ -302,5 +311,23 @@ class UserController extends Controller
         else{
             return back()->with('error', __('Permission denied'));
         }
+    }
+
+    private function placeholderEmail(): string
+    {
+        do {
+            $email = 'user.'.creatorId().'.'.Str::lower(Str::random(16)).'@import.local';
+        } while (User::where('email', $email)->exists());
+
+        return $email;
+    }
+
+    private function isPlaceholderEmail(?string $email): bool
+    {
+        $email = strtolower((string) $email);
+
+        return $email === ''
+            || str_ends_with($email, '@import.local')
+            || str_starts_with($email, 'zoho.customer.');
     }
 }

@@ -18,10 +18,10 @@ class CustomerPaymentDefinition implements EntityDefinition
     public function permission(): string { return 'import-customer-payments'; }
     public function createPermission(): string { return 'create-customer-payments'; }
     public function headers(): array { return ['payment_number', 'payment_date', 'customer_email', 'customer', 'bank_account', 'account_number', 'reference_number', 'payment_amount', 'invoice_number', 'allocated_amount', 'status', 'notes']; }
-    public function requiredFields(): array { return ['payment_number', 'payment_date', 'customer_email', 'bank_account', 'payment_amount']; }
+    public function requiredFields(): array { return ['payment_number', 'payment_date', 'customer', 'bank_account', 'payment_amount']; }
     public function aliases(): array { return ['payment_number' => ['payment no', 'payment number'], 'payment_date' => ['date'], 'customer_email' => ['customer email', 'email'], 'bank_account' => ['deposit to', 'bank'], 'payment_amount' => ['amount'], 'invoice_number' => ['invoice no']]; }
     public function example(): array { return ['CP-ZOHO-1001', date('Y-m-d'), 'customer@example.com', 'Example Customer', 'Main Bank', '100200300', 'REF-1', '100', 'INV-1001', '100', 'cleared', 'Imported from Zoho Books']; }
-    public function instructions(): array { return ['payment_number is the duplicate key.', 'invoice_number and allocated_amount are optional; when provided, the payment is allocated to that sales invoice.']; }
+    public function instructions(): array { return ['payment_number is the duplicate key.', 'customer is required; customer_email is optional since a customer may not have one on file.', 'invoice_number and allocated_amount are optional; when provided, the payment is allocated to that sales invoice.']; }
     public function prepare(array $row): array { $row['payment_number'] = $this->text($row['payment_number'] ?? ''); $row['status'] = strtolower($this->text($row['status'] ?? 'pending')) ?: 'pending'; return $row; }
     public function identity(array $row): string { return strtolower($this->text($row['payment_number'] ?? '')); }
 

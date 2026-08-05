@@ -17,9 +17,9 @@ class StoreUserRequest extends FormRequest
         
         return [
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
+            'email' => 'required_if:is_enable_login,1|nullable|email|unique:users,email',
             'mobile_no' => 'nullable|string|regex:/^\+\d{1,3}\d{9,13}$/',
-            'password' => 'required|confirmed|min:6',
+            'password' => 'required_if:is_enable_login,1|nullable|confirmed|min:6',
             'type' => $typeRule,
             'is_enable_login' => 'boolean',
         ];
@@ -29,6 +29,8 @@ class StoreUserRequest extends FormRequest
     {
         return [
             'type.required' => __('Role is required.'),
+            'email.required_if' => __('Email is required when login status is enabled.'),
+            'password.required_if' => __('Password is required when login status is enabled.'),
         ];
     }
 }

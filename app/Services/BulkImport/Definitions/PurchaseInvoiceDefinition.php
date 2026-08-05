@@ -21,10 +21,10 @@ class PurchaseInvoiceDefinition implements EntityDefinition, AllowsRepeatedIdent
     public function permission(): string { return 'import-purchase-invoices'; }
     public function createPermission(): string { return 'create-purchase-invoices'; }
     public function headers(): array { return ['invoice_number', 'invoice_date', 'due_date', 'vendor_email', 'vendor', 'item_sku', 'item_name', 'quantity', 'unit_price', 'discount_percentage', 'tax_names', 'tax_percentage', 'payment_terms', 'warehouse', 'paid_amount', 'status', 'notes']; }
-    public function requiredFields(): array { return ['invoice_number', 'invoice_date', 'vendor_email', 'item_sku', 'quantity', 'unit_price']; }
+    public function requiredFields(): array { return ['invoice_number', 'invoice_date', 'vendor', 'item_sku', 'item_name', 'quantity', 'unit_price']; }
     public function aliases(): array { return ['invoice_number' => ['bill no', 'bill number', 'invoice no'], 'vendor_email' => ['vendor email', 'supplier email', 'email'], 'vendor' => ['vendor name', 'supplier'], 'item_sku' => ['item code', 'sku', 'product code'], 'unit_price' => ['rate', 'price']]; }
     public function example(): array { return ['BILL-1001', date('Y-m-d'), date('Y-m-d', strtotime('+30 days')), 'vendor@example.com', 'ABC Supplies', 'SKU-100', 'Example Product', '2', '70', '0', 'VAT 15%', '15', 'Net 30', 'Main Warehouse', '0', 'posted', 'Imported from Zoho Books']; }
-    public function instructions(): array { return ['Use one row per bill line. Repeating invoice_number rows become line items on one purchase invoice.', 'Vendors and items must already exist.']; }
+    public function instructions(): array { return ['Use one row per bill line. Repeating invoice_number rows become line items on one purchase invoice.', 'vendor and item_name are required; vendor_email is optional since a vendor may not have one on file.', 'Vendors and items must already exist.']; }
     public function prepare(array $row): array { $row['invoice_number'] = $this->text($row['invoice_number'] ?? ''); $row['status'] = strtolower($this->text($row['status'] ?? 'posted')) ?: 'posted'; return $row; }
     public function identity(array $row): string { return strtolower($this->text($row['invoice_number'] ?? '')); }
 

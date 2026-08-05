@@ -75,6 +75,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'security_version' => 'integer',
             'password' => 'hashed',
             'is_trial_done' => 'integer',
+            'is_enable_login' => 'boolean',
         ];
     }
 

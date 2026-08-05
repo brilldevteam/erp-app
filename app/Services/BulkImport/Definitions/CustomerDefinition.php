@@ -35,7 +35,7 @@ class CustomerDefinition implements EntityDefinition
 
     public function requiredFields(): array
     {
-        return ['user_name', 'user_email'];
+        return ['user_name'];
     }
 
     public function aliases(): array
@@ -80,8 +80,9 @@ class CustomerDefinition implements EntityDefinition
     public function instructions(): array
     {
         return [
-            'user_email is the duplicate key and creates a client user when no compatible user exists.',
-            'Only customer name and email are required; contact and company values default from them.',
+            'user_email is optional. Customers without an email are imported with login access disabled.',
+            'When user_email is blank, duplicate matching uses company_name/user_name.',
+            'Only customer name is required; contact and company values default from it.',
             'Billing and shipping addresses are optional for imports.',
             'same_as_billing accepts yes/no, true/false, or 1/0.',
             'mobile_no is optional.',
@@ -96,7 +97,7 @@ class CustomerDefinition implements EntityDefinition
         $row['user_email'] = $email;
         $row['company_name'] = $this->text($row['company_name'] ?? '') ?: $name;
         $row['contact_person_name'] = $this->text($row['contact_person_name'] ?? '') ?: $name;
-        $row['contact_person_email'] = $this->text($row['contact_person_email'] ?? '') ?: $email;
+        $row['contact_person_email'] = $this->nullableText($row['contact_person_email'] ?? null) ?? $email ?: null;
         $row['billing_name'] = $this->text($row['billing_name'] ?? '') ?: $row['company_name'];
         $row['same_as_billing'] = $this->nullableText($row['same_as_billing'] ?? null) ?? 'yes';
 
@@ -105,7 +106,13 @@ class CustomerDefinition implements EntityDefinition
 
     public function identity(array $row): string
     {
-        return strtolower($this->text($row['user_email'] ?? ''));
+        $email = strtolower($this->text($row['user_email'] ?? ''));
+
+        if ($email !== '') {
+            return 'email:'.$email;
+        }
+
+        return 'customer:'.strtolower($this->text($row['company_name'] ?? $row['user_name'] ?? ''));
     }
 
     public function validate(array $row, int $tenantId): array
@@ -143,9 +150,12 @@ class CustomerDefinition implements EntityDefinition
             }
         }
 
-        $user = User::whereRaw('LOWER(email) = ?', [$this->identity($row)])->first();
-        if ($user && ($user->created_by !== $tenantId || $user->type !== 'client')) {
-            $errors[] = 'User email belongs to another account or an incompatible user type.';
+        $email = strtolower($this->text($row['user_email'] ?? ''));
+        if ($email !== '') {
+            $user = User::whereRaw('LOWER(email) = ?', [$email])->first();
+            if ($user && ($user->created_by !== $tenantId || $user->type !== 'client')) {
+                $errors[] = 'User email belongs to another account or an incompatible user type.';
+            }
         }
 
         if (!Role::where('name', 'client')
@@ -160,18 +170,29 @@ class CustomerDefinition implements EntityDefinition
 
     public function duplicate(array $row, int $tenantId): bool
     {
+        $email = strtolower($this->text($row['user_email'] ?? ''));
+        if ($email !== '') {
+            return Customer::where('created_by', $tenantId)
+                ->whereHas('user', fn ($query) => $query->whereRaw('LOWER(email) = ?', [$email]))
+                ->exists();
+        }
+
         return Customer::where('created_by', $tenantId)
-            ->whereHas('user', fn ($query) => $query->whereRaw('LOWER(email) = ?', [$this->identity($row)]))
+            ->whereRaw('LOWER(company_name) = ?', [strtolower($this->text($row['company_name'] ?? $row['user_name'] ?? ''))])
             ->exists();
     }
 
     public function import(array $row, string $strategy, int $tenantId, int $actorId): string
     {
-        $email = $this->identity($row);
-        $user = User::where('created_by', $tenantId)
-            ->where('type', 'client')
-            ->whereRaw('LOWER(email) = ?', [$email])
-            ->first();
+        $email = strtolower($this->text($row['user_email'] ?? ''));
+        $user = $email !== ''
+            ? User::where('created_by', $tenantId)
+                ->where('type', 'client')
+                ->whereRaw('LOWER(email) = ?', [$email])
+                ->first()
+            : Customer::where('created_by', $tenantId)
+                ->whereRaw('LOWER(company_name) = ?', [strtolower($this->text($row['company_name'] ?? $row['user_name'] ?? ''))])
+                ->first()?->user;
 
         if (!$user) {
             $user = app(ImportedClientUserService::class)->createImportContact([
@@ -198,7 +219,7 @@ class CustomerDefinition implements EntityDefinition
             'user_id' => $user->id,
             'company_name' => $this->text($row['company_name']),
             'contact_person_name' => $this->text($row['contact_person_name']),
-            'contact_person_email' => $this->text($row['contact_person_email']),
+            'contact_person_email' => $this->nullableText($row['contact_person_email'] ?? null),
             'contact_person_mobile' => $this->nullableText($row['mobile_no'] ?? null),
             'tax_number' => $this->nullableText($row['tax_number'] ?? null),
             'payment_terms' => $this->nullableText($row['payment_terms'] ?? null),

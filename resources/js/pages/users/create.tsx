@@ -19,10 +19,23 @@ export default function Create({ onSuccess, roles = {} }: CreateUserProps) {
         password_confirmation: '',
         mobile_no: '',
         type: '',
-        is_enable_login: true,
+        is_enable_login: false,
     });
 
     const isSuperAdmin = auth.user?.type === 'superadmin';
+    const hasEmail = data.email.trim() !== '';
+
+    const handleEmailChange = (value: string) => {
+        const willHaveEmail = value.trim() !== '';
+        const hadEmail = data.email.trim() !== '';
+        setData((current) => ({
+            ...current,
+            email: value,
+            is_enable_login: willHaveEmail ? (hadEmail ? current.is_enable_login : true) : false,
+            password: willHaveEmail ? current.password : '',
+            password_confirmation: willHaveEmail ? current.password_confirmation : '',
+        }));
+    };
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -56,9 +69,8 @@ export default function Create({ onSuccess, roles = {} }: CreateUserProps) {
                         id="email"
                         type="email"
                         value={data.email}
-                        onChange={(e) => setData('email', e.target.value)}
-                        placeholder={t('Enter email address')}
-                        required
+                        onChange={(e) => handleEmailChange(e.target.value)}
+                        placeholder={t('Enter email address (optional)')}
                     />
                     <InputError message={errors.email} />
                 </div>
@@ -73,26 +85,28 @@ export default function Create({ onSuccess, roles = {} }: CreateUserProps) {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <Label htmlFor="password">{t('Password')}</Label>
+                        <Label htmlFor="password" required={data.is_enable_login}>{t('Password')}</Label>
                         <Input
                             id="password"
                             type="password"
                             value={data.password}
                             onChange={(e) => setData('password', e.target.value)}
-                            placeholder={t('Enter password')}
-                            required
+                            placeholder={hasEmail ? t('Enter password') : t('Add an email first')}
+                            required={data.is_enable_login}
+                            disabled={!hasEmail}
                         />
                         <InputError message={errors.password} />
                     </div>
                     <div>
-                        <Label htmlFor="password_confirmation">{t('Confirm Password')}</Label>
+                        <Label htmlFor="password_confirmation" required={data.is_enable_login}>{t('Confirm Password')}</Label>
                         <Input
                             id="password_confirmation"
                             type="password"
                             value={data.password_confirmation}
                             onChange={(e) => setData('password_confirmation', e.target.value)}
-                            placeholder={t('Confirm password')}
-                            required
+                            placeholder={hasEmail ? t('Confirm password') : t('Add an email first')}
+                            required={data.is_enable_login}
+                            disabled={!hasEmail}
                         />
                         <InputError message={errors.password_confirmation} />
                     </div>
@@ -123,7 +137,11 @@ export default function Create({ onSuccess, roles = {} }: CreateUserProps) {
                     )}
                     <div>
                         <Label htmlFor="is_enable_login">{t('Login Status')}</Label>
-                        <Select value={data.is_enable_login ? "1" : "0"} onValueChange={(value) => setData('is_enable_login', value === "1")}>
+                        <Select
+                            value={data.is_enable_login ? "1" : "0"}
+                            onValueChange={(value) => setData('is_enable_login', value === "1")}
+                            disabled={!hasEmail}
+                        >
                             <SelectTrigger>
                                 <SelectValue />
                             </SelectTrigger>
@@ -132,6 +150,9 @@ export default function Create({ onSuccess, roles = {} }: CreateUserProps) {
                                 <SelectItem value="0">{t('Disabled')}</SelectItem>
                             </SelectContent>
                         </Select>
+                        {!hasEmail && (
+                            <p className="text-xs text-gray-500 mt-1">{t('Add an email to enable login access.')}</p>
+                        )}
                         <InputError message={errors.is_enable_login} />
                     </div>
                 </div>

@@ -18,10 +18,10 @@ class VendorPaymentDefinition implements EntityDefinition
     public function permission(): string { return 'import-vendor-payments'; }
     public function createPermission(): string { return 'create-vendor-payments'; }
     public function headers(): array { return ['payment_number', 'payment_date', 'vendor_email', 'vendor', 'bank_account', 'account_number', 'reference_number', 'payment_amount', 'invoice_number', 'allocated_amount', 'status', 'notes']; }
-    public function requiredFields(): array { return ['payment_number', 'payment_date', 'vendor_email', 'bank_account', 'payment_amount']; }
+    public function requiredFields(): array { return ['payment_number', 'payment_date', 'vendor', 'bank_account', 'payment_amount']; }
     public function aliases(): array { return ['payment_number' => ['payment no', 'payment number'], 'vendor_email' => ['vendor email', 'supplier email', 'email'], 'bank_account' => ['paid through', 'bank'], 'invoice_number' => ['bill no', 'bill number']]; }
     public function example(): array { return ['VP-ZOHO-1001', date('Y-m-d'), 'vendor@example.com', 'ABC Supplies', 'Main Bank', '100200300', 'REF-1', '70', 'BILL-1001', '70', 'cleared', 'Imported from Zoho Books']; }
-    public function instructions(): array { return ['payment_number is the duplicate key.', 'invoice_number and allocated_amount are optional; when provided, the payment is allocated to that purchase invoice.']; }
+    public function instructions(): array { return ['payment_number is the duplicate key.', 'vendor is required; vendor_email is optional since a vendor may not have one on file.', 'invoice_number and allocated_amount are optional; when provided, the payment is allocated to that purchase invoice.']; }
     public function prepare(array $row): array { $row['payment_number'] = $this->text($row['payment_number'] ?? ''); $row['status'] = strtolower($this->text($row['status'] ?? 'pending')) ?: 'pending'; return $row; }
     public function identity(array $row): string { return strtolower($this->text($row['payment_number'] ?? '')); }
 

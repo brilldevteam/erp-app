@@ -20,7 +20,7 @@ class UpdateCustomerRequest extends FormRequest
             'user_id' => 'required|exists:users,id',
             'company_name' => 'required|string|max:255',
             'contact_person_name' => 'required|string|max:255',
-            'contact_person_email' => 'required|email|max:255',
+            'contact_person_email' => 'nullable|email|max:255',
             'contact_person_mobile' => 'nullable|string|max:255',
             'tax_number' => 'nullable|string|max:255',
             'payment_terms' => 'nullable|string|max:255',
