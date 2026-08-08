@@ -35,7 +35,13 @@ class BankTransactionController extends Controller
             }
 
             $transactions = $query->paginate($request->get('per_page', 10));
-            $bankAccounts = BankAccount::where('is_active', true)->where('created_by', creatorId())->get();
+            // Internal clearing accounts (auto-created by the one-time Zoho migration
+            // import for non-bank "paid through" values like Salary Payable) are not
+            // real bank accounts and have nothing to reconcile against a statement.
+            $bankAccounts = BankAccount::where('is_active', true)
+                ->where('created_by', creatorId())
+                ->where('account_type', '!=', 'clearing_account')
+                ->get();
 
             return Inertia::render('Account/BankTransactions/Index', [
                 'transactions' => $transactions,

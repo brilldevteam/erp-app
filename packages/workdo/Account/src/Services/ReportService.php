@@ -249,14 +249,22 @@ class ReportService
                 ->where('return_date', '<=', $asOfDate)
                 ->sum('total_amount');
 
-            $balance = DB::table('sales_invoices')
+            $invoiceBalance = DB::table('sales_invoices')
                 ->where('customer_id', $customer->id)
                 ->whereIn('status', ['posted', 'partial', 'paid'])
                 ->where('invoice_date', '<=', $asOfDate)
                 ->sum('balance_amount');
 
+            $creditNotes = DB::table('credit_notes')
+                ->where('customer_id', $customer->id)
+                ->whereIn('status', ['approved', 'partial', 'applied'])
+                ->where('credit_note_date', '<=', $asOfDate)
+                ->sum('total_amount');
+
+            $balance = $invoiceBalance - $creditNotes;
+
             $netInvoiced = $invoiced - $returns;
-            $paid = $invoiced - $balance;
+            $paid = $invoiced - $invoiceBalance;
 
             if (!$showZeroBalances && abs($balance) < 0.01) {
                 continue;
@@ -270,6 +278,7 @@ class ReportService
                 'total_returns' => $returns,
                 'net_invoiced' => $netInvoiced,
                 'total_paid' => $paid,
+                'total_credit_notes' => $creditNotes,
                 'balance' => $balance
             ];
 
@@ -312,14 +321,22 @@ class ReportService
                 ->where('return_date', '<=', $asOfDate)
                 ->sum('total_amount');
 
-            $balance = DB::table('purchase_invoices')
+            $invoiceBalance = DB::table('purchase_invoices')
                 ->where('vendor_id', $vendor->id)
                 ->whereIn('status', ['posted', 'partial', 'paid'])
                 ->where('invoice_date', '<=', $asOfDate)
                 ->sum('balance_amount');
 
+            $debitNotes = DB::table('debit_notes')
+                ->where('vendor_id', $vendor->id)
+                ->whereIn('status', ['approved', 'partial', 'applied'])
+                ->where('debit_note_date', '<=', $asOfDate)
+                ->sum('total_amount');
+
+            $balance = $invoiceBalance - $debitNotes;
+
             $netBilled = $billed - $returns;
-            $paid = $billed - $balance;
+            $paid = $billed - $invoiceBalance;
 
             if (!$showZeroBalances && abs($balance) < 0.01) {
                 continue;
@@ -333,6 +350,7 @@ class ReportService
                 'total_returns' => $returns,
                 'net_billed' => $netBilled,
                 'total_paid' => $paid,
+                'total_debit_notes' => $debitNotes,
                 'balance' => $balance
             ];
 
@@ -383,7 +401,7 @@ class ReportService
 
         $creditNotesQuery = DB::table('credit_notes')
             ->where('customer_id', $customerId)
-            ->whereIn('status', ['approved', 'completed'])
+            ->whereIn('status', ['approved', 'partial', 'applied'])
             ->select('credit_note_number', 'credit_note_date as date', 'total_amount', 'applied_amount', 'balance_amount', 'status');
 
         if ($startDate) $creditNotesQuery->where('credit_note_date', '>=', $startDate);
@@ -411,7 +429,7 @@ class ReportService
                 'total_returns' => $returns->sum('total_amount'),
                 'total_credit_notes' => $creditNotes->sum('total_amount'),
                 'total_payments' => $payments->sum('amount'),
-                'balance' => $invoices->sum('balance_amount')
+                'balance' => $invoices->sum('balance_amount') - $creditNotes->sum('total_amount')
             ]
         ];
     }
@@ -451,7 +469,7 @@ class ReportService
 
         $debitNotesQuery = DB::table('debit_notes')
             ->where('vendor_id', $vendorId)
-            ->whereIn('status', ['approved', 'completed'])
+            ->whereIn('status', ['approved', 'partial', 'applied'])
             ->select('debit_note_number', 'debit_note_date as date', 'total_amount', 'applied_amount', 'balance_amount', 'status');
 
         if ($startDate) $debitNotesQuery->where('debit_note_date', '>=', $startDate);
@@ -479,7 +497,7 @@ class ReportService
                 'total_returns' => $returns->sum('total_amount'),
                 'total_debit_notes' => $debitNotes->sum('total_amount'),
                 'total_payments' => $payments->sum('amount'),
-                'balance' => $invoices->sum('balance_amount')
+                'balance' => $invoices->sum('balance_amount') - $debitNotes->sum('total_amount')
             ]
         ];
     }

@@ -6,8 +6,10 @@ use App\Services\BulkImport\Definitions\AccountTypeDefinition;
 use App\Services\BulkImport\Definitions\BankAccountDefinition;
 use App\Services\BulkImport\Definitions\BankTransferDefinition;
 use App\Services\BulkImport\Definitions\ChartOfAccountDefinition;
+use App\Services\BulkImport\Definitions\CreditNoteDefinition;
 use App\Services\BulkImport\Definitions\CustomerDefinition;
 use App\Services\BulkImport\Definitions\CustomerPaymentDefinition;
+use App\Services\BulkImport\Definitions\DebitNoteDefinition;
 use App\Services\BulkImport\Definitions\JournalEntryDefinition;
 use App\Services\BulkImport\Definitions\ExpenseCategoryDefinition;
 use App\Services\BulkImport\Definitions\ExpenseDefinition;
@@ -53,6 +55,8 @@ class BulkImportRegistry
             'expenses' => new ExpenseDefinition(),
             'journal-entries' => new JournalEntryDefinition(),
             'petty-cashes' => new PettyCashDefinition(),
+            'credit-notes' => new CreditNoteDefinition(),
+            'debit-notes' => new DebitNoteDefinition(),
         ];
     }
 

@@ -47,7 +47,12 @@ trait ResolvesImportReferences
 
     protected function customerUser(array $row, int $tenantId): ?User
     {
-        $value = strtolower($this->text($row['customer_email'] ?? $row['user_email'] ?? $row['customer'] ?? ''));
+        $value = strtolower(
+            $this->nullableText($row['customer_email'] ?? null)
+            ?? $this->nullableText($row['user_email'] ?? null)
+            ?? $this->nullableText($row['customer'] ?? null)
+            ?? ''
+        );
 
         return User::where('created_by', $tenantId)
             ->where('type', 'client')
@@ -62,7 +67,11 @@ trait ResolvesImportReferences
 
     protected function vendorUser(array $row, int $tenantId): ?User
     {
-        $value = strtolower($this->text($row['vendor_email'] ?? $row['vendor'] ?? ''));
+        $value = strtolower(
+            $this->nullableText($row['vendor_email'] ?? null)
+            ?? $this->nullableText($row['vendor'] ?? null)
+            ?? ''
+        );
 
         return User::where('created_by', $tenantId)
             ->where('type', 'vendor')

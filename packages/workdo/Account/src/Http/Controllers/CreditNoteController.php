@@ -6,12 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Models\SalesInvoiceReturn;
 use App\Models\User;
 use Workdo\Account\Models\CreditNote;
+use Workdo\Account\Models\CreditNoteItem;
+use Workdo\Account\Models\CreditNoteItemTax;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Workdo\Account\Events\ApproveCreditNote;
 use Workdo\Account\Events\DestroyCreditNote;
+use Workdo\Account\Http\Requests\StoreCreditNoteRequest;
 use Workdo\Account\Services\JournalService;
+use Workdo\ProductService\Models\ProductServiceItem;
 use App\Models\EmailTemplate;
 
 class CreditNoteController extends Controller
@@ -87,6 +92,127 @@ class CreditNoteController extends Controller
                 'salesReturns' => $salesReturns,
                 'filters' => $request->only(['customer_id', 'status', 'sales_return_id'])
             ]);
+        }
+        else{
+            return back()->with('error', __('Permission denied'));
+        }
+    }
+
+    public function create()
+    {
+        if(Auth::user()->can('create-credit-notes')){
+            $customers = User::where('type', 'client')->where('created_by', creatorId())->get(['id', 'name']);
+            $products = ProductServiceItem::where('created_by', creatorId())
+                ->get(['id', 'name', 'sku', 'sale_price', 'unit', 'type', 'tax_ids'])
+                ->map(fn($product) => [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'sku' => $product->sku,
+                    'sale_price' => $product->sale_price,
+                    'unit' => $product->unit,
+                    'type' => $product->type,
+                    'taxes' => $product->taxes->map(fn($tax) => [
+                        'id' => $tax->id,
+                        'tax_name' => $tax->tax_name,
+                        'rate' => $tax->rate,
+                    ]),
+                ]);
+
+            return Inertia::render('Account/CreditNotes/Create', [
+                'customers' => $customers,
+                'products' => $products,
+            ]);
+        }
+        else{
+            return back()->with('error', __('Permission denied'));
+        }
+    }
+
+    public function store(StoreCreditNoteRequest $request)
+    {
+        if(Auth::user()->can('create-credit-notes')){
+            $validated = $request->validated();
+            $tenantId = creatorId();
+
+            $productIds = collect($validated['items'])->pluck('product_id')->unique();
+            $products = ProductServiceItem::where('created_by', $tenantId)
+                ->whereIn('id', $productIds)
+                ->get()
+                ->keyBy('id');
+
+            $creditNote = DB::transaction(function () use ($validated, $products, $tenantId) {
+                $subtotal = 0;
+                $taxAmount = 0;
+                $lineData = [];
+
+                foreach ($validated['items'] as $item) {
+                    $product = $products->get($item['product_id']);
+                    if (!$product) {
+                        continue;
+                    }
+
+                    $lineSubtotal = $item['quantity'] * $item['unit_price'];
+                    $taxRate = $product->taxes->sum('rate');
+                    $lineTax = round($lineSubtotal * $taxRate / 100, 2);
+                    $lineTotal = $lineSubtotal + $lineTax;
+
+                    $subtotal += $lineSubtotal;
+                    $taxAmount += $lineTax;
+
+                    $lineData[] = [
+                        'product_id' => $product->id,
+                        'quantity' => $item['quantity'],
+                        'unit_price' => $item['unit_price'],
+                        'tax_percentage' => $taxRate,
+                        'tax_amount' => $lineTax,
+                        'total_amount' => $lineTotal,
+                        'taxes' => $product->taxes,
+                    ];
+                }
+
+                $totalAmount = $subtotal + $taxAmount;
+
+                $creditNote = CreditNote::create([
+                    'credit_note_date' => $validated['credit_note_date'],
+                    'customer_id' => $validated['customer_id'],
+                    'reason' => $validated['reason'],
+                    'status' => 'draft',
+                    'subtotal' => $subtotal,
+                    'tax_amount' => $taxAmount,
+                    'discount_amount' => 0,
+                    'total_amount' => $totalAmount,
+                    'applied_amount' => 0,
+                    'balance_amount' => $totalAmount,
+                    'notes' => $validated['notes'] ?? null,
+                    'creator_id' => Auth::id(),
+                    'created_by' => $tenantId,
+                ]);
+
+                foreach ($lineData as $line) {
+                    $creditNoteItem = CreditNoteItem::create([
+                        'credit_note_id' => $creditNote->id,
+                        'product_id' => $line['product_id'],
+                        'quantity' => $line['quantity'],
+                        'unit_price' => $line['unit_price'],
+                        'tax_percentage' => $line['tax_percentage'],
+                        'tax_amount' => $line['tax_amount'],
+                        'total_amount' => $line['total_amount'],
+                    ]);
+
+                    foreach ($line['taxes'] as $tax) {
+                        CreditNoteItemTax::create([
+                            'item_id' => $creditNoteItem->id,
+                            'tax_name' => $tax->tax_name,
+                            'tax_rate' => $tax->rate,
+                        ]);
+                    }
+                }
+
+                return $creditNote;
+            });
+
+            return redirect()->route('account.credit-notes.show', $creditNote->id)
+                ->with('success', __('Credit note created successfully.'));
         }
         else{
             return back()->with('error', __('Permission denied'));

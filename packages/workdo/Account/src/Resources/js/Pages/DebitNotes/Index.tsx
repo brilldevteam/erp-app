@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { Dialog } from "@/components/ui/dialog";
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Eye, XCircle, CheckCircle, Trash2 } from "lucide-react";
+import { Eye, XCircle, CheckCircle, Trash2, Plus } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FilterButton } from '@/components/ui/filter-button';
 import { Pagination } from "@/components/ui/pagination";
@@ -20,6 +20,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { ListGridToggle } from '@/components/ui/list-grid-toggle';
 import { formatCurrency, formatDate } from '@/utils/helpers';
 import NoRecordsFound from '@/components/no-records-found';
+import { BulkImportButton } from '@/components/bulk-import-button';
 
 interface DebitNote {
     id: number;
@@ -274,6 +275,22 @@ export default function Index() {
             pageActions={
                 <div className="flex gap-2">
                     <TooltipProvider>
+                        {auth.user?.permissions?.includes('create-debit-notes')
+                            && auth.user?.permissions?.includes('import-debit-notes') && (
+                            <BulkImportButton entity="debit-notes" label={t('Debit Notes')} />
+                        )}
+                        {auth.user?.permissions?.includes('create-debit-notes') && (
+                            <Tooltip delayDuration={0}>
+                                <TooltipTrigger asChild>
+                                    <Button size="sm" onClick={() => router.get(route('account.debit-notes.create'))}>
+                                        <Plus className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{t('Create')}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
                         {pageButtons.map((button) => (
                             <div key={button.id}>{button.component}</div>
                         ))}
@@ -394,7 +411,7 @@ export default function Index() {
                                         <NoRecordsFound
                                             icon={XCircle}
                                             title={t('No debit notes found')}
-                                            description={t('Debit notes are automatically created from purchase returns.')}
+                                            description={t('Create one manually, or they are automatically created from purchase returns.')}
                                             hasFilters={!!(filters.search || filters.vendor_id || filters.status || filters.purchase_return_id)}
                                             onClearFilters={clearFilters}
                                             className="h-auto"

@@ -778,7 +778,7 @@ class JournalService
             'entry_type' => 'automatic',
             'reference_type' => 'debit_note',
             'reference_id' => $debitNote->id,
-            'description' => 'Debit Note #' . $debitNote->debit_note_number,
+            'description' => 'Vendor Credit #' . $debitNote->debit_note_number,
             'total_debit' => $debitNote->total_amount,
             'total_credit' => $debitNote->total_amount,
             'status' => 'posted',
@@ -789,7 +789,7 @@ class JournalService
         JournalEntryItem::create([
             'journal_entry_id' => $journalEntry->id,
             'account_id' => $apAccount->id,
-            'description' => 'Debit Note - ' . $debitNote->vendor->name,
+            'description' => 'Vendor Credit - ' . $debitNote->vendor->name,
             'debit_amount' => $debitNote->total_amount,
             'credit_amount' => 0,
             'creator_id' => Auth::id(),

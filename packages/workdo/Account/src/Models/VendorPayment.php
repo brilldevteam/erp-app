@@ -17,6 +17,7 @@ class VendorPayment extends Model
         'reference_number',
         'payment_amount',
         'status',
+        'needs_bank_verification',
         'notes',
         'creator_id',
         'created_by'
@@ -24,7 +25,8 @@ class VendorPayment extends Model
 
     protected $casts = [
         'payment_date' => 'date',
-        'payment_amount' => 'decimal:2'
+        'payment_amount' => 'decimal:2',
+        'needs_bank_verification' => 'boolean',
     ];
 
     public function vendor(): BelongsTo

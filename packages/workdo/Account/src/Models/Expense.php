@@ -19,6 +19,7 @@ class Expense extends Model
         'description',
         'reference_number',
         'status',
+        'needs_bank_verification',
         'approved_by',
         'creator_id',
         'created_by',
@@ -29,6 +30,7 @@ class Expense extends Model
         return [
             'expense_date' => 'date',
             'amount' => 'decimal:2',
+            'needs_bank_verification' => 'boolean',
         ];
     }
 
