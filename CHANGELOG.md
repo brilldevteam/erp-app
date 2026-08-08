@@ -24,6 +24,8 @@ manual-journal-entries
 main
 
 ### Improved
+- Customer and vendor detail reports now keep all historical records visible by default instead of auto-filtering to the last three months.
+- Account Types import now auto-prepares the required default account categories when missing, avoiding manual database setup during imports.
 - Enhancements to existing workflows will be listed here before release.
 - Login page now uses saved brand theme colors and logo styling with a responsive desktop/mobile layout.
 - Customer create, edit, and view dialogs now use a single vertical scrollbar.
@@ -71,6 +73,8 @@ main
 - In-place warehouse creation from quotation screens.
 
 ### Improved
+- Customer and vendor detail reports now keep all historical records visible by default instead of auto-filtering to the last three months.
+- Account Types import now auto-prepares the required default account categories when missing, avoiding manual database setup during imports.
 - Warehouse is now optional in quotation and related business document workflows.
 - Products and services can be selected without warehouse stock restrictions when no warehouse is selected.
 - Quotation-to-invoice conversion flow now includes a review step.

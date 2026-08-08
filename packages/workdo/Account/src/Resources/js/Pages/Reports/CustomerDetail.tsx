@@ -32,18 +32,9 @@ export default function CustomerDetail() {
     const { t } = useTranslation();
     const { customerData, auth } = usePage<any>().props;
 
-    const getDefaultDates = () => {
-        const today = new Date();
-        const threeMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate());
-        return {
-            start: threeMonthsAgo.toISOString().split('T')[0],
-            end: today.toISOString().split('T')[0]
-        };
-    };
 
-    const defaultDates = getDefaultDates();
-    const [startDate, setStartDate] = useState(customerData.date_range.start_date || defaultDates.start);
-    const [endDate, setEndDate] = useState(customerData.date_range.end_date || defaultDates.end);
+    const [startDate, setStartDate] = useState(customerData.date_range.start_date || '');
+    const [endDate, setEndDate] = useState(customerData.date_range.end_date || '');
 
     useFlashMessages();
 
@@ -54,15 +45,6 @@ export default function CustomerDetail() {
         }, { preserveState: true });
     };
 
-    // Fetch data with default dates on initial load if no dates provided
-    useState(() => {
-        if (!customerData.date_range.start_date && !customerData.date_range.end_date) {
-            router.get(route('account.reports.customer-detail', customerData.customer.id), {
-                start_date: defaultDates.start,
-                end_date: defaultDates.end
-            }, { preserveState: true, replace: true });
-        }
-    });
 
     return (
         <AuthenticatedLayout
