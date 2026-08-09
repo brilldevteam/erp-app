@@ -18,7 +18,7 @@ class AccountTypeDefinition implements EntityDefinition
     public function requiredFields(): array { return ['category', 'name', 'code', 'normal_balance']; }
     public function aliases(): array { return ['category' => ['account_category', 'category_code'], 'name' => ['type_name'], 'code' => ['type_code']]; }
     public function example(): array { return ['assets', 'Current Assets', 'CA', 'debit', 'Short term asset accounts', 'yes']; }
-    public function instructions(): array { return ['code is the duplicate key.', 'category must match an existing account category name or code.', 'normal_balance accepts debit or credit.']; }
+    public function instructions(): array { return ['code is the duplicate key.', 'category accepts Assets, Liabilities, Equity, Revenue, or Expenses. Missing default account categories are created automatically during import.', 'normal_balance accepts debit or credit.']; }
     public function prepare(array $row): array { $row['code'] = $this->text($row['code'] ?? ''); return $row; }
     public function identity(array $row): string { return strtolower($this->text($row['code'] ?? '')); }
 
@@ -28,7 +28,7 @@ class AccountTypeDefinition implements EntityDefinition
         foreach ($this->requiredFields() as $field) {
             if ($this->text($row[$field] ?? '') === '') $errors[] = ucfirst(str_replace('_', ' ', $field)).' is required.';
         }
-        if (!$this->accountCategory($row, $tenantId)) $errors[] = 'Account category was not found.';
+        if (!$this->accountCategory($row, $tenantId)) $errors[] = 'Account category must be Assets, Liabilities, Equity, Revenue, or Expenses.';
         if (!$this->normalBalance($row['normal_balance'] ?? null)) $errors[] = 'Normal balance must be debit or credit.';
         return $errors;
     }
@@ -65,7 +65,10 @@ class AccountTypeDefinition implements EntityDefinition
 
     private function accountCategory(array $row, int $tenantId): ?AccountCategory
     {
+        $this->ensureDefaultAccountCategories($tenantId);
+
         $value = strtolower($this->text($row['category'] ?? ''));
+
         return AccountCategory::where(fn ($query) => $query
                 ->where('created_by', $tenantId)
                 ->orWhereNull('created_by'))
@@ -74,6 +77,35 @@ class AccountTypeDefinition implements EntityDefinition
                 ->orWhereRaw('LOWER(code) = ?', [$value])
                 ->orWhereRaw('LOWER(type) = ?', [$value]))
             ->first();
+    }
+
+    private function ensureDefaultAccountCategories(int $tenantId): void
+    {
+        foreach ($this->defaultAccountCategories() as $category) {
+            AccountCategory::firstOrCreate(
+                [
+                    'created_by' => $tenantId,
+                    'type' => $category['type'],
+                ],
+                [
+                    'name' => $category['name'],
+                    'code' => $category['code'],
+                    'description' => $category['description'],
+                    'is_active' => true,
+                ]
+            );
+        }
+    }
+
+    private function defaultAccountCategories(): array
+    {
+        return [
+            ['name' => 'Assets', 'code' => 'ASSETS', 'type' => 'assets', 'description' => 'Asset account category'],
+            ['name' => 'Liabilities', 'code' => 'LIABILITIES', 'type' => 'liabilities', 'description' => 'Liability account category'],
+            ['name' => 'Equity', 'code' => 'EQUITY', 'type' => 'equity', 'description' => 'Equity account category'],
+            ['name' => 'Revenue', 'code' => 'REVENUE', 'type' => 'revenue', 'description' => 'Revenue account category'],
+            ['name' => 'Expenses', 'code' => 'EXPENSES', 'type' => 'expenses', 'description' => 'Expense account category'],
+        ];
     }
 
     private function findAccountType(array $row, int $tenantId): ?AccountType
