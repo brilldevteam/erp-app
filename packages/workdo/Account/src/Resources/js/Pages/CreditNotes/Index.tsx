@@ -273,7 +273,8 @@ export default function Index() {
             pageActions={
                 <div className="flex gap-2">
                     <TooltipProvider>
-                        {auth.user?.permissions?.includes('import-credit-notes') && (
+                        {(auth.user?.permissions?.includes('import-credit-notes')
+                            || auth.user?.permissions?.includes('create-credit-notes')) && (
                             <BulkImportButton entity="credit-notes" label={t('Credit Notes')} />
                         )}
                         {auth.user?.permissions?.includes('create-credit-notes') && (

@@ -275,7 +275,8 @@ export default function Index() {
             pageActions={
                 <div className="flex gap-2">
                     <TooltipProvider>
-                        {auth.user?.permissions?.includes('import-debit-notes') && (
+                        {(auth.user?.permissions?.includes('import-debit-notes')
+                            || auth.user?.permissions?.includes('create-debit-notes')) && (
                             <BulkImportButton entity="debit-notes" label={t('Vendor Credits')} />
                         )}
                         {auth.user?.permissions?.includes('create-debit-notes') && (
