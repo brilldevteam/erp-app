@@ -64,6 +64,10 @@ export default function Create({ onSuccess, users = [], auth, returnToCurrentPag
 
     // Custom fields hook
     const customFields = useFormFields('getCustomFields', { ...data, module: 'Account', sub_module: 'Customer' }, setData, errors, 'create', t);
+    const isPlaceholderEmail = (email?: string | null) => {
+        const value = (email ?? '').toLowerCase();
+        return value === '' || value.endsWith('@import.local') || value.startsWith('zoho.customer.');
+    };
     const handleUserSelect = (userId: string) => {
         const actualUserId = userId === '0' ? undefined : parseInt(userId);
         setData('user_id', actualUserId);
@@ -74,7 +78,7 @@ export default function Create({ onSuccess, users = [], auth, returnToCurrentPag
                     ...data,
                     user_id: actualUserId,
                     contact_person_name: selectedUser.name,
-                    contact_person_email: selectedUser.email,
+                    contact_person_email: isPlaceholderEmail(selectedUser.email) ? '' : selectedUser.email,
                     contact_person_mobile: selectedUser.mobile_no || '',
                 });
             }
@@ -106,7 +110,7 @@ export default function Create({ onSuccess, users = [], auth, returnToCurrentPag
                             <SelectItem value="0">{t('No User Selected')}</SelectItem>
                             {users.map((user) => (
                                 <SelectItem key={user.id} value={user.id.toString()}>
-                                    {user.name} ({user.email})
+                                    {isPlaceholderEmail(user.email) ? user.name : `${user.name} (${user.email})`}
                                 </SelectItem>
                             ))}
                         </SelectContent>
@@ -150,8 +154,7 @@ export default function Create({ onSuccess, users = [], auth, returnToCurrentPag
                         type="email"
                         value={data.contact_person_email}
                         onChange={(e) => setData('contact_person_email', e.target.value)}
-                        placeholder={t('Enter email address')}
-                        required
+                        placeholder={t('Enter email address (optional)')}
                     />
                     <InputError message={errors.contact_person_email} />
                 </div>

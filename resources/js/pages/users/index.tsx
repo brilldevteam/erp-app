@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { Dialog } from "@/components/ui/dialog";
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Plus, Edit, Trash2, Key, Users as UsersIcon, User as UserIcon, UserCheck, History, Lock, PackageOpen, Mail } from "lucide-react";
+import { Plus, Edit, Trash2, Key, Users as UsersIcon, User as UserIcon, UserCheck, History, PackageOpen, Mail } from "lucide-react";
 import { getImagePath } from '@/utils/helpers';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FilterButton } from '@/components/ui/filter-button';
@@ -107,6 +107,15 @@ export default function Index() {
         }
     };
 
+    const isPlaceholderEmail = (email?: string | null) => {
+        const value = (email ?? '').toLowerCase();
+
+        return value === '' || value.endsWith('@import.local') || value.startsWith('zoho.customer.');
+    };
+
+    const hasUsableLoginEmail = (user: User) => !isPlaceholderEmail(user.email);
+    const displayEmail = (email?: string | null) => isPlaceholderEmail(email) ? '-' : email;
+
     const tableColumns = [
         {
             key: 'avatar',
@@ -133,7 +142,8 @@ export default function Index() {
         {
             key: 'email',
             header: t('Email'),
-            sortable: true
+            sortable: true,
+            render: (value: string | null) => displayEmail(value)
         },
         {
             key: 'mobile_no',
@@ -166,20 +176,8 @@ export default function Index() {
             header: t('Actions'),
             render: (_: any, user: User) => (
                 <div className="flex gap-1">
-                    {user.is_disable === 1 ? (
-                        <Tooltip delayDuration={0}>
-                            <TooltipTrigger asChild>
-                                <div className="h-8 w-8 p-0 flex items-center justify-center text-gray-400">
-                                    <Lock className="h-4 w-4" />
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{t('User is disabled')}</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    ) : (
                         <TooltipProvider>
-                        {auth.user?.permissions?.includes('impersonate-users') && user.id !== auth.user?.id && (
+                        {auth.user?.permissions?.includes('impersonate-users') && user.id !== auth.user?.id && user.is_enable_login && hasUsableLoginEmail(user) && (
                                 <Tooltip delayDuration={0}>
                                     <TooltipTrigger asChild>
                                         <Button
@@ -196,7 +194,7 @@ export default function Index() {
                                     </TooltipContent>
                                 </Tooltip>
                             )}
-                            {auth.user?.permissions?.includes('change-password-users') && (
+                            {auth.user?.permissions?.includes('change-password-users') && hasUsableLoginEmail(user) && (
                                 <Tooltip delayDuration={0}>
                                     <TooltipTrigger asChild>
                                         <Button variant="ghost" size="sm" onClick={() => openModal('change-password', user)} className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700">
@@ -208,7 +206,7 @@ export default function Index() {
                                     </TooltipContent>
                                 </Tooltip>
                             )}
-                            {auth.user?.permissions?.includes('change-password-users') && (
+                            {auth.user?.permissions?.includes('change-password-users') && hasUsableLoginEmail(user) && (
                                 <Tooltip delayDuration={0}>
                                     <TooltipTrigger asChild>
                                         <Button variant="ghost" size="sm" onClick={() => sendPasswordReset(user)} className="h-8 w-8 p-0 text-teal-600 hover:text-teal-700">
@@ -267,7 +265,6 @@ export default function Index() {
                                 </Tooltip>
                             )}
                         </TooltipProvider>
-                    )}
                 </div>
             )
         }] : [])
@@ -477,12 +474,14 @@ export default function Index() {
 
                                                 {/* Contact Info */}
                                                 <div className="space-y-2 mb-4 bg-gray-50 rounded-lg p-3">
-                                                    <div className="flex items-center gap-2 text-xs text-gray-600">
-                                                        <svg className="w-4 h-4 flex-shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                                        </svg>
-                                                        <span className="truncate font-medium" title={user.email}>{user.email}</span>
-                                                    </div>
+                                                    {hasUsableLoginEmail(user) && (
+                                                        <div className="flex items-center gap-2 text-xs text-gray-600">
+                                                            <svg className="w-4 h-4 flex-shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                                            </svg>
+                                                            <span className="truncate font-medium" title={user.email ?? undefined}>{user.email}</span>
+                                                        </div>
+                                                    )}
                                                     {user.mobile_no && (
                                                         <div className="flex items-center gap-2 text-xs text-gray-600">
                                                             <svg className="w-4 h-4 flex-shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -495,111 +494,98 @@ export default function Index() {
 
                                                 {/* Action Buttons */}
                                                 <div className="flex items-center justify-center gap-1.5 pt-3 border-t border-gray-200">
-                                                    {user.is_disable === 1 ? (
-                                                        <TooltipProvider>
+                                                    <TooltipProvider>
+                                                        {auth.user?.permissions?.includes('impersonate-users') && user.id !== auth.user?.id && user.is_enable_login && hasUsableLoginEmail(user) && (
                                                             <Tooltip delayDuration={0}>
                                                                 <TooltipTrigger asChild>
-                                                                    <div className="h-9 w-9 flex items-center justify-center text-gray-400 bg-gray-100 rounded-lg">
-                                                                        <Lock className="h-4 w-4" />
-                                                                    </div>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => router.post(route('users.impersonate', user.id))}
+                                                                        className="h-9 w-9 p-0 text-purple-600 hover:text-purple-700 rounded-lg transition-colors"
+                                                                    >
+                                                                        <UserCheck className="h-4 w-4" />
+                                                                    </Button>
                                                                 </TooltipTrigger>
-                                                                <TooltipContent><p>{t('User is disabled')}</p></TooltipContent>
+                                                                <TooltipContent><p>{t('Login As User')}</p></TooltipContent>
                                                             </Tooltip>
-                                                        </TooltipProvider>
-                                                    ) : (
-                                                        <TooltipProvider>
-                                                            {auth.user?.permissions?.includes('impersonate-users') && user.id !== auth.user?.id && (
-                                                                <Tooltip delayDuration={0}>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button 
-                                                                            variant="ghost" 
-                                                                            size="sm" 
-                                                                            onClick={() => router.post(route('users.impersonate', user.id))} 
-                                                                            className="h-9 w-9 p-0 text-purple-600 hover:text-purple-700 rounded-lg transition-colors"
-                                                                        >
-                                                                            <UserCheck className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent><p>{t('Login As User')}</p></TooltipContent>
-                                                                </Tooltip>
-                                                            )}
-                                                            {auth.user?.permissions?.includes('change-password-users') && (
-                                                                <Tooltip delayDuration={0}>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button 
-                                                                            variant="ghost" 
-                                                                            size="sm" 
-                                                                            onClick={() => openModal('change-password', user)} 
-                                                                            className="h-9 w-9 p-0 text-orange-600 hover:text-orange-700 rounded-lg transition-colors"
-                                                                        >
-                                                                            <Key className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent><p>{t('Change Password')}</p></TooltipContent>
-                                                                </Tooltip>
-                                                            )}
-                                                            {auth.user?.permissions?.includes('change-password-users') && (
-                                                                <Tooltip delayDuration={0}>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => sendPasswordReset(user)}
-                                                                            className="h-9 w-9 p-0 text-teal-600 hover:text-teal-700 rounded-lg transition-colors"
-                                                                        >
-                                                                            <Mail className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent><p>{t('Send Password Reset Link')}</p></TooltipContent>
-                                                                </Tooltip>
-                                                            )}
-                                                            {auth.user?.permissions?.includes('edit-users') && (
-                                                                <Tooltip delayDuration={0}>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button 
-                                                                            variant="ghost" 
-                                                                            size="sm" 
-                                                                            onClick={() => openModal('edit', user)} 
-                                                                            className="h-9 w-9 p-0 text-blue-600 hover:text-blue-700 rounded-lg transition-colors"
-                                                                        >
-                                                                            <Edit className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent><p>{t('Edit')}</p></TooltipContent>
-                                                                </Tooltip>
-                                                            )}
-                                                            {auth.user?.permissions?.includes('edit-users') && user.type === 'company' && plans.length > 0 && (
-                                                                <Tooltip delayDuration={0}>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => openModal('change-plan', user)}
-                                                                            className="h-9 w-9 p-0 text-emerald-600 hover:text-emerald-700 rounded-lg transition-colors"
-                                                                        >
-                                                                            <PackageOpen className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent><p>{t('Change Plan')}</p></TooltipContent>
-                                                                </Tooltip>
-                                                            )}
-                                                            {auth.user?.permissions?.includes('delete-users') && (
-                                                                <Tooltip delayDuration={0}>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button 
-                                                                            variant="ghost" 
-                                                                            size="sm" 
-                                                                            onClick={() => openDeleteDialog(user.id)} 
-                                                                            className="h-9 w-9 p-0 text-red-600 hover:text-red-700 rounded-lg transition-colors"
-                                                                        >
-                                                                            <Trash2 className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent><p>{t('Delete')}</p></TooltipContent>
-                                                                </Tooltip>
-                                                            )}
-                                                        </TooltipProvider>
-                                                    )}
+                                                        )}
+                                                        {auth.user?.permissions?.includes('change-password-users') && hasUsableLoginEmail(user) && (
+                                                            <Tooltip delayDuration={0}>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => openModal('change-password', user)}
+                                                                        className="h-9 w-9 p-0 text-orange-600 hover:text-orange-700 rounded-lg transition-colors"
+                                                                    >
+                                                                        <Key className="h-4 w-4" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent><p>{t('Change Password')}</p></TooltipContent>
+                                                            </Tooltip>
+                                                        )}
+                                                        {auth.user?.permissions?.includes('change-password-users') && hasUsableLoginEmail(user) && (
+                                                            <Tooltip delayDuration={0}>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => sendPasswordReset(user)}
+                                                                        className="h-9 w-9 p-0 text-teal-600 hover:text-teal-700 rounded-lg transition-colors"
+                                                                    >
+                                                                        <Mail className="h-4 w-4" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent><p>{t('Send Password Reset Link')}</p></TooltipContent>
+                                                            </Tooltip>
+                                                        )}
+                                                        {auth.user?.permissions?.includes('edit-users') && (
+                                                            <Tooltip delayDuration={0}>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => openModal('edit', user)}
+                                                                        className="h-9 w-9 p-0 text-blue-600 hover:text-blue-700 rounded-lg transition-colors"
+                                                                    >
+                                                                        <Edit className="h-4 w-4" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent><p>{t('Edit')}</p></TooltipContent>
+                                                            </Tooltip>
+                                                        )}
+                                                        {auth.user?.permissions?.includes('edit-users') && user.type === 'company' && plans.length > 0 && (
+                                                            <Tooltip delayDuration={0}>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => openModal('change-plan', user)}
+                                                                        className="h-9 w-9 p-0 text-emerald-600 hover:text-emerald-700 rounded-lg transition-colors"
+                                                                    >
+                                                                        <PackageOpen className="h-4 w-4" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent><p>{t('Change Plan')}</p></TooltipContent>
+                                                            </Tooltip>
+                                                        )}
+                                                        {auth.user?.permissions?.includes('delete-users') && (
+                                                            <Tooltip delayDuration={0}>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => openDeleteDialog(user.id)}
+                                                                        className="h-9 w-9 p-0 text-red-600 hover:text-red-700 rounded-lg transition-colors"
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent><p>{t('Delete')}</p></TooltipContent>
+                                                            </Tooltip>
+                                                        )}
+                                                    </TooltipProvider>
                                                 </div>
                                             </div>
                                         </Card>

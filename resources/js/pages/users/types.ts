@@ -3,7 +3,7 @@ import { PaginatedData, ModalState, AuthContext, CreateProps, EditProps } from '
 export interface User {
     id: number;
     name: string;
-    email: string;
+    email?: string | null;
     mobile_no: string;
     role: string;
     type: string;

@@ -21,10 +21,10 @@ class SalesInvoiceDefinition implements EntityDefinition, AllowsRepeatedIdentity
     public function permission(): string { return 'import-sales-invoices'; }
     public function createPermission(): string { return 'create-sales-invoices'; }
     public function headers(): array { return ['invoice_number', 'invoice_date', 'due_date', 'customer_email', 'customer', 'item_sku', 'item_name', 'quantity', 'unit_price', 'discount_percentage', 'tax_names', 'tax_percentage', 'payment_terms', 'warehouse', 'paid_amount', 'status', 'notes']; }
-    public function requiredFields(): array { return ['invoice_number', 'invoice_date', 'customer_email', 'item_sku', 'quantity', 'unit_price']; }
+    public function requiredFields(): array { return ['invoice_number', 'invoice_date', 'customer', 'item_sku', 'item_name', 'quantity', 'unit_price']; }
     public function aliases(): array { return ['invoice_number' => ['invoice no', 'invoice number'], 'invoice_date' => ['date'], 'due_date' => ['due date'], 'customer_email' => ['customer email', 'email'], 'customer' => ['customer name', 'customer'], 'item_sku' => ['item code', 'sku', 'product code'], 'unit_price' => ['rate', 'price'], 'tax_names' => ['tax', 'tax name']]; }
     public function example(): array { return ['INV-1001', date('Y-m-d'), date('Y-m-d', strtotime('+30 days')), 'customer@example.com', 'Example Customer', 'SKU-100', 'Example Product', '2', '100', '0', 'VAT 15%', '15', 'Net 30', 'Main Warehouse', '0', 'posted', 'Imported from Zoho Books']; }
-    public function instructions(): array { return ['Use one row per invoice line. Repeating invoice_number rows become line items on one invoice.', 'Customers and items must already exist.', 'status accepts draft, posted, partial, paid, or overdue.']; }
+    public function instructions(): array { return ['Use one row per invoice line. Repeating invoice_number rows become line items on one invoice.', 'customer and item_name are required; customer_email is optional since a customer may not have one on file.', 'Customers and items must already exist.', 'status accepts draft, posted, partial, paid, or overdue.']; }
     public function prepare(array $row): array { $row['invoice_number'] = $this->text($row['invoice_number'] ?? ''); $row['status'] = strtolower($this->text($row['status'] ?? 'posted')) ?: 'posted'; return $row; }
     public function identity(array $row): string { return strtolower($this->text($row['invoice_number'] ?? '')); }
 

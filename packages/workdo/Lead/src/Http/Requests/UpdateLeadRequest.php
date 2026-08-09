@@ -15,7 +15,7 @@ class UpdateLeadRequest extends FormRequest
     {
         return [
             'name' => 'required|max:100',
-            'email' => 'required|email',
+            'email' => 'nullable|email',
             'subject' => 'required|max:200',
             'user_id' => 'required|exists:users,id',
             'pipeline_id' => 'nullable|integer',
