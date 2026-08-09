@@ -20,7 +20,7 @@ class DebitNoteDefinition implements EntityDefinition, AllowsRepeatedIdentity
 
     public function key(): string { return 'debit-notes'; }
     public function permission(): string { return 'import-debit-notes'; }
-    public function createPermission(): string { return 'create-debit-notes'; }
+    public function createPermission(): string { return 'import-debit-notes'; }
 
     public function headers(): array
     {

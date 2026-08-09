@@ -20,7 +20,7 @@ class CreditNoteDefinition implements EntityDefinition, AllowsRepeatedIdentity
 
     public function key(): string { return 'credit-notes'; }
     public function permission(): string { return 'import-credit-notes'; }
-    public function createPermission(): string { return 'create-credit-notes'; }
+    public function createPermission(): string { return 'import-credit-notes'; }
 
     public function headers(): array
     {
