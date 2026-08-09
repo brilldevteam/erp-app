@@ -78,6 +78,8 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Account'])->group
 
     Route::prefix('account/debit-notes')->name('account.debit-notes.')->group(function () {
         Route::get('/', [DebitNoteController::class, 'index'])->name('index');
+        Route::get('/create', [DebitNoteController::class, 'create'])->name('create');
+        Route::post('/', [DebitNoteController::class, 'store'])->name('store');
         Route::post('/{debitNote}/approve', [DebitNoteController::class, 'approve'])->name('approve');
         Route::delete('/{debitNote}', [DebitNoteController::class, 'destroy'])->name('destroy');
         Route::get('/{debitNote}', [DebitNoteController::class, 'show'])->name('show');
@@ -85,6 +87,8 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Account'])->group
 
     Route::prefix('account/credit-notes')->name('account.credit-notes.')->group(function () {
         Route::get('/', [CreditNoteController::class, 'index'])->name('index');
+        Route::get('/create', [CreditNoteController::class, 'create'])->name('create');
+        Route::post('/', [CreditNoteController::class, 'store'])->name('store');
         Route::post('/{creditNote}/approve', [CreditNoteController::class, 'approve'])->name('approve');
         Route::delete('/{creditNote}', [CreditNoteController::class, 'destroy'])->name('destroy');
         Route::get('/{creditNote}', [CreditNoteController::class, 'show'])->name('show');

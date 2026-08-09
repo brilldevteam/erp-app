@@ -21,6 +21,7 @@ manual-journal-entries
 - Added Zoho-style Security Settings with password changes, active sessions, logout-other-devices support, login history, and admin reset-link sending.
 - Added bulk import support for Petty Cash records, including templates, validation, duplicate handling, and the Petty Cash page import action.
 - Added bulk import support for quotations, including templates, validation, duplicate handling, and the Quotations page import action.
+- Added Credit Note and Vendor Credit creation/import support, including historical Zoho migration coverage.
 main
 - Customer, vendor, lead, and user records can now be created and imported without an email address; login access is automatically disabled until a real email is added.
 
@@ -51,6 +52,8 @@ main
 - Updated profile/security separation so profile details and password security are managed on separate pages.
 - Bulk imports for customers, vendors, sales and purchase invoices, quotations, and customer/vendor payments now identify records by name instead of requiring an email address, matching real-world data exports that often omit emails.
 - Warehouse imports now require a complete address (address, city, and zip code) to prevent incomplete location records.
+- Customer/vendor balance reports now subtract approved Credit Notes and Vendor Credits while leaving draft notes out of balances.
+- Zoho migration imports can safely flag migrated payment/expense records for bank verification without weakening the normal ERP import validation flow.
 
 ### Fixed
 - Bug fixes and production stability improvements will be listed here before release.
@@ -96,4 +99,3 @@ main
 - Bulk import requires a running Laravel queue worker.
 - Frontend changes require rebuilding Vite assets for production.
 - Media and module asset fixes require correct public storage handling on hosting.
-

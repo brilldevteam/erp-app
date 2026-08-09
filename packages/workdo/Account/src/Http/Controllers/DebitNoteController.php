@@ -6,13 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Models\PurchaseReturn;
 use App\Models\User;
 use Workdo\Account\Models\DebitNote;
+use Workdo\Account\Models\DebitNoteItem;
+use Workdo\Account\Models\DebitNoteItemTax;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Workdo\Account\Events\ApproveDebitNote;
 use Workdo\Account\Events\DestroyDebitNote;
+use Workdo\Account\Http\Requests\StoreDebitNoteRequest;
 use Workdo\Account\Services\JournalService;
+use Workdo\ProductService\Models\ProductServiceItem;
 use App\Models\EmailTemplate;
 
 class DebitNoteController extends Controller
@@ -88,6 +93,129 @@ class DebitNoteController extends Controller
                 'purchaseReturns' => $purchaseReturns,
                 'filters' => $request->only(['vendor_id', 'status', 'purchase_return_id'])
             ]);
+        }
+        else{
+            return back()->with('error', __('Permission denied'));
+        }
+    }
+
+    public function create()
+    {
+        if(Auth::user()->can('create-debit-notes')){
+            $vendors = User::where('type', 'vendor')->where('created_by', creatorId())->get(['id', 'name']);
+            $products = ProductServiceItem::where('created_by', creatorId())
+                ->get(['id', 'name', 'sku', 'purchase_price', 'unit', 'type', 'tax_ids'])
+                ->map(fn($product) => [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'sku' => $product->sku,
+                    'purchase_price' => $product->purchase_price,
+                    'unit' => $product->unit,
+                    'type' => $product->type,
+                    'taxes' => $product->taxes->map(fn($tax) => [
+                        'id' => $tax->id,
+                        'tax_name' => $tax->tax_name,
+                        'rate' => $tax->rate,
+                    ]),
+                ]);
+
+            return Inertia::render('Account/DebitNotes/Create', [
+                'vendors' => $vendors,
+                'products' => $products,
+            ]);
+        }
+        else{
+            return back()->with('error', __('Permission denied'));
+        }
+    }
+
+    public function store(StoreDebitNoteRequest $request)
+    {
+        if(Auth::user()->can('create-debit-notes')){
+            $validated = $request->validated();
+            $tenantId = creatorId();
+
+            $productIds = collect($validated['items'])->pluck('product_id')->unique();
+            $products = ProductServiceItem::where('created_by', $tenantId)
+                ->whereIn('id', $productIds)
+                ->get()
+                ->keyBy('id');
+
+            $debitNote = DB::transaction(function () use ($validated, $products, $tenantId) {
+                $subtotal = 0;
+                $taxAmount = 0;
+                $lineData = [];
+
+                foreach ($validated['items'] as $item) {
+                    $product = $products->get($item['product_id']);
+                    if (!$product) {
+                        continue;
+                    }
+
+                    $lineSubtotal = $item['quantity'] * $item['unit_price'];
+                    $taxRate = $product->taxes->sum('rate');
+                    $lineTax = round($lineSubtotal * $taxRate / 100, 2);
+                    $lineTotal = $lineSubtotal + $lineTax;
+
+                    $subtotal += $lineSubtotal;
+                    $taxAmount += $lineTax;
+
+                    $lineData[] = [
+                        'product_id' => $product->id,
+                        'quantity' => $item['quantity'],
+                        'unit_price' => $item['unit_price'],
+                        'tax_percentage' => $taxRate,
+                        'tax_amount' => $lineTax,
+                        'total_amount' => $lineTotal,
+                        'taxes' => $product->taxes,
+                    ];
+                }
+
+                $totalAmount = $subtotal + $taxAmount;
+
+                $debitNote = DebitNote::create([
+                    'debit_note_date' => $validated['debit_note_date'],
+                    'vendor_id' => $validated['vendor_id'],
+                    'reason' => $validated['reason'],
+                    'status' => 'draft',
+                    'subtotal' => $subtotal,
+                    'tax_amount' => $taxAmount,
+                    'discount_amount' => 0,
+                    'total_amount' => $totalAmount,
+                    'applied_amount' => 0,
+                    'balance_amount' => $totalAmount,
+                    'notes' => $validated['notes'] ?? null,
+                    'creator_id' => Auth::id(),
+                    'created_by' => $tenantId,
+                ]);
+
+                foreach ($lineData as $line) {
+                    $debitNoteItem = DebitNoteItem::create([
+                        'debit_note_id' => $debitNote->id,
+                        'product_id' => $line['product_id'],
+                        'quantity' => $line['quantity'],
+                        'unit_price' => $line['unit_price'],
+                        'tax_percentage' => $line['tax_percentage'],
+                        'tax_amount' => $line['tax_amount'],
+                        'total_amount' => $line['total_amount'],
+                        'creator_id' => Auth::id(),
+                        'created_by' => $tenantId,
+                    ]);
+
+                    foreach ($line['taxes'] as $tax) {
+                        DebitNoteItemTax::create([
+                            'item_id' => $debitNoteItem->id,
+                            'tax_name' => $tax->tax_name,
+                            'tax_rate' => $tax->rate,
+                        ]);
+                    }
+                }
+
+                return $debitNote;
+            });
+
+            return redirect()->route('account.debit-notes.show', $debitNote->id)
+                ->with('success', __('Debit note created successfully.'));
         }
         else{
             return back()->with('error', __('Permission denied'));

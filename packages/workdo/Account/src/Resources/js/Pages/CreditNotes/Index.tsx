@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Eye, XCircle, CheckCircle, Trash2 } from "lucide-react";
+import { Eye, XCircle, CheckCircle, Trash2, Plus } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FilterButton } from '@/components/ui/filter-button';
 import { Pagination } from "@/components/ui/pagination";
@@ -19,6 +19,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { ListGridToggle } from '@/components/ui/list-grid-toggle';
 import { formatCurrency, formatDate } from '@/utils/helpers';
 import NoRecordsFound from '@/components/no-records-found';
+import { BulkImportButton } from '@/components/bulk-import-button';
 
 interface CreditNote {
     id: number;
@@ -272,6 +273,22 @@ export default function Index() {
             pageActions={
                 <div className="flex gap-2">
                     <TooltipProvider>
+                        {auth.user?.permissions?.includes('create-credit-notes')
+                            && auth.user?.permissions?.includes('import-credit-notes') && (
+                            <BulkImportButton entity="credit-notes" label={t('Credit Notes')} />
+                        )}
+                        {auth.user?.permissions?.includes('create-credit-notes') && (
+                            <Tooltip delayDuration={0}>
+                                <TooltipTrigger asChild>
+                                    <Button size="sm" onClick={() => router.get(route('account.credit-notes.create'))}>
+                                        <Plus className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{t('Create')}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
                         {pageButtons.map((button) => (
                             <div key={button.id}>{button.component}</div>
                         ))}
@@ -392,7 +409,7 @@ export default function Index() {
                                         <NoRecordsFound
                                             icon={XCircle}
                                             title={t('No credit notes found')}
-                                            description={t('Credit notes are automatically created from sales returns.')}
+                                            description={t('Create one manually, or they are automatically created from sales returns.')}
                                             hasFilters={!!(filters.search || filters.customer_id || filters.status || filters.sales_return_id)}
                                             onClearFilters={clearFilters}
                                             className="h-auto"

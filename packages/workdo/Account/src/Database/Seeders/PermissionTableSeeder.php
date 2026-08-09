@@ -93,14 +93,15 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'manage-bank-transactions', 'module' => 'bank-transaction', 'label' => 'Manage Bank Transaction'],
             ['name' => 'reconcile-bank-transactions', 'module' => 'bank-transaction', 'label' => 'Reconcile Bank Transaction'],
 
-            // DebitNote management
-            ['name' => 'manage-debit-notes', 'module' => 'debit-notes', 'label' => 'Manage Debit Notes'],
-            ['name' => 'manage-any-debit-notes', 'module' => 'debit-notes', 'label' => 'Manage All Debit Notes'],
-            ['name' => 'manage-own-debit-notes', 'module' => 'debit-notes', 'label' => 'Manage Own Debit Notes'],
-            ['name' => 'view-debit-notes', 'module' => 'debit-notes', 'label' => 'View Debit Notes'],
-            ['name' => 'create-debit-notes', 'module' => 'debit-notes', 'label' => 'Create Debit Notes'],
-            ['name' => 'approve-debit-notes', 'module' => 'debit-notes', 'label' => 'Approve Debit Notes'],
-            ['name' => 'delete-debit-notes', 'module' => 'debit-notes', 'label' => 'Delete Debit Notes'],
+            // DebitNote management (displayed to users as "Vendor Credit")
+            ['name' => 'manage-debit-notes', 'module' => 'debit-notes', 'label' => 'Manage Vendor Credits'],
+            ['name' => 'manage-any-debit-notes', 'module' => 'debit-notes', 'label' => 'Manage All Vendor Credits'],
+            ['name' => 'manage-own-debit-notes', 'module' => 'debit-notes', 'label' => 'Manage Own Vendor Credits'],
+            ['name' => 'view-debit-notes', 'module' => 'debit-notes', 'label' => 'View Vendor Credits'],
+            ['name' => 'create-debit-notes', 'module' => 'debit-notes', 'label' => 'Create Vendor Credits'],
+            ['name' => 'approve-debit-notes', 'module' => 'debit-notes', 'label' => 'Approve Vendor Credits'],
+            ['name' => 'delete-debit-notes', 'module' => 'debit-notes', 'label' => 'Delete Vendor Credits'],
+            ['name' => 'import-debit-notes', 'module' => 'debit-notes', 'label' => 'Import Vendor Credits'],
 
             // CreditNote management
             ['name' => 'manage-credit-notes', 'module' => 'credit-notes', 'label' => 'Manage Credit Notes'],
@@ -110,6 +111,7 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'create-credit-notes', 'module' => 'credit-notes', 'label' => 'Create Credit Notes'],
             ['name' => 'approve-credit-notes', 'module' => 'credit-notes', 'label' => 'Approve Credit Notes'],
             ['name' => 'delete-credit-notes', 'module' => 'credit-notes', 'label' => 'Delete Credit Notes'],
+            ['name' => 'import-credit-notes', 'module' => 'credit-notes', 'label' => 'Import Credit Notes'],
 
             // JournalEntry management
             ['name' => 'manage-journal-entries', 'module' => 'journal-entries', 'label' => 'Manage Journal Entries'],

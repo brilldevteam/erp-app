@@ -2386,13 +2386,13 @@ class EmailTemplatesSeeder extends Seeder
                 ],
             ],
             'Debit Note Approval' => [
-                'subject' => 'Debit Note Approved',
+                'subject' => 'Vendor Credit Approved',
                 'variables' => '{
                     "App Name": "app_name",
                     "Company Name": "company_name",
                     "App Url": "app_url",
-                    "Debit Note Number": "debit_note_number",
-                    "Debit Note Date": "debit_note_date",
+                    "Vendor Credit Number": "debit_note_number",
+                    "Vendor Credit Date": "debit_note_date",
                     "Vendor Name": "vendor_name",
                     "Invoice Number": "invoice_number",
                     "Return Number": "return_number",
@@ -2538,19 +2538,19 @@ class EmailTemplatesSeeder extends Seeder
                     <div style="max-width:680px;margin:auto;background:#ffffff;border-radius:16px;border:1px solid #e5e7eb;overflow:hidden;box-shadow:0 10px 25px rgba(0,0,0,0.08);">
 
                     <div style="background:linear-gradient(90deg,#10b981,#059669);color:#ffffff;padding:26px 30px;font-size:20px;font-weight:600;">
-                    Debit Note Approved
+                    Vendor Credit Approved
                     </div>
 
                     <div style="padding:32px 30px;color:#374151;font-size:15px;line-height:1.7;">
 
                     <p>Dear <strong>{vendor_name}</strong>,</p>
 
-                    <p>We would like to inform you that your submitted debit note has been <strong style="color:#059669;">successfully approved</strong>. Please find the details below for your reference.</p>
+                    <p>We would like to inform you that your submitted vendor credit has been <strong style="color:#059669;">successfully approved</strong>. Please find the details below for your reference.</p>
 
                     <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:18px 20px;margin:20px 0;">
 
-                    <p style="margin:6px 0;"><strong>Debit Note Number:</strong> {debit_note_number}</p>
-                    <p style="margin:6px 0;"><strong>Debit Note Date:</strong> {debit_note_date}</p>
+                    <p style="margin:6px 0;"><strong>Vendor Credit Number:</strong> {debit_note_number}</p>
+                    <p style="margin:6px 0;"><strong>Vendor Credit Date:</strong> {debit_note_date}</p>
                     <p style="margin:6px 0;"><strong>Invoice Number:</strong> {invoice_number}</p>
                     <p style="margin:6px 0;"><strong>Return Number:</strong> {return_number}</p>
                     <p style="margin:6px 0;"><strong>Reason:</strong> {reason}</p>
@@ -2558,7 +2558,7 @@ class EmailTemplatesSeeder extends Seeder
 
                     </div>
 
-                    <p>If you need any further clarification regarding this debit note, please feel free to contact us.</p>
+                    <p>If you need any further clarification regarding this vendor credit, please feel free to contact us.</p>
 
                     <p style="margin-top:25px;">
                     <a href="{app_url}" style="display:inline-block;background:#10b981;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600;">Open {app_name}</a>

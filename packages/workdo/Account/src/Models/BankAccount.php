@@ -12,6 +12,7 @@ class BankAccount extends Model
 
     protected $fillable = [
         'account_number',
+        'zoho_gl_code',
         'account_name',
         'bank_name',
         'branch_name',
