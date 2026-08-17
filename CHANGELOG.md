@@ -59,6 +59,7 @@ main
 - Zoho migration imports can safely flag migrated payment/expense records for bank verification without weakening the normal ERP import validation flow.
 
 ### Fixed
+- Fixed Login As User impersonation sessions being blocked by security-version revocation checks after password resets or logout-other-devices actions.
 - Bug fixes and production stability improvements will be listed here before release.
 - Invoice and quotation template previews now place the document badge on the left when the header is aligned right.
 - Document template previews now use saved currency settings instead of hardcoded dollar formatting.
