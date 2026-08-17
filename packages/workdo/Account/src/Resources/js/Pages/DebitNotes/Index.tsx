@@ -269,15 +269,15 @@ export default function Index() {
         <AuthenticatedLayout
             breadcrumbs={[
                 {label: t('Accounting'), url: route('account.index')},
-                {label: t('Debit Notes')}
+                {label: t('Vendor Credits')}
             ]}
-            pageTitle={t('Manage Debit Notes')}
+            pageTitle={t('Manage Vendor Credits')}
             pageActions={
                 <div className="flex gap-2">
                     <TooltipProvider>
-                        {auth.user?.permissions?.includes('create-debit-notes')
-                            && auth.user?.permissions?.includes('import-debit-notes') && (
-                            <BulkImportButton entity="debit-notes" label={t('Debit Notes')} />
+                        {(auth.user?.permissions?.includes('import-debit-notes')
+                            || auth.user?.permissions?.includes('create-debit-notes')) && (
+                            <BulkImportButton entity="debit-notes" label={t('Vendor Credits')} />
                         )}
                         {auth.user?.permissions?.includes('create-debit-notes') && (
                             <Tooltip delayDuration={0}>
@@ -298,7 +298,7 @@ export default function Index() {
                 </div>
             }
         >
-            <Head title={t('Debit Notes')} />
+            <Head title={t('Vendor Credits')} />
 
             <Card className="shadow-sm">
                 <CardContent className="p-6 border-b bg-gray-50/50">

@@ -185,9 +185,18 @@ class BulkImportController extends Controller
     {
         abort_unless(array_key_exists($entity, $registry->all()), 404);
         $definition = $registry->get($entity);
+
+        $canImport = $request->user()->can($definition->permission());
+        $canCreate = $request->user()->can($definition->createPermission());
+
+        if (in_array($entity, ['credit-notes', 'debit-notes'], true)) {
+            abort_unless($canImport || $canCreate, 403);
+
+            return $definition;
+        }
+
         abort_unless(
-            $request->user()->can($definition->permission())
-            && $request->user()->can($definition->createPermission()),
+            $canImport && $canCreate,
             403
         );
 

@@ -26,6 +26,7 @@ main
 - Customer, vendor, lead, and user records can now be created and imported without an email address; login access is automatically disabled until a real email is added.
 
 ### Improved
+- Fixed Credit Notes and Vendor Credits import visibility so users with create or import access can use migration imports, and Vendor Credits no longer appears as Debit Notes in the page header.
 - Customer and vendor detail reports now keep all historical records visible by default instead of auto-filtering to the last three months.
 - Account Types import now auto-prepares the required default account categories when missing, avoiding manual database setup during imports.
 - Enhancements to existing workflows will be listed here before release.
