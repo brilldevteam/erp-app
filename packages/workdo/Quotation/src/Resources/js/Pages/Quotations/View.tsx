@@ -8,7 +8,7 @@ import { formatCurrency, formatDate } from '@/utils/helpers';
 import { getStatusBadgeClasses } from './utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { FileText, Download, Send, RefreshCw, Receipt } from 'lucide-react';
+import { FileText, Download, Send, RefreshCw, Receipt, FileSearch } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AddressDisplay } from '@/components/address-display';
 
@@ -23,6 +23,11 @@ export default function View() {
     const { quotation, auth } = usePage<ViewProps>().props;
 
     useFlashMessages();
+
+    const previewPDF = () => {
+        const printUrl = route('quotations.print', quotation.id);
+        window.open(printUrl, '_blank');
+    };
 
     const downloadPDF = () => {
         const printUrl = route('quotations.print', quotation.id) + '?download=pdf';
@@ -119,14 +124,24 @@ export default function View() {
                                     <div className="flex justify-between items-center">
                                         <div className="flex flex-wrap gap-2">
                                             {auth.user?.permissions?.includes('print-quotations') && (
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={downloadPDF}
-                                                >
-                                                    <Download className="h-4 w-4 mr-2" />
-                                                    {t('Download PDF')}
-                                                </Button>
+                                                <>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={previewPDF}
+                                                    >
+                                                        <FileSearch className="h-4 w-4 mr-2" />
+                                                        {t('Preview')}
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={downloadPDF}
+                                                    >
+                                                        <Download className="h-4 w-4 mr-2" />
+                                                        {t('Download PDF')}
+                                                    </Button>
+                                                </>
                                             )}
                                             {!quotation.converted_to_invoice
                                                 && auth.user?.permissions?.includes('convert-to-invoice-quotations')
