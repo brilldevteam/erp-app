@@ -8,7 +8,7 @@ import { formatCurrency, formatDate } from '@/utils/helpers';
 import { getStatusBadgeClasses } from './utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { FileText, Download } from 'lucide-react';
+import { FileText, Download, FileSearch } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AddressDisplay } from '@/components/address-display';
 import { usePageButtons } from '@/hooks/usePageButtons';
@@ -33,6 +33,11 @@ export default function View() {
         invoice: invoice,
         invoiceType: 'sales'
     });
+
+    const previewPDF = () => {
+        const printUrl = route('sales-invoices.print', invoice.id);
+        window.open(printUrl, '_blank');
+    };
 
     const downloadPDF = () => {
         const printUrl = route('sales-invoices.print', invoice.id) + '?download=pdf';
@@ -140,14 +145,24 @@ export default function View() {
                                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                                         <div className="flex flex-wrap gap-2">
                                             {auth.user?.permissions?.includes('print-sales-invoices') && (
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={downloadPDF}
-                                                >
-                                                    <Download className="h-4 w-4 mr-2" />
-                                                    {t('Download PDF')}
-                                                </Button>
+                                                <>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={previewPDF}
+                                                    >
+                                                        <FileSearch className="h-4 w-4 mr-2" />
+                                                        {t('Preview')}
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={downloadPDF}
+                                                    >
+                                                        <Download className="h-4 w-4 mr-2" />
+                                                        {t('Download PDF')}
+                                                    </Button>
+                                                </>
                                             )}
                                             {invoice.status === 'draft' && auth.user?.permissions?.includes('post-sales-invoices') && (
                                                 <TooltipProvider>
