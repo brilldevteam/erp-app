@@ -7,6 +7,7 @@ All notable changes to the Wazely ERP application are documented here.
 ### Added
 - Added vendor payment voucher downloads from the Vendor Payments action list and payment detail modal, using the default active Invoice template design.
 - Added customer payment receipt downloads from the Customer Payments action list and payment detail modal.
+- Added preview actions for Sales Invoices and Quotations so users can open the same document template layout before downloading PDF.
 - Added bulk import support for Bank Transfers and Journal Entries, including import permissions and page-level Import actions.
 - New features currently in development will be listed here before release.
 - Added server-enforced logout from other devices with session version checks, API token revocation, active session status polling, and forced session-ended modal.

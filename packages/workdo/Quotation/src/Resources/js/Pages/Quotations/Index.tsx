@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Plus, Edit as EditIcon, Trash2, Eye, FileText, Receipt, Download, Send, Check, X, RefreshCw, Copy, PlusCircle } from "lucide-react";
+import { Plus, Edit as EditIcon, Trash2, Eye, FileText, Receipt, Download, Send, Check, X, RefreshCw, Copy, PlusCircle, FileSearch } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FilterButton } from '@/components/ui/filter-button';
 import { Pagination } from "@/components/ui/pagination";
@@ -198,21 +198,38 @@ export default function Index() {
                 <div className="flex gap-1">
                     <TooltipProvider>
                         {auth.user?.permissions?.includes('print-quotations') && (
-                            <Tooltip delayDuration={0}>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => window.open(route('quotations.print', quotation.id) + '?download=pdf', '_blank')}
-                                        className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700"
-                                    >
-                                        <Download className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t('Download PDF')}</p>
-                                </TooltipContent>
-                            </Tooltip>
+                            <>
+                                <Tooltip delayDuration={0}>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => window.open(route('quotations.print', quotation.id), '_blank')}
+                                            className="h-8 w-8 p-0 text-sky-600 hover:text-sky-700"
+                                        >
+                                            <FileSearch className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{t('Preview')}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                                <Tooltip delayDuration={0}>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => window.open(route('quotations.print', quotation.id) + '?download=pdf', '_blank')}
+                                            className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700"
+                                        >
+                                            <Download className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{t('Download PDF')}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </>
                         )}
 
                         {quotation.status === 'draft' && auth.user?.permissions?.includes('sent-quotations') && (
@@ -619,21 +636,38 @@ export default function Index() {
                                                     <div className="flex gap-1">
                                                         <TooltipProvider>
                                                             {auth.user?.permissions?.includes('print-quotations') && (
-                                                                <Tooltip delayDuration={0}>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => window.open(route('quotations.print', quotation.id) + '?download=pdf', '_blank')}
-                                                                            className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700"
-                                                                        >
-                                                                            <Download className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>
-                                                                        <p>{t('Download PDF')}</p>
-                                                                    </TooltipContent>
-                                                                </Tooltip>
+                                                                <>
+                                                                    <Tooltip delayDuration={0}>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                onClick={() => window.open(route('quotations.print', quotation.id), '_blank')}
+                                                                                className="h-8 w-8 p-0 text-sky-600 hover:text-sky-700"
+                                                                            >
+                                                                                <FileSearch className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            <p>{t('Preview')}</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                    <Tooltip delayDuration={0}>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                onClick={() => window.open(route('quotations.print', quotation.id) + '?download=pdf', '_blank')}
+                                                                                className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700"
+                                                                            >
+                                                                                <Download className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            <p>{t('Download PDF')}</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </>
                                                             )}
                                                             {auth.user?.permissions?.includes('view-quotations') && (
                                                                 <Tooltip delayDuration={0}>
