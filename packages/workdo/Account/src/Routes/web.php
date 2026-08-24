@@ -58,6 +58,7 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Account'])->group
     Route::prefix('account/vendor-payments')->name('account.vendor-payments.')->group(function () {
         Route::get('/', [VendorPaymentController::class, 'index'])->name('index');
         Route::post('/store', [VendorPaymentController::class, 'store'])->name('store');
+        Route::get('/{vendorPayment}/voucher', [VendorPaymentController::class, 'voucher'])->name('voucher');
         Route::delete('/{vendorPayment}', [VendorPaymentController::class, 'destroy'])->name('destroy');
         Route::get('/vendors/{vendorId}/outstanding', [VendorPaymentController::class, 'getOutstandingInvoices'])->name('vendors.outstanding');
         Route::post('/{vendorPayment}/update-status', [VendorPaymentController::class, 'updateStatus'])->name('update-status');
@@ -105,6 +106,7 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Account'])->group
     Route::prefix('account/customer-payments')->name('account.customer-payments.')->group(function () {
         Route::get('/', [CustomerPaymentController::class, 'index'])->name('index');
         Route::post('/', [CustomerPaymentController::class, 'store'])->name('store');
+        Route::get('/{customerPayment}/receipt', [CustomerPaymentController::class, 'receipt'])->name('receipt');
         Route::delete('/{customerPayment}', [CustomerPaymentController::class, 'destroy'])->name('destroy');
         Route::get('/customers/{customerId}/outstanding', [CustomerPaymentController::class, 'getOutstandingInvoices'])->name('outstanding-invoices');
         Route::patch('/{customerPayment}/update-status', [CustomerPaymentController::class, 'updateStatus'])->name('update-status');

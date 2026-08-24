@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
+import { Download } from 'lucide-react';
 import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -49,6 +50,10 @@ export default function View({ payment, canApplyDeposit = false, onApplied }: Cu
         });
     };
 
+    const downloadReceipt = () => {
+        window.open(route('account.customer-payments.receipt', payment.id) + '?download=pdf', '_blank');
+    };
+
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'cleared':
@@ -65,7 +70,13 @@ export default function View({ payment, canApplyDeposit = false, onApplied }: Cu
     return (
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-                <DialogTitle>{t('Payment Details')} - {payment.payment_number || `#${payment.id}`}</DialogTitle>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <DialogTitle>{t('Payment Details')} - {payment.payment_number || `#${payment.id}`}</DialogTitle>
+                    <Button type="button" size="sm" onClick={downloadReceipt} className="w-full sm:w-auto">
+                        <Download className="mr-2 h-4 w-4" />
+                        {t('Download Receipt')}
+                    </Button>
+                </div>
             </DialogHeader>
 
             <div className="space-y-6 mt-3">

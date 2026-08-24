@@ -20,6 +20,7 @@ use Workdo\Account\Events\CreateVendorPayment;
 use Workdo\Account\Events\UpdateVendorPaymentStatus;
 use Workdo\Account\Events\DestroyVendorPayment;
 use App\Models\EmailTemplate;
+use App\Models\DocumentTemplate;
 
 class VendorPaymentController extends Controller
 {
@@ -247,6 +248,29 @@ class VendorPaymentController extends Controller
         }
     }
 
+    public function voucher(VendorPayment $vendorPayment)
+    {
+        $canViewOwnPayment = $vendorPayment->vendor_id === Auth::id() || $vendorPayment->creator_id === Auth::id();
+
+        if (!Auth::user()->can('view-vendor-payments') || ($vendorPayment->created_by != creatorId() && !$canViewOwnPayment)) {
+            return back()->with('error', __('Permission denied'));
+        }
+
+        $vendorPayment->load(['vendor', 'bankAccount', 'allocations.invoice', 'debitNoteApplications.debitNote']);
+
+        $invoiceTemplate = DocumentTemplate::query()
+            ->forCompany((int) $vendorPayment->created_by)
+            ->forType(DocumentTemplate::TYPE_INVOICE)
+            ->active()
+            ->where('is_default', true)
+            ->first();
+
+        return Inertia::render('Account/VendorPayments/Voucher', [
+            'payment' => $vendorPayment,
+            'documentTemplate' => $invoiceTemplate,
+            'requiresInvoiceTemplate' => $invoiceTemplate === null,
+        ]);
+    }
     public function destroy(VendorPayment $vendorPayment)
     {
         if(Auth::user()->can('delete-vendor-payments') && $vendorPayment->created_by == creatorId() && $vendorPayment->status === 'pending'){
