@@ -38,6 +38,14 @@ export interface VendorPaymentAllocation {
     invoice: PurchaseInvoice;
 }
 
+export interface DebitNoteApplication {
+    id: number;
+    debit_note_id: number;
+    applied_amount: number;
+    application_date: string;
+    debit_note?: DebitNote;
+}
+
 export interface VendorPayment {
     id: number;
     payment_number: string;
@@ -51,6 +59,7 @@ export interface VendorPayment {
     vendor: Vendor;
     bank_account: BankAccount;
     allocations: VendorPaymentAllocation[];
+    debit_note_applications?: DebitNoteApplication[];
     created_at: string;
 }
 

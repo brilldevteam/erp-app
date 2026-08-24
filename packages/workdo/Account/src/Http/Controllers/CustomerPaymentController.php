@@ -22,6 +22,7 @@ use Workdo\Account\Events\CreateCustomerPayment;
 use Workdo\Account\Events\UpdateCustomerPaymentStatus;
 use Workdo\Account\Events\DestroyCustomerPayment;
 use App\Models\EmailTemplate;
+use App\Models\DocumentTemplate;
 
 class CustomerPaymentController extends Controller
 {
@@ -327,6 +328,29 @@ class CustomerPaymentController extends Controller
         }
     }
 
+    public function receipt(CustomerPayment $customerPayment)
+    {
+        $canViewOwnPayment = $customerPayment->customer_id === Auth::id() || $customerPayment->creator_id === Auth::id();
+
+        if (!Auth::user()->can('view-customer-payments') || ($customerPayment->created_by != creatorId() && !$canViewOwnPayment)) {
+            return back()->with('error', __('Permission denied'));
+        }
+
+        $customerPayment->load(['customer', 'bankAccount', 'allocations.invoice', 'creditNoteApplications.creditNote']);
+
+        $invoiceTemplate = DocumentTemplate::query()
+            ->forCompany((int) $customerPayment->created_by)
+            ->forType(DocumentTemplate::TYPE_INVOICE)
+            ->active()
+            ->where('is_default', true)
+            ->first();
+
+        return Inertia::render('Account/CustomerPayments/Receipt', [
+            'payment' => $customerPayment,
+            'documentTemplate' => $invoiceTemplate,
+            'requiresInvoiceTemplate' => $invoiceTemplate === null,
+        ]);
+    }
     public function destroy(CustomerPayment $customerPayment)
     {
         if(Auth::user()->can('delete-customer-payments') && $customerPayment->created_by == creatorId() && $customerPayment->status === 'pending'){

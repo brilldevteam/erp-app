@@ -14,7 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Dialog } from "@/components/ui/dialog";
-import { Eye, Trash2, CheckCircle, Plus, CreditCard, X } from "lucide-react";
+import { Eye, Trash2, CheckCircle, Plus, CreditCard, X, Download } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FilterButton } from '@/components/ui/filter-button';
 import { Pagination } from "@/components/ui/pagination";
@@ -126,6 +126,10 @@ export default function Index() {
         router.patch(route('account.customer-payments.update-status', paymentId), { status });
     };
 
+    const downloadReceipt = (payment: CustomerPayment) => {
+        window.open(route('account.customer-payments.receipt', payment.id) + '?download=pdf', '_blank');
+    };
+
     const openModal = (mode: 'add', data: CustomerPayment | null = null) => {
         setModalState({ isOpen: true, mode, data });
     };
@@ -229,16 +233,28 @@ export default function Index() {
                             </Tooltip>
                         )}
                         {auth.user?.permissions?.includes('view-customer-payments') && (
-                            <Tooltip delayDuration={0}>
-                                <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="sm" onClick={() => setViewingItem(payment)} className="h-8 w-8 p-0 text-green-600 hover:text-green-700">
-                                        <Eye className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t('View')}</p>
-                                </TooltipContent>
-                            </Tooltip>
+                            <>
+                                <Tooltip delayDuration={0}>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="sm" onClick={() => setViewingItem(payment)} className="h-8 w-8 p-0 text-green-600 hover:text-green-700">
+                                            <Eye className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{t('View')}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                                <Tooltip delayDuration={0}>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="sm" onClick={() => downloadReceipt(payment)} className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700">
+                                            <Download className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{t('Download Receipt')}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </>
                         )}
                         {payment.status === 'pending' && auth.user?.permissions?.includes('delete-customer-payments') && (
                             <Tooltip delayDuration={0}>
@@ -502,21 +518,38 @@ export default function Index() {
                                                             </Tooltip>
                                                         )}
                                                         {auth.user?.permissions?.includes('view-customer-payments') && (
-                                                            <Tooltip delayDuration={0}>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        onClick={() => setViewingItem(payment)}
-                                                                        className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
-                                                                    >
-                                                                        <Eye className="h-4 w-4" />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>{t('View')}</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
+                                                            <>
+                                                                <Tooltip delayDuration={0}>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onClick={() => setViewingItem(payment)}
+                                                                            className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                                                                        >
+                                                                            <Eye className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>{t('View')}</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                                <Tooltip delayDuration={0}>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onClick={() => downloadReceipt(payment)}
+                                                                            className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700"
+                                                                        >
+                                                                            <Download className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>{t('Download Receipt')}</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </>
                                                         )}
                                                         {payment.status === 'pending' && auth.user?.permissions?.includes('delete-customer-payments') && (
                                                             <Tooltip delayDuration={0}>

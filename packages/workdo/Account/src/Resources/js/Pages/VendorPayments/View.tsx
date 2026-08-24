@@ -2,11 +2,17 @@ import { useTranslation } from 'react-i18next';
 import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Download } from 'lucide-react';
 import { VendorPaymentViewProps } from './types';
 import { formatDate, formatCurrency } from '@/utils/helpers';
 
 export default function View({ payment }: VendorPaymentViewProps) {
     const { t } = useTranslation();
+
+    const downloadVoucher = () => {
+        window.open(route('account.vendor-payments.voucher', payment.id) + '?download=pdf', '_blank');
+    };
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -24,7 +30,13 @@ export default function View({ payment }: VendorPaymentViewProps) {
     return (
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-                <DialogTitle>{t('Payment Details')} - {payment.payment_number}</DialogTitle>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <DialogTitle>{t('Payment Details')} - {payment.payment_number}</DialogTitle>
+                    <Button type="button" size="sm" onClick={downloadVoucher} className="w-full sm:w-auto">
+                        <Download className="mr-2 h-4 w-4" />
+                        {t('Download Payment Voucher')}
+                    </Button>
+                </div>
             </DialogHeader>
 
             <div className="space-y-6 mt-3">
@@ -157,7 +169,7 @@ export default function View({ payment }: VendorPaymentViewProps) {
                                     <tfoot>
                                         <tr className="border-t-2 font-semibold">
                                             <td colSpan={2} className="py-2 text-right">{t('Total Applied Debit Note:')}</td>
-                                            <td className="py-2 text-right text-lg">{formatCurrency(payment.debit_note_applications.reduce((sum, app) => sum + parseFloat(app.applied_amount), 0))}</td>
+                                            <td className="py-2 text-right text-lg">{formatCurrency(payment.debit_note_applications.reduce((sum, app) => sum + Number(app.applied_amount || 0), 0))}</td>
                                         </tr>
                                     </tfoot>
                                 </table>

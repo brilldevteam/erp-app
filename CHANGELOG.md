@@ -5,6 +5,8 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Added
+- Added vendor payment voucher downloads from the Vendor Payments action list and payment detail modal, using the default active Invoice template design.
+- Added customer payment receipt downloads from the Customer Payments action list and payment detail modal.
 - Added bulk import support for Bank Transfers and Journal Entries, including import permissions and page-level Import actions.
 - New features currently in development will be listed here before release.
 - Added server-enforced logout from other devices with session version checks, API token revocation, active session status polling, and forced session-ended modal.
@@ -26,6 +28,7 @@ main
 - Customer, vendor, lead, and user records can now be created and imported without an email address; login access is automatically disabled until a real email is added.
 
 ### Improved
+- Customer payment receipt previews and PDF downloads now inherit the default active Invoice template design, with a clear setup message when no Invoice template exists.
 - Fixed Credit Notes and Vendor Credits import visibility so users with create or import access can use migration imports, and Vendor Credits no longer appears as Debit Notes in the page header.
 - Customer and vendor detail reports now keep all historical records visible by default instead of auto-filtering to the last three months.
 - Account Types import now auto-prepares the required default account categories when missing, avoiding manual database setup during imports.

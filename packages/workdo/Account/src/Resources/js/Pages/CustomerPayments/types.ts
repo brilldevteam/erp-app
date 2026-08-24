@@ -38,6 +38,14 @@ export interface CustomerPaymentAllocation {
     invoice: SalesInvoice;
 }
 
+export interface CreditNoteApplication {
+    id: number;
+    credit_note_id: number;
+    applied_amount: number;
+    application_date: string;
+    credit_note?: CreditNote;
+}
+
 export interface CustomerPayment {
     id: number;
     payment_number: string;
@@ -52,6 +60,7 @@ export interface CustomerPayment {
     customer: Customer;
     bank_account: BankAccount;
     allocations: CustomerPaymentAllocation[];
+    credit_note_applications?: CreditNoteApplication[];
     created_at: string;
 }
 
