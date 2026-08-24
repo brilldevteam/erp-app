@@ -38,7 +38,7 @@ class CountryAddressValidation
         return $address;
     }
 
-    public static function validate(Validator $validator, string $prefix): void
+    public static function validate(Validator $validator, string $prefix, bool $requireAddressDetails = true): void
     {
         $address = data_get($validator->getData(), $prefix, []);
         if (!is_array($address)) return;
@@ -54,7 +54,9 @@ class CountryAddressValidation
 
         if ($code === 'QA') {
             foreach (['zone_number' => 'Zone Number', 'street_number' => 'Street Number', 'building_number' => 'Building Number'] as $field => $label) {
-                $required($field, $label);
+                if ($requireAddressDetails) {
+                    $required($field, $label);
+                }
                 $value = trim((string) ($address[$field] ?? ''));
                 if ($value !== '' && !ctype_digit($value)) {
                     $validator->errors()->add("{$prefix}.{$field}", __(':attribute must contain only numbers.', ['attribute' => __($label)]));
@@ -65,7 +67,9 @@ class CountryAddressValidation
 
         if ($code === 'SA') {
             foreach (['building_number' => 'Building Number', 'street_name' => 'Street Name', 'district' => 'District', 'city' => 'City', 'zip_code' => 'Postal Code', 'secondary_number' => 'Secondary Number'] as $field => $label) {
-                $required($field, $label);
+                if ($requireAddressDetails) {
+                    $required($field, $label);
+                }
             }
             foreach (['building_number' => 'Building Number', 'secondary_number' => 'Secondary Number'] as $field => $label) {
                 $value = trim((string) ($address[$field] ?? ''));
@@ -81,7 +85,9 @@ class CountryAddressValidation
         }
 
         foreach (['address_line_1' => 'Address Line 1', 'city' => 'City', 'state' => 'State / Province', 'zip_code' => 'ZIP / Postal Code'] as $field => $label) {
-            $required($field, $label);
+            if ($requireAddressDetails) {
+                $required($field, $label);
+            }
         }
     }
 }

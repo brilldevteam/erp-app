@@ -59,7 +59,6 @@ trait ValidatesCustomerAddresses
         $code = strtoupper(trim((string) ($address['country_code'] ?? '')));
 
         if ($code === 'QA') {
-            $required('qid_number', 'QID No.');
             $qidNumber = trim((string) ($address['qid_number'] ?? ''));
             if ($qidNumber !== '' && !preg_match('/^\d{11}$/', $qidNumber)) {
                 $validator->errors()->add("{$prefix}.qid_number", __("QID No. must be exactly 11 digits."));
@@ -67,13 +66,12 @@ trait ValidatesCustomerAddresses
         }
 
         if ($code === 'SA') {
-            $required('saudi_identity_number', 'National ID / Iqama No.');
             $identityNumber = trim((string) ($address['saudi_identity_number'] ?? ''));
             if ($identityNumber !== '' && !preg_match('/^[12]\d{9}$/', $identityNumber)) {
                 $validator->errors()->add("{$prefix}.saudi_identity_number", __("National ID / Iqama No. must be 10 digits and start with 1 or 2."));
             }
         }
 
-        CountryAddressValidation::validate($validator, $prefix);
+        CountryAddressValidation::validate($validator, $prefix, false);
     }
 }
