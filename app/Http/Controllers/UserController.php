@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use App\Events\CreateUser;
 use App\Models\EmailTemplate;
+use App\Services\AuthSessionService;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
@@ -243,7 +244,7 @@ class UserController extends Controller
         }
     }
 
-    public function impersonate(User $user)
+    public function impersonate(User $user, AuthSessionService $authSessions)
     {
         if (Auth::user()->can('impersonate-users'))
         {
@@ -260,6 +261,7 @@ class UserController extends Controller
 
             // Login as the target user
             Auth::login($user);
+            $authSessions->initializeWebSession(request());
         }
         else
         {
@@ -269,7 +271,7 @@ class UserController extends Controller
         return redirect()->route('dashboard')->with('success', __('You are now login as user :name', ['name' => $user->name]));
     }
 
-    public function leaveImpersonation()
+    public function leaveImpersonation(AuthSessionService $authSessions)
     {
         if (!Session::has('impersonator_id')) {
             return redirect()->route('dashboard')->with('error', __('You are not login as user anyone'));
@@ -285,6 +287,7 @@ class UserController extends Controller
 
         Session::forget('impersonator_id');
         Auth::login($originalUser);
+        $authSessions->initializeWebSession(request());
 
         return redirect()->route('users.index')->with('success', __('You have stopped login as user'));
     }
