@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { formatCurrency, formatDate, getCompanySetting, getImagePath } from '@/utils/helpers';
 import { DocumentTemplate } from '@/types/document-template';
 import { CustomerPayment } from './types';
+import { displayEmail } from '@/utils/display-email';
 
 interface ReceiptProps {
     payment: CustomerPayment;
@@ -70,6 +71,7 @@ export default function Receipt() {
         || getCompanySetting('logo', pageProps);
     const companyName = getCompanySetting('company_name', pageProps) || 'Company';
     const paymentMode = payment.bank_account?.account_name || payment.bank_account?.bank_name || '-';
+    const customerEmail = displayEmail(payment.customer_details?.contact_person_email, payment.customer?.email);
 
     return (
         <div className="min-h-screen bg-slate-100 py-6 print:bg-white print:py-0">
@@ -121,7 +123,7 @@ export default function Receipt() {
                         <div>
                             <div className="font-serif text-base font-semibold text-slate-600">{t('Received From')}</div>
                             <div className="mt-4 font-semibold" style={{ color }}>{payment.customer?.name || '-'}</div>
-                            {payment.customer?.email && <div className="mt-1 text-slate-500">{payment.customer.email}</div>}
+                            {customerEmail && <div className="mt-1 text-slate-500">{customerEmail}</div>}
                         </div>
                     </div>
 

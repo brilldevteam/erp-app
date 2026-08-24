@@ -46,6 +46,10 @@ export interface CreditNoteApplication {
     credit_note?: CreditNote;
 }
 
+export interface CustomerDetails {
+    contact_person_email?: string | null;
+}
+
 export interface CustomerPayment {
     id: number;
     payment_number: string;
@@ -58,6 +62,7 @@ export interface CustomerPayment {
     status: 'pending' | 'cleared' | 'cancelled';
     notes?: string;
     customer: Customer;
+    customer_details?: CustomerDetails | null;
     bank_account: BankAccount;
     allocations: CustomerPaymentAllocation[];
     credit_note_applications?: CreditNoteApplication[];

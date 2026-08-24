@@ -46,6 +46,11 @@ export interface DebitNoteApplication {
     debit_note?: DebitNote;
 }
 
+export interface VendorDetails {
+    contact_person_email?: string | null;
+    primary_email?: string | null;
+}
+
 export interface VendorPayment {
     id: number;
     payment_number: string;
@@ -57,6 +62,7 @@ export interface VendorPayment {
     status: 'pending' | 'cleared' | 'cancelled';
     notes?: string;
     vendor: Vendor;
+    vendor_details?: VendorDetails | null;
     bank_account: BankAccount;
     allocations: VendorPaymentAllocation[];
     debit_note_applications?: DebitNoteApplication[];

@@ -9,6 +9,7 @@ import { useFormFields } from '@/hooks/useFormFields';
 import DocumentTemplatePreview from '@/components/document-templates/document-template-preview';
 import { DocumentTemplate, TemplateSampleDocument } from '@/types/document-template';
 import { AddressDisplay } from '@/components/address-display';
+import { displayEmail } from '@/utils/display-email';
 
 interface PrintProps {
     invoice: SalesInvoice;
@@ -31,6 +32,7 @@ export default function Print() {
     // Custom fields view mode hook
     const customFields = useFormFields('getCustomFields', { ...invoice, module: 'General', sub_module: 'Sales Invoice', id: invoice.id, isPrint: true }, () => {}, {}, 'view', t);
     const pageButtons = usePageButtons('zatcaQRCodeBtn', invoice);
+    const customerEmail = displayEmail(invoice.customer_details?.contact_person_email, invoice.customer?.email);
 
     useEffect(() => {
         // Set fields loaded when custom fields are available
@@ -158,7 +160,7 @@ export default function Print() {
                                     {t('Contact Person')}: {invoice.customer_details?.contact_person_name || invoice.customer?.name}
                                 </p>
                             )}
-                            <p>{invoice.customer?.email}</p>
+                            {customerEmail && <p>{customerEmail}</p>}
                             {invoice.customer_details?.billing_address && (
                                 <AddressDisplay address={invoice.customer_details.billing_address} />
                             )}

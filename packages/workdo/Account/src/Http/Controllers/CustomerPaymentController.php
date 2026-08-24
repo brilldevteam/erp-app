@@ -38,7 +38,7 @@ class CustomerPaymentController extends Controller
     public function index(Request $request)
     {
         if(Auth::user()->can('manage-customer-payments')){
-            $query = CustomerPayment::with(['customer', 'bankAccount', 'allocations.invoice', 'creditNoteApplications.creditNote'])
+            $query = CustomerPayment::with(['customer', 'customerDetails', 'bankAccount', 'allocations.invoice', 'creditNoteApplications.creditNote'])
                 ->where(function($q) {
                     if(Auth::user()->can('manage-any-customer-payments')) {
                         $q->where('created_by', creatorId());
@@ -336,7 +336,7 @@ class CustomerPaymentController extends Controller
             return back()->with('error', __('Permission denied'));
         }
 
-        $customerPayment->load(['customer', 'bankAccount', 'allocations.invoice', 'creditNoteApplications.creditNote']);
+        $customerPayment->load(['customer', 'customerDetails', 'bankAccount', 'allocations.invoice', 'creditNoteApplications.creditNote']);
 
         $paymentTemplate = DocumentTemplate::query()
             ->forCompany((int) $customerPayment->created_by)

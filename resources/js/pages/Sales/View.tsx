@@ -13,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { AddressDisplay } from '@/components/address-display';
 import { usePageButtons } from '@/hooks/usePageButtons';
 import { useFormFields } from '@/hooks/useFormFields';
+import { displayEmail } from '@/utils/display-email';
 
 interface ViewProps {
     invoice: SalesInvoice;
@@ -28,6 +29,7 @@ export default function View() {
     const pageButtons = usePageButtons('zatcaQRCodeBtn', invoice);
 
     const customFields = useFormFields('getCustomFields', { ...invoice, module: 'General', sub_module: 'Sales Invoice', id: invoice.id }, () => {}, {}, 'view', t);
+    const customerEmail = displayEmail(invoice.customer_details?.contact_person_email, invoice.customer?.email);
 
     const signatureStatusButtons = usePageButtons('signatureViewBtn', {
         invoice: invoice,
@@ -84,7 +86,7 @@ export default function View() {
                                             {t('Contact Person')}: {invoice.customer_details?.contact_person_name || invoice.customer?.name}
                                         </div>
                                     )}
-                                    <div className="text-muted-foreground">{invoice.customer?.email}</div>
+                                    {customerEmail && <div className="text-muted-foreground">{customerEmail}</div>}
                                 </div>
                                 {invoice.customer_details?.billing_address && (
                                     <div className="mt-3">
