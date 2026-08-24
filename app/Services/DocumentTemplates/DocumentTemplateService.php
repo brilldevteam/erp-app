@@ -14,6 +14,7 @@ class DocumentTemplateService
     public const TYPES = [
         DocumentTemplate::TYPE_QUOTATION,
         DocumentTemplate::TYPE_INVOICE,
+        DocumentTemplate::TYPE_PAYMENT,
     ];
 
     public const DEFAULT_CONFIG = [
@@ -218,7 +219,11 @@ class DocumentTemplateService
 
         return DocumentTemplate::create([
             'company_id' => $companyId,
-            'name' => $type === DocumentTemplate::TYPE_INVOICE ? __('Standard Invoice') : __('Standard Quotation'),
+            'name' => match ($type) {
+                DocumentTemplate::TYPE_INVOICE => __('Standard Invoice'),
+                DocumentTemplate::TYPE_PAYMENT => __('Standard Payment'),
+                default => __('Standard Quotation'),
+            },
             'type' => $type,
             'status' => DocumentTemplate::STATUS_ACTIVE,
             'is_default' => true,
@@ -268,7 +273,11 @@ class DocumentTemplateService
                 'billing_address' => ['48 Lake Road', 'Colombo 05', 'Sri Lanka'],
                 'shipping_address' => ['22 Warehouse Lane', 'Colombo 03', 'Sri Lanka'],
             ],
-            'number' => $type === DocumentTemplate::TYPE_INVOICE ? 'SI-2026-06-001' : 'QT-2026-06-001',
+            'number' => match ($type) {
+                DocumentTemplate::TYPE_INVOICE => 'SI-2026-06-001',
+                DocumentTemplate::TYPE_PAYMENT => 'Payment#491',
+                default => 'QT-2026-06-001',
+            },
             'date' => now()->format('Y-m-d'),
             'due_date' => now()->addDays(14)->format('Y-m-d'),
             'items' => [

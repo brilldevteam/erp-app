@@ -258,17 +258,17 @@ class VendorPaymentController extends Controller
 
         $vendorPayment->load(['vendor', 'bankAccount', 'allocations.invoice', 'debitNoteApplications.debitNote']);
 
-        $invoiceTemplate = DocumentTemplate::query()
+        $paymentTemplate = DocumentTemplate::query()
             ->forCompany((int) $vendorPayment->created_by)
-            ->forType(DocumentTemplate::TYPE_INVOICE)
+            ->forType(DocumentTemplate::TYPE_PAYMENT)
             ->active()
             ->where('is_default', true)
             ->first();
 
         return Inertia::render('Account/VendorPayments/Voucher', [
             'payment' => $vendorPayment,
-            'documentTemplate' => $invoiceTemplate,
-            'requiresInvoiceTemplate' => $invoiceTemplate === null,
+            'documentTemplate' => $paymentTemplate,
+            'requiresPaymentTemplate' => $paymentTemplate === null,
         ]);
     }
     public function destroy(VendorPayment $vendorPayment)
