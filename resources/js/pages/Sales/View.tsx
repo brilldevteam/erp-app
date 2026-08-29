@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Head, usePage, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
@@ -8,22 +8,27 @@ import { formatCurrency, formatDate } from '@/utils/helpers';
 import { getStatusBadgeClasses } from './utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { FileText, Download, FileSearch } from 'lucide-react';
+import { FileText, Download, FileSearch, CreditCard } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AddressDisplay } from '@/components/address-display';
 import { usePageButtons } from '@/hooks/usePageButtons';
 import { useFormFields } from '@/hooks/useFormFields';
 import { displayEmail } from '@/utils/display-email';
+import { Dialog } from '@/components/ui/dialog';
+import CreateCustomerPayment from '../../../../packages/workdo/Account/src/Resources/js/Pages/CustomerPayments/Create';
 
 interface ViewProps {
     invoice: SalesInvoice;
+    customers: Array<{ id: number; name: string; email: string }>;
+    bankAccounts: Array<{ id: number; account_name: string; account_number: string; bank_name: string }>;
     auth: any;
     [key: string]: any;
 }
 
 export default function View() {
     const { t } = useTranslation();
-    const { invoice, auth } = usePage<ViewProps>().props;
+    const { invoice, customers, bankAccounts, auth } = usePage<ViewProps>().props;
+    const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false);
 
     useFlashMessages();
     const pageButtons = usePageButtons('zatcaQRCodeBtn', invoice);
@@ -35,6 +40,10 @@ export default function View() {
         invoice: invoice,
         invoiceType: 'sales'
     });
+
+    const canRecordPayment = auth.user?.permissions?.includes('create-customer-payments')
+        && Number(invoice.balance_amount) > 0
+        && !['draft', 'cancelled'].includes(invoice.status);
 
     const previewPDF = () => {
         const printUrl = route('sales-invoices.print', invoice.id);
@@ -165,6 +174,16 @@ export default function View() {
                                                         {t('Download PDF')}
                                                     </Button>
                                                 </>
+                                            )}
+                                            {canRecordPayment && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => setIsRecordPaymentOpen(true)}
+                                                >
+                                                    <CreditCard className="h-4 w-4 mr-2" />
+                                                    {t('Record Payment')}
+                                                </Button>
                                             )}
                                             {invoice.status === 'draft' && auth.user?.permissions?.includes('post-sales-invoices') && (
                                                 <TooltipProvider>
@@ -342,6 +361,23 @@ export default function View() {
                     </CardContent>
                 </Card>
             </div>
+
+            <Dialog open={isRecordPaymentOpen} onOpenChange={setIsRecordPaymentOpen}>
+                {isRecordPaymentOpen && (
+                    <CreateCustomerPayment
+                        customers={customers}
+                        bankAccounts={bankAccounts}
+                        defaultCustomerId={invoice.customer_id}
+                        defaultInvoiceId={invoice.id}
+                        defaultInvoiceBalance={invoice.balance_amount}
+                        returnTo={window.location.href}
+                        onSuccess={() => {
+                            setIsRecordPaymentOpen(false);
+                            router.reload();
+                        }}
+                    />
+                )}
+            </Dialog>
         </AuthenticatedLayout>
     );
 }
