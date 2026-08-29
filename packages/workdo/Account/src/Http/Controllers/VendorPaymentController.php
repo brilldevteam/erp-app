@@ -36,7 +36,7 @@ class VendorPaymentController extends Controller
     public function index(Request $request)
     {
         if(Auth::user()->can('manage-vendor-payments')){
-            $query = VendorPayment::with(['vendor', 'bankAccount', 'allocations.invoice', 'debitNoteApplications.debitNote'])
+            $query = VendorPayment::with(['vendor', 'vendorDetails', 'bankAccount', 'allocations.invoice', 'debitNoteApplications.debitNote'])
                 ->where(function($q) {
                     if(Auth::user()->can('manage-any-vendor-payments')) {
                         $q->where('created_by', creatorId());
@@ -256,7 +256,7 @@ class VendorPaymentController extends Controller
             return back()->with('error', __('Permission denied'));
         }
 
-        $vendorPayment->load(['vendor', 'bankAccount', 'allocations.invoice', 'debitNoteApplications.debitNote']);
+        $vendorPayment->load(['vendor', 'vendorDetails', 'bankAccount', 'allocations.invoice', 'debitNoteApplications.debitNote']);
 
         $paymentTemplate = DocumentTemplate::query()
             ->forCompany((int) $vendorPayment->created_by)

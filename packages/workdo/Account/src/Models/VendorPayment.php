@@ -34,6 +34,11 @@ class VendorPayment extends Model
         return $this->belongsTo(User::class, 'vendor_id');
     }
 
+    public function vendorDetails(): BelongsTo
+    {
+        return $this->belongsTo(Vendor::class, 'vendor_id', 'user_id');
+    }
+
     public function bankAccount(): BelongsTo
     {
         return $this->belongsTo(BankAccount::class, 'bank_account_id');

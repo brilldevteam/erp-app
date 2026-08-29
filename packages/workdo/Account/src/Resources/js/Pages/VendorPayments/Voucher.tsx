@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { formatCurrency, formatDate, getCompanySetting, getImagePath } from '@/utils/helpers';
 import { DocumentTemplate } from '@/types/document-template';
 import { VendorPayment } from './types';
+import { displayEmail } from '@/utils/display-email';
 
 interface VoucherProps {
     payment: VendorPayment;
@@ -70,6 +71,7 @@ export default function Voucher() {
         || getCompanySetting('logo', pageProps);
     const companyName = getCompanySetting('company_name', pageProps) || 'Company';
     const paymentMode = payment.bank_account?.account_name || payment.bank_account?.bank_name || '-';
+    const vendorEmail = displayEmail(payment.vendor_details?.primary_email, payment.vendor_details?.contact_person_email, payment.vendor?.email);
 
     return (
         <div className="min-h-screen bg-slate-100 py-6 print:bg-white print:py-0">
@@ -121,7 +123,7 @@ export default function Voucher() {
                         <div>
                             <div className="font-serif text-base font-semibold text-slate-600">{t('Paid To')}</div>
                             <div className="mt-4 font-semibold" style={{ color }}>{payment.vendor?.name || '-'}</div>
-                            {payment.vendor?.email && <div className="mt-1 text-slate-500">{payment.vendor.email}</div>}
+                            {vendorEmail && <div className="mt-1 text-slate-500">{vendorEmail}</div>}
                         </div>
                     </div>
 

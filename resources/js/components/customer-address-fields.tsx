@@ -49,10 +49,11 @@ export function CustomerAddressFields({ kind, address, onChange, errors }: Custo
                 errors={errors}
                 addressLineOneLabel={kind === 'billing' ? t('Billing Address') : t('Shipping Address')}
                 addressLineOnePlaceholder={kind === 'billing' ? t('Enter address') : t('Enter shipping address')}
+                requireAddressDetails={false}
                 afterCountry={code === 'QA'
-                    ? customerField('qid_number', t('QID No.'), t('Enter 11-digit QID number'), { required: true, inputMode: 'numeric', pattern: '[0-9]{11}', maxLength: 11 })
+                    ? customerField('qid_number', t('QID No.'), t('Enter 11-digit QID number'), { inputMode: 'numeric', pattern: '[0-9]{11}', maxLength: 11 })
                     : code === 'SA'
-                        ? customerField('saudi_identity_number', t('National ID / Iqama No.'), t('Enter 10-digit National ID or Iqama number'), { required: true, inputMode: 'numeric', pattern: '[12][0-9]{9}', maxLength: 10 })
+                        ? customerField('saudi_identity_number', t('National ID / Iqama No.'), t('Enter 10-digit National ID or Iqama number'), { inputMode: 'numeric', pattern: '[12][0-9]{9}', maxLength: 10 })
                         : undefined}
             />
         </div>

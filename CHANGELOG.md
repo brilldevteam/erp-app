@@ -29,6 +29,7 @@ main
 - Customer, vendor, lead, and user records can now be created and imported without an email address; login access is automatically disabled until a real email is added.
 
 ### Improved
+- Customer country-specific address details are now optional for customer records, allowing imported data cleanup without placeholder QID, Saudi ID, or address-number values.
 - Customer payment receipts and vendor payment vouchers now use the default active Payment template, with a clear setup message when no Payment template exists.
 - Fixed Credit Notes and Vendor Credits import visibility so users with create or import access can use migration imports, and Vendor Credits no longer appears as Debit Notes in the page header.
 - Customer and vendor detail reports now keep all historical records visible by default instead of auto-filtering to the last three months.
@@ -87,6 +88,7 @@ main
 - In-place warehouse creation from quotation screens.
 
 ### Improved
+- Customer country-specific address details are now optional for customer records, allowing imported data cleanup without placeholder QID, Saudi ID, or address-number values.
 - Customer and vendor detail reports now keep all historical records visible by default instead of auto-filtering to the last three months.
 - Account Types import now auto-prepares the required default account categories when missing, avoiding manual database setup during imports.
 - Warehouse is now optional in quotation and related business document workflows.

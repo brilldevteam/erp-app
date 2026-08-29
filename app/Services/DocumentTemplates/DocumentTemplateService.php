@@ -310,7 +310,7 @@ class DocumentTemplateService
             'customer' => [
                 'name' => $customerDetails?->company_name ?: $document->customer?->name,
                 'contact_person' => $customerDetails?->contact_person_name ?: $document->customer?->name,
-                'email' => $document->customer?->email,
+                'email' => $this->displayEmail($customerDetails?->contact_person_email, $document->customer?->email),
                 'billing_address' => $billing,
                 'shipping_address' => $shipping,
             ],
@@ -337,6 +337,29 @@ class DocumentTemplateService
                 'grand_total' => (float) $document->total_amount,
             ],
         ];
+    }
+
+    private function displayEmail(?string ...$emails): ?string
+    {
+        foreach ($emails as $email) {
+            $email = trim((string) $email);
+
+            if ($email !== '' && !$this->isPlaceholderEmail($email)) {
+                return $email;
+            }
+        }
+
+        return null;
+    }
+
+    private function isPlaceholderEmail(?string $email): bool
+    {
+        $email = strtolower(trim((string) $email));
+
+        return $email === ''
+            || str_ends_with($email, '@import.local')
+            || str_starts_with($email, 'zoho.customer.')
+            || str_starts_with($email, 'zoho.vendor.');
     }
 
     private function attributes(array $data): array
