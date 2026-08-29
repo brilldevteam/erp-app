@@ -27,6 +27,11 @@ export default function DocumentTemplatePreview({
     const logo = template.logo_url || document.company.logo;
     const signature = template.signature_url;
     const alignment = config.header.alignment || 'left';
+
+    if (document.type === 'payment') {
+        return <PaymentTemplatePreview template={template} document={document} compact={compact} color={color} logo={logo} signature={signature} />;
+    }
+
     const title = document.type === 'invoice' ? 'INVOICE' : 'QUOTATION';
     const hasAnyTax = document.items.some(hasTax);
     const headerLayoutClass =
@@ -116,16 +121,78 @@ export default function DocumentTemplatePreview({
                     </div>
                     {config.footer.showSignature && (
                         <div className="flex items-end justify-end">
-                            <div className="w-56 text-center">
-                                {signature && <img src={getImagePath(String(signature))} alt="Signature" className="mx-auto mb-2 max-h-16 max-w-40 object-contain" />}
-                                <div className="border-t pt-2">{template.signature_text || 'Authorized Signature'}</div>
-                            </div>
+                            <Signature signature={signature} text={template.signature_text || 'Authorized Signature'} />
                         </div>
                     )}
                 </div>
 
                 {config.footer.footerText && <div className="mt-8 border-t pt-4 text-center text-slate-500">{config.footer.footerText}</div>}
             </div>
+        </div>
+    );
+}
+
+function PaymentTemplatePreview({ template, document, compact, color, logo, signature }: { template: Partial<DocumentTemplate> & { config_json: DocumentTemplateConfig }; document: TemplateSampleDocument; compact: boolean; color: string; logo?: string | null; signature?: string | null }) {
+    const config = template.config_json;
+    const amount = document.totals.grand_total || 600;
+
+    return (
+        <div className={`bg-white font-serif text-slate-900 shadow-sm ${compact ? 'text-[10px]' : 'text-sm'}`}>
+            <div className={`${compact ? 'p-6' : 'p-10'} relative mx-auto min-h-[720px] max-w-4xl border`}>
+                <div className="absolute left-0 top-0 h-16 w-16" style={{ borderTop: `14px solid ${color}`, borderRight: '14px solid transparent' }} />
+
+                <div className="flex items-start justify-between gap-8 border-b pb-10">
+                    <div className="pt-12">
+                        <h1 className="text-2xl font-bold uppercase tracking-wide">PAYMENT</h1>
+                        {config.documentDetails.showDocumentNumber && <p className="mt-2 text-slate-500">{document.number}</p>}
+                    </div>
+                    {config.header.showLogo && logo && <img src={getImagePath(String(logo))} alt="Logo" className="max-h-24 max-w-56 object-contain" />}
+                </div>
+
+                <div className="grid grid-cols-1 gap-10 border-b py-12 md:grid-cols-[1fr_1.1fr]">
+                    <div className="space-y-8">
+                        <div>
+                            <p className="font-semibold text-slate-500">Amount Received</p>
+                            <p className="mt-4 text-5xl font-bold tracking-tight">{money(amount)}</p>
+                            <p className="mt-4 font-semibold">(Qatari Riyal Six Hundred)</p>
+                        </div>
+                        <div>
+                            <p className="font-semibold text-slate-500">Received From</p>
+                            <p className="mt-4 font-semibold" style={{ color }}>{document.customer.name}</p>
+                        </div>
+                    </div>
+
+                    <div className="border-l pl-10">
+                        <PaymentDetail label="Payment Date" value={document.date} />
+                        <PaymentDetail label="Reference Number" value="-" />
+                        <PaymentDetail label="Payment Mode" value="Cash" />
+                    </div>
+                </div>
+
+                <div className="mt-20 flex justify-end">
+                    {config.footer.showSignature && <Signature signature={signature} text={template.signature_text || 'Authorized Signature'} />}
+                </div>
+
+                {config.footer.footerText && <div className="mt-12 border-t pt-4 text-center text-slate-500">{config.footer.footerText}</div>}
+            </div>
+        </div>
+    );
+}
+
+function PaymentDetail({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="mb-6 grid grid-cols-2 gap-6">
+            <span className="text-slate-500">{label}</span>
+            <span className="font-bold">{value}</span>
+        </div>
+    );
+}
+
+function Signature({ signature, text }: { signature?: string | null; text: string }) {
+    return (
+        <div className="w-56 text-center">
+            {signature && <img src={getImagePath(String(signature))} alt="Signature" className="mx-auto mb-2 max-h-16 max-w-40 object-contain" />}
+            <div className="border-t pt-2">{text}</div>
         </div>
     );
 }

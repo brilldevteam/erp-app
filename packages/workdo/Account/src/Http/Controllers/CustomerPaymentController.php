@@ -338,17 +338,17 @@ class CustomerPaymentController extends Controller
 
         $customerPayment->load(['customer', 'bankAccount', 'allocations.invoice', 'creditNoteApplications.creditNote']);
 
-        $invoiceTemplate = DocumentTemplate::query()
+        $paymentTemplate = DocumentTemplate::query()
             ->forCompany((int) $customerPayment->created_by)
-            ->forType(DocumentTemplate::TYPE_INVOICE)
+            ->forType(DocumentTemplate::TYPE_PAYMENT)
             ->active()
             ->where('is_default', true)
             ->first();
 
         return Inertia::render('Account/CustomerPayments/Receipt', [
             'payment' => $customerPayment,
-            'documentTemplate' => $invoiceTemplate,
-            'requiresInvoiceTemplate' => $invoiceTemplate === null,
+            'documentTemplate' => $paymentTemplate,
+            'requiresPaymentTemplate' => $paymentTemplate === null,
         ]);
     }
     public function destroy(CustomerPayment $customerPayment)
