@@ -26,6 +26,12 @@ interface TrialBalanceData {
     is_balanced: boolean;
     from_date: string;
     to_date: string;
+    diagnostics?: {
+        active_accounts: number;
+        posted_journals: number;
+        has_accounts: boolean;
+        has_period_journals: boolean;
+    };
 }
 
 interface TrialBalanceProps {
@@ -84,7 +90,7 @@ export default function Index() {
                                 </div>
                             </div>
                             <div className="flex items-end gap-3">
-                                {/* <div>
+                                <div>
                                     <Label className="text-xs">{t('From Date')}</Label>
                                     <DatePicker
                                         value={fromDate}
@@ -103,7 +109,7 @@ export default function Index() {
                                 <Button onClick={handleGenerate} disabled={!fromDate || !toDate} size="sm">
                                     <Search className="h-4 w-4 mr-2" />
                                     {t('Generate')}
-                                </Button> */}
+                                </Button>
                                 {auth.user?.permissions?.includes('print-trial-balance') && (
                                     <Button variant="outline" size="sm" onClick={() => {
                                         const printUrl = route('double-entry.trial-balance.print') + `?from_date=${fromDate}&to_date=${toDate}&download=pdf`;
@@ -136,8 +142,16 @@ export default function Index() {
                         {!trialBalance.is_balanced && (
                             <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                                 <p className="text-red-800 font-medium">
-                                    ⚠️ {t('Warning: Trial balance is not balanced!')}
+                                    {t('Warning: Trial balance is not balanced!')}
                                 </p>
+                            </div>
+                        )}
+
+                        {trialBalance.diagnostics && (!trialBalance.diagnostics.has_accounts || !trialBalance.diagnostics.has_period_journals) && (
+                            <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-900">
+                                {!trialBalance.diagnostics.has_accounts
+                                    ? t('No active chart of accounts found for this company.')
+                                    : t('No posted journal entries found for the selected date range. Post transactions or run the accounting repair command to rebuild missing journal entries.')}
                             </div>
                         )}
                     </CardContent>

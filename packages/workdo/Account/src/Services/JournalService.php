@@ -35,12 +35,29 @@ class JournalService
         }
     }
 
+    private function existingPostedJournal(string $referenceType, $referenceId): ?JournalEntry
+    {
+        if (!$referenceId) {
+            return null;
+        }
+
+        return JournalEntry::where('reference_type', $referenceType)
+            ->where('reference_id', $referenceId)
+            ->where('created_by', creatorId())
+            ->where('status', 'posted')
+            ->first();
+    }
+
     /**
      * Creates journal entry for sales invoice: Dr: A/R, Cr: Sales Revenue + Tax
      * Usage: SalesInvoiceController->store() after creating invoice
      */
     public function createSalesInvoiceJournal($salesInvoice)
     {
+        if ($existing = $this->existingPostedJournal('sales_invoice', $salesInvoice->id)) {
+            return $existing;
+        }
+
         // Validate required accounts exist
         $requiredAccounts = ['1100', '4100'];
         if ($salesInvoice->tax_amount > 0) {
@@ -171,6 +188,10 @@ class JournalService
      */
     public function createServiceInvoiceJournal($salesInvoice)
     {
+        if ($existing = $this->existingPostedJournal('service_invoice', $salesInvoice->id)) {
+            return $existing;
+        }
+
         $requiredAccounts = ['1100', '4200'];
         if ($salesInvoice->tax_amount > 0) {
             $requiredAccounts[] = '2210';
@@ -310,6 +331,10 @@ class JournalService
      */
     public function createCustomerPaymentJournal($customerPayment)
     {
+        if ($existing = $this->existingPostedJournal('customer_payment', $customerPayment->id)) {
+            return $existing;
+        }
+
         // Get the specific bank account's GL account
         $bankGLAccount = $customerPayment->bankAccount->glAccount;
         if (!$bankGLAccount) {
@@ -447,6 +472,10 @@ class JournalService
      */
     public function createVendorPaymentJournal($vendorPayment)
     {
+        if ($existing = $this->existingPostedJournal('vendor_payment', $vendorPayment->id)) {
+            return $existing;
+        }
+
         // Get the specific bank account's GL account
         $bankGLAccount = $vendorPayment->bankAccount->glAccount;
         if (!$bankGLAccount) {
@@ -509,6 +538,10 @@ class JournalService
      */
     public function createRevenueEntryJournal($revenueEntry)
     {
+        if ($existing = $this->existingPostedJournal('revenue', $revenueEntry->id)) {
+            return $existing;
+        }
+
         // Get the specific bank account's GL account
         $bankGLAccount = $revenueEntry->bankAccount->glAccount;
         if (!$bankGLAccount) {
@@ -525,7 +558,7 @@ class JournalService
         $this->validateBalance($revenueEntry->amount, $revenueEntry->amount);
 
         $journalEntry = JournalEntry::create([
-            'journal_date' => $revenueEntry->entry_date ?? now(),
+            'journal_date' => $revenueEntry->revenue_date ?? now(),
             'entry_type' => 'automatic',
             'reference_type' => 'revenue',
             'reference_id' => $revenueEntry->id,
@@ -575,6 +608,10 @@ class JournalService
      */
     public function createExpenseEntryJournal($expenseEntry)
     {
+        if ($existing = $this->existingPostedJournal('expense', $expenseEntry->id)) {
+            return $existing;
+        }
+
         // Get the specific bank account's GL account
         $bankGLAccount = $expenseEntry->bankAccount->glAccount;
         if (!$bankGLAccount) {
@@ -591,7 +628,7 @@ class JournalService
         $this->validateBalance($expenseEntry->amount, $expenseEntry->amount);
 
         $journalEntry = JournalEntry::create([
-            'journal_date' => $expenseEntry->entry_date ?? now(),
+            'journal_date' => $expenseEntry->expense_date ?? now(),
             'entry_type' => 'automatic',
             'reference_type' => 'expense',
             'reference_id' => $expenseEntry->id,
@@ -778,7 +815,7 @@ class JournalService
             'entry_type' => 'automatic',
             'reference_type' => 'debit_note',
             'reference_id' => $debitNote->id,
-            'description' => 'Vendor Credit #' . $debitNote->debit_note_number,
+            'description' => 'Debit Note #' . $debitNote->debit_note_number,
             'total_debit' => $debitNote->total_amount,
             'total_credit' => $debitNote->total_amount,
             'status' => 'posted',
@@ -789,7 +826,7 @@ class JournalService
         JournalEntryItem::create([
             'journal_entry_id' => $journalEntry->id,
             'account_id' => $apAccount->id,
-            'description' => 'Vendor Credit - ' . $debitNote->vendor->name,
+            'description' => 'Debit Note - ' . $debitNote->vendor->name,
             'debit_amount' => $debitNote->total_amount,
             'credit_amount' => 0,
             'creator_id' => Auth::id(),
@@ -1238,6 +1275,10 @@ class JournalService
      */
     public function createSalesCOGSJournal($salesInvoice)
     {
+        if ($existing = $this->existingPostedJournal('sales_invoice_cogs', $salesInvoice->id)) {
+            return $existing;
+        }
+
         $salesInvoice->load('items.product');
         $totalCost = 0;
 

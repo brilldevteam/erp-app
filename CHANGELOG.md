@@ -5,6 +5,7 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Added
+- Added Double Entry accounting report fixes for Profit & Loss, Trial Balance, Balance Sheets diagnostics, idempotent journal posting, and historical journal repair/backfill.
 - Added Record Payment action on Sales Invoice details so users can create linked customer payments directly from an invoice while reusing the existing approval and receipt flow.
 - Added a Payment document template type for customer payment receipts and vendor payment vouchers, with preview and PDF download support.
 - Added customer payment receipt and vendor payment voucher preview actions inside the payment detail modals.

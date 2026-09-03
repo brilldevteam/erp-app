@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use Workdo\Account\Models\ChartOfAccount;
+use Workdo\Account\Models\JournalEntry;
 use Workdo\DoubleEntry\Models\BalanceSheet;
 use Workdo\DoubleEntry\Models\BalanceSheetNote;
 use Workdo\DoubleEntry\Models\ComparativeBalanceSheet;
@@ -123,7 +125,15 @@ class BalanceSheetController extends Controller
                     'balanceSheet' => $balanceSheet,
                     'groupedItems' => $groupedItems,
                     'allBalanceSheets' => $allBalanceSheets,
-                    'otherBalanceSheets' => $otherBalanceSheets
+                    'otherBalanceSheets' => $otherBalanceSheets,
+                    'diagnostics' => [
+                        'active_accounts' => ChartOfAccount::where('is_active', true)->where('created_by', creatorId())->count(),
+                        'posted_journals' => JournalEntry::where('status', 'posted')
+                            ->where('created_by', creatorId())
+                            ->whereDate('journal_date', '<=', $balanceSheet->balance_sheet_date)
+                            ->count(),
+                        'has_items' => $balanceSheet->items->isNotEmpty(),
+                    ],
                 ]);
             }
             return back()->with('error', __('Balance sheet not found'));

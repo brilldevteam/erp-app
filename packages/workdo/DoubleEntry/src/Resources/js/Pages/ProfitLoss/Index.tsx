@@ -25,6 +25,12 @@ interface ProfitLossData {
     net_profit: number;
     from_date: string;
     to_date: string;
+    diagnostics?: {
+        income_statement_accounts: number;
+        posted_journals: number;
+        has_accounts: boolean;
+        has_period_journals: boolean;
+    };
 }
 
 interface ProfitLossProps {
@@ -143,6 +149,14 @@ export default function Index() {
                                 </p>
                             </div>
                         </div>
+
+                        {profitLoss.diagnostics && (!profitLoss.diagnostics.has_accounts || !profitLoss.diagnostics.has_period_journals) && (
+                            <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-900">
+                                {!profitLoss.diagnostics.has_accounts
+                                    ? t('No active revenue or expense accounts found for this company.')
+                                    : t('No posted revenue or expense journal entries found for the selected date range. Post transactions or run the accounting repair command to rebuild missing journal entries.')}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 

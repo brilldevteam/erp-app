@@ -24,7 +24,7 @@ import YearEndClose from './YearEndClose';
 
 export default function View() {
     const { t } = useTranslation();
-    const { balanceSheet, groupedItems, allBalanceSheets, otherBalanceSheets, auth } = usePage<BalanceSheetViewProps>().props;
+    const { balanceSheet, groupedItems, allBalanceSheets, otherBalanceSheets, diagnostics, auth } = usePage<BalanceSheetViewProps>().props;
     const [showNoteModal, setShowNoteModal] = useState(false);
     const [showCompareModal, setShowCompareModal] = useState(false);
     const [showGenerateModal, setShowGenerateModal] = useState(false);
@@ -354,6 +354,16 @@ export default function View() {
                                 </p>
                             </div>
                         </div>
+
+                        {diagnostics && (!diagnostics.has_items || diagnostics.active_accounts === 0 || diagnostics.posted_journals === 0) && (
+                            <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-900">
+                                {diagnostics.active_accounts === 0
+                                    ? t('No active chart of accounts found for this company.')
+                                    : diagnostics.posted_journals === 0
+                                        ? t('No posted journal entries found up to this balance sheet date. Post transactions or run the accounting repair command to rebuild missing journal entries.')
+                                        : t('No balance sheet items were generated from the available accounts. Check account codes and balances, then regenerate the balance sheet.')}
+                            </div>
+                        )}
 
                         {!balanceSheet.is_balanced && (
                             <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
