@@ -262,6 +262,14 @@ class QuotationController extends Controller
             $item->tax_percentage      = $itemData['tax_percentage'] ?? 0;
             $item->save();
 
+            if (array_key_exists('description', $itemData)) {
+                \App\Services\SalesLineAmounts::syncProductDescription(
+                    (int) $itemData['product_id'],
+                    $itemData['description'],
+                    creatorId()
+                );
+            }
+
               // Store individual taxes
             if (isset($itemData['taxes']) && is_array($itemData['taxes'])) {
                 foreach ($itemData['taxes'] as $tax) {

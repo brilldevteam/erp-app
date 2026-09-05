@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Validation\ValidationException;
+use Workdo\ProductService\Models\ProductServiceItem;
 
 class SalesLineAmounts
 {
@@ -10,6 +11,22 @@ class SalesLineAmounts
     {
         $text = preg_replace('/<br\\s*\\/?\\s*>|<\\/(?:p|div|li|h[1-6])>/i', "\n", $html ?? '');
         return trim(html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+    }
+
+    public static function syncProductDescription(int $productId, ?string $description, int $companyId): void
+    {
+        $description = trim((string) $description);
+        $longDescription = $description === '' ? null : collect(preg_split('/\R/', $description))
+            ->map(fn (string $line) => '<p>' . e($line) . '</p>')
+            ->implode('');
+
+        ProductServiceItem::query()
+            ->whereKey($productId)
+            ->where('created_by', $companyId)
+            ->update([
+                'description' => $description === '' ? null : $description,
+                'long_description' => $longDescription,
+            ]);
     }
 
     public static function calculate(array $item, string $key = 'items'): array

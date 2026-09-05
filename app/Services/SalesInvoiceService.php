@@ -49,7 +49,7 @@ class SalesInvoiceService
             $invoice->created_by = $creatorId;
             $invoice->save();
 
-            $this->createItems($invoice->id, $data['items']);
+            $this->createItems($invoice->id, $data['items'], $creatorId);
 
             if ($quotation) {
                 $quotation->update([
@@ -105,7 +105,7 @@ class SalesInvoiceService
         return \App\Services\SalesLineAmounts::totals($items);
     }
 
-    private function createItems(int $invoiceId, array $items): void
+    private function createItems(int $invoiceId, array $items, int $creatorId): void
     {
         foreach ($items as $itemData) {
             $item = new SalesInvoiceItem();
@@ -119,6 +119,14 @@ class SalesInvoiceService
             $item->discount_percentage = $itemData['discount_percentage'] ?? 0;
             $item->tax_percentage = $itemData['tax_percentage'] ?? 0;
             $item->save();
+
+            if (array_key_exists('description', $itemData)) {
+                SalesLineAmounts::syncProductDescription(
+                    (int) $itemData['product_id'],
+                    $itemData['description'],
+                    $creatorId
+                );
+            }
 
             foreach ($itemData['taxes'] ?? [] as $tax) {
                 $itemTax = new SalesInvoiceItemTax();
