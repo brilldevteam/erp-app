@@ -95,6 +95,11 @@ export interface BalanceSheetViewProps {
         balance_sheet_date: string;
         financial_year: string;
     }[];
+    diagnostics?: {
+        active_accounts: number;
+        posted_journals: number;
+        has_items: boolean;
+    };
     auth: {
         user: {
             permissions: string[];

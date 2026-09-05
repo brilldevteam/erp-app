@@ -3,6 +3,7 @@
 namespace Workdo\DoubleEntry\Services;
 
 use Workdo\Account\Models\ChartOfAccount;
+use Workdo\Account\Models\JournalEntry;
 use Illuminate\Support\Facades\DB;
 
 class ProfitLossService
@@ -56,6 +57,17 @@ class ProfitLossService
         }
 
         $netProfit = $totalRevenue - $totalExpenses;
+        $incomeStatementAccounts = ChartOfAccount::where('is_active', true)
+            ->where('created_by', creatorId())
+            ->whereBetween('account_code', ['4000', '5999'])
+            ->count();
+        $postedJournals = JournalEntry::where('status', 'posted')
+            ->where('created_by', creatorId())
+            ->whereBetween('journal_date', [$fromDate, $toDate])
+            ->whereHas('items.account', function ($query) {
+                $query->whereBetween('account_code', ['4000', '5999']);
+            })
+            ->count();
 
         return [
             'revenue' => $revenue,
@@ -64,7 +76,13 @@ class ProfitLossService
             'total_expenses' => $totalExpenses,
             'net_profit' => $netProfit,
             'from_date' => $fromDate,
-            'to_date' => $toDate
+            'to_date' => $toDate,
+            'diagnostics' => [
+                'income_statement_accounts' => $incomeStatementAccounts,
+                'posted_journals' => $postedJournals,
+                'has_accounts' => $incomeStatementAccounts > 0,
+                'has_period_journals' => $postedJournals > 0,
+            ],
         ];
     }
 }

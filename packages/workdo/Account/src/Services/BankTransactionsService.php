@@ -8,10 +8,26 @@ use Workdo\Account\Models\BankAccount;
 
 class BankTransactionsService
 {
+    private function existingClearedTransaction($bankAccountId, string $referenceNumber, string $transactionType): ?BankTransaction
+    {
+        if (!$bankAccountId || !$referenceNumber) {
+            return null;
+        }
+
+        return BankTransaction::where('bank_account_id', $bankAccountId)
+            ->where('reference_number', $referenceNumber)
+            ->where('transaction_type', $transactionType)
+            ->where('transaction_status', 'cleared')
+            ->first();
+    }
+
     public function createVendorPayment($vendorPayment)
     {
         if (!$vendorPayment->bank_account_id) {
             throw new \Exception("Bank account is required for vendor payment");
+        }
+        if ($existing = $this->existingClearedTransaction($vendorPayment->bank_account_id, $vendorPayment->payment_number, 'debit')) {
+            return $existing;
         }
 
         // Get current running balance for the bank account
@@ -22,7 +38,7 @@ class BankTransactionsService
 
         $bankTransaction = new BankTransaction();
         $bankTransaction->bank_account_id = $vendorPayment->bank_account_id;
-        $bankTransaction->transaction_date = now();
+        $bankTransaction->transaction_date = $vendorPayment->payment_date ?? now();
         $bankTransaction->transaction_type = 'debit';
         $bankTransaction->reference_number = $vendorPayment->payment_number;
         $bankTransaction->description = 'Vendor Payment #' . $vendorPayment->payment_number . ' - ' . $vendorPayment->vendor->name;
@@ -42,6 +58,9 @@ class BankTransactionsService
         if (!$customerPayment->bank_account_id) {
             throw new \Exception("Bank account is required for customer payment");
         }
+        if ($existing = $this->existingClearedTransaction($customerPayment->bank_account_id, $customerPayment->payment_number, 'credit')) {
+            return $existing;
+        }
 
         // Get current running balance for the bank account
         $lastTransaction = BankTransaction::where('bank_account_id', $customerPayment->bank_account_id)
@@ -51,7 +70,7 @@ class BankTransactionsService
 
         $bankTransaction = new BankTransaction();
         $bankTransaction->bank_account_id = $customerPayment->bank_account_id;
-        $bankTransaction->transaction_date = now();
+        $bankTransaction->transaction_date = $customerPayment->payment_date ?? now();
         $bankTransaction->transaction_type = 'credit';
         $bankTransaction->reference_number = $customerPayment->payment_number;
         $bankTransaction->description = 'Customer Payment #' . $customerPayment->payment_number . ' - ' . $customerPayment->customer->name;
@@ -172,6 +191,9 @@ class BankTransactionsService
         if (!$revenue->bank_account_id) {
             throw new \Exception("Bank account is required for revenue payment");
         }
+        if ($existing = $this->existingClearedTransaction($revenue->bank_account_id, $revenue->revenue_number, 'credit')) {
+            return $existing;
+        }
 
         // Get current running balance for the bank account
         $lastTransaction = BankTransaction::where('bank_account_id', $revenue->bank_account_id)
@@ -181,7 +203,7 @@ class BankTransactionsService
 
         $bankTransaction = new BankTransaction();
         $bankTransaction->bank_account_id = $revenue->bank_account_id;
-        $bankTransaction->transaction_date = now();
+        $bankTransaction->transaction_date = $revenue->revenue_date ?? now();
         $bankTransaction->transaction_type = 'credit';
         $bankTransaction->reference_number = $revenue->revenue_number;
         $bankTransaction->description = 'Revenue Posted: ' . ($revenue->description ?? 'Revenue transaction');
@@ -201,6 +223,9 @@ class BankTransactionsService
         if (!$expense->bank_account_id) {
             throw new \Exception("Bank account is required for expense payment");
         }
+        if ($existing = $this->existingClearedTransaction($expense->bank_account_id, $expense->expense_number, 'debit')) {
+            return $existing;
+        }
 
         // Get current running balance for the bank account
         $lastTransaction = BankTransaction::where('bank_account_id', $expense->bank_account_id)
@@ -210,7 +235,7 @@ class BankTransactionsService
 
         $bankTransaction = new BankTransaction();
         $bankTransaction->bank_account_id = $expense->bank_account_id;
-        $bankTransaction->transaction_date = now();
+        $bankTransaction->transaction_date = $expense->expense_date ?? now();
         $bankTransaction->transaction_type = 'debit';
         $bankTransaction->reference_number = $expense->expense_number;
         $bankTransaction->description = 'Expense Posted: ' . ($expense->description ?? 'Expense transaction');
