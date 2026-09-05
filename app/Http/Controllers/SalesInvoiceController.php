@@ -337,27 +337,7 @@ class SalesInvoiceController extends Controller
 
     private function calculateTotals($items)
     {
-        $subtotal = 0;
-        $totalTax = 0;
-        $totalDiscount = 0;
-
-        foreach ($items as $item) {
-            $lineTotal = $item['quantity'] * $item['unit_price'];
-            $discountAmount = ($lineTotal * ($item['discount_percentage'] ?? 0)) / 100;
-            $afterDiscount = $lineTotal - $discountAmount;
-            $taxAmount = ($afterDiscount * ($item['tax_percentage'] ?? 0)) / 100;
-
-            $subtotal += $lineTotal;
-            $totalDiscount += $discountAmount;
-            $totalTax += $taxAmount;
-        }
-
-        return [
-            'subtotal' => $subtotal,
-            'tax_amount' => $totalTax,
-            'discount_amount' => $totalDiscount,
-            'total_amount' => $subtotal + $totalTax - $totalDiscount
-        ];
+        return \App\Services\SalesLineAmounts::totals($items);
     }
 
     private function createInvoiceItems($invoiceId, $items)
@@ -366,6 +346,9 @@ class SalesInvoiceController extends Controller
             $item = new SalesInvoiceItem();
             $item->invoice_id = $invoiceId;
             $item->product_id = $itemData['product_id'];
+            $item->description = $itemData['description'] ?? '';
+            $item->discount_type = $itemData['discount_type'] ?? 'percentage';
+            $item->discount_value = $itemData['discount_value'] ?? 0;
             $item->quantity = $itemData['quantity'];
             $item->unit_price = $itemData['unit_price'];
             $item->discount_percentage = $itemData['discount_percentage'] ?? 0;
@@ -428,7 +411,7 @@ class SalesInvoiceController extends Controller
             ]);
             $warehouseId = $validated['warehouse_id'] ?? null;
 
-            $productsQuery = ProductServiceItem::select('id', 'name', 'sku', 'description', 'sale_price', 'tax_ids', 'unit', 'type')
+            $productsQuery = ProductServiceItem::select('id', 'name', 'sku', 'description', 'long_description', 'sale_price', 'tax_ids', 'unit', 'type')
                 ->where('is_active', true)
                 ->where('created_by', creatorId());
 
@@ -450,7 +433,7 @@ class SalesInvoiceController extends Controller
                         'id' => $product->id,
                         'name' => $product->name,
                         'sku' => $product->sku,
-                        'description' => $product->description,
+                        'description' => \App\Services\SalesLineAmounts::description($product->long_description ?: $product->description),
                         'sale_price' => $product->sale_price,
                         'unit' => $product->unit,
                         'type' => $product->type,
@@ -480,7 +463,7 @@ class SalesInvoiceController extends Controller
     public function getServices(Request $request)
     {
         if(Auth::user()->can('create-sales-invoices') || Auth::user()->can('edit-sales-invoices')){
-            $services = ProductServiceItem::select('id', 'name', 'sku', 'description', 'sale_price', 'tax_ids', 'unit', 'type')
+            $services = ProductServiceItem::select('id', 'name', 'sku', 'description', 'long_description', 'sale_price', 'tax_ids', 'unit', 'type')
                 ->where('is_active', true)
                 ->where('type', 'service')
                 ->where('created_by', creatorId())
@@ -490,7 +473,7 @@ class SalesInvoiceController extends Controller
                         'id' => $service->id,
                         'name' => $service->name,
                         'sku' => $service->sku,
-                        'description' => $service->description,
+                        'description' => \App\Services\SalesLineAmounts::description($service->long_description ?: $service->description),
                         'sale_price' => $service->sale_price,
                         'unit' => $service->unit,
                         'type' => $service->type,

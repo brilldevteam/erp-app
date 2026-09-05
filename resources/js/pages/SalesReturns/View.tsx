@@ -172,9 +172,9 @@ function View() {
                                             <td className="px-4 py-4 text-right">{item.return_quantity || item.quantity}</td>
                                             <td className="px-4 py-4 text-right">{formatCurrency(item.unit_price)}</td>
                                             <td className="px-4 py-4 text-right">
-                                                {item.discount_percentage > 0 ? (
+                                                {Number(item.discount_amount) > 0 ? (
                                                     <div>
-                                                        <div>{item.discount_percentage}%</div>
+                                                        <div>{Number(item.discount_percentage) > 0 ? `${item.discount_percentage}%` : formatCurrency(item.discount_amount)}</div>
                                                         <div className="text-sm text-muted-foreground">
                                                             -{formatCurrency(item.discount_amount)}
                                                         </div>

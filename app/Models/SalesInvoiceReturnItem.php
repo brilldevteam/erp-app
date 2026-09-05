@@ -58,9 +58,12 @@ class SalesInvoiceReturnItem extends Model
     public function calculateAmounts()
     {
         $lineTotal = $this->return_quantity * $this->unit_price;
-        $this->discount_amount = ($lineTotal * $this->discount_percentage) / 100;
+        $original = $this->originalInvoiceItem;
+        $this->discount_amount = $original
+            ? \App\Services\SalesLineAmounts::returnDiscount($original, $lineTotal)
+            : round(($lineTotal * $this->discount_percentage) / 100, 2);
         $afterDiscount = $lineTotal - $this->discount_amount;
-        $this->tax_amount = ($afterDiscount * $this->tax_percentage) / 100;
+        $this->tax_amount = round(($afterDiscount * $this->tax_percentage) / 100, 2);
         $this->total_amount = $afterDiscount + $this->tax_amount;
     }
 

@@ -24,7 +24,7 @@ class QuotationDefinition implements EntityDefinition, AllowsRepeatedIdentity
     public function key(): string { return 'quotations'; }
     public function permission(): string { return 'import-quotations'; }
     public function createPermission(): string { return 'create-quotations'; }
-    public function headers(): array { return ['quotation_number', 'quotation_date', 'due_date', 'customer_email', 'customer', 'item_sku', 'item_name', 'quantity', 'unit_price', 'discount_percentage', 'tax_names', 'tax_percentage', 'payment_terms', 'warehouse', 'status', 'notes']; }
+    public function headers(): array { return ['quotation_number', 'quotation_date', 'due_date', 'customer_email', 'customer', 'item_sku', 'item_name', 'description', 'quantity', 'unit_price', 'discount_type', 'discount_value', 'discount_percentage', 'tax_names', 'tax_percentage', 'payment_terms', 'warehouse', 'status', 'notes']; }
     public function requiredFields(): array { return ['quotation_number', 'quotation_date', 'due_date', 'customer', 'item_sku', 'item_name', 'quantity', 'unit_price']; }
     public function aliases(): array { return ['quotation_number' => ['quote no', 'quote number', 'quotation no'], 'quotation_date' => ['date', 'quote date'], 'due_date' => ['expiry date', 'valid until'], 'customer_email' => ['customer email', 'email'], 'customer' => ['customer name', 'customer'], 'item_sku' => ['item code', 'sku', 'product code'], 'unit_price' => ['rate', 'price'], 'tax_names' => ['tax', 'tax name']]; }
     public function example(): array { return ['QT-1001', date('Y-m-d'), date('Y-m-d', strtotime('+14 days')), 'customer@example.com', 'Example Customer', 'SKU-100', 'Example Product', '2', '100', '0', 'VAT 15%', '15', 'Net 14', 'Main Warehouse', 'draft', 'Imported from Zoho Books']; }
@@ -113,11 +113,16 @@ class QuotationDefinition implements EntityDefinition, AllowsRepeatedIdentity
             }
 
             [$taxNames, $taxRate] = $this->taxNamesAndRate($row['tax_names'] ?? null, $row['tax_percentage'] ?? 0, $tenantId);
+            $product = $this->product($row, $tenantId);
             $item = SalesQuotationItem::create([
                 'quotation_id' => $quotation->id,
-                'product_id' => $this->product($row, $tenantId)->id,
+                'product_id' => $product->id,
+                'description' => $this->nullableText($row['description'] ?? null)
+                    ?? \App\Services\SalesLineAmounts::description($product->long_description ?: $product->description),
                 'quantity' => $this->decimal($row['quantity'] ?? 1),
                 'unit_price' => $this->decimal($row['unit_price'] ?? 0),
+                'discount_type' => strtolower($this->text($row['discount_type'] ?? 'percentage')) === 'fixed' ? 'fixed' : 'percentage',
+                'discount_value' => $this->decimal($row['discount_value'] ?? 0),
                 'discount_percentage' => $this->decimal($row['discount_percentage'] ?? 0),
                 'tax_percentage' => $taxRate,
             ]);

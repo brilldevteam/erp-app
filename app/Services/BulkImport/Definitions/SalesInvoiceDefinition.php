@@ -20,7 +20,7 @@ class SalesInvoiceDefinition implements EntityDefinition, AllowsRepeatedIdentity
     public function key(): string { return 'sales-invoices'; }
     public function permission(): string { return 'import-sales-invoices'; }
     public function createPermission(): string { return 'create-sales-invoices'; }
-    public function headers(): array { return ['invoice_number', 'invoice_date', 'due_date', 'customer_email', 'customer', 'item_sku', 'item_name', 'quantity', 'unit_price', 'discount_percentage', 'tax_names', 'tax_percentage', 'payment_terms', 'warehouse', 'paid_amount', 'status', 'notes']; }
+    public function headers(): array { return ['invoice_number', 'invoice_date', 'due_date', 'customer_email', 'customer', 'item_sku', 'item_name', 'description', 'quantity', 'unit_price', 'discount_type', 'discount_value', 'discount_percentage', 'tax_names', 'tax_percentage', 'payment_terms', 'warehouse', 'paid_amount', 'status', 'notes']; }
     public function requiredFields(): array { return ['invoice_number', 'invoice_date', 'customer', 'item_sku', 'item_name', 'quantity', 'unit_price']; }
     public function aliases(): array { return ['invoice_number' => ['invoice no', 'invoice number'], 'invoice_date' => ['date'], 'due_date' => ['due date'], 'customer_email' => ['customer email', 'email'], 'customer' => ['customer name', 'customer'], 'item_sku' => ['item code', 'sku', 'product code'], 'unit_price' => ['rate', 'price'], 'tax_names' => ['tax', 'tax name']]; }
     public function example(): array { return ['INV-1001', date('Y-m-d'), date('Y-m-d', strtotime('+30 days')), 'customer@example.com', 'Example Customer', 'SKU-100', 'Example Product', '2', '100', '0', 'VAT 15%', '15', 'Net 30', 'Main Warehouse', '0', 'posted', 'Imported from Zoho Books']; }
@@ -84,11 +84,16 @@ class SalesInvoiceDefinition implements EntityDefinition, AllowsRepeatedIdentity
         }
 
         [$taxNames, $taxRate] = $this->taxNamesAndRate($row['tax_names'] ?? null, $row['tax_percentage'] ?? 0, $tenantId);
+        $product = $this->product($row, $tenantId);
         $item = SalesInvoiceItem::create([
             'invoice_id' => $invoice->id,
-            'product_id' => $this->product($row, $tenantId)->id,
+            'product_id' => $product->id,
+            'description' => $this->nullableText($row['description'] ?? null)
+                ?? \App\Services\SalesLineAmounts::description($product->long_description ?: $product->description),
             'quantity' => $this->integer($row['quantity'] ?? 1, 1),
             'unit_price' => $this->decimal($row['unit_price'] ?? 0),
+            'discount_type' => strtolower($this->text($row['discount_type'] ?? 'percentage')) === 'fixed' ? 'fixed' : 'percentage',
+            'discount_value' => $this->decimal($row['discount_value'] ?? 0),
             'discount_percentage' => $this->decimal($row['discount_percentage'] ?? 0),
             'tax_percentage' => $taxRate,
             'creator_id' => $actorId,

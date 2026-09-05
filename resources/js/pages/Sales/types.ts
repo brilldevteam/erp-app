@@ -38,6 +38,9 @@ export interface SalesInvoiceItem {
     product_id: number;
     quantity: number;
     unit_price: number;
+    description?: string;
+    discount_type?: 'percentage' | 'fixed';
+    discount_value?: number;
     discount_percentage: number;
     discount_amount: number;
     tax_percentage: number;

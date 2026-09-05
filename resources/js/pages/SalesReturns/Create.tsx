@@ -14,6 +14,11 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { CalendarDays, Package, RotateCcw, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/helpers';
 
+const returnDiscount = (item: { discount_type?: string; discount_percentage?: number; discount_amount?: number; quantity: number; unit_price: number } | undefined, subtotal: number) =>
+    Math.round((item?.discount_type === 'fixed'
+        ? subtotal * Number(item.discount_amount || 0) / (Number(item.quantity) * Number(item.unit_price) || 1)
+        : subtotal * Number(item?.discount_percentage || 0) / 100) * 100) / 100;
+
 interface SalesInvoice {
     id: number;
     invoice_number: string;
@@ -35,6 +40,7 @@ interface SalesInvoice {
         quantity: number;
         available_quantity?: number;
         unit_price: number;
+        discount_type?: string;
         discount_percentage?: number;
         discount_amount?: number;
         tax_percentage?: number;
@@ -95,7 +101,7 @@ export default function Create() {
             const originalItem = selectedInvoice?.items.find(i => i.id === originalInvoiceItemId);
             const initialQuantity = Math.min(1, maxQuantity);
             const lineTotal = initialQuantity * unitPrice;
-            const discountAmount = (lineTotal * (originalItem?.discount_percentage || 0)) / 100;
+            const discountAmount = returnDiscount(originalItem, lineTotal);
             const afterDiscount = lineTotal - discountAmount;
             const taxAmount = (afterDiscount * (originalItem?.tax_percentage || 0)) / 100;
             const totalAmount = afterDiscount + taxAmount;
@@ -119,7 +125,7 @@ export default function Create() {
                 if (field === 'return_quantity' || field === 'unit_price') {
                     const originalItem = selectedInvoice?.items.find(i => i.id === originalInvoiceItemId);
                     const lineTotal = updatedItem.return_quantity * updatedItem.unit_price;
-                    const discountAmount = (lineTotal * (originalItem?.discount_percentage || 0)) / 100;
+                    const discountAmount = returnDiscount(originalItem, lineTotal);
                     const afterDiscount = lineTotal - discountAmount;
                     const taxAmount = (afterDiscount * (originalItem?.tax_percentage || 0)) / 100;
                     updatedItem.total_amount = afterDiscount + taxAmount;
@@ -151,13 +157,13 @@ export default function Create() {
         discountAmount: returnItems.reduce((sum, item) => {
             const originalItem = selectedInvoice?.items.find(i => i.id === item.original_invoice_item_id);
             const lineTotal = item.return_quantity * item.unit_price;
-            const discount = (lineTotal * (originalItem?.discount_percentage || 0)) / 100;
+            const discount = returnDiscount(originalItem, lineTotal);
             return sum + discount;
         }, 0),
         taxAmount: returnItems.reduce((sum, item) => {
             const originalItem = selectedInvoice?.items.find(i => i.id === item.original_invoice_item_id);
             const lineTotal = item.return_quantity * item.unit_price;
-            const discount = (lineTotal * (originalItem?.discount_percentage || 0)) / 100;
+            const discount = returnDiscount(originalItem, lineTotal);
             const afterDiscount = lineTotal - discount;
             const tax = (afterDiscount * (originalItem?.tax_percentage || 0)) / 100;
             return sum + tax;
@@ -321,9 +327,9 @@ export default function Create() {
                                                         <span className="text-sm">{formatCurrency(item.unit_price)}</span>
                                                     </td>
                                                     <td className="px-4 py-4">
-                                                        {(item.discount_percentage || 0) > 0 ? (
+                                                        {Number(item.discount_amount || 0) > 0 ? (
                                                             <div className="text-sm">
-                                                                <span>{item.discount_percentage || 0}%</span>
+                                                                <span>{item.discount_type === 'fixed' ? formatCurrency(item.discount_amount || 0) : `${item.discount_percentage || 0}%`}</span>
                                                                 <div className="text-xs text-muted-foreground">({formatCurrency(item.discount_amount || 0)})</div>
                                                             </div>
                                                         ) : (
@@ -352,7 +358,7 @@ export default function Create() {
                                                         <span className="text-sm font-medium">{formatCurrency((() => {
                                                             const qty = item.available_quantity ?? item.quantity;
                                                             const lineTotal = qty * item.unit_price;
-                                                            const discountAmount = (lineTotal * (item.discount_percentage || 0)) / 100;
+                                                            const discountAmount = returnDiscount(item, lineTotal);
                                                             const afterDiscount = lineTotal - discountAmount;
                                                             const taxAmount = (afterDiscount * (item.tax_percentage || 0)) / 100;
                                                             return afterDiscount + taxAmount;
@@ -441,11 +447,11 @@ export default function Create() {
                                                             <span className="text-sm">{formatCurrency(item.unit_price)}</span>
                                                         </td>
                                                         <td className="px-4 py-4">
-                                                            {(originalItem?.discount_percentage || 0) > 0 ? (
+                                                            {Number(originalItem?.discount_amount || 0) > 0 ? (
                                                                 <div className="text-sm">
-                                                                    <span>{originalItem?.discount_percentage || 0}%</span>
+                                                                    <span>{originalItem?.discount_type === 'fixed' ? formatCurrency(returnDiscount(originalItem, item.return_quantity * item.unit_price)) : `${originalItem?.discount_percentage || 0}%`}</span>
                                                                     <div className="text-xs text-muted-foreground">
-                                                                        -{formatCurrency((item.return_quantity * item.unit_price * (originalItem?.discount_percentage || 0)) / 100)}
+                                                                        -{formatCurrency(returnDiscount(originalItem, item.return_quantity * item.unit_price))}
                                                                     </div>
                                                                 </div>
                                                             ) : (
@@ -467,7 +473,7 @@ export default function Create() {
                                                                     <div className="text-xs text-muted-foreground">
                                                                         {formatCurrency((() => {
                                                                             const lineTotal = item.return_quantity * item.unit_price;
-                                                                            const discount = (lineTotal * (originalItem?.discount_percentage || 0)) / 100;
+                                                                            const discount = returnDiscount(originalItem, lineTotal);
                                                                             const afterDiscount = lineTotal - discount;
                                                                             return (afterDiscount * (originalItem?.tax_percentage || 0)) / 100;
                                                                         })())}

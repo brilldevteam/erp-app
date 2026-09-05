@@ -244,27 +244,7 @@ class QuotationController extends Controller
 
     private function calculateTotals($items)
     {
-        $subtotal      = 0;
-        $totalTax      = 0;
-        $totalDiscount = 0;
-
-        foreach ($items as $item) {
-            $lineTotal      = $item['quantity'] * $item['unit_price'];
-            $discountAmount = ($lineTotal * ($item['discount_percentage'] ?? 0)) / 100;
-            $afterDiscount  = $lineTotal - $discountAmount;
-            $taxAmount      = ($afterDiscount * ($item['tax_percentage'] ?? 0)) / 100;
-
-            $subtotal      += $lineTotal;
-            $totalDiscount += $discountAmount;
-            $totalTax      += $taxAmount;
-        }
-
-        return [
-            'subtotal'        => $subtotal,
-            'tax_amount'      => $totalTax,
-            'discount_amount' => $totalDiscount,
-            'total_amount'    => $subtotal + $totalTax - $totalDiscount
-        ];
+        return \App\Services\SalesLineAmounts::totals($items);
     }
 
     private function createQuotationItems($quotationId, $items)
@@ -273,6 +253,9 @@ class QuotationController extends Controller
             $item                      = new SalesQuotationItem();
             $item->quotation_id        = $quotationId;
             $item->product_id          = $itemData['product_id'];
+            $item->description = $itemData['description'] ?? '';
+            $item->discount_type = $itemData['discount_type'] ?? 'percentage';
+            $item->discount_value = $itemData['discount_value'] ?? 0;
             $item->quantity            = $itemData['quantity'];
             $item->unit_price          = $itemData['unit_price'];
             $item->discount_percentage = $itemData['discount_percentage'] ?? 0;
@@ -499,7 +482,7 @@ class QuotationController extends Controller
                     'id' => $item->product->id,
                     'name' => $item->product->name,
                     'sku' => $item->product->sku,
-                    'description' => $item->product->description,
+                    'description' => \App\Services\SalesLineAmounts::description($item->product->long_description ?: $item->product->description),
                     'sale_price' => (float) $item->product->sale_price,
                     'unit' => $item->product->unit,
                     'type' => $item->product->type,
@@ -528,6 +511,9 @@ class QuotationController extends Controller
                     'product_id' => $item->product_id,
                     'quantity' => $item->quantity,
                     'unit_price' => (float) $item->unit_price,
+                    'description' => $item->description ?? '',
+                    'discount_type' => $item->discount_type ?? 'percentage',
+                    'discount_value' => (float) $item->discount_value,
                     'discount_percentage' => (float) $item->discount_percentage,
                     'discount_amount' => (float) $item->discount_amount,
                     'tax_percentage' => (float) $item->tax_percentage,
@@ -571,7 +557,7 @@ class QuotationController extends Controller
                 }
             }
 
-            $productsQuery = ProductServiceItem::select('id', 'name', 'sku', 'sale_price', 'tax_ids', 'unit', 'type')
+            $productsQuery = ProductServiceItem::select('id', 'name', 'sku', 'description', 'long_description', 'sale_price', 'tax_ids', 'unit', 'type')
                 ->where('is_active', true)
                 ->where('created_by', creatorId());
 

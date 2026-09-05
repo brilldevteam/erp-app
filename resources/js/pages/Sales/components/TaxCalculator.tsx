@@ -23,9 +23,9 @@ export function useTaxCalculator(items: Props['items']): TaxCalculation {
             return sum + (item.quantity * item.unit_price);
         }, 0);
         
-        const discountAmount = items.reduce((sum, item) => sum + (item.discount_amount || 0), 0);
-        const taxAmount = items.reduce((sum, item) => sum + (item.tax_amount || 0), 0);
-        const total = items.reduce((sum, item) => sum + (item.total_amount || 0), 0);
+        const discountAmount = items.reduce((sum, item) => sum + Number(item.discount_amount || 0), 0);
+        const taxAmount = items.reduce((sum, item) => sum + Number(item.tax_amount || 0), 0);
+        const total = items.reduce((sum, item) => sum + Number(item.total_amount || 0), 0);
 
         return {
             subtotal,
@@ -40,13 +40,16 @@ export function calculateLineItemAmounts(
     quantity: number,
     unitPrice: number,
     discountPercentage: number = 0,
-    taxPercentage: number = 0
+    taxPercentage: number = 0,
+    discountType: 'percentage' | 'fixed' = 'percentage',
+    discountValue: number = 0
 ) {
-    const lineTotal = quantity * unitPrice;
-    const discountAmount = (lineTotal * discountPercentage) / 100;
+    const round = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+    const lineTotal = round(quantity * unitPrice);
+    const discountAmount = round(discountType === 'fixed' ? Number(discountValue) : (lineTotal * discountPercentage) / 100);
     const afterDiscount = lineTotal - discountAmount;
-    const taxAmount = (afterDiscount * taxPercentage) / 100;
-    const totalAmount = afterDiscount + taxAmount;
+    const taxAmount = round((afterDiscount * taxPercentage) / 100);
+    const totalAmount = round(afterDiscount + taxAmount);
 
     return {
         discountAmount,
