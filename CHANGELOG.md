@@ -5,6 +5,7 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Added
+- Added Record Payment action on Sales Invoice details so users can create linked customer payments directly from an invoice while reusing the existing approval and receipt flow.
 - Added a Payment document template type for customer payment receipts and vendor payment vouchers, with preview and PDF download support.
 - Added customer payment receipt and vendor payment voucher preview actions inside the payment detail modals.
 - Added preview actions for Sales Invoices and Quotations so users can open the same document template layout before downloading PDF.
@@ -64,6 +65,8 @@ main
 - Zoho migration imports can safely flag migrated payment/expense records for bank verification without weakening the normal ERP import validation flow.
 
 ### Fixed
+- Fixed customer email updates so quotation, sales invoice, customer payment receipt, and vendor payment document previews/PDFs display the latest customer/vendor email instead of stale imported placeholder emails.
+- Fixed customer country-specific address validation so Qatar/Saudi address fields remain optional when cleaning imported customer records.
 - Fixed Login As User impersonation sessions being blocked by security-version revocation checks after password resets or logout-other-devices actions.
 - Bug fixes and production stability improvements will be listed here before release.
 - Invoice and quotation template previews now place the document badge on the left when the header is aligned right.

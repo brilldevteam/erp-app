@@ -93,65 +93,113 @@ class CustomerPaymentController extends Controller
     public function store(StoreCustomerPaymentRequest $request)
     {
         if(Auth::user()->can('create-customer-payments')){
+            $allocations = collect($request->input('allocations', []));
+            $creditNotes = collect($request->input('credit_notes', []));
+
             // Validate credit note amount doesn't exceed invoice allocation amount
-            if ($request->credit_notes) {
-                $totalInvoiceAmount = collect($request->allocations)->sum('amount');
-                $totalCreditNoteAmount = collect($request->credit_notes)->sum('amount');
+            if ($creditNotes->isNotEmpty()) {
+                $totalInvoiceAmount = $allocations->sum('amount');
+                $totalCreditNoteAmount = $creditNotes->sum('amount');
 
                 if ($totalCreditNoteAmount > $totalInvoiceAmount) {
                     return back()->with('error', __('Credit note amount cannot exceed the total invoice allocation amount.'));
                 }
             }
 
-            $totalInvoiceAmount = collect($request->allocations)->sum('amount');
-            $totalCreditNoteAmount = collect($request->credit_notes)->sum('amount');
+            $totalInvoiceAmount = $allocations->sum('amount');
+            $totalCreditNoteAmount = $creditNotes->sum('amount');
             if ($totalInvoiceAmount > (float) $request->payment_amount + $totalCreditNoteAmount) {
                 return back()->with('error', __('Invoice allocations cannot exceed the payment and credit note total.'));
             }
 
-            // Create payment
-            $payment = new CustomerPayment();
-            $payment->payment_date = $request->payment_date;
-            $payment->customer_id = $request->customer_id;
-            $payment->bank_account_id = $request->bank_account_id;
-            $payment->reference_number = $request->reference_number;
-            $payment->payment_amount = $request->payment_amount;
-            $payment->notes = $request->notes;
-            $payment->creator_id = Auth::id();
-            $payment->created_by = creatorId();
-            $payment->save();
+            try {
+                DB::transaction(function () use ($request, $allocations, $creditNotes, &$payment) {
+                    $payment = new CustomerPayment();
+                    $payment->payment_date = $request->payment_date;
+                    $payment->customer_id = $request->customer_id;
+                    $payment->bank_account_id = $request->bank_account_id;
+                    $payment->reference_number = $request->reference_number;
+                    $payment->payment_amount = $request->payment_amount;
+                    $payment->notes = $request->notes;
+                    $payment->creator_id = Auth::id();
+                    $payment->created_by = creatorId();
+                    $payment->save();
 
-            // Create allocations if provided
-            if ($request->allocations) {
-                foreach ($request->allocations as $allocation) {
-                    $paymentAllocation = new CustomerPaymentAllocation();
-                    $paymentAllocation->payment_id = $payment->id;
-                    $paymentAllocation->invoice_id = $allocation['invoice_id'];
-                    $paymentAllocation->allocated_amount = $allocation['amount'];
-                    $paymentAllocation->save();
-                }
-            }
+                    foreach ($allocations as $allocation) {
+                        $invoice = SalesInvoice::query()
+                            ->whereKey($allocation['invoice_id'])
+                            ->where('customer_id', $request->customer_id)
+                            ->where('created_by', creatorId())
+                            ->where('balance_amount', '>', 0)
+                            ->whereNotIn('status', ['draft', 'cancelled'])
+                            ->lockForUpdate()
+                            ->first();
 
-            // Handle credit notes if provided
-            if ($request->credit_notes) {
-                foreach ($request->credit_notes as $creditNote) {
-                    $creditNoteModel = CreditNote::find($creditNote['credit_note_id']);
-                    if (!$creditNoteModel) continue;
+                        if (!$invoice) {
+                            throw ValidationException::withMessages([
+                                'allocations' => __('The selected invoice is not available for this customer payment.'),
+                            ]);
+                        }
 
-                    // Create credit note application entry
-                    CreditNoteApplication::create([
-                        'credit_note_id' => $creditNote['credit_note_id'],
-                        'payment_id' => $payment->id,
-                        'applied_amount' => $creditNote['amount'],
-                        'application_date' => $request->payment_date,
-                        'creator_id' => Auth::id(),
-                        'created_by' => creatorId()
-                    ]);
-                }
+                        if ((float) $allocation['amount'] > (float) $invoice->balance_amount) {
+                            throw ValidationException::withMessages([
+                                'allocations' => __('Invoice allocation cannot exceed the invoice balance.'),
+                            ]);
+                        }
+
+                        CustomerPaymentAllocation::create([
+                            'payment_id' => $payment->id,
+                            'invoice_id' => $allocation['invoice_id'],
+                            'allocated_amount' => $allocation['amount'],
+                            'creator_id' => Auth::id(),
+                            'created_by' => creatorId(),
+                        ]);
+                    }
+
+                    foreach ($creditNotes as $creditNote) {
+                        $creditNoteModel = CreditNote::query()
+                            ->whereKey($creditNote['credit_note_id'])
+                            ->where('customer_id', $request->customer_id)
+                            ->where('created_by', creatorId())
+                            ->where('balance_amount', '>', 0)
+                            ->lockForUpdate()
+                            ->first();
+
+                        if (!$creditNoteModel) {
+                            throw ValidationException::withMessages([
+                                'credit_notes' => __('The selected credit note is not available for this customer payment.'),
+                            ]);
+                        }
+
+                        if ((float) $creditNote['amount'] > (float) $creditNoteModel->balance_amount) {
+                            throw ValidationException::withMessages([
+                                'credit_notes' => __('Credit note amount cannot exceed the available credit note balance.'),
+                            ]);
+                        }
+
+                        CreditNoteApplication::create([
+                            'credit_note_id' => $creditNote['credit_note_id'],
+                            'payment_id' => $payment->id,
+                            'applied_amount' => $creditNote['amount'],
+                            'application_date' => $request->payment_date,
+                            'creator_id' => Auth::id(),
+                            'created_by' => creatorId()
+                        ]);
+                    }
+                });
+            } catch (ValidationException $exception) {
+                throw $exception;
+            } catch (\Throwable $exception) {
+                return back()->with('error', $exception->getMessage());
             }
 
             // Dispatch event
             CreateCustomerPayment::dispatch($request, $payment);
+
+            $returnTo = $request->input('return_to');
+            if (is_string($returnTo) && str_starts_with($returnTo, url('/'))) {
+                return redirect()->to($returnTo)->with('success', __('The customer payment has been created successfully.'));
+            }
 
             return redirect()->route('account.customer-payments.index')->with('success', __('The customer payment has been created successfully.'));
         }
@@ -166,7 +214,7 @@ class CustomerPaymentController extends Controller
     {
         $invoices = SalesInvoice::where('customer_id', $customerId)
             ->where('balance_amount', '>', 0)
-            ->whereIn('status', ['posted', 'partial'])
+            ->whereNotIn('status', ['draft', 'cancelled'])
             ->where('created_by', creatorId())
             ->get();
 
@@ -279,7 +327,7 @@ class CustomerPaymentController extends Controller
                     ->whereKey($validated['invoice_id'])
                     ->where('customer_id', $payment->customer_id)
                     ->where('created_by', creatorId())
-                    ->whereIn('status', ['posted', 'partial'])
+                    ->whereNotIn('status', ['draft', 'cancelled'])
                     ->lockForUpdate()
                     ->first();
 

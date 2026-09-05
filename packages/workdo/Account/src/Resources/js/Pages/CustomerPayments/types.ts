@@ -84,6 +84,7 @@ export interface CreateCustomerPaymentFormData {
         credit_note_id: number;
         amount: number;
     }[];
+    return_to?: string;
 }
 
 export interface CustomerPaymentFilters {
@@ -107,6 +108,10 @@ export interface CreateCustomerPaymentProps {
     customers: Customer[];
     bankAccounts: BankAccount[];
     onSuccess: () => void;
+    defaultCustomerId?: number | string;
+    defaultInvoiceId?: number | string;
+    defaultInvoiceBalance?: number | string;
+    returnTo?: string;
 }
 
 export interface CustomerPaymentViewProps {

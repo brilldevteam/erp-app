@@ -25,6 +25,7 @@ use App\Models\DocumentTemplate;
 use App\Services\SalesInvoiceService;
 use App\Services\DocumentTemplates\DocumentTemplateService;
 use Workdo\Quotation\Events\ConvertSalesQuotation;
+use Workdo\Account\Models\BankAccount;
 
 class SalesInvoiceController extends Controller
 {
@@ -100,8 +101,21 @@ class SalesInvoiceController extends Controller
                     $query->where('status', $request->status);
                 }
             }
-            if ($request->search) {
-                $query->where('invoice_number', 'like', '%' . $request->search . '%');
+            if ($request->filled('search')) {
+                $search = strtolower(trim($request->search));
+                $query->where(function ($q) use ($search) {
+                    $like = "%{$search}%";
+
+                    $q->whereRaw('LOWER(invoice_number) LIKE ?', [$like])
+                        ->orWhereHas('customer', function ($customerQuery) use ($like) {
+                            $customerQuery->whereRaw('LOWER(name) LIKE ?', [$like])
+                                ->orWhereRaw('LOWER(email) LIKE ?', [$like]);
+                        })
+                        ->orWhereHas('customerDetails', function ($customerDetailsQuery) use ($like) {
+                            $customerDetailsQuery->whereRaw('LOWER(company_name) LIKE ?', [$like])
+                                ->orWhereRaw('LOWER(contact_person_name) LIKE ?', [$like]);
+                        });
+                });
             }
             if ($request->date_range) {
                 $dates = explode(' - ', $request->date_range);
@@ -218,7 +232,12 @@ class SalesInvoiceController extends Controller
             $salesInvoice->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'warehouse', 'quotation']);
 
             return Inertia::render('Sales/View', [
-                'invoice' => $salesInvoice
+                'invoice' => $salesInvoice,
+                'customers' => $this->invoiceCustomers(),
+                'bankAccounts' => BankAccount::where('created_by', creatorId())
+                    ->where('is_active', true)
+                    ->orderBy('account_name')
+                    ->get(['id', 'account_name', 'account_number', 'bank_name']),
             ]);
         }
         else{

@@ -11,26 +11,28 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { DatePicker } from '@/components/ui/date-picker';
 import InputError from '@/components/ui/input-error';
-import { Trash2 } from 'lucide-react';
+import { Info, Trash2 } from 'lucide-react';
 import { CreateCustomerPaymentFormData, CreateCustomerPaymentProps, SalesInvoice, CreditNote } from './types';
 import { formatCurrency } from '@/utils/helpers';
 
-export default function Create({ customers, bankAccounts, onSuccess }: CreateCustomerPaymentProps) {
+export default function Create({ customers, bankAccounts, onSuccess, defaultCustomerId, defaultInvoiceId, defaultInvoiceBalance, returnTo }: CreateCustomerPaymentProps) {
     const { t } = useTranslation();
     const [outstandingInvoices, setOutstandingInvoices] = useState<SalesInvoice[]>([]);
     const [availableCreditNotes, setAvailableCreditNotes] = useState<CreditNote[]>([]);
     const [selectedAllocations, setSelectedAllocations] = useState<{invoice_id: number; amount: number}[]>([]);
     const [selectedCreditNotes, setSelectedCreditNotes] = useState<{credit_note_id: number; amount: number}[]>([]);
+    const [hasAppliedDefaultInvoice, setHasAppliedDefaultInvoice] = useState(false);
 
     const { data, setData, post, processing, errors } = useForm<CreateCustomerPaymentFormData>({
         payment_date: new Date().toISOString().split('T')[0],
-        customer_id: '',
+        customer_id: defaultCustomerId ? defaultCustomerId.toString() : '',
         bank_account_id: '',
         reference_number: '',
-        payment_amount: '',
+        payment_amount: defaultInvoiceBalance ? Number(defaultInvoiceBalance).toFixed(2) : '',
         notes: '',
         allocations: [],
-        credit_notes: []
+        credit_notes: [],
+        return_to: returnTo || ''
     });
 
     // Update form data when selections change
@@ -42,22 +44,25 @@ export default function Create({ customers, bankAccounts, onSuccess }: CreateCus
         setData('credit_notes', selectedCreditNotes);
     }, [selectedCreditNotes]);
 
-    const fetchOutstandingInvoices = async (customerId: string) => {
+    const fetchOutstandingInvoices = async (customerId: string): Promise<SalesInvoice[]> => {
         if (!customerId) {
             setOutstandingInvoices([]);
             setAvailableCreditNotes([]);
-            return;
+            return [];
         }
 
         try {
             const response = await fetch(route('account.customer-payments.outstanding-invoices', customerId));
             const result = await response.json();
-            setOutstandingInvoices(result.invoices || result || []);
+            const invoices = result.invoices || result || [];
+            setOutstandingInvoices(invoices);
             setAvailableCreditNotes(result.creditNotes || []);
+            return invoices;
         } catch (error) {
             console.error('Failed to fetch outstanding invoices:', error);
             setOutstandingInvoices([]);
             setAvailableCreditNotes([]);
+            return [];
         }
     };
 
@@ -68,11 +73,27 @@ export default function Create({ customers, bankAccounts, onSuccess }: CreateCus
             setOutstandingInvoices([]);
             setAvailableCreditNotes([]);
         }
-        // Clear selections when customer changes
-        setSelectedAllocations([]);
-        setSelectedCreditNotes([]);
-        setData('payment_amount', '');
+
+        if (!defaultCustomerId || data.customer_id !== defaultCustomerId.toString()) {
+            setSelectedAllocations([]);
+            setSelectedCreditNotes([]);
+            setData('payment_amount', '');
+            setHasAppliedDefaultInvoice(false);
+        }
     }, [data.customer_id]);
+
+    useEffect(() => {
+        if (!defaultInvoiceId || hasAppliedDefaultInvoice || !data.customer_id) return;
+        if (defaultCustomerId && data.customer_id !== defaultCustomerId.toString()) return;
+
+        const invoice = outstandingInvoices.find((item) => item.id === Number(defaultInvoiceId));
+        if (!invoice) return;
+
+        const amount = Number(defaultInvoiceBalance || invoice.balance_amount || 0);
+        setSelectedAllocations([{ invoice_id: invoice.id, amount }]);
+        setData('payment_amount', amount.toFixed(2));
+        setHasAppliedDefaultInvoice(true);
+    }, [outstandingInvoices, defaultInvoiceId, defaultInvoiceBalance, defaultCustomerId, data.customer_id, hasAppliedDefaultInvoice]);
 
     const addAllocation = (invoice: SalesInvoice) => {
         const existing = selectedAllocations.find(a => a.invoice_id === invoice.id);
@@ -120,6 +141,7 @@ export default function Create({ customers, bankAccounts, onSuccess }: CreateCus
     };
 
     const getInvoiceById = (id: number) => outstandingInvoices.find(inv => inv.id === id);
+    const isAdvancePayment = data.customer_id && selectedAllocations.length === 0 && Number(data.payment_amount) > 0;
 
     return (
         <DialogContent className="max-w-4xl">
@@ -133,7 +155,7 @@ export default function Create({ customers, bankAccounts, onSuccess }: CreateCus
                         <DatePicker
                             id="payment_date"
                             value={data.payment_date}
-                            onChange={(value) => {
+                            onChange={(value: string | Date) => {
                                 const formattedDate = value instanceof Date ? value.toISOString().split('T')[0] : value;
                                 setData('payment_date', formattedDate);
                             }}
@@ -221,7 +243,10 @@ export default function Create({ customers, bankAccounts, onSuccess }: CreateCus
                                     </div>
                                 ) : (
                                     <div className="text-center py-4 text-gray-500">
-                                        {t('No outstanding invoices found for this customer')}
+                                        <p>{t('No outstanding invoices found for this customer')}</p>
+                                        <p className="mt-1 text-xs text-gray-400">
+                                            {t('You can still enter an amount below to record an advance payment.')}
+                                        </p>
                                     </div>
                                 )}
                             </CardContent>
@@ -386,9 +411,10 @@ export default function Create({ customers, bankAccounts, onSuccess }: CreateCus
                         error={errors.payment_amount}
                         required
                     />
-                    {data.customer_id && selectedAllocations.length === 0 && Number(data.payment_amount) > 0 && (
-                        <div className="mt-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-                            {t('No invoice is selected. This amount will be recorded as an available customer deposit.')}
+                    {isAdvancePayment && (
+                        <div className="mt-2 flex gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+                            <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                            <span>{t('No invoice is selected. This amount will be saved as an available customer deposit and can be applied to an invoice later.')}</span>
                         </div>
                     )}
                     <InputError message={errors.allocations} />
