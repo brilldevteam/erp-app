@@ -6,6 +6,7 @@ const labels: Record<string, string> = {
     description: 'Description',
     quantity: 'Qty',
     rate: 'Rate',
+    discount: 'Discount',
     tax: 'Tax',
     total: 'Total',
 };
@@ -33,6 +34,10 @@ export default function DocumentTemplatePreview({
     }
 
     const title = document.type === 'invoice' ? 'INVOICE' : 'QUOTATION';
+    const columns = [...config.itemsTable.columns];
+    if (document.items.some(item => Number(item.discount) > 0) && !columns.includes('discount')) {
+        columns.splice(Math.max(0, columns.indexOf('total')), 0, 'discount');
+    }
     const hasAnyTax = document.items.some(hasTax);
     const headerLayoutClass =
         alignment === 'center'
@@ -84,7 +89,7 @@ export default function DocumentTemplatePreview({
                 <table className="w-full border-collapse">
                     <thead>
                         <tr style={{ backgroundColor: color }} className="text-white">
-                            {config.itemsTable.columns.map((column) => (
+                            {columns.map((column) => (
                                 <th key={column} className="px-3 py-2 text-left">{labels[column] || column}</th>
                             ))}
                         </tr>
@@ -92,11 +97,16 @@ export default function DocumentTemplatePreview({
                     <tbody>
                         {document.items.map((item, index) => (
                             <tr key={index} className="border-b">
-                                {config.itemsTable.columns.map((column) => (
-                                    <td key={column} className="px-3 py-3 align-top">
-                                        {column === 'tax'
+                                {columns.map((column) => (
+                                    <td key={column} className="px-3 py-3 align-top whitespace-pre-wrap [overflow-wrap:anywhere]">
+                                        {column === 'discount'
+                                            ? Number(item.discount) > 0 ? item.discount_type === 'fixed' ? money(Number(item.discount)) : `${item.discount_percentage}%` : '-'
+                                            : column === 'tax'
                                             ? hasTax(item) ? money(Number(item.tax)) : '-'
                                             : ['rate', 'total'].includes(column) ? money(Number(item[column])) : item[column]}
+                                        {column === 'item' && !columns.includes('description') && item.description && (
+                                            <div className="mt-1 whitespace-pre-wrap font-normal">{item.description}</div>
+                                        )}
                                     </td>
                                 ))}
                             </tr>

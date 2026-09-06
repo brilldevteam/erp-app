@@ -220,16 +220,16 @@ export default function View() {
                                                 {item.product?.sku && (
                                                     <div className="text-sm text-muted-foreground">SKU: {item.product.sku}</div>
                                                 )}
-                                                {item.product?.description && (
-                                                    <div className="text-sm text-muted-foreground mt-1">{item.product.description}</div>
+                                                {item.description && (
+                                                    <div className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap break-words">{item.description}</div>
                                                 )}
                                             </td>
                                             <td className="px-4 py-4 text-right">{item.quantity}</td>
                                             <td className="px-4 py-4 text-right">{formatCurrency(item.unit_price)}</td>
                                             <td className="px-4 py-4 text-right">
-                                                {item.discount_percentage > 0 ? (
+                                                {Number(item.discount_amount) > 0 ? (
                                                     <div>
-                                                        <div>{item.discount_percentage}%</div>
+                                                        <div>{item.discount_type === 'fixed' ? formatCurrency(Number(item.discount_amount)) : `${item.discount_percentage}%`}</div>
                                                         <div className="text-sm text-muted-foreground">
                                                             -{formatCurrency(item.discount_amount)}
                                                         </div>

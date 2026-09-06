@@ -49,7 +49,7 @@ class SalesInvoiceService
             $invoice->created_by = $creatorId;
             $invoice->save();
 
-            $this->createItems($invoice->id, $data['items']);
+            $this->createItems($invoice->id, $data['items'], $creatorId);
 
             if ($quotation) {
                 $quotation->update([
@@ -102,40 +102,31 @@ class SalesInvoiceService
 
     private function calculateTotals(array $items): array
     {
-        $subtotal = 0;
-        $totalTax = 0;
-        $totalDiscount = 0;
-
-        foreach ($items as $item) {
-            $lineTotal = $item['quantity'] * $item['unit_price'];
-            $discountAmount = ($lineTotal * ($item['discount_percentage'] ?? 0)) / 100;
-            $afterDiscount = $lineTotal - $discountAmount;
-            $taxAmount = ($afterDiscount * ($item['tax_percentage'] ?? 0)) / 100;
-
-            $subtotal += $lineTotal;
-            $totalDiscount += $discountAmount;
-            $totalTax += $taxAmount;
-        }
-
-        return [
-            'subtotal' => $subtotal,
-            'tax_amount' => $totalTax,
-            'discount_amount' => $totalDiscount,
-            'total_amount' => $subtotal + $totalTax - $totalDiscount,
-        ];
+        return \App\Services\SalesLineAmounts::totals($items);
     }
 
-    private function createItems(int $invoiceId, array $items): void
+    private function createItems(int $invoiceId, array $items, int $creatorId): void
     {
         foreach ($items as $itemData) {
             $item = new SalesInvoiceItem();
             $item->invoice_id = $invoiceId;
             $item->product_id = $itemData['product_id'];
+            $item->description = $itemData['description'] ?? '';
+            $item->discount_type = $itemData['discount_type'] ?? 'percentage';
+            $item->discount_value = $itemData['discount_value'] ?? 0;
             $item->quantity = $itemData['quantity'];
             $item->unit_price = $itemData['unit_price'];
             $item->discount_percentage = $itemData['discount_percentage'] ?? 0;
             $item->tax_percentage = $itemData['tax_percentage'] ?? 0;
             $item->save();
+
+            if (array_key_exists('description', $itemData)) {
+                SalesLineAmounts::syncProductDescription(
+                    (int) $itemData['product_id'],
+                    $itemData['description'],
+                    $creatorId
+                );
+            }
 
             foreach ($itemData['taxes'] ?? [] as $tax) {
                 $itemTax = new SalesInvoiceItemTax();

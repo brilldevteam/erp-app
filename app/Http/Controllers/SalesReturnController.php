@@ -284,10 +284,10 @@ class SalesReturnController extends Controller
             $unitPrice = $originalItem ? $originalItem->unit_price : $item['unit_price'];
             $lineTotal = $item['return_quantity'] * $unitPrice;
             $discountPercentage = $originalItem ? $originalItem->discount_percentage : 0;
-            $discountAmount = ($lineTotal * $discountPercentage) / 100;
+            $discountAmount = \App\Services\SalesLineAmounts::returnDiscount($originalItem, $lineTotal);
             $afterDiscount = $lineTotal - $discountAmount;
             $taxPercentage = $originalItem ? $originalItem->tax_percentage : 0;
-            $taxAmount = ($afterDiscount * $taxPercentage) / 100;
+            $taxAmount = round(($afterDiscount * $taxPercentage) / 100, 2);
 
             $subtotal += $lineTotal;
             $totalDiscount += $discountAmount;
@@ -313,10 +313,10 @@ class SalesReturnController extends Controller
             $unitPrice = $originalItem ? $originalItem->unit_price : $itemData['unit_price'];
             $lineTotal = $itemData['return_quantity'] * $unitPrice;
             $discountPercentage = $originalItem ? $originalItem->discount_percentage : 0;
-            $discountAmount = ($lineTotal * $discountPercentage) / 100;
+            $discountAmount = \App\Services\SalesLineAmounts::returnDiscount($originalItem, $lineTotal);
             $afterDiscount = $lineTotal - $discountAmount;
             $taxPercentage = $originalItem ? $originalItem->tax_percentage : 0;
-            $taxAmount = ($afterDiscount * $taxPercentage) / 100;
+            $taxAmount = round(($afterDiscount * $taxPercentage) / 100, 2);
             $totalAmount = $afterDiscount + $taxAmount;
 
 

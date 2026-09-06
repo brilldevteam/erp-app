@@ -28,7 +28,7 @@ interface Props {
     [key: string]: any;
 }
 
-const itemColumns = ['item', 'description', 'quantity', 'rate', 'tax', 'total'];
+const itemColumns = ['item', 'description', 'quantity', 'rate', 'discount', 'tax', 'total'];
 
 export default function Form() {
     const { t } = useTranslation();

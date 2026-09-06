@@ -1,3 +1,5 @@
+import SalesLineDiscount from '@/components/sales-line-discount';
+import { Textarea } from '@/components/ui/textarea';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { QuotationItem } from '../types';
@@ -25,6 +27,9 @@ export default function QuotationItemsTable({ items, onChange, errors, products 
             product_id: 0,
             quantity: 1,
             unit_price: 0,
+            description: '',
+            discount_type: 'percentage',
+            discount_value: 0,
             discount_percentage: 0,
             discount_amount: 0,
             tax_percentage: 0,
@@ -45,6 +50,10 @@ export default function QuotationItemsTable({ items, onChange, errors, products 
         newItems[index] = { ...newItems[index], [field]: value };
 
         const item = newItems[index];
+        if (field === 'discount_type') {
+            item.discount_percentage = 0;
+            item.discount_value = 0;
+        }
 
         if (item.tax_percentage === 0 && item.product_id > 0) {
             const product = products.find(p => p.id === item.product_id);
@@ -57,7 +66,9 @@ export default function QuotationItemsTable({ items, onChange, errors, products 
             item.quantity,
             item.unit_price,
             item.discount_percentage,
-            item.tax_percentage
+            item.tax_percentage,
+            item.discount_type,
+            item.discount_value
         );
 
         item.discount_amount = calculations.discountAmount;
@@ -78,6 +89,7 @@ export default function QuotationItemsTable({ items, onChange, errors, products 
         newItems[index] = {
             ...newItems[index],
             product_id: productId,
+            description: product?.description || '',
             unit_price: Number(product?.sale_price) || 0,
             tax_percentage: Number(totalTaxRate) || 0,
             taxes: taxes
@@ -91,7 +103,9 @@ export default function QuotationItemsTable({ items, onChange, errors, products 
             item.quantity,
             item.unit_price,
             item.discount_percentage,
-            item.tax_percentage
+            item.tax_percentage,
+            item.discount_type,
+            item.discount_value
         );
 
         item.discount_amount = Number(calculations.discountAmount) || 0;
@@ -117,7 +131,7 @@ export default function QuotationItemsTable({ items, onChange, errors, products 
                                 {t('Unit Price')} <span className="text-red-500">*</span>
                             </th>
                             <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                                {t('Discount')} %
+                                {t('Discount')}
                             </th>
                             <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
                                 {t('Tax')}
@@ -132,7 +146,7 @@ export default function QuotationItemsTable({ items, onChange, errors, products 
                     </thead>
                     <tbody className="divide-y divide-border">
                         {items.map((item, index) => (
-                            <tr key={index}>
+                            <tr key={index} className="align-top">
                                 <td className="px-4 py-4">
                                     <ProductSelector
                                         products={products}
@@ -140,6 +154,11 @@ export default function QuotationItemsTable({ items, onChange, errors, products 
                                         onChange={(productId, product) => handleProductSelect(index, productId, product)}
                                     />
                                     <InputError message={errors[`items.${index}.product_id`]} />
+                                    <Textarea aria-label={t('Item description')} placeholder={t('Description')}
+                                        className="mt-2 min-w-[260px] min-h-[100px]" rows={4} maxLength={20000}
+                                        value={item.description ?? ''}
+                                        onChange={e => updateItem(index, 'description', e.target.value)} />
+                                    <InputError message={errors[`items.${index}.description`]} />
                                 </td>
                                 <td className="px-4 py-4">
                                     {(() => {
@@ -181,15 +200,8 @@ export default function QuotationItemsTable({ items, onChange, errors, products 
                                     <InputError message={errors[`items.${index}.unit_price`]} />
                                 </td>
                                 <td className="px-4 py-4">
-                                    <Input
-                                        type="number"
-                                        value={item.discount_percentage}
-                                        onChange={(e) => updateItem(index, 'discount_percentage', parseFloat(e.target.value) || 0)}
-                                        className="w-20 text-sm"
-                                        min="0"
-                                        max="100"
-                                        step="0.01"
-                                    />
+                                    <SalesLineDiscount item={item} onChange={(field, value) => updateItem(index, field, value)} />
+                                    <InputError message={errors[`items.${index}.discount_percentage`] || errors[`items.${index}.discount_value`] || errors[`items.${index}.discount_type`]} />
                                 </td>
                                 <td className="px-4 py-4">
                                     {item.taxes && item.taxes.length > 0 ? (

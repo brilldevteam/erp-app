@@ -11,6 +11,9 @@ class SalesInvoiceItem extends Model
     protected $fillable = [
         'invoice_id',
         'product_id',
+        'description',
+        'discount_type',
+        'discount_value',
         'quantity',
         'unit_price',
         'discount_percentage',
@@ -24,6 +27,7 @@ class SalesInvoiceItem extends Model
 
     protected $casts = [
         'quantity' => 'integer',
+        'discount_value' => 'decimal:2',
         'unit_price' => 'decimal:2',
         'discount_percentage' => 'decimal:2',
         'discount_amount' => 'decimal:2',
@@ -49,11 +53,15 @@ class SalesInvoiceItem extends Model
 
     public function calculateAmounts()
     {
-        $lineTotal = $this->quantity * $this->unit_price;
-        $this->discount_amount = ($lineTotal * $this->discount_percentage) / 100;
-        $afterDiscount = $lineTotal - $this->discount_amount;
-        $this->tax_amount = ($afterDiscount * $this->tax_percentage) / 100;
-        $this->total_amount = $afterDiscount + $this->tax_amount;
+        if ($this->discount_type === 'fixed') {
+            $this->discount_percentage = 0;
+        } else {
+            $this->discount_value = 0;
+        }
+        $amounts = \App\Services\SalesLineAmounts::calculate($this->getAttributes());
+        $this->discount_amount = $amounts['discount_amount'];
+        $this->tax_amount = $amounts['tax_amount'];
+        $this->total_amount = $amounts['total_amount'];
     }
 
     protected static function boot()

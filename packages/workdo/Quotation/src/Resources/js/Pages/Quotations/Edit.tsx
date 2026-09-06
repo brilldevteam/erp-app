@@ -46,7 +46,9 @@ export default function Edit() {
                 item.quantity,
                 item.unit_price,
                 item.discount_percentage,
-                item.tax_percentage
+                item.tax_percentage,
+                item.discount_type,
+                item.discount_value
             );
             return {
                 ...item,
@@ -258,6 +260,9 @@ export default function Edit() {
                                             product_id: 0,
                                             quantity: 1,
                                             unit_price: 0,
+                                            description: '',
+                                            discount_type: 'percentage' as const,
+                                            discount_value: 0,
                                             discount_percentage: 0,
                                             discount_amount: 0,
                                             tax_percentage: 0,

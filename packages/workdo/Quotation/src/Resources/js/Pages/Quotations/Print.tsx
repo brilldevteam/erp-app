@@ -138,7 +138,7 @@ export default function Print() {
                             {quotation.items?.map((item, index) => (
                                 <tr key={index} className="page-break-inside-avoid">
                                     <td className="py-4">
-                                        <div className="font-semibold">{item.product?.name}</div>
+                                        <div className="font-semibold">{item.product?.name}{item.description && <div className="mt-1 whitespace-pre-wrap break-words text-sm font-normal">{item.description}</div>}</div>
                                         {item.product?.sku && (
                                             <div className="text-xs text-gray-500">{t('SKU')}: {item.product.sku}</div>
                                         )}
@@ -146,9 +146,9 @@ export default function Print() {
                                     <td className="text-center py-4">{item.quantity}</td>
                                     <td className="text-right py-4">{formatCurrency(item.unit_price)}</td>
                                     <td className="text-right py-4">
-                                        {item.discount_percentage > 0 ? (
+                                        {Number(item.discount_amount) > 0 ? (
                                             <>
-                                                <div className="text-sm">{item.discount_percentage}%</div>
+                                                <div className="text-sm">{item.discount_type === 'fixed' ? formatCurrency(Number(item.discount_amount)) : `${item.discount_percentage}%`}</div>
                                                 <div className="text-sm font-medium">-{formatCurrency(item.discount_amount)}</div>
                                             </>
                                         ) : (

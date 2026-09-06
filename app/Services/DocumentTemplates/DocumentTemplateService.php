@@ -323,7 +323,10 @@ class DocumentTemplateService
             'due_date' => optional($document->due_date)->format('Y-m-d'),
             'items' => $document->items->map(fn ($item) => [
                 'item' => $item->product?->name ?: __('Item'),
-                'description' => $item->product?->description,
+                'description' => $item->description ?? '',
+                'discount_type' => $item->discount_type ?? 'percentage',
+                'discount_percentage' => (float) $item->discount_percentage,
+                'discount' => (float) $item->discount_amount,
                 'quantity' => (float) $item->quantity,
                 'rate' => (float) $item->unit_price,
                 'tax' => (float) $item->tax_amount,
