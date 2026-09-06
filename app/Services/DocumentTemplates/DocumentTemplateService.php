@@ -14,7 +14,6 @@ class DocumentTemplateService
     public const TYPES = [
         DocumentTemplate::TYPE_QUOTATION,
         DocumentTemplate::TYPE_INVOICE,
-        DocumentTemplate::TYPE_PAYMENT,
     ];
 
     public const DEFAULT_CONFIG = [
@@ -49,6 +48,10 @@ class DocumentTemplateService
             'showNotes' => true,
             'showBankDetails' => true,
             'showSignature' => true,
+            'contactPhone' => '',
+            'contactAddress' => '',
+            'contactEmail' => '',
+            'contactWebsite' => '',
             'footerText' => 'Thank you for your business.',
         ],
     ];
@@ -219,11 +222,7 @@ class DocumentTemplateService
 
         return DocumentTemplate::create([
             'company_id' => $companyId,
-            'name' => match ($type) {
-                DocumentTemplate::TYPE_INVOICE => __('Standard Invoice'),
-                DocumentTemplate::TYPE_PAYMENT => __('Standard Payment'),
-                default => __('Standard Quotation'),
-            },
+            'name' => $type === DocumentTemplate::TYPE_INVOICE ? __('Standard Invoice') : __('Standard Quotation'),
             'type' => $type,
             'status' => DocumentTemplate::STATUS_ACTIVE,
             'is_default' => true,
@@ -261,9 +260,12 @@ class DocumentTemplateService
                 'name' => company_setting('company_name', creatorId()) ?: __('Your Company'),
                 'address' => company_setting('company_address', creatorId()) ?: '120 Business Avenue',
                 'city' => company_setting('company_city', creatorId()) ?: 'Colombo',
+                'state' => company_setting('company_state', creatorId()) ?: '',
+                'postal_code' => company_setting('company_zipcode', creatorId()) ?: '',
                 'country' => company_setting('company_country', creatorId()) ?: 'Sri Lanka',
                 'phone' => company_setting('company_telephone', creatorId()) ?: '+94 11 234 5678',
                 'email' => company_setting('company_email', creatorId()) ?: 'accounts@example.com',
+                'registration_number' => company_setting('registration_number', creatorId()) ?: 'PV 12345',
                 'logo' => $template->logo_url,
             ],
             'customer' => [
@@ -273,13 +275,13 @@ class DocumentTemplateService
                 'billing_address' => ['48 Lake Road', 'Colombo 05', 'Sri Lanka'],
                 'shipping_address' => ['22 Warehouse Lane', 'Colombo 03', 'Sri Lanka'],
             ],
-            'number' => match ($type) {
-                DocumentTemplate::TYPE_INVOICE => 'SI-2026-06-001',
-                DocumentTemplate::TYPE_PAYMENT => 'Payment#491',
-                default => 'QT-2026-06-001',
-            },
+            'number' => $type === DocumentTemplate::TYPE_INVOICE ? 'SI-2026-06-001' : 'QT-2026-06-001',
             'date' => now()->format('Y-m-d'),
             'due_date' => now()->addDays(14)->format('Y-m-d'),
+            'payment_terms' => __('Net 14 Days'),
+            'subject' => $type === DocumentTemplate::TYPE_INVOICE ? __('Professional services') : __('Service proposal'),
+            'notes' => __('Validity Period: This document is valid for 30 days from the date issued.'),
+            'balance_due' => 1782.50,
             'items' => [
                 ['item' => 'Consulting services', 'description' => 'Implementation and configuration', 'quantity' => 8, 'rate' => 125, 'tax' => 142.50, 'total' => 1092.50],
                 ['item' => 'Annual support', 'description' => 'Priority support subscription', 'quantity' => 1, 'rate' => 600, 'tax' => 90, 'total' => 690],
@@ -290,7 +292,7 @@ class DocumentTemplateService
 
     public function documentFromModel(string $type, Model $document, DocumentTemplate $template): array
     {
-        $companyId = (int) $document->created_by;
+        $companyId = (int) creatorId();
         $customerDetails = $document->customerDetails;
         $billing = $this->addressLines($customerDetails?->billing_address);
         $shipping = $this->addressLines($customerDetails?->shipping_address);
@@ -299,18 +301,23 @@ class DocumentTemplateService
             'type' => $type,
             'template' => $template->toArray(),
             'company' => [
-                'name' => company_setting('company_name', $companyId) ?: '',
+                'name' => company_setting('company_name', $companyId) ?: auth()->user()?->name ?: '',
                 'address' => company_setting('company_address', $companyId),
                 'city' => company_setting('company_city', $companyId),
+                'state' => company_setting('company_state', $companyId),
+                'postal_code' => company_setting('company_zipcode', $companyId),
                 'country' => company_setting('company_country', $companyId),
                 'phone' => company_setting('company_telephone', $companyId),
                 'email' => company_setting('company_email', $companyId),
-                'logo' => $template->logo_url,
+                'registration_number' => company_setting('registration_number', $companyId),
+                'logo' => $template->logo_url
+                    ?: company_setting('logo_dark', $companyId)
+                    ?: company_setting('logo_light', $companyId),
             ],
             'customer' => [
                 'name' => $customerDetails?->company_name ?: $document->customer?->name,
                 'contact_person' => $customerDetails?->contact_person_name ?: $document->customer?->name,
-                'email' => $this->displayEmail($customerDetails?->contact_person_email, $document->customer?->email),
+                'email' => $document->customer?->email,
                 'billing_address' => $billing,
                 'shipping_address' => $shipping,
             ],
@@ -321,6 +328,12 @@ class DocumentTemplateService
                 ? optional($document->invoice_date)->format('Y-m-d')
                 : optional($document->quotation_date)->format('Y-m-d'),
             'due_date' => optional($document->due_date)->format('Y-m-d'),
+            'payment_terms' => $document->payment_terms,
+            'subject' => $document->subject,
+            'notes' => $document->notes,
+            'balance_due' => $type === DocumentTemplate::TYPE_INVOICE
+                ? (float) ($document->balance_amount ?? $document->total_amount)
+                : (float) $document->total_amount,
             'items' => $document->items->map(fn ($item) => [
                 'item' => $item->product?->name ?: __('Item'),
                 'description' => $item->description ?? '',
@@ -340,29 +353,6 @@ class DocumentTemplateService
                 'grand_total' => (float) $document->total_amount,
             ],
         ];
-    }
-
-    private function displayEmail(?string ...$emails): ?string
-    {
-        foreach ($emails as $email) {
-            $email = trim((string) $email);
-
-            if ($email !== '' && !$this->isPlaceholderEmail($email)) {
-                return $email;
-            }
-        }
-
-        return null;
-    }
-
-    private function isPlaceholderEmail(?string $email): bool
-    {
-        $email = strtolower(trim((string) $email));
-
-        return $email === ''
-            || str_ends_with($email, '@import.local')
-            || str_starts_with($email, 'zoho.customer.')
-            || str_starts_with($email, 'zoho.vendor.');
     }
 
     private function attributes(array $data): array

@@ -39,6 +39,7 @@ class SalesInvoiceService
                 : null;
             $invoice->type = $data['type'];
             $invoice->payment_terms = $data['payment_terms'] ?? null;
+            $invoice->subject = $data['subject'] ?? null;
             $invoice->notes = $data['notes'] ?? null;
             $invoice->subtotal = $totals['subtotal'];
             $invoice->tax_amount = $totals['tax_amount'];

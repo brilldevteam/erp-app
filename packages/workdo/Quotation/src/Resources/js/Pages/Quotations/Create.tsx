@@ -52,6 +52,7 @@ export default function Create() {
         warehouse_id: '',
         document_template_id: documentTemplates.find((template) => template.is_default)?.id?.toString() ?? '',
         payment_terms: '',
+        subject: '',
         notes: '',
         items: [{
             product_id: 0,
@@ -270,7 +271,7 @@ export default function Create() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                                 <div>
                                     <Label htmlFor="payment_terms">
                                         {t('Payment Terms')}
@@ -281,6 +282,12 @@ export default function Create() {
                                         onChange={(e) => setData('payment_terms', e.target.value)}
                                         placeholder={t('e.g., Net 30')}
                                     />
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="subject">{t('Subject')}</Label>
+                                    <Input id="subject" value={data.subject} onChange={(e) => setData('subject', e.target.value)} placeholder={t('e.g., Event Coverage')} />
+                                    <InputError message={errors.subject} />
                                 </div>
 
                                 <div>

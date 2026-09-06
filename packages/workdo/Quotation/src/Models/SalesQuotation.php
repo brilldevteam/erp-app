@@ -36,6 +36,7 @@ class SalesQuotation extends Model
         'invoice_id',
         'document_template_id',
         'payment_terms',
+        'subject',
         'notes',
         'creator_id',
         'created_by',

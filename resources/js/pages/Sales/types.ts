@@ -17,6 +17,7 @@ export interface SalesInvoice {
     status: 'draft' | 'posted' | 'partial' | 'paid' | 'overdue';
     display_status: 'draft' | 'posted' | 'partial' | 'paid' | 'overdue';
     payment_terms?: string;
+    subject?: string;
     notes?: string;
     creator_id: number;
     created_by: number;

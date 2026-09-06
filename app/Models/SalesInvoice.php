@@ -25,6 +25,7 @@ class SalesInvoice extends Model
         'status',
         'type',
         'payment_terms',
+        'subject',
         'notes',
         'creator_id',
         'created_by'

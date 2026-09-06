@@ -40,6 +40,7 @@ export default function Edit() {
         warehouse_id: quotation.warehouse_id?.toString() || '',
         document_template_id: quotation.document_template_id?.toString() || '',
         payment_terms: quotation.payment_terms || '',
+        subject: quotation.subject || '',
         notes: quotation.notes || '',
         items: (quotation.items || []).map(item => {
             const calculations = calculateLineItemAmounts(
@@ -217,7 +218,7 @@ export default function Edit() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                                 <div>
                                     <Label htmlFor="payment_terms">
                                         {t('Payment Terms')}
@@ -228,6 +229,12 @@ export default function Edit() {
                                         onChange={(e) => setData('payment_terms', e.target.value)}
                                         placeholder={t('e.g., Net 30')}
                                     />
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="subject">{t('Subject')}</Label>
+                                    <Input id="subject" value={data.subject} onChange={(e) => setData('subject', e.target.value)} placeholder={t('e.g., Event Coverage')} />
+                                    <InputError message={errors.subject} />
                                 </div>
 
                                 <div>
