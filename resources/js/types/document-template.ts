@@ -33,6 +33,10 @@ export interface DocumentTemplateConfig {
         showNotes: boolean;
         showBankDetails: boolean;
         showSignature: boolean;
+        contactPhone?: string;
+        contactAddress?: string;
+        contactEmail?: string;
+        contactWebsite?: string;
         footerText: string;
     };
 }
@@ -46,6 +50,7 @@ export interface DocumentTemplate {
     is_default: boolean;
     primary_color: string;
     logo_url?: string | null;
+    watermark_url?: string | null;
     config_json: DocumentTemplateConfig;
     terms?: string | null;
     notes?: string | null;
@@ -63,9 +68,12 @@ export interface TemplateSampleDocument {
         name: string;
         address?: string;
         city?: string;
+        state?: string;
+        postal_code?: string;
         country?: string;
         phone?: string;
         email?: string;
+        registration_number?: string;
         logo?: string | null;
     };
     customer: {
@@ -78,6 +86,13 @@ export interface TemplateSampleDocument {
     number: string;
     date: string;
     due_date: string;
+    payment_terms?: string;
+    reference_number?: string;
+    payment_mode?: string;
+    bank_account?: string;
+    subject?: string;
+    notes?: string;
+    balance_due?: number;
     items: Array<Record<string, any>>;
     totals: {
         subtotal: number;

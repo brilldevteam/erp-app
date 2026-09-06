@@ -10,6 +10,7 @@ import { InputError } from '@/components/ui/input-error';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import MediaPicker from '@/components/MediaPicker';
 import DocumentTemplatePreview from '@/components/document-templates/document-template-preview';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
@@ -44,6 +45,7 @@ export default function Form() {
         is_default: template?.is_default || false,
         primary_color: template?.primary_color || '#10b981',
         logo_url: template?.logo_url || '',
+        watermark_url: template?.watermark_url || '',
         config_json: template?.config_json || defaultConfig,
         terms: template?.terms || '',
         notes: template?.notes || '',
@@ -55,6 +57,7 @@ export default function Form() {
     const previewDocument = useMemo(() => ({
         ...sampleDocument,
         type: data.type as 'quotation' | 'invoice' | 'payment',
+        notes: '',
         template: data,
     }), [sampleDocument, data]);
 
@@ -140,10 +143,14 @@ export default function Form() {
                                 </Field>
                             </div>
                             <Label className="flex items-center gap-3"><Checkbox checked={Boolean(data.is_default)} onCheckedChange={(checked) => setData('is_default', checked === true)} />{t('Set as default for this type')}</Label>
-                            <Field label={t('Primary Color')} error={errors.primary_color}><Input type="color" value={data.primary_color} onChange={(e) => setData('primary_color', e.target.value)} /></Field>
                             <Field label={t('Logo Option')} error={errors.logo_url}>
                                 <MediaPicker value={data.logo_url} onChange={(value) => setData('logo_url', Array.isArray(value) ? value[0] || '' : value)} placeholder={t('Select template logo...')} />
                             </Field>
+                            {data.type !== 'payment' && (
+                                <Field label={t('Watermark Image')} error={errors.watermark_url}>
+                                    <MediaPicker value={data.watermark_url} onChange={(value) => setData('watermark_url', Array.isArray(value) ? value[0] || '' : value)} placeholder={t('Select square watermark image...')} />
+                                </Field>
+                            )}
                         </CardContent>
                     </Card>
 
@@ -178,7 +185,10 @@ export default function Form() {
                                 <Check label={t('Terms')} checked={data.config_json.footer.showTerms} onChange={(value) => setConfig('footer.showTerms', value)} />
                                 <Check label={t('Notes')} checked={data.config_json.footer.showNotes} onChange={(value) => setConfig('footer.showNotes', value)} />
                                 <Check label={t('Bank Details')} checked={data.config_json.footer.showBankDetails} onChange={(value) => setConfig('footer.showBankDetails', value)} />
-                                <Check label={t('Signature')} checked={data.config_json.footer.showSignature} onChange={(value) => setConfig('footer.showSignature', value)} />
+                                <div className="flex items-center justify-between gap-3 py-1">
+                                    <Label htmlFor="signature-toggle">{t('Signature')}</Label>
+                                    <Switch id="signature-toggle" checked={data.config_json.footer.showSignature} onCheckedChange={(value) => setConfig('footer.showSignature', value)} />
+                                </div>
                             </Section>
                         </CardContent>
                     </Card>
@@ -189,10 +199,23 @@ export default function Form() {
                             <Field label={t('Terms and Conditions')}><Textarea rows={4} value={data.terms} onChange={(e) => setData('terms', e.target.value)} /></Field>
                             <Field label={t('Notes')}><Textarea rows={3} value={data.notes} onChange={(e) => setData('notes', e.target.value)} /></Field>
                             <Field label={t('Bank Details')}><Textarea rows={4} value={data.bank_details} onChange={(e) => setData('bank_details', e.target.value)} /></Field>
-                            <Field label={t('Signature Image')} error={errors.signature_url}>
-                                <MediaPicker value={data.signature_url} onChange={(value) => setData('signature_url', Array.isArray(value) ? value[0] || '' : value)} placeholder={t('Select signature image...')} />
-                            </Field>
-                            <Field label={t('Signature Text')}><Input value={data.signature_text} onChange={(e) => setData('signature_text', e.target.value)} /></Field>
+                            {data.config_json.footer.showSignature && (
+                                <div className="space-y-4 rounded-md border p-4">
+                                    <Field label={t('Signature Image')} error={errors.signature_url}>
+                                        <MediaPicker value={data.signature_url} onChange={(value) => setData('signature_url', Array.isArray(value) ? value[0] || '' : value)} placeholder={t('Select signature image...')} />
+                                    </Field>
+                                    <Field label={t('Signature Text')}><Input value={data.signature_text} onChange={(e) => setData('signature_text', e.target.value)} /></Field>
+                                </div>
+                            )}
+                            <div className="border-t pt-4">
+                                <div className="mb-3 font-medium">{t('Footer Contact Details')}</div>
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <Field label={t('Phone Number')}><Input value={data.config_json.footer.contactPhone || ''} onChange={(e) => setConfig('footer.contactPhone', e.target.value)} placeholder="+974 6000 7544" /></Field>
+                                    <Field label={t('Email Address')}><Input type="email" value={data.config_json.footer.contactEmail || ''} onChange={(e) => setConfig('footer.contactEmail', e.target.value)} placeholder="hello@brillcrew.com" /></Field>
+                                    <Field label={t('Website')}><Input value={data.config_json.footer.contactWebsite || ''} onChange={(e) => setConfig('footer.contactWebsite', e.target.value)} placeholder="brillcreations.com" /></Field>
+                                    <Field label={t('Postal Address')}><Input value={data.config_json.footer.contactAddress || ''} onChange={(e) => setConfig('footer.contactAddress', e.target.value)} placeholder={t('POB and office address')} /></Field>
+                                </div>
+                            </div>
                             <Field label={t('Footer Text')}><Input value={data.config_json.footer.footerText} onChange={(e) => setConfig('footer.footerText', e.target.value)} /></Field>
                         </CardContent>
                     </Card>

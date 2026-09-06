@@ -5,14 +5,33 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Added
-- Added Double Entry accounting report fixes for Profit & Loss, Trial Balance, Balance Sheets diagnostics, idempotent journal posting, and historical journal repair/backfill.
-- Added Record Payment action on Sales Invoice details so users can create linked customer payments directly from an invoice while reusing the existing approval and receipt flow.
+- Added a separate square watermark image field for quotation and invoice templates, rendered large and centered in previews and PDFs without changing the header logo.
+- Applied the reference-matched professional layout to every managed sales invoice and quotation template, including dynamic company branding, dates, subject and item descriptions, totals, notes, watermark, signatures where applicable, and the company contact footer.
+- Added editable footer contact fields for phone, postal address, email, and website across invoice and quotation templates.
+- Added unified Download menus with PDF and Excel formats across Double Entry accounting reports, including General Ledger, statements, balances, cash flow, Profit & Loss, Trial Balance, Ledger Summary, expenses, journals, and Balance Sheets.
 - Added editable per-item descriptions that update the selected product/service catalogue record, plus percentage or fixed-currency discounts for quotations and sales invoices, including document conversion, printing, templates, imports, and sales returns.
-- Added a Payment document template type for customer payment receipts and vendor payment vouchers, with preview and PDF download support.
-- Added customer payment receipt and vendor payment voucher preview actions inside the payment detail modals.
-- Added preview actions for Sales Invoices and Quotations so users can open the same document template layout before downloading PDF.
 - Added bulk import support for Bank Transfers and Journal Entries, including import permissions and page-level Import actions.
 - New features currently in development will be listed here before release.
+
+### Changed
+- Matched quotation and invoice typography to the Zoho Books reference using bundled Noto Sans and its measured 28pt, 10pt, 9pt, 8pt, and 7pt document hierarchy.
+- Expanded the Item & Description column to the Zoho-style table proportion for cleaner multiline product descriptions.
+- Removed the printed page border, reduced oversized document titles, and widened the Item & Description column in quotation and invoice previews and PDFs.
+- Deduplicated configured document table columns to prevent repeated headings and unnecessarily narrow item descriptions.
+- Updated the Payment template to match the reference receipt with a black corner mark, neutral payer styling, Bank Account details, and no fixed amount-in-words text.
+- Restored the Payment template type and its receipt/voucher preview alongside the redesigned quotation and invoice templates.
+- Removed the unused Primary Color control from the fixed-design quotation and invoice template editor.
+- Ensured saved terms and conditions appear in both the live preview and downloaded PDF for invoice and quotation templates.
+- Removed placeholder notes from the template editor preview so Notes only appear when entered in the template or sales document.
+- Ensured saved bank details appear in both the live preview and downloaded PDF for quotation templates.
+- Centered the company watermark in invoice live previews and downloaded PDFs to match quotations.
+- Enforced a full A4 minimum page height for quotation and invoice previews and PDFs, including documents with only one item.
+- Matched invoice Bank Details, Notes, and Terms typography and spacing to the quotation template.
+- Preserved the true A4 210:297 page proportion in responsive quotation and invoice previews while keeping PDF output at full A4 height.
+- Prevented overflowing terms from being clipped, added spacing between invoice signatures and the footer, and enabled A4 PDF pagination for longer invoices and quotations.
+- Added a signature toggle that conditionally shows signature inputs and signature blocks across quotation and invoice previews and PDFs.
+- Removed the underline beneath authorized and client signatures in quotation and invoice templates.
+- Reduced the signature-to-footer gap and anchored signatures directly above the footer on full A4 pages.
 - Added server-enforced logout from other devices with session version checks, API token revocation, active session status polling, and forced session-ended modal.
 - Added a staff-only time clock with clock-in, pause/resume, official-duty tracking, clock-out, daily work updates, HR date-wise review, correction approvals, and immutable attendance history.
 - Expanded Zoho Books-style bulk import support for vendors, warehouses, accounting master data, sales and purchase invoices, customer and vendor payments, revenues, and expenses.
@@ -27,16 +46,9 @@ manual-journal-entries
 - Added Zoho-style Security Settings with password changes, active sessions, logout-other-devices support, login history, and admin reset-link sending.
 - Added bulk import support for Petty Cash records, including templates, validation, duplicate handling, and the Petty Cash page import action.
 - Added bulk import support for quotations, including templates, validation, duplicate handling, and the Quotations page import action.
-- Added Credit Note and Vendor Credit creation/import support, including historical Zoho migration coverage.
 main
-- Customer, vendor, lead, and user records can now be created and imported without an email address; login access is automatically disabled until a real email is added.
 
 ### Improved
-- Customer country-specific address details are now optional for customer records, allowing imported data cleanup without placeholder QID, Saudi ID, or address-number values.
-- Customer payment receipts and vendor payment vouchers now use the default active Payment template, with a clear setup message when no Payment template exists.
-- Fixed Credit Notes and Vendor Credits import visibility so users with create or import access can use migration imports, and Vendor Credits no longer appears as Debit Notes in the page header.
-- Customer and vendor detail reports now keep all historical records visible by default instead of auto-filtering to the last three months.
-- Account Types import now auto-prepares the required default account categories when missing, avoiding manual database setup during imports.
 - Enhancements to existing workflows will be listed here before release.
 - Login page now uses saved brand theme colors and logo styling with a responsive desktop/mobile layout.
 - Customer create, edit, and view dialogs now use a single vertical scrollbar.
@@ -61,21 +73,15 @@ main
 - Sales invoice lines support optional configured tax types, and invoice or quotation documents display a dash when no tax is selected.
 - Product and service items can now be created or edited without assigning a tax.
 - Updated profile/security separation so profile details and password security are managed on separate pages.
-- Bulk imports for customers, vendors, sales and purchase invoices, quotations, and customer/vendor payments now identify records by name instead of requiring an email address, matching real-world data exports that often omit emails.
-- Warehouse imports now require a complete address (address, city, and zip code) to prevent incomplete location records.
-- Customer/vendor balance reports now subtract approved Credit Notes and Vendor Credits while leaving draft notes out of balances.
-- Zoho migration imports can safely flag migrated payment/expense records for bank verification without weakening the normal ERP import validation flow.
 
 ### Fixed
-- Fixed customer email updates so quotation, sales invoice, customer payment receipt, and vendor payment document previews/PDFs display the latest customer/vendor email instead of stale imported placeholder emails.
-- Fixed customer country-specific address validation so Qatar/Saudi address fields remain optional when cleaning imported customer records.
-- Fixed Login As User impersonation sessions being blocked by security-version revocation checks after password resets or logout-other-devices actions.
+- Prevented footer contact icons from being clipped and balanced the C.R. number badge padding around its text.
+- Corrected the visual baseline between footer contact icons and their text in quotation and invoice previews and PDFs, including html2canvas exports.
+- Prevented managed quotation and invoice PDFs from creating a second page for the footer by removing the duplicate html2pdf margin around the already padded A4 template.
 - Bug fixes and production stability improvements will be listed here before release.
 - Invoice and quotation template previews now place the document badge on the left when the header is aligned right.
 - Document template previews now use saved currency settings instead of hardcoded dollar formatting.
 - Fixed PHP 8.5 database configuration deprecation output for MySQL SSL CA attributes.
-- Fixed a crash when importing customers or leads without an email address caused by a non-nullable database column.
-- Fixed the Manage Users grid view hiding all actions (edit, delete, change plan) for any user with login disabled, instead of only hiding the login-specific actions.
 
 ---
 
@@ -93,9 +99,6 @@ main
 - In-place warehouse creation from quotation screens.
 
 ### Improved
-- Customer country-specific address details are now optional for customer records, allowing imported data cleanup without placeholder QID, Saudi ID, or address-number values.
-- Customer and vendor detail reports now keep all historical records visible by default instead of auto-filtering to the last three months.
-- Account Types import now auto-prepares the required default account categories when missing, avoiding manual database setup during imports.
 - Warehouse is now optional in quotation and related business document workflows.
 - Products and services can be selected without warehouse stock restrictions when no warehouse is selected.
 - Quotation-to-invoice conversion flow now includes a review step.

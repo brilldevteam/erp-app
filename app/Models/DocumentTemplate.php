@@ -22,6 +22,7 @@ class DocumentTemplate extends Model
         'is_default',
         'primary_color',
         'logo_url',
+        'watermark_url',
         'config_json',
         'terms',
         'notes',
