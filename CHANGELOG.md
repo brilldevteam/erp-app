@@ -13,6 +13,7 @@ All notable changes to the Wazely ERP application are documented here.
 - New features currently in development will be listed here before release.
 
 ### Changed
+- Restored the Payment template type and its receipt/voucher preview alongside the redesigned quotation and invoice templates.
 - Removed the unused Primary Color control from the fixed-design quotation and invoice template editor.
 - Ensured saved terms and conditions appear in both the live preview and downloaded PDF for invoice and quotation templates.
 - Removed placeholder notes from the template editor preview so Notes only appear when entered in the template or sales document.

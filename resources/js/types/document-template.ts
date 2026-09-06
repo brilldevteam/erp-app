@@ -1,4 +1,4 @@
-export type DocumentTemplateType = 'quotation' | 'invoice';
+export type DocumentTemplateType = 'quotation' | 'invoice' | 'payment';
 export type DocumentTemplateStatus = 'active' | 'inactive';
 
 export interface DocumentTemplateConfig {

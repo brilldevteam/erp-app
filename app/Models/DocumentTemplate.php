@@ -10,6 +10,7 @@ class DocumentTemplate extends Model
 {
     public const TYPE_QUOTATION = 'quotation';
     public const TYPE_INVOICE = 'invoice';
+    public const TYPE_PAYMENT = 'payment';
     public const STATUS_ACTIVE = 'active';
     public const STATUS_INACTIVE = 'inactive';
 

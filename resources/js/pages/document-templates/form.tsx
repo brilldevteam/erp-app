@@ -55,7 +55,7 @@ export default function Form() {
 
     const previewDocument = useMemo(() => ({
         ...sampleDocument,
-        type: data.type as 'quotation' | 'invoice',
+        type: data.type as 'quotation' | 'invoice' | 'payment',
         notes: '',
         template: data,
     }), [sampleDocument, data]);
@@ -131,7 +131,7 @@ export default function Form() {
                                 <Field label={t('Type')} error={errors.type}>
                                     <Select value={data.type} onValueChange={(value) => setData('type', value as any)}>
                                         <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent><SelectItem value="quotation">{t('Quotation')}</SelectItem><SelectItem value="invoice">{t('Invoice')}</SelectItem></SelectContent>
+                                        <SelectContent><SelectItem value="quotation">{t('Quotation')}</SelectItem><SelectItem value="invoice">{t('Invoice')}</SelectItem><SelectItem value="payment">{t('Payment')}</SelectItem></SelectContent>
                                     </Select>
                                 </Field>
                                 <Field label={t('Status')} error={errors.status}>
