@@ -11,6 +11,9 @@ use Workdo\Quotation\Http\Requests\UpdateQuotationRequest;
 use App\Models\User;
 use App\Models\Warehouse;
 use Workdo\ProductService\Models\ProductServiceItem;
+use Workdo\ProductService\Models\ProductServiceCategory;
+use Workdo\ProductService\Models\ProductServiceTax;
+use Workdo\ProductService\Models\ProductServiceUnit;
 use App\Models\SalesInvoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -101,6 +104,7 @@ class QuotationController extends Controller
                 'warehouses' => $warehouses,
                 'customerUsers' => $customerUsers,
                 'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_QUOTATION),
+                'productCatalog' => $this->productCatalog(),
             ]);
         } else {
             return back()->with('error', __('Permission denied'));
@@ -188,6 +192,7 @@ class QuotationController extends Controller
                 'customers'  => $customers,
                 'warehouses' => $warehouses,
                 'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_QUOTATION),
+                'productCatalog' => $this->productCatalog(),
             ]);
         } else {
             return redirect()->route('quotations.index')->with('error', __('Permission denied'));
@@ -302,6 +307,21 @@ class QuotationController extends Controller
             ->orderByDesc('is_default')
             ->orderBy('name')
             ->get(['id', 'name', 'is_default']);
+    }
+
+    private function productCatalog(): array
+    {
+        if (!Auth::user()->can('manage-product-service-item')
+            && !Auth::user()->can('view-product-service-item')
+            && !Auth::user()->can('create-product-service-item')) {
+            return ['categories' => [], 'units' => [], 'taxes' => []];
+        }
+
+        return [
+            'categories' => ProductServiceCategory::where('created_by', creatorId())->orderBy('name')->get(['id', 'name']),
+            'units' => ProductServiceUnit::where('created_by', creatorId())->orderBy('unit_name')->get(['id', 'unit_name']),
+            'taxes' => ProductServiceTax::where('created_by', creatorId())->orderBy('tax_name')->get(['id', 'tax_name', 'rate']),
+        ];
     }
 
     public function sent(SalesQuotation $quotation)
@@ -558,7 +578,10 @@ class QuotationController extends Controller
 
     public function getWarehouseProducts(Request $request)
     {
-        if (Auth::user()->can('create-quotations') || Auth::user()->can('edit-quotations')) {
+        $canEditQuotation = Auth::user()->can('create-quotations') || Auth::user()->can('edit-quotations');
+        $canBrowseProducts = Auth::user()->can('manage-product-service-item') || Auth::user()->can('view-product-service-item');
+
+        if ($canEditQuotation && $canBrowseProducts) {
             $validated = $request->validate([
                 'warehouse_id' => ['nullable', 'integer', 'exists:warehouses,id'],
             ]);
@@ -574,19 +597,26 @@ class QuotationController extends Controller
                 }
             }
 
-            $productsQuery = ProductServiceItem::select('id', 'name', 'sku', 'description', 'long_description', 'sale_price', 'tax_ids', 'unit', 'type')
+            $productsQuery = ProductServiceItem::select('id', 'name', 'sku', 'description', 'long_description', 'sale_price', 'tax_ids', 'unit', 'type', 'category_id')
                 ->where('is_active', true)
-                ->where('created_by', creatorId());
+                ->where('created_by', creatorId())
+                ->with(['category:id,name', 'unitRelation:id,unit_name']);
 
             if ($warehouseId) {
                 $productsQuery
-                    ->whereHas('warehouseStocks', function ($q) use ($warehouseId) {
-                    $q->where('warehouse_id', $warehouseId)
-                        ->where('quantity', '>', 0);
-                })
+                    ->where(function ($query) use ($warehouseId) {
+                        $query->where('type', 'service')
+                            ->orWhereHas('warehouseStocks', function ($stockQuery) use ($warehouseId) {
+                                $stockQuery->where('warehouse_id', $warehouseId)
+                                    ->where('quantity', '>', 0);
+                            });
+                    })
                     ->with(['warehouseStocks' => function ($q) use ($warehouseId) {
                         $q->where('warehouse_id', $warehouseId);
                     }]);
+            }
+            else {
+                $productsQuery->with('warehouseStocks:product_id,quantity');
             }
 
             $products = $productsQuery
@@ -599,7 +629,10 @@ class QuotationController extends Controller
                         'description' => \App\Services\SalesLineAmounts::description($product->long_description ?: $product->description),
                         'sale_price'     => $product->sale_price,
                         'unit'           => $product->unit,
+                        'unit_name'      => $product->unitRelation?->unit_name,
                         'type'           => $product->type,
+                        'category_id'    => $product->category_id,
+                        'category_name'  => $product->category?->name,
                         'taxes'          => $product->taxes->map(function ($tax) {
                             return [
                                 'id'       => $tax->id,
@@ -612,6 +645,8 @@ class QuotationController extends Controller
                     if ($warehouseId) {
                         $stock = $product->warehouseStocks->first();
                         $productData['stock_quantity'] = $stock ? $stock->quantity : 0;
+                    } elseif ($product->type !== 'service') {
+                        $productData['stock_quantity'] = $product->warehouseStocks->sum('quantity');
                     }
 
                     return $productData;

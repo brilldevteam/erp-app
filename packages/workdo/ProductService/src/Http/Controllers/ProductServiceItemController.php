@@ -119,6 +119,32 @@ class ProductServiceItemController extends Controller
             // Dispatch event for packages to handle their fields
             CreateProductServiceItem::dispatch($request, $item);
 
+            if ($request->expectsJson()) {
+                $item->load(['category:id,name', 'unitRelation:id,unit_name', 'warehouseStocks:product_id,quantity']);
+
+                return response()->json([
+                    'message' => __('The item has been created successfully.'),
+                    'product' => [
+                        'id' => $item->id,
+                        'name' => $item->name,
+                        'sku' => $item->sku,
+                        'description' => \App\Services\SalesLineAmounts::description($item->long_description ?: $item->description),
+                        'sale_price' => (float) $item->sale_price,
+                        'unit' => $item->unit,
+                        'unit_name' => $item->unitRelation?->unit_name,
+                        'type' => $item->type,
+                        'category_id' => $item->category_id,
+                        'category_name' => $item->category?->name,
+                        'stock_quantity' => $item->type === 'service' ? null : $item->warehouseStocks->sum('quantity'),
+                        'taxes' => $item->taxes->map(fn ($tax) => [
+                            'id' => $tax->id,
+                            'tax_name' => $tax->tax_name,
+                            'rate' => (float) $tax->rate,
+                        ])->values(),
+                    ],
+                ], 201);
+            }
+
             return redirect()->route('product-service.items.index')->with('success', __('The item has been created successfully.'));
         }
         return redirect()->route('product-service.items.index')->with('error', __('Permission denied'));

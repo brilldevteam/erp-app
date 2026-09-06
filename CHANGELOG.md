@@ -5,6 +5,7 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Added
+- Added an in-page quotation product picker with multi-select, name/SKU search, category filtering, stock and service visibility, automatic price/tax population, and permission-controlled quick product creation for both create and edit flows.
 - Added a separate square watermark image field for quotation and invoice templates, rendered large and centered in previews and PDFs without changing the header logo.
 - Applied the reference-matched professional layout to every managed sales invoice and quotation template, including dynamic company branding, dates, subject and item descriptions, totals, notes, watermark, signatures where applicable, and the company contact footer.
 - Added editable footer contact fields for phone, postal address, email, and website across invoice and quotation templates.

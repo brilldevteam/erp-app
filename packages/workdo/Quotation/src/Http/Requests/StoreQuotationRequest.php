@@ -3,6 +3,7 @@
 namespace Workdo\Quotation\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreQuotationRequest extends FormRequest
 {
@@ -16,13 +17,14 @@ class StoreQuotationRequest extends FormRequest
         return [
             'invoice_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:invoice_date',
-            'customer_id' => 'required|exists:users,id',
-            'document_template_id' => 'nullable|integer|exists:document_templates,id',
-            'warehouse_id' => 'nullable|exists:warehouses,id',
+            'customer_id' => ['required', Rule::exists('users', 'id')->where(fn ($query) => $query->where('created_by', creatorId())->where('type', 'client'))],
+            'document_template_id' => ['nullable', 'integer', Rule::exists('document_templates', 'id')->where(fn ($query) => $query->where('company_id', creatorId())->where('type', 'quotation'))],
+            'warehouse_id' => ['nullable', Rule::exists('warehouses', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
             'payment_terms' => 'nullable|string|max:255',
+            'subject' => 'nullable|string|max:500',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|numeric|min:1',
+            'items.*.product_id' => ['required', 'numeric', 'min:1', Rule::exists('product_service_items', 'id')->where(fn ($query) => $query->where('created_by', creatorId())->where('is_active', true))],
             'items.*.quantity' => 'required|numeric|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.description' => 'nullable|string|max:20000',
