@@ -50,6 +50,7 @@ export interface DocumentTemplate {
     is_default: boolean;
     primary_color: string;
     logo_url?: string | null;
+    watermark_url?: string | null;
     config_json: DocumentTemplateConfig;
     terms?: string | null;
     notes?: string | null;
@@ -86,6 +87,9 @@ export interface TemplateSampleDocument {
     date: string;
     due_date: string;
     payment_terms?: string;
+    reference_number?: string;
+    payment_mode?: string;
+    bank_account?: string;
     subject?: string;
     notes?: string;
     balance_due?: number;

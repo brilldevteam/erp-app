@@ -58,7 +58,7 @@ export default function DocumentTemplatePreview({
     const logoClass = alignment === 'center' ? 'mx-auto' : alignment === 'right' ? 'ml-auto' : '';
 
     if (document.type === 'payment') {
-        return <PaymentTemplatePreview template={template} document={document} compact={compact} color={color} logo={logo} signature={signature} />;
+        return <PaymentTemplatePreview template={template} document={document} compact={compact} logo={logo} signature={signature} />;
     }
 
     if (document.type === 'invoice') {
@@ -162,14 +162,14 @@ export default function DocumentTemplatePreview({
     );
 }
 
-function PaymentTemplatePreview({ template, document, compact, color, logo, signature }: { template: Partial<DocumentTemplate> & { config_json: DocumentTemplateConfig }; document: TemplateSampleDocument; compact: boolean; color: string; logo?: string | null; signature?: string | null }) {
+function PaymentTemplatePreview({ template, document, compact, logo, signature }: { template: Partial<DocumentTemplate> & { config_json: DocumentTemplateConfig }; document: TemplateSampleDocument; compact: boolean; logo?: string | null; signature?: string | null }) {
     const config = template.config_json;
     const amount = document.totals.grand_total || 600;
 
     return (
         <div className={`bg-white font-serif text-slate-900 shadow-sm ${compact ? 'text-[10px]' : 'text-sm'}`}>
             <div className={`${compact ? 'p-6' : 'p-10'} relative mx-auto min-h-[720px] max-w-4xl border`}>
-                <div className="absolute left-0 top-0 h-16 w-16" style={{ borderTop: `14px solid ${color}`, borderRight: '14px solid transparent' }} />
+                <div className="absolute left-0 top-0 h-9 w-9 bg-[#171918] [clip-path:polygon(0_0,100%_0,0_100%)]" />
                 <div className="flex items-start justify-between gap-8 border-b pb-10">
                     <div className="pt-12">
                         <h1 className="text-2xl font-bold uppercase tracking-wide">PAYMENT</h1>
@@ -182,17 +182,17 @@ function PaymentTemplatePreview({ template, document, compact, color, logo, sign
                         <div>
                             <p className="font-semibold text-slate-500">Amount Received</p>
                             <p className="mt-4 text-5xl font-bold tracking-tight">{money(amount)}</p>
-                            <p className="mt-4 font-semibold">(Qatari Riyal Six Hundred)</p>
                         </div>
                         <div>
                             <p className="font-semibold text-slate-500">Received From</p>
-                            <p className="mt-4 font-semibold" style={{ color }}>{document.customer.name}</p>
+                            <p className="mt-4 font-semibold text-slate-900">{document.customer.name}</p>
                         </div>
                     </div>
                     <div className="border-l pl-10">
                         <PaymentDetail label="Payment Date" value={document.date} />
-                        <PaymentDetail label="Reference Number" value="-" />
-                        <PaymentDetail label="Payment Mode" value="Cash" />
+                        <PaymentDetail label="Reference Number" value={document.reference_number || '-'} />
+                        <PaymentDetail label="Payment Mode" value={document.payment_mode || 'Bank Transfer'} />
+                        <PaymentDetail label="Bank Account" value={document.bank_account || '-'} />
                     </div>
                 </div>
                 <div className="mt-20 flex justify-end">
@@ -224,6 +224,7 @@ function ReferenceQuotationTemplate({
     const [logoFailed, setLogoFailed] = useState(false);
     const config = template.config_json;
     const logo = template.logo_url || document.company.logo;
+    const watermark = template.watermark_url;
     const address = [
         document.company.address,
         document.company.city,
@@ -319,7 +320,7 @@ function ReferenceQuotationTemplate({
                     </div>
                 )}
 
-                {logo && !logoFailed && <img src={getImagePath(String(logo))} aria-hidden="true" className="pointer-events-none absolute left-1/2 top-[54%] z-0 w-[62%] -translate-x-1/2 -translate-y-1/2 opacity-[0.035] grayscale" />}
+                {watermark && <img src={getImagePath(String(watermark))} aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 z-0 aspect-square w-[64%] -translate-x-1/2 -translate-y-1/2 object-contain opacity-[0.045] grayscale" />}
                 <div className="relative z-10 mt-3 break-inside-avoid border-t pt-3 text-center text-xs leading-relaxed">
                     <FooterContact config={config} company={document.company} fallbackAddress={address} />
                     {config.footer.footerText && <div>{config.footer.footerText}</div>}
@@ -341,6 +342,7 @@ function ReferenceInvoiceTemplate({
     const [logoFailed, setLogoFailed] = useState(false);
     const config = template.config_json;
     const logo = template.logo_url || document.company.logo;
+    const watermark = template.watermark_url;
     const balanceDue = Number(document.balance_due ?? document.totals.grand_total);
     const address = [
         document.company.address,
@@ -441,7 +443,7 @@ function ReferenceInvoiceTemplate({
                     </div>
                 )}
 
-                {logo && !logoFailed && <img src={getImagePath(String(logo))} aria-hidden="true" className="pointer-events-none absolute left-1/2 top-[54%] z-0 w-[62%] -translate-x-1/2 -translate-y-1/2 opacity-[0.035] grayscale" />}
+                {watermark && <img src={getImagePath(String(watermark))} aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 z-0 aspect-square w-[64%] -translate-x-1/2 -translate-y-1/2 object-contain opacity-[0.045] grayscale" />}
                 <div className="relative z-10 mt-3 break-inside-avoid border-t pt-3 text-center text-xs leading-relaxed">
                     <FooterContact config={config} company={document.company} fallbackAddress={address} />
                     {config.footer.footerText && <div>{config.footer.footerText}</div>}
