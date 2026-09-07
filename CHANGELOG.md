@@ -5,7 +5,7 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Added
-- Added an in-page quotation product picker with multi-select, name/SKU search, category filtering, stock and service visibility, automatic price/tax population, and permission-controlled quick product creation for both create and edit flows.
+- Added an in-page product picker to quotation and sales invoice create/edit flows with multi-select, name/SKU search, category filtering, stock and service visibility, automatic price/tax population, row-click selection, and permission-controlled quick product creation.
 - Added a separate square watermark image field for quotation and invoice templates, rendered large and centered in previews and PDFs without changing the header logo.
 - Applied the reference-matched professional layout to every managed sales invoice and quotation template, including dynamic company branding, dates, subject and item descriptions, totals, notes, watermark, signatures where applicable, and the company contact footer.
 - Added editable footer contact fields for phone, postal address, email, and website across invoice and quotation templates.
@@ -15,6 +15,9 @@ All notable changes to the Wazely ERP application are documented here.
 - New features currently in development will be listed here before release.
 
 ### Changed
+- Added warehouse-aware product stock editing and automatic default stock locations, prevented zero-stock selection, made quick-created products appear immediately in quotation and sales invoice lines, and deduct stock atomically when product invoices are posted.
+- Aligned quotation and sales invoice customer selectors with Accounts customer master data, showing the real contact email only when present and hiding internal `@import.local` placeholder addresses.
+- Changed Product/Service tax assignment to an optional single-select dropdown backed by the company tax master, with `_` representing no tax across create, edit, quick-create, and item details.
 - Matched quotation and invoice typography to the Zoho Books reference using bundled Noto Sans and its measured 28pt, 10pt, 9pt, 8pt, and 7pt document hierarchy.
 - Expanded the Item & Description column to the Zoho-style table proportion for cleaner multiline product descriptions.
 - Removed the printed page border, reduced oversized document titles, and widened the Item & Description column in quotation and invoice previews and PDFs.

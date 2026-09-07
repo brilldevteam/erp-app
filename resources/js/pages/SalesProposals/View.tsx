@@ -16,6 +16,7 @@ interface SalesProposal {
     proposal_date: string;
     due_date: string;
     customer: { id: number; name: string; email: string };
+    customer_details?: { company_name?: string; contact_person_email?: string | null };
     subtotal: number;
     tax_amount: number;
     discount_amount: number;
@@ -107,8 +108,10 @@ export default function View() {
                             <div>
                                 <h3 className="font-semibold mb-2">{t('CUSTOMER')}</h3>
                                 <div className="text-sm space-y-1">
-                                    <div className="font-medium">{proposal.customer?.name}</div>
-                                    <div className="text-muted-foreground">{proposal.customer?.email}</div>
+                                    <div className="font-medium">{proposal.customer_details?.company_name || proposal.customer?.name || '-'}</div>
+                                    {proposal.customer_details?.contact_person_email && (
+                                        <div className="text-muted-foreground">{proposal.customer_details.contact_person_email}</div>
+                                    )}
                                 </div>
                             </div>
 

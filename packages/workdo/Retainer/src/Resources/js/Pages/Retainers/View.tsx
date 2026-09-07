@@ -61,8 +61,10 @@ export default function View() {
                             <div>
                                 <h3 className="font-semibold mb-2">{t('CUSTOMER')}</h3>
                                 <div className="text-sm space-y-1">
-                                    <div className="font-medium">{retainer.customer?.name}</div>
-                                    <div className="text-muted-foreground">{retainer.customer?.email}</div>
+                                    <div className="font-medium">{retainer.customer_details?.company_name || retainer.customer?.name || '-'}</div>
+                                    {retainer.customer_details?.contact_person_email && (
+                                        <div className="text-muted-foreground">{retainer.customer_details.contact_person_email}</div>
+                                    )}
                                 </div>
                                 {retainer.customer_details?.billing_address && (
                                     <div className="mt-3">

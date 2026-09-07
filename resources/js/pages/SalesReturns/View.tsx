@@ -62,8 +62,10 @@ function View() {
                             <div>
                                 <h3 className="font-semibold mb-2">{t('CUSTOMER')}</h3>
                                 <div className="text-sm space-y-1">
-                                    <div className="font-medium">{salesReturn.customer?.name}</div>
-                                    <div className="text-muted-foreground">{salesReturn.customer?.email}</div>
+                                    <div className="font-medium">{salesReturn.customer_details?.company_name || salesReturn.customer?.name || '-'}</div>
+                                    {salesReturn.customer_details?.contact_person_email && (
+                                        <div className="text-muted-foreground">{salesReturn.customer_details.contact_person_email}</div>
+                                    )}
                                 </div>
                                 {salesReturn.customer_details?.billing_address && (
                                     <div className="mt-3">

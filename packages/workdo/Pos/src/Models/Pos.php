@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\User;
 use App\Models\Warehouse;
+use Workdo\Account\Models\Customer;
 
 class Pos extends Model
 {
@@ -31,6 +32,11 @@ class Pos extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'customer_id');
+    }
+
+    public function customerDetails(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class, 'customer_id', 'user_id');
     }
 
     public function warehouse(): BelongsTo

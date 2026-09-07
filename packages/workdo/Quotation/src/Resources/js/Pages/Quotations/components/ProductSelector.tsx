@@ -8,6 +8,7 @@ interface Product {
     name: string;
     sale_price: number;
     unit?: string;
+    stock_quantity?: number;
     taxes?: Array<{id: number; tax_name: string; rate: number}>;
 }
 
@@ -33,7 +34,7 @@ export default function ProductSelector({ products, value, onChange }: Props) {
             </SelectTrigger>
             <SelectContent searchable>
                 {products.map((product) => (
-                    <SelectItem key={product.id} value={product.id.toString()}>
+                    <SelectItem key={product.id} value={product.id.toString()} disabled={Number(product.stock_quantity) <= 0}>
                         {product.name} - {formatCurrency(product.sale_price || 0)}
                     </SelectItem>
                 ))}

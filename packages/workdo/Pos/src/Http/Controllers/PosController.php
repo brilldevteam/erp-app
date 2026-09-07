@@ -25,7 +25,7 @@ class PosController extends Controller
     public function index(Request $request)
     {
         if(Auth::user()->can('manage-pos-orders')){
-            $query = Pos::with(['customer:id,name,email', 'warehouse:id,name', 'payment:pos_id,discount,amount,discount_amount'])
+            $query = Pos::with(['customer:id,name', 'customerDetails', 'warehouse:id,name', 'payment:pos_id,discount,amount,discount_amount'])
                 ->withCount('items')
                 ->where('created_by', creatorId());
 
@@ -261,7 +261,8 @@ class PosController extends Controller
     {
         if(Auth::user()->can('view-pos-orders') &&  $sale->created_by == creatorId() && ($sale->customer_id == Auth::id() || $sale->creator_id == Auth::id())){
             $sale->load([
-                'customer:id,name,email',
+                'customer:id,name',
+                'customerDetails',
                 'warehouse:id,name',
                 'items:id,pos_id,product_id,quantity,price,subtotal,tax_ids,tax_amount,total_amount',
                 'items.product:id,name,sku',
@@ -327,7 +328,8 @@ class PosController extends Controller
     {
         if(Auth::user()->can('view-pos-orders')){
             $sale->load([
-                'customer:id,name,email',
+                'customer:id,name',
+                'customerDetails',
                 'warehouse:id,name',
                 'items:id,pos_id,product_id,quantity,price,subtotal,tax_ids,tax_amount,total_amount',
                 'items.product:id,name,sku',

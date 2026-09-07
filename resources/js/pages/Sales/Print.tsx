@@ -159,7 +159,7 @@ export default function Print() {
                                     {t('Contact Person')}: {invoice.customer_details?.contact_person_name || invoice.customer?.name}
                                 </p>
                             )}
-                            <p>{invoice.customer?.email}</p>
+                            {invoice.customer_details?.contact_person_email && <p>{invoice.customer_details.contact_person_email}</p>}
                             {invoice.customer_details?.billing_address && (
                                 <AddressDisplay address={invoice.customer_details.billing_address} />
                             )}

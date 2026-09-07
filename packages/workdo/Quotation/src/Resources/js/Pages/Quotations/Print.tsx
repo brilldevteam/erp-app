@@ -105,7 +105,7 @@ export default function Print() {
                         <h3 className="font-bold mb-3">{t('QUOTE TO')}</h3>
                         <div className="text-sm space-y-1">
                             <p className="font-semibold">{quotation.customer?.name}</p>
-                            <p>{quotation.customer?.email}</p>
+                            {quotation.customer_details?.contact_person_email && <p>{quotation.customer_details.contact_person_email}</p>}
                             {quotation.customer_details?.billing_address && (
                                 <AddressDisplay address={quotation.customer_details.billing_address} />
                             )}

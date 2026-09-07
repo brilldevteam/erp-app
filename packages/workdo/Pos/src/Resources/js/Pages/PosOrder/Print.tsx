@@ -24,6 +24,7 @@ interface PosSale {
         name: string;
         email?: string;
     };
+    customer_details?: { company_name?: string; contact_person_email?: string | null };
     warehouse?: {
         name: string;
     };
@@ -122,7 +123,7 @@ export default function Print() {
                         <h3 className="font-bold mb-3">{t('CUSTOMER')}</h3>
                         <div className="text-sm space-y-1">
                             <p className="font-semibold">{sale.customer?.name || t('Walk-in Customer')}</p>
-                            {sale.customer?.email && <p>{sale.customer.email}</p>}
+                            {sale.customer_details?.contact_person_email && <p>{sale.customer_details.contact_person_email}</p>}
                         </div>
                     </div>
                     <div className="text-right w-1/2">

@@ -227,7 +227,7 @@ class CreditNoteController extends Controller
                 return redirect()->route('account.credit-notes.index')->with('error', __('Permission denied'));
             }
 
-            $creditNote->load(['customer', 'items.product', 'items.taxes', 'salesReturn', 'applications.payment']);
+            $creditNote->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'salesReturn', 'applications.payment']);
 
             return Inertia::render('Account/CreditNotes/View', [
                 'creditNote' => $creditNote

@@ -17,9 +17,10 @@ interface Props {
     errors: any;
     products?: Array<{id: number; name: string; sale_price: number; unit?: string; stock_quantity?: number; taxes?: Array<{id: number; tax_name: string; rate: number}>}>;
     showAddButton?: boolean;
+    onClearError?: (field: string) => void;
 }
 
-export default function QuotationItemsTable({ items, onChange, errors, products = [], showAddButton = true }: Props) {
+export default function QuotationItemsTable({ items, onChange, errors, products = [], showAddButton = true, onClearError }: Props) {
     const { t } = useTranslation();
 
     const addItem = () => {
@@ -76,6 +77,16 @@ export default function QuotationItemsTable({ items, onChange, errors, products 
         item.total_amount = calculations.totalAmount;
 
         onChange(newItems);
+        const isValid = field === 'description'
+            ? String(value).trim().length > 0
+            : field === 'quantity'
+                ? Number(value) > 0
+                : field === 'unit_price'
+                    ? Number(value) >= 0
+                    : value !== null && value !== undefined && value !== '';
+        if (isValid) {
+            onClearError?.(`items.${index}.${field}`);
+        }
     };
 
     const handleProductSelect = (index: number, productId: number, product?: any) => {
@@ -113,6 +124,9 @@ export default function QuotationItemsTable({ items, onChange, errors, products 
         item.total_amount = Number(calculations.totalAmount) || 0;
 
         onChange(newItems);
+        if (productId > 0) {
+            onClearError?.(`items.${index}.product_id`);
+        }
     };
 
     return (
@@ -164,7 +178,7 @@ export default function QuotationItemsTable({ items, onChange, errors, products 
                                     {(() => {
                                         const product = products.find(p => p.id === item.product_id);
                                         const hasStockLimit = product?.stock_quantity !== undefined;
-                                        const maxQty = hasStockLimit ? product.stock_quantity : undefined;
+                                        const maxQty = hasStockLimit && Number(product.stock_quantity) > 0 ? product.stock_quantity : undefined;
                                         return (
                                             <div>
                                                 <Input

@@ -13,6 +13,8 @@ export interface Item {
     sale_price?: number;
     purchase_price?: number;
     quantity?: number;
+    warehouse_id?: number;
+    warehouse_stocks?: Array<{ warehouse_id: number; quantity: number }>;
     type?: string;
     category?: Category;
     unit_relation?: {

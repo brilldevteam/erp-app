@@ -330,7 +330,7 @@ class DocumentTemplateService
             'customer' => [
                 'name' => $customerDetails?->company_name ?: $document->customer?->name,
                 'contact_person' => $customerDetails?->contact_person_name ?: $document->customer?->name,
-                'email' => $document->customer?->email,
+                'email' => $customerDetails?->contact_person_email,
                 'billing_address' => $billing,
                 'shipping_address' => $shipping,
             ],

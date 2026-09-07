@@ -154,13 +154,13 @@ export default function Index() {
         {
             key: 'unit',
             header: t('Unit'),
-            render: (value: string, item: Item) => item.unit_relation?.unit_name || '-'
+            render: (value: string, item: Item) => item.type === 'service' ? '_' : (item.unit_relation?.unit_name || '-')
         },
         {
             key: 'total_quantity',
             header: t('Quantity'),
             sortable: false,
-            render: (value: number) => Math.floor(value) || 0
+            render: (value: number, item: Item) => item.type === 'service' ? '_' : (Math.floor(value) || 0)
         },
         {
             key: 'type',
@@ -450,7 +450,7 @@ export default function Index() {
                                                     )}
                                                     <div className="flex justify-between">
                                                         <span className="text-sm text-gray-600">{t('Quantity')}</span>
-                                                        <span className="text-sm font-medium">{Math.floor(item.total_quantity) || 0}</span>
+                                                        <span className="text-sm font-medium">{item.type === 'service' ? '_' : (Math.floor(item.total_quantity) || 0)}</span>
                                                     </div>
                                                     {item.category && (
                                                         <div className="flex justify-between">
@@ -458,12 +458,10 @@ export default function Index() {
                                                             <span className="text-sm font-medium">{item.category.name}</span>
                                                         </div>
                                                     )}
-                                                    {item.unit_relation && (
-                                                        <div className="flex justify-between">
-                                                            <span className="text-sm text-gray-600">{t('Unit')}</span>
-                                                            <span className="text-sm font-medium">{item.unit_relation.unit_name}</span>
-                                                        </div>
-                                                    )}
+                                                    <div className="flex justify-between">
+                                                        <span className="text-sm text-gray-600">{t('Unit')}</span>
+                                                        <span className="text-sm font-medium">{item.type === 'service' ? '_' : (item.unit_relation?.unit_name || '-')}</span>
+                                                    </div>
                                                 </div>
 
                                                 <div className="flex items-center justify-between pt-3 border-t">

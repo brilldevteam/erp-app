@@ -61,7 +61,9 @@ export default function CustomerDetail() {
                 <CardContent className="p-6">
                     <div className="mb-4">
                         <h2 className="text-1xl font-bold">{customerData.customer.name}</h2>
-                        <p className="text-sm text-gray-600">{customerData.customer.email}</p>
+                        {customerData.customer.email && !customerData.customer.email.endsWith('@import.local') && (
+                            <p className="text-sm text-gray-600">{customerData.customer.email}</p>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

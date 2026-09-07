@@ -38,6 +38,8 @@ interface Props {
     taxes: TaxOption[];
     warehouses: Array<{ id: number; name: string }>;
     warehouseId?: string;
+    defaultProductType?: 'product' | 'service';
+    catalogMode?: 'all' | 'stock' | 'service';
     canCreateProduct: boolean;
     loading?: boolean;
     onAdd: (products: QuotationProduct[]) => void;
@@ -60,9 +62,11 @@ export default function ProductPickerDialog(props: Props) {
     const [formErrors, setFormErrors] = useState<Record<string, string[]>>({});
 
     const filtered = useMemo(() => {
-        const needle = search.trim().toLowerCase();
+        const normalize = (value: string) => value.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+        const needle = normalize(search);
         return props.products.filter(product => {
-            const matchesSearch = !needle || product.name.toLowerCase().includes(needle) || (product.sku || '').toLowerCase().includes(needle);
+            const searchableText = normalize(`${product.name || ''} ${product.sku || ''}`);
+            const matchesSearch = !needle || searchableText.includes(needle);
             return matchesSearch && (category === 'all' || String(product.category_id) === category);
         });
     }, [props.products, search, category]);
@@ -76,13 +80,22 @@ export default function ProductPickerDialog(props: Props) {
     };
 
     const addSelected = () => {
-        const chosen = props.products.filter(product => selected.includes(product.id));
+        const chosen = props.products.filter(product => selected.includes(product.id) && (product.type === 'service' || Number(product.stock_quantity) > 0));
         if (!chosen.length) return;
         props.onAdd(chosen);
         close();
     };
 
+    const beginCreate = () => {
+        const type = props.catalogMode === 'service' ? 'service' : (props.defaultProductType || 'product');
+        setForm({ ...initialProduct, type, warehouse_id: props.warehouseId || '' });
+        setFormErrors({});
+        setCreating(true);
+    };
+
     const toggleProduct = (productId: number) => {
+        const product = props.products.find(item => item.id === productId);
+        if (product?.type !== 'service' && Number(product?.stock_quantity) <= 0) return;
         setSelected(current => current.includes(productId)
             ? current.filter(id => id !== productId)
             : [...current, productId]);
@@ -92,10 +105,16 @@ export default function ProductPickerDialog(props: Props) {
         event.preventDefault();
         setSaving(true);
         setFormErrors({});
+        const warehouseId = props.warehouseId || form.warehouse_id;
+        if (props.catalogMode === 'stock' && form.type !== 'service' && Number(form.quantity) < 1) {
+            setFormErrors({ quantity: [t('Opening stock must be at least 1 to add this product.')] });
+            setSaving(false);
+            return;
+        }
         try {
             const payload = {
                 ...form,
-                warehouse_id: form.type === 'service' ? null : (props.warehouseId || form.warehouse_id || null),
+                warehouse_id: form.type === 'service' ? null : (warehouseId || null),
                 unit: form.type === 'service' ? null : form.unit,
                 quantity: form.type === 'service' ? null : Number(form.quantity || 0),
                 sale_price: Number(form.sale_price),
@@ -117,10 +136,26 @@ export default function ProductPickerDialog(props: Props) {
                 setFormErrors(result.errors || { form: [result.message || t('Unable to create product.')] });
                 return;
             }
-            props.onProductCreated(result.product);
-            props.onAdd([result.product]);
-            setForm(initialProduct);
-            close();
+            if (!result.product?.id) {
+                setFormErrors({ form: [t('The product was created, but the server did not return it correctly. Please refresh and select it from the list.')] });
+                return;
+            }
+
+            const createdProduct: QuotationProduct = {
+                ...result.product,
+                id: Number(result.product.id),
+                sale_price: Number(result.product.sale_price) || 0,
+                stock_quantity: result.product.stock_quantity == null
+                    ? undefined
+                    : Number(result.product.stock_quantity),
+            };
+
+            props.onProductCreated(createdProduct);
+            requestAnimationFrame(() => {
+                props.onAdd([createdProduct]);
+                setForm(initialProduct);
+                close();
+            });
         } catch {
             setFormErrors({ form: [t('Unable to create product. Please try again.')] });
         } finally {
@@ -144,7 +179,7 @@ export default function ProductPickerDialog(props: Props) {
                             <Field label={t('Name')} error={formErrors.name?.[0]}><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required /></Field>
                             <Field label={t('SKU')} error={formErrors.sku?.[0]}><Input value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })} required /></Field>
                             <Field label={t('Type')} error={formErrors.type?.[0]}>
-                                <Select value={form.type} onValueChange={value => setForm({ ...form, type: value })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="product">{t('Product')}</SelectItem><SelectItem value="service">{t('Service')}</SelectItem><SelectItem value="part">{t('Part')}</SelectItem></SelectContent></Select>
+                                <Select value={form.type} onValueChange={value => setForm({ ...form, type: value })} disabled={props.catalogMode === 'service'}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{props.catalogMode !== 'service' && <SelectItem value="product">{t('Product')}</SelectItem>}{props.catalogMode !== 'stock' && <SelectItem value="service">{t('Service')}</SelectItem>}{props.catalogMode !== 'service' && <SelectItem value="part">{t('Part')}</SelectItem>}</SelectContent></Select>
                             </Field>
                             <Field label={t('Category')} error={formErrors.category_id?.[0]}>
                                 <Select value={form.category_id} onValueChange={value => setForm({ ...form, category_id: value })}><SelectTrigger><SelectValue placeholder={t('Select Category')} /></SelectTrigger><SelectContent>{props.categories.map(option => <SelectItem key={option.id} value={String(option.id)}>{option.name}</SelectItem>)}</SelectContent></Select>
@@ -152,10 +187,11 @@ export default function ProductPickerDialog(props: Props) {
                             <Field label={t('Selling Price')} error={formErrors.sale_price?.[0]}><Input type="number" min="0" step="0.01" value={form.sale_price} onChange={e => setForm({ ...form, sale_price: e.target.value })} required /></Field>
                             <Field label={t('Purchase Price')} error={formErrors.purchase_price?.[0]}><Input type="number" min="0" step="0.01" value={form.purchase_price} onChange={e => setForm({ ...form, purchase_price: e.target.value })} required /></Field>
                             {form.type !== 'service' && <Field label={t('Unit')} error={formErrors.unit?.[0]}><Select value={form.unit} onValueChange={value => setForm({ ...form, unit: value })}><SelectTrigger><SelectValue placeholder={t('Select Unit')} /></SelectTrigger><SelectContent>{props.units.map(option => <SelectItem key={option.id} value={String(option.id)}>{option.unit_name}</SelectItem>)}</SelectContent></Select></Field>}
-                            {form.type !== 'service' && <Field label={t('Opening Stock')} error={formErrors.quantity?.[0]}><Input type="number" min="0" step="1" value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} /></Field>}
+                            {form.type !== 'service' && <Field label={t('Warehouse')} error={formErrors.warehouse_id?.[0]}><Select value={form.warehouse_id} onValueChange={value => setForm({ ...form, warehouse_id: value })} disabled={Boolean(props.warehouseId)}><SelectTrigger><SelectValue placeholder={t('Select Warehouse')} /></SelectTrigger><SelectContent>{props.warehouses.map(warehouse => <SelectItem key={warehouse.id} value={String(warehouse.id)}>{warehouse.name}</SelectItem>)}</SelectContent></Select></Field>}
+                            {form.type !== 'service' && <Field label={t('Opening Stock')} error={formErrors.quantity?.[0]}><Input type="number" min={props.catalogMode === 'stock' ? 1 : 0} step="1" value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} /></Field>}
                         </div>
                         <Field label={t('Description')} error={formErrors.description?.[0]}><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} /></Field>
-                        {!!props.taxes.length && <div><Label>{t('Taxes')}</Label><div className="mt-2 flex flex-wrap gap-3">{props.taxes.map(tax => <label key={tax.id} className="flex items-center gap-2 text-sm"><Checkbox checked={form.tax_ids.includes(String(tax.id))} onCheckedChange={checked => setForm({ ...form, tax_ids: checked ? [...form.tax_ids, String(tax.id)] : form.tax_ids.filter(id => id !== String(tax.id)) })} />{tax.tax_name} ({tax.rate}%)</label>)}</div></div>}
+                        <div><Label>{t('Tax')}</Label><Select value={form.tax_ids[0] || 'none'} onValueChange={value => setForm({ ...form, tax_ids: value === 'none' ? [] : [value] })}><SelectTrigger><SelectValue placeholder="_" /></SelectTrigger><SelectContent><SelectItem value="none">_</SelectItem>{props.taxes.filter(tax => !(Number(tax.rate) === 0 && tax.tax_name.trim().toLowerCase() === 'no tax')).map(tax => <SelectItem key={tax.id} value={String(tax.id)}>{tax.tax_name} ({tax.rate}%)</SelectItem>)}</SelectContent></Select></div>
                         {formErrors.form?.[0] && <p className="text-sm text-destructive">{formErrors.form[0]}</p>}
                         <DialogFooter><Button type="button" variant="outline" onClick={() => setCreating(false)}>{t('Back')}</Button><Button type="submit" disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{t('Create and Add')}</Button></DialogFooter>
                     </form>
@@ -169,11 +205,12 @@ export default function ProductPickerDialog(props: Props) {
                             {props.loading ? <div className="flex items-center justify-center p-10 text-muted-foreground"><Loader2 className="mr-2 h-5 w-5 animate-spin" />{t('Loading products...')}</div> : filtered.length ? (
                                 <table className="w-full min-w-[680px] text-sm"><thead className="sticky top-0 bg-muted"><tr><th className="w-12 p-3"></th><th className="p-3 text-left">{t('Product')}</th><th className="p-3 text-left">{t('SKU')}</th><th className="p-3 text-left">{t('Unit')}</th><th className="p-3 text-right">{t('Selling Price')}</th><th className="p-3 text-right">{t('Availability')}</th></tr></thead><tbody className="divide-y">{filtered.map(product => {
                                     const isSelected = selected.includes(product.id);
+                                    const isUnavailable = product.type !== 'service' && Number(product.stock_quantity) <= 0;
                                     return <tr
                                         key={product.id}
                                         role="checkbox"
                                         aria-checked={isSelected}
-                                        tabIndex={0}
+                                        tabIndex={isUnavailable ? -1 : 0}
                                         onClick={() => toggleProduct(product.id)}
                                         onKeyDown={event => {
                                             if (event.target !== event.currentTarget) return;
@@ -182,13 +219,13 @@ export default function ProductPickerDialog(props: Props) {
                                                 toggleProduct(product.id);
                                             }
                                         }}
-                                        className={`cursor-pointer transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${isSelected ? 'bg-primary/10' : ''}`}
-                                    ><td className="p-3 text-center" onClick={event => event.stopPropagation()}><Checkbox checked={isSelected} onCheckedChange={() => toggleProduct(product.id)} aria-label={t('Select {{product}}', { product: product.name })} /></td><td className="p-3"><div className="font-medium">{product.name}</div>{product.description && <div className="max-w-md truncate text-xs text-muted-foreground">{product.description}</div>}</td><td className="p-3">{product.sku || '-'}</td><td className="p-3">{product.unit_name || product.unit || '-'}</td><td className="p-3 text-right">{formatCurrency(Number(product.sale_price || 0))}</td><td className="p-3 text-right">{product.type === 'service' ? t('Service') : `${t('Stock')}: ${product.stock_quantity ?? 0}`}</td></tr>;
+                                        className={`${isUnavailable ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-muted/60'} transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${isSelected ? 'bg-primary/10' : ''}`}
+                                    ><td className="p-3 text-center" onClick={event => event.stopPropagation()}><Checkbox checked={isSelected} disabled={isUnavailable} onCheckedChange={() => toggleProduct(product.id)} aria-label={t('Select {{product}}', { product: product.name })} /></td><td className="p-3"><div className="font-medium">{product.name}</div>{product.description && <div className="max-w-md truncate text-xs text-muted-foreground">{product.description}</div>}</td><td className="p-3">{product.sku || '-'}</td><td className="p-3">{product.unit_name || product.unit || '-'}</td><td className="p-3 text-right">{formatCurrency(Number(product.sale_price || 0))}</td><td className="p-3 text-right">{product.type === 'service' ? t('Service') : `${t('Stock')}: ${product.stock_quantity ?? 0}`}</td></tr>;
                                 })}</tbody></table>
-                            ) : <div className="p-10 text-center text-muted-foreground"><p>{t('No products found.')}</p>{props.canCreateProduct && <Button type="button" variant="link" onClick={() => setCreating(true)}>{t('Create your first product')}</Button>}</div>}
+                            ) : <div className="p-10 text-center text-muted-foreground"><p>{t('No products found.')}</p>{props.canCreateProduct && <Button type="button" variant="link" onClick={beginCreate}>{t('Create your first product')}</Button>}</div>}
                         </div>
                         <DialogFooter className="gap-2 sm:justify-between">
-                            <div>{props.canCreateProduct && <Button type="button" variant="outline" onClick={() => setCreating(true)}><Plus className="mr-2 h-4 w-4" />{t('Create New Product')}</Button>}</div>
+                            <div>{props.canCreateProduct && <Button type="button" variant="outline" onClick={beginCreate}><Plus className="mr-2 h-4 w-4" />{t('Create New Product')}</Button>}</div>
                             <div className="flex gap-2"><Button type="button" variant="outline" onClick={close}>{t('Cancel')}</Button><Button type="button" onClick={addSelected} disabled={!selected.length}>{t(selected.length === 1 ? 'Add 1 Product' : 'Add {{count}} Products', { count: selected.length })}</Button></div>
                         </DialogFooter>
                     </>

@@ -20,9 +20,10 @@ interface Props {
     taxTypes?: InvoiceTaxOption[];
     showAddButton?: boolean;
     invoiceType?: string;
+    onClearError?: (field: string) => void;
 }
 
-export default function InvoiceItemsTable({ items, onChange, errors, products = [], taxTypes = [], showAddButton = true, invoiceType = 'product' }: Props) {
+export default function InvoiceItemsTable({ items, onChange, errors, products = [], taxTypes = [], showAddButton = true, invoiceType = 'product', onClearError }: Props) {
     const { t } = useTranslation();
 
     const addItem = () => {
@@ -72,6 +73,16 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
         item.total_amount = calculations.totalAmount;
 
         onChange(newItems);
+        const isValid = field === 'description'
+            ? String(value).trim().length > 0
+            : field === 'quantity'
+                ? Number(value) > 0
+                : field === 'unit_price'
+                    ? Number(value) >= 0
+                    : value !== null && value !== undefined && value !== '';
+        if (isValid) {
+            onClearError?.(`items.${index}.${field}`);
+        }
     };
 
     const getSelectedTaxId = (item: SalesInvoiceItem) => {
@@ -147,6 +158,9 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
         item.total_amount = Number(calculations.totalAmount) || 0;
 
         onChange(newItems);
+        if (productId > 0) {
+            onClearError?.(`items.${index}.product_id`);
+        }
     };
 
     return (
@@ -202,7 +216,6 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                         {(() => {
                                             const product = products.find(p => p.id === item.product_id);
                                             const hasStockLimit = product?.stock_quantity !== undefined;
-                                            const maxQty = hasStockLimit ? product.stock_quantity : undefined;
                                             return (
                                                 <div>
                                                     <Input
@@ -211,7 +224,6 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                                         onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 0)}
                                                         className="w-20 text-sm"
                                                         min="1"
-                                                        max={maxQty}
                                                         step="1"
                                                         required
                                                     />

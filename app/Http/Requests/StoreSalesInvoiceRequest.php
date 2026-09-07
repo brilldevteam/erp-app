@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreSalesInvoiceRequest extends FormRequest
 {
@@ -16,16 +17,16 @@ class StoreSalesInvoiceRequest extends FormRequest
         return [
             'invoice_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:invoice_date',
-            'customer_id' => 'required|integer|exists:users,id',
-            'quotation_id' => 'nullable|integer|exists:sales_quotations,id',
-            'document_template_id' => 'nullable|integer|exists:document_templates,id',
+            'customer_id' => ['required', 'integer', Rule::exists('users', 'id')->where(fn ($query) => $query->where('created_by', creatorId())->where('type', 'client'))],
+            'quotation_id' => ['nullable', 'integer', Rule::exists('sales_quotations', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
+            'document_template_id' => ['nullable', 'integer', Rule::exists('document_templates', 'id')->where(fn ($query) => $query->where('company_id', creatorId())->where('type', 'invoice'))],
             'type' => 'required|in:product,service',
-            'warehouse_id' => 'nullable|integer|exists:warehouses,id',
+            'warehouse_id' => ['nullable', 'integer', Rule::exists('warehouses', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
             'payment_terms' => 'nullable|string|max:255',
             'subject' => 'nullable|string|max:500',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|integer|min:1',
+            'items.*.product_id' => ['required', 'integer', 'min:1', Rule::exists('product_service_items', 'id')->where(fn ($query) => $query->where('created_by', creatorId())->where('is_active', true))],
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.description' => 'nullable|string|max:20000',
