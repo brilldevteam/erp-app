@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DatePicker } from '@/components/ui/date-picker';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Printer, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
+import { AccountingReportDownloadMenu } from '@/components/accounting-report-download-menu';
 import { formatDate, formatCurrency } from '@/utils/helpers';
 import NoRecordsFound from '@/components/no-records-found';
 import axios from 'axios';
@@ -78,6 +79,11 @@ export default function AccountBalance({ financialYear }: AccountBalanceProps) {
         window.open(printUrl, '_blank');
     };
 
+    const handleDownloadExcel = () => {
+        window.location.href = route('double-entry.reports.account-balance.excel') +
+            `?as_of_date=${asOfDate}&account_type=${accountType}&show_zero_balances=${showZeroBalances}`;
+    };
+
     const clearFilters = () => {
         setAsOfDate(financialYear?.year_end_date || '');
         setAccountType('');
@@ -136,10 +142,7 @@ export default function AccountBalance({ financialYear }: AccountBalanceProps) {
                         </Button>
                         <Button variant="outline" onClick={clearFilters} size="sm">{t('Clear')}</Button>
                         {data && auth.user?.permissions?.includes('print-account-balance') && (
-                            <Button variant="outline" size="sm" onClick={handleDownloadPDF} className="gap-2">
-                                <Printer className="h-4 w-4" />
-                                {t('Download PDF')}
-                            </Button>
+                            <AccountingReportDownloadMenu onPdf={handleDownloadPDF} onExcel={handleDownloadExcel} />
                         )}
                     </div>
                 </div>

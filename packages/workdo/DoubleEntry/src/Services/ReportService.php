@@ -19,6 +19,7 @@ class ReportService
         $query = JournalEntryItem::select(
                 'journal_entry_items.id',
                 'journal_entries.journal_date',
+                'journal_entries.journal_number',
                 'journal_entries.reference_type',
                 'journal_entries.reference_id',
                 'journal_entry_items.description',
@@ -46,10 +47,11 @@ class ReportService
 
         $runningBalance = $openingBalance;
         $transactions = $entries->map(function ($entry) use (&$runningBalance) {
-            $runningBalance += $entry->debit_amount - $entry->credit_amount;
+            $runningBalance = round($runningBalance + $entry->debit_amount - $entry->credit_amount, 2);
             return [
                 'id' => $entry->id,
                 'date' => $entry->journal_date,
+                'journal_number' => $entry->journal_number,
                 'account_code' => $entry->account_code,
                 'account_name' => $entry->account_name,
                 'description' => $entry->description,
@@ -70,17 +72,21 @@ class ReportService
 
     public function getOpeningBalance($accountId, $date)
     {
-        $openingBalance = OpeningBalance::where('account_id', $accountId)
-            ->where('created_by', creatorId())
-            ->first();
-
-        $balance = $openingBalance ? ($openingBalance->debit_amount - $openingBalance->credit_amount) : 0;
+        $account = ChartOfAccount::where('created_by', creatorId())->findOrFail($accountId);
+        $snapshots = OpeningBalance::where('account_id', $accountId)->where('created_by', creatorId());
+        $openingBalance = (clone $snapshots)->where('effective_date', '<=', $date)
+            ->orderByDesc('effective_date')->orderByDesc('id')->first();
+        // A dated snapshot replaces the master opening amount; never add both.
+        $balance = $openingBalance
+            ? (float)$openingBalance->opening_balance * ($openingBalance->balance_type === 'credit' ? -1 : 1)
+            : ($snapshots->exists() ? 0 : (float)$account->opening_balance * ($account->normal_balance === 'credit' ? -1 : 1));
 
         $priorTransactions = JournalEntryItem::join('journal_entries', 'journal_entry_items.journal_entry_id', '=', 'journal_entries.id')
             ->where('journal_entry_items.account_id', $accountId)
             ->where('journal_entries.status', 'posted')
             ->where('journal_entries.created_by', creatorId())
             ->where('journal_entries.journal_date', '<', $date)
+            ->when($openingBalance, fn($query) => $query->where('journal_entries.journal_date', '>=', $openingBalance->effective_date->format('Y-m-d')))
             ->select(
                 DB::raw('SUM(journal_entry_items.debit_amount) as total_debit'),
                 DB::raw('SUM(journal_entry_items.credit_amount) as total_credit')

@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { DataTable } from "@/components/ui/data-table";
-import { FileText, Printer } from "lucide-react";
+import { FileText } from "lucide-react";
+import { AccountingReportDownloadMenu } from '@/components/accounting-report-download-menu';
 import NoRecordsFound from '@/components/no-records-found';
 import { FilterButton } from '@/components/ui/filter-button';
 import { Pagination } from "@/components/ui/pagination";
@@ -154,6 +155,7 @@ export default function Index() {
                             />
                         </div>
                         <div className="flex items-center gap-3">
+
                             <PerPageSelector
                                 routeName="double-entry.ledger-summary.index"
                                 filters={filters}
@@ -172,6 +174,12 @@ export default function Index() {
                                     );
                                 })()}
                             </div>
+                            {auth.user?.permissions?.includes('print-ledger-summary') && (
+                                <AccountingReportDownloadMenu
+                                    onPdf={() => window.open(route('double-entry.ledger-summary.print') + `?from_date=${filters.from_date}&to_date=${filters.to_date}&account_id=${filters.account_id}&download=pdf`, '_blank')}
+                                    onExcel={() => { window.location.href = route('double-entry.ledger-summary.excel') + `?from_date=${filters.from_date}&to_date=${filters.to_date}&account_id=${filters.account_id}`; }}
+                                />
+                            )}
                         </div>
                     </div>
                 </CardContent>
@@ -213,15 +221,7 @@ export default function Index() {
                             <div className="flex items-end gap-2">
                                 <Button onClick={handleFilter} size="sm">{t('Apply')}</Button>
                                 <Button variant="outline" onClick={clearFilters} size="sm">{t('Clear')}</Button>
-                                {auth.user?.permissions?.includes('print-ledger-summary') && (
-                                    <Button variant="outline" size="sm" onClick={() => {
-                                        const printUrl = route('double-entry.ledger-summary.print') + `?from_date=${filters.from_date}&to_date=${filters.to_date}&account_id=${filters.account_id}&download=pdf`;
-                                        window.open(printUrl, '_blank');
-                                    }}>
-                                        <Printer className="h-4 w-4 mr-2" />
-                                        {t('Download PDF')}
-                                    </Button>
-                                )}
+
                             </div>
                         </div>
                     </CardContent>

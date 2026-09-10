@@ -21,6 +21,7 @@ import { PerPageSelector } from '@/components/ui/per-page-selector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import Create from './Create';
+import DownloadTransactions from './DownloadTransactions';
 import EditChartOfAccount from './Edit';
 import View from './View';
 import NoRecordsFound from '@/components/no-records-found';
@@ -51,6 +52,8 @@ export default function Index() {
     });
 
 
+    const [downloadAccount, setDownloadAccount] = useState<ChartOfAccount | null>(null);
+    const canDownload = auth.user?.permissions?.includes('view-chart-of-accounts') && auth.user?.permissions?.includes('print-general-ledger');
     const [showFilters, setShowFilters] = useState(false);
 
 
@@ -160,7 +163,7 @@ export default function Index() {
                 </span>
             )
         },
-        ...(auth.user?.permissions?.some((p: string) => ['edit-chart-of-accounts', 'delete-chart-of-accounts'].includes(p)) ? [{
+        ...(auth.user?.permissions?.some((p: string) => ['view-chart-of-accounts', 'edit-chart-of-accounts', 'delete-chart-of-accounts'].includes(p)) ? [{
             key: 'actions',
             header: t('Actions'),
             render: (_: any, chartofaccount: ChartOfAccount) => (
@@ -178,6 +181,10 @@ export default function Index() {
                                 </TooltipContent>
                             </Tooltip>
                         )}
+                        {canDownload && <Tooltip delayDuration={0}>
+                            <TooltipTrigger asChild><Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={t('Download Account Transactions')} onClick={() => setDownloadAccount(chartofaccount)}><Download className="h-4 w-4" /></Button></TooltipTrigger>
+                            <TooltipContent>{t('Download Account Transactions')}</TooltipContent>
+                        </Tooltip>}
                         {auth.user?.permissions?.includes('edit-chart-of-accounts') && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>
@@ -385,6 +392,7 @@ export default function Index() {
                 </CardContent>
             </Card>
 
+            {downloadAccount && <DownloadTransactions account={downloadAccount} onClose={() => setDownloadAccount(null)} />}
             <Dialog open={modalState.isOpen} onOpenChange={closeModal}>
                 {modalState.mode === 'add' && (
                     <Create onSuccess={closeModal} />

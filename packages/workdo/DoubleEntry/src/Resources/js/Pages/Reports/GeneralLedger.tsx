@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Printer, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
+import { AccountingReportDownloadMenu } from '@/components/accounting-report-download-menu';
 import { formatDate, formatCurrency } from '@/utils/helpers';
 import NoRecordsFound from '@/components/no-records-found';
 import axios from 'axios';
@@ -96,6 +97,12 @@ export default function GeneralLedger({ financialYear }: GeneralLedgerProps) {
         window.open(printUrl, '_blank');
     };
 
+    const handleDownloadExcel = () => {
+        const exportUrl = route('double-entry.reports.general-ledger.excel') +
+            `?account_id=${accountId}&from_date=${fromDate}&to_date=${toDate}`;
+        window.location.href = exportUrl;
+    };
+
     const clearFilters = () => {
         setAccountId('');
         setFromDate(financialYear?.year_start_date || '');
@@ -107,7 +114,7 @@ export default function GeneralLedger({ financialYear }: GeneralLedgerProps) {
     return (
         <Card className="shadow-sm">
             <CardContent className="p-6 border-b bg-gray-50/50">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_minmax(220px,1fr)_minmax(220px,1fr)_auto]">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">{t('Account')}</label>
                         <Select value={accountId} onValueChange={setAccountId}>
@@ -139,16 +146,13 @@ export default function GeneralLedger({ financialYear }: GeneralLedgerProps) {
                             placeholder={t('Select to date')}
                         />
                     </div>
-                    <div className="flex items-end gap-2">
+                    <div className="flex flex-wrap items-end gap-2 xl:min-w-max xl:flex-nowrap">
                         <Button onClick={fetchData} disabled={!accountId || loading} size="sm">
                             {loading ? t('Loading...') : t('Generate')}
                         </Button>
                         <Button variant="outline" onClick={clearFilters} size="sm">{t('Clear')}</Button>
                         {data && auth.user?.permissions?.includes('print-general-ledger') && (
-                            <Button variant="outline" size="sm" onClick={handleDownloadPDF} className="gap-2">
-                                <Printer className="h-4 w-4" />
-                                {t('Download PDF')}
-                            </Button>
+                            <AccountingReportDownloadMenu onPdf={handleDownloadPDF} onExcel={handleDownloadExcel} />
                         )}
                     </div>
                 </div>

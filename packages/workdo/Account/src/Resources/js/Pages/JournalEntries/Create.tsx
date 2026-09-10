@@ -1,4 +1,5 @@
 import { FormEvent } from 'react';
+import JournalDocuments from './JournalDocuments';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
@@ -35,6 +36,7 @@ export default function Create() {
         reference_type: '',
         description: '',
         items: [emptyLine(), emptyLine()] as JournalEntryItem[],
+        attachments: [] as File[],
     });
 
     const updateLine = (index: number, field: keyof JournalEntryItem, value: string) => {
@@ -117,6 +119,9 @@ export default function Create() {
                                     placeholder={t('Reason for this journal entry')}
                                 />
                                 <InputError message={errors.description} />
+                            </div>
+                            <div className="md:col-span-3">
+                                <JournalDocuments files={data.attachments} onChange={(files) => setData('attachments', files)} errors={errors} disabled={processing} />
                             </div>
                         </div>
                     </CardContent>

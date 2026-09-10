@@ -12,6 +12,7 @@ use Workdo\DoubleEntry\Models\BalanceSheet;
 use Workdo\DoubleEntry\Models\BalanceSheetNote;
 use Workdo\DoubleEntry\Models\ComparativeBalanceSheet;
 use Workdo\DoubleEntry\Services\BalanceSheetService;
+use Workdo\DoubleEntry\Services\AccountingReportExcelExportService;
 use Workdo\DoubleEntry\Events\CreateBalanceSheet;
 use Workdo\DoubleEntry\Events\FinalizeBalanceSheet;
 use Workdo\DoubleEntry\Events\DestroyBalanceSheet;
@@ -318,6 +319,20 @@ class BalanceSheetController extends Controller
         }
     }
 
+    public function excel($id, AccountingReportExcelExportService $exporter)
+    {
+        abort_unless(Auth::user()->can('print-balance-sheets'), 403);
+        $balanceSheet = BalanceSheet::with(['items.account'])->where('created_by', creatorId())->findOrFail($id);
+        $rows = $balanceSheet->items->map(fn ($item) => [$item->section_type, $item->sub_section,
+            $item->account?->account_code, $item->account?->account_name, (float) $item->amount])->all();
+        $rows[] = [__('Total Assets'), '', '', '', (float) $balanceSheet->total_assets];
+        $rows[] = [__('Total Liabilities'), '', '', '', (float) $balanceSheet->total_liabilities];
+        $rows[] = [__('Total Equity'), '', '', '', (float) $balanceSheet->total_equity];
+        $path = $exporter->create(__('Balance Sheet'), [__('As of') => $balanceSheet->balance_sheet_date->format('Y-m-d'), __('Financial Year') => $balanceSheet->financial_year],
+            [__('Section'), __('Subsection'), __('Account Code'), __('Account Name'), __('Amount')], $rows, ['E']);
+        return response()->download($path, 'balance-sheet-'.$balanceSheet->balance_sheet_date->format('Y-m-d').'.xlsx')->deleteFileAfterSend(true);
+    }
+
     public function comparisonPrint(Request $request)
     {
         if(Auth::user()->can('print-balance-sheets')){
@@ -344,5 +359,24 @@ class BalanceSheetController extends Controller
         else{
             return back()->with('error', __('Permission denied'));
         }
+    }
+
+    public function comparisonExcel(Request $request, AccountingReportExcelExportService $exporter)
+    {
+        abort_unless(Auth::user()->can('print-balance-sheets'), 403);
+        $ids = $request->validate(['current_id' => ['required', 'integer'], 'previous_id' => ['required', 'integer']]);
+        $periods = BalanceSheet::with(['items.account'])->where('created_by', creatorId())->whereIn('id', array_values($ids))->get()->keyBy('id');
+        abort_unless($periods->has($ids['current_id']) && $periods->has($ids['previous_id']), 404);
+        $current = $periods[$ids['current_id']];
+        $previous = $periods[$ids['previous_id']];
+        $previousAmounts = $previous->items->keyBy('account_id');
+        $rows = $current->items->map(function ($item) use ($previousAmounts) {
+            $previous = (float) ($previousAmounts->get($item->account_id)?->amount ?? 0);
+            $current = (float) $item->amount;
+            return [$item->section_type, $item->account?->account_code, $item->account?->account_name, $previous, $current, $current - $previous];
+        })->all();
+        $path = $exporter->create(__('Balance Sheet Comparison'), [__('Previous Period') => $previous->balance_sheet_date->format('Y-m-d'), __('Current Period') => $current->balance_sheet_date->format('Y-m-d')],
+            [__('Section'), __('Account Code'), __('Account Name'), __('Previous'), __('Current'), __('Change')], $rows, ['D', 'E', 'F']);
+        return response()->download($path, 'balance-sheet-comparison.xlsx')->deleteFileAfterSend(true);
     }
 }

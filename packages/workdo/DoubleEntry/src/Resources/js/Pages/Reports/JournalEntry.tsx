@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Printer, FileText, ChevronDown, ChevronRight } from 'lucide-react';
+import { FileText, ChevronDown, ChevronRight } from 'lucide-react';
+import { AccountingReportDownloadMenu } from '@/components/accounting-report-download-menu';
 import { formatDate, formatCurrency } from '@/utils/helpers';
 
 import NoRecordsFound from '@/components/no-records-found';
@@ -83,6 +84,11 @@ export default function JournalEntry({ financialYear }: JournalEntryProps) {
         window.open(printUrl, '_blank');
     };
 
+    const handleDownloadExcel = () => {
+        window.location.href = route('double-entry.reports.journal-entry.excel') +
+            `?from_date=${fromDate}&to_date=${toDate}&status=${status}`;
+    };
+
     const clearFilters = () => {
         setFromDate(financialYear?.year_start_date || '');
         setToDate(financialYear?.year_end_date || '');
@@ -129,10 +135,7 @@ export default function JournalEntry({ financialYear }: JournalEntryProps) {
                         </Button>
                         <Button variant="outline" onClick={clearFilters} size="sm">{t('Clear')}</Button>
                         {data.length > 0 && auth.user?.permissions?.includes('print-journal-entry') && (
-                            <Button variant="outline" size="sm" onClick={handleDownloadPDF} className="gap-2">
-                                <Printer className="h-4 w-4" />
-                                {t('Download PDF')}
-                            </Button>
+                            <AccountingReportDownloadMenu onPdf={handleDownloadPDF} onExcel={handleDownloadExcel} />
                         )}
                     </div>
                 </div>

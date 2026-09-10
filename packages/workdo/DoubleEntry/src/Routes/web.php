@@ -16,7 +16,9 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:DoubleEntry'])->g
         Route::post('/', [BalanceSheetController::class, 'store'])->name('store');
         Route::get('/{id}', [BalanceSheetController::class, 'show'])->name('show');
         Route::get('/comparison/print', [BalanceSheetController::class, 'comparisonPrint'])->name('comparison.print');
+        Route::get('/comparison/excel', [BalanceSheetController::class, 'comparisonExcel'])->name('comparison.excel');
         Route::get('/{id}/print', [BalanceSheetController::class, 'print'])->name('print');
+        Route::get('/{id}/excel', [BalanceSheetController::class, 'excel'])->name('excel');
         Route::post('/{id}/finalize', [BalanceSheetController::class, 'finalize'])->name('finalize');
         Route::post('/{id}/notes', [BalanceSheetController::class, 'addNote'])->name('add-note');
         Route::delete('/{balanceSheetId}/notes/{noteId}', [BalanceSheetController::class, 'deleteNote'])->name('delete-note');
@@ -29,31 +31,40 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:DoubleEntry'])->g
     Route::prefix('double-entry/ledger-summary')->name('double-entry.ledger-summary.')->group(function () {
         Route::get('/', [LedgerSummaryController::class, 'index'])->name('index');
         Route::get('/print', [LedgerSummaryController::class, 'print'])->name('print');
+        Route::get('/excel', [LedgerSummaryController::class, 'excel'])->name('excel');
     });
 
     Route::prefix('double-entry/profit-loss')->name('double-entry.profit-loss.')->group(function () {
         Route::get('/', [ProfitLossController::class, 'index'])->name('index');
         Route::get('/print', [ProfitLossController::class, 'print'])->name('print');
+        Route::get('/excel', [ProfitLossController::class, 'excel'])->name('excel');
     });
 
     Route::prefix('double-entry/trial-balance')->name('double-entry.trial-balance.')->group(function () {
         Route::get('/', [TrialBalanceController::class, 'index'])->name('index');
         Route::get('/print', [TrialBalanceController::class, 'print'])->name('print');
+        Route::get('/excel', [TrialBalanceController::class, 'excel'])->name('excel');
     });
 
     Route::prefix('double-entry/reports')->name('double-entry.reports.')->group(function () {
         Route::get('/', [ReportController::class, 'index'])->name('index');
         Route::get('/general-ledger', [ReportController::class, 'generalLedger'])->name('general-ledger');
         Route::get('/general-ledger/print', [ReportController::class, 'printGeneralLedger'])->name('general-ledger.print');
+        Route::get('/general-ledger/excel', [ReportController::class, 'exportGeneralLedger'])->name('general-ledger.excel');
         Route::get('/account-statement', [ReportController::class, 'accountStatement'])->name('account-statement');
         Route::get('/account-statement/print', [ReportController::class, 'printAccountStatement'])->name('account-statement.print');
+        Route::get('/account-statement/excel', [ReportController::class, 'exportAccountStatement'])->name('account-statement.excel');
         Route::get('/journal-entry', [ReportController::class, 'journalEntry'])->name('journal-entry');
         Route::get('/journal-entry/print', [ReportController::class, 'printJournalEntry'])->name('journal-entry.print');
+        Route::get('/journal-entry/excel', [ReportController::class, 'exportJournalEntry'])->name('journal-entry.excel');
         Route::get('/account-balance', [ReportController::class, 'accountBalance'])->name('account-balance');
         Route::get('/account-balance/print', [ReportController::class, 'printAccountBalance'])->name('account-balance.print');
+        Route::get('/account-balance/excel', [ReportController::class, 'exportAccountBalance'])->name('account-balance.excel');
         Route::get('/cash-flow', [ReportController::class, 'cashFlow'])->name('cash-flow');
         Route::get('/cash-flow/print', [ReportController::class, 'printCashFlow'])->name('cash-flow.print');
+        Route::get('/cash-flow/excel', [ReportController::class, 'exportCashFlow'])->name('cash-flow.excel');
         Route::get('/expense-report', [ReportController::class, 'expenseReport'])->name('expense-report');
         Route::get('/expense-report/print', [ReportController::class, 'printExpenseReport'])->name('expense-report.print');
+        Route::get('/expense-report/excel', [ReportController::class, 'exportExpenseReport'])->name('expense-report.excel');
     });
 });

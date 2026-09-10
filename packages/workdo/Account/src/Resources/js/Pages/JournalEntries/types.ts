@@ -23,6 +23,7 @@ export interface JournalEntry {
     total_credit: number;
     status: 'draft' | 'posted' | 'reversed';
     items: JournalEntryItem[];
+    attachments?: { id: number; file_name: string; file_type: string; file_size: number; created_at: string; uploader?: { name: string } }[];
 }
 
 export interface AccountOption {

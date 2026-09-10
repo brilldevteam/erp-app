@@ -6,7 +6,8 @@ import AuthenticatedLayout from "@/layouts/authenticated-layout";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from '@/components/ui/label';
-import { FileText, Search, Printer } from "lucide-react";
+import { FileText, Search } from "lucide-react";
+import { AccountingReportDownloadMenu } from '@/components/accounting-report-download-menu';
 import { DatePicker } from '@/components/ui/date-picker';
 import { formatDate, formatCurrency } from '@/utils/helpers';
 import NoRecordsFound from '@/components/no-records-found';
@@ -111,13 +112,10 @@ export default function Index() {
                                     {t('Generate')}
                                 </Button>
                                 {auth.user?.permissions?.includes('print-trial-balance') && (
-                                    <Button variant="outline" size="sm" onClick={() => {
-                                        const printUrl = route('double-entry.trial-balance.print') + `?from_date=${fromDate}&to_date=${toDate}&download=pdf`;
-                                        window.open(printUrl, '_blank');
-                                    }}>
-                                        <Printer className="h-4 w-4 mr-2" />
-                                        {t('Download PDF')}
-                                    </Button>
+                                    <AccountingReportDownloadMenu
+                                        onPdf={() => window.open(route('double-entry.trial-balance.print') + `?from_date=${fromDate}&to_date=${toDate}&download=pdf`, '_blank')}
+                                        onExcel={() => { window.location.href = route('double-entry.trial-balance.excel') + `?from_date=${fromDate}&to_date=${toDate}`; }}
+                                    />
                                 )}
                             </div>
                         </div>

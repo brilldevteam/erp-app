@@ -47,6 +47,7 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Account'])->group
     });
 
     Route::prefix('account/chart-of-accounts')->name('account.chart-of-accounts.')->group(function () {
+        Route::get('/{account}/transactions/export', \Workdo\Account\Http\Controllers\AccountTransactionExportController::class)->name('transactions');
         Route::get('/', [ChartOfAccountController::class, 'index'])->name('index');
         Route::post('/', [ChartOfAccountController::class, 'store'])->name('store');
         Route::get('/{chartofaccount}', [ChartOfAccountController::class, 'show'])->name('show');
@@ -96,6 +97,9 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Account'])->group
     });
 
     Route::prefix('account/journal-entries')->name('account.journal-entries.')->group(function () {
+        Route::post('/{journalEntry}/attachments', [\Workdo\Account\Http\Controllers\JournalAttachmentController::class, 'store'])->name('attachments.store');
+        Route::get('/{journalEntry}/attachments/{attachment}', [\Workdo\Account\Http\Controllers\JournalAttachmentController::class, 'download'])->name('attachments.download');
+        Route::delete('/{journalEntry}/attachments/{attachment}', [\Workdo\Account\Http\Controllers\JournalAttachmentController::class, 'destroy'])->name('attachments.destroy');
         Route::get('/', [JournalEntryController::class, 'index'])->name('index');
         Route::get('/create', [JournalEntryController::class, 'create'])->name('create');
         Route::post('/', [JournalEntryController::class, 'store'])->name('store');
