@@ -493,7 +493,9 @@ function FooterContact({
                 {address && <FooterDetail icon={MapPin} text={address} />}
             </div>
             <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-                <span className="relative top-[3px] inline-flex h-[18px] items-center rounded bg-[#e9e9e7] px-2 leading-none"><span className="relative -top-[6px]">C.R. No. 156793</span></span>
+                <span className="inline-flex h-[18px] items-center rounded bg-[#e9e9e7] px-2">
+                    <span className="block h-[14px] whitespace-nowrap leading-[14px]">C.R. No. 156793</span>
+                </span>
                 {email && <FooterDetail icon={Mail} text={email} />}
                 {website && <FooterDetail icon={Globe2} text={website} />}
             </div>
@@ -502,7 +504,12 @@ function FooterContact({
 }
 
 function FooterDetail({ icon: Icon, text }: { icon: typeof Phone; text: string }) {
-    return <span className="inline-flex h-[18px] items-center gap-1.5"><Icon className="relative top-[2px] h-3.5 w-3.5 shrink-0 overflow-visible" strokeWidth={1.5} /><span className="relative -top-[2px] leading-none">{text}</span></span>;
+    return (
+        <span className="inline-grid h-[18px] grid-cols-[14px_auto] items-center gap-1.5 align-middle">
+            <Icon className="block h-[14px] w-[14px] -translate-y-px overflow-visible" strokeWidth={1.5} />
+            <span className="block h-[14px] whitespace-nowrap leading-[14px]">{text}</span>
+        </span>
+    );
 }
 
 function TotalRow({ label, value }: { label: string; value: string }) {

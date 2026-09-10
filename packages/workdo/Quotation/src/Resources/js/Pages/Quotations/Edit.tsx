@@ -5,6 +5,7 @@ import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { Quotation, QuotationItem } from './types';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import QuotationItemsTable from './components/QuotationItemsTable';
+import ProductPickerDialog, { QuotationProduct } from './components/ProductPickerDialog';
 import { useTaxCalculator, calculateLineItemAmounts } from './components/TaxCalculator';
 import { formatCurrency } from '@/utils/helpers';
 import { Button } from '@/components/ui/button';
@@ -23,13 +24,21 @@ interface EditProps {
     customers: Array<{id: number; name: string; email: string}>;
     warehouses: Array<{id: number; name: string; address: string}>;
     documentTemplates: Array<{ id: number; name: string; is_default: boolean }>;
+    productCatalog: {
+        categories: Array<{ id: number; name: string }>;
+        units: Array<{ id: number; unit_name: string }>;
+        taxes: Array<{ id: number; tax_name: string; rate: number }>;
+    };
+    auth: { user: { permissions?: string[] } };
     [key: string]: any;
 }
 
 export default function Edit() {
     const { t } = useTranslation();
-    const { quotation, customers, warehouses, documentTemplates = [] } = usePage<EditProps>().props;
-    const [availableProducts, setAvailableProducts] = useState([]);
+    const { quotation, customers, warehouses, documentTemplates = [], productCatalog, auth } = usePage<EditProps>().props;
+    const [availableProducts, setAvailableProducts] = useState<QuotationProduct[]>([]);
+    const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
+    const [productsLoading, setProductsLoading] = useState(false);
     const noWarehouseValue = 'none';
 
     useFlashMessages();
@@ -77,6 +86,7 @@ export default function Edit() {
         const query = warehouseId ? `?warehouse_id=${warehouseId}` : '';
 
         try {
+            setProductsLoading(true);
             const response = await fetch(route('quotations.warehouse.products') + query);
             if (!response.ok) {
                 throw new Error(`Product request failed with status ${response.status}`);
@@ -85,7 +95,24 @@ export default function Edit() {
         } catch (error) {
             console.error('Failed to fetch quotation products:', error);
             setAvailableProducts([]);
+        } finally {
+            setProductsLoading(false);
         }
+    };
+
+    const addProducts = (products: QuotationProduct[]) => {
+        const selectedItems = products.map(product => {
+            const taxPercentage = product.taxes?.reduce((sum, tax) => sum + Number(tax.rate), 0) || 0;
+            const price = Number(product.sale_price) || 0;
+            return {
+                ...emptyItem(), product_id: product.id, description: product.description || '', unit_price: price,
+                tax_percentage: taxPercentage,
+                taxes: product.taxes?.map(tax => ({ tax_name: tax.tax_name, tax_rate: Number(tax.rate) })) || [],
+                tax_amount: price * taxPercentage / 100, total_amount: price * (1 + taxPercentage / 100),
+            } as QuotationItem;
+        });
+        const retainedItems = data.items.filter(item => item.product_id > 0);
+        setData('items', [...retainedItems, ...selectedItems]);
     };
 
     useEffect(() => {
@@ -262,27 +289,11 @@ export default function Edit() {
                                 </CardTitle>
                                 <Button
                                     type="button"
-                                    onClick={() => {
-                                        const newItem = {
-                                            product_id: 0,
-                                            quantity: 1,
-                                            unit_price: 0,
-                                            description: '',
-                                            discount_type: 'percentage' as const,
-                                            discount_value: 0,
-                                            discount_percentage: 0,
-                                            discount_amount: 0,
-                                            tax_percentage: 0,
-                                            tax_amount: 0,
-                                            total_amount: 0,
-                                            taxes: []
-                                        };
-                                        setData('items', [...data.items, newItem]);
-                                    }}
+                                    onClick={() => setIsProductPickerOpen(true)}
                                     variant="default"
                                     size="sm"
                                 >
-                                    + {t('Add Item')}
+                                    + {t('Add Product')}
                                 </Button>
                             </div>
                         </CardHeader>
@@ -321,6 +332,21 @@ export default function Edit() {
                             </div>
                         </CardContent>
                     </Card>
+
+                    <ProductPickerDialog
+                        open={isProductPickerOpen}
+                        onOpenChange={setIsProductPickerOpen}
+                        products={availableProducts}
+                        categories={productCatalog?.categories || []}
+                        units={productCatalog?.units || []}
+                        taxes={productCatalog?.taxes || []}
+                        warehouses={warehouses}
+                        warehouseId={data.warehouse_id}
+                        canCreateProduct={auth.user.permissions?.includes('create-product-service-item') || false}
+                        loading={productsLoading}
+                        onAdd={addProducts}
+                        onProductCreated={product => setAvailableProducts(current => [...current, product])}
+                    />
 
                     <div className="flex justify-between items-center">
                         <div className="text-sm text-muted-foreground">
