@@ -135,6 +135,7 @@ class DocumentTemplateController extends Controller
             'is_default' => ['boolean'],
             'primary_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'logo_url' => ['nullable', 'string', 'max:500'],
+            'watermark_url' => ['nullable', 'string', 'max:500'],
             'config_json' => ['required', 'array'],
             'terms' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],

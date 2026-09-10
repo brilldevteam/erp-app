@@ -45,6 +45,7 @@ export default function Form() {
         is_default: template?.is_default || false,
         primary_color: template?.primary_color || '#10b981',
         logo_url: template?.logo_url || '',
+        watermark_url: template?.watermark_url || '',
         config_json: template?.config_json || defaultConfig,
         terms: template?.terms || '',
         notes: template?.notes || '',
@@ -145,6 +146,11 @@ export default function Form() {
                             <Field label={t('Logo Option')} error={errors.logo_url}>
                                 <MediaPicker value={data.logo_url} onChange={(value) => setData('logo_url', Array.isArray(value) ? value[0] || '' : value)} placeholder={t('Select template logo...')} />
                             </Field>
+                            {data.type !== 'payment' && (
+                                <Field label={t('Watermark Image')} error={errors.watermark_url}>
+                                    <MediaPicker value={data.watermark_url} onChange={(value) => setData('watermark_url', Array.isArray(value) ? value[0] || '' : value)} placeholder={t('Select square watermark image...')} />
+                                </Field>
+                            )}
                         </CardContent>
                     </Card>
 

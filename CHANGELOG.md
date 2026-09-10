@@ -5,6 +5,7 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Added
+- Added a separate square watermark image field for quotation and invoice templates, rendered large and centered in previews and PDFs without changing the header logo.
 - Applied the reference-matched professional layout to every managed sales invoice and quotation template, including dynamic company branding, dates, subject and item descriptions, totals, notes, watermark, signatures where applicable, and the company contact footer.
 - Added editable footer contact fields for phone, postal address, email, and website across invoice and quotation templates.
 - Added unified Download menus with PDF and Excel formats across Double Entry accounting reports, including General Ledger, statements, balances, cash flow, Profit & Loss, Trial Balance, Ledger Summary, expenses, journals, and Balance Sheets.
@@ -13,6 +14,7 @@ All notable changes to the Wazely ERP application are documented here.
 - New features currently in development will be listed here before release.
 
 ### Changed
+- Updated the Payment template to match the reference receipt with a black corner mark, neutral payer styling, Bank Account details, and no fixed amount-in-words text.
 - Restored the Payment template type and its receipt/voucher preview alongside the redesigned quotation and invoice templates.
 - Removed the unused Primary Color control from the fixed-design quotation and invoice template editor.
 - Ensured saved terms and conditions appear in both the live preview and downloaded PDF for invoice and quotation templates.
