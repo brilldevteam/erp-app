@@ -11,6 +11,8 @@ use App\Http\Requests\StoreSalesInvoiceRequest;
 use App\Http\Requests\UpdateSalesInvoiceRequest;
 use Workdo\ProductService\Models\ProductServiceItem;
 use Workdo\ProductService\Models\ProductServiceTax;
+use Workdo\ProductService\Models\ProductServiceCategory;
+use Workdo\ProductService\Models\ProductServiceUnit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -37,9 +39,9 @@ class SalesInvoiceController extends Controller
             ->select(
                 'users.id',
                 'users.name',
-                'users.email',
                 'customers.company_name',
-                'customers.contact_person_name'
+                'customers.contact_person_name',
+                'customers.contact_person_email as email'
             )
             ->get();
     }
@@ -50,6 +52,15 @@ class SalesInvoiceController extends Controller
             ->where('created_by', creatorId())
             ->orderBy('tax_name')
             ->get(['id', 'tax_name', 'rate']);
+    }
+
+    private function productCatalog(): array
+    {
+        return [
+            'categories' => ProductServiceCategory::where('created_by', creatorId())->orderBy('name')->get(['id', 'name']),
+            'units' => ProductServiceUnit::where('created_by', creatorId())->orderBy('unit_name')->get(['id', 'unit_name']),
+            'taxes' => $this->invoiceTaxes(),
+        ];
     }
 
     private function checkInvoiceAccess(SalesInvoice $salesInvoice)
@@ -150,6 +161,7 @@ class SalesInvoiceController extends Controller
                 'taxes' => $this->invoiceTaxes(),
                 'warehouses' => $warehouses,
                 'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_INVOICE),
+                'productCatalog' => $this->productCatalog(),
             ]);
         }
         else{
@@ -250,6 +262,7 @@ class SalesInvoiceController extends Controller
                 'taxes' => $this->invoiceTaxes(),
                 'warehouses' => $warehouses,
                 'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_INVOICE),
+                'productCatalog' => $this->productCatalog(),
             ]);
         }
         else{
@@ -376,17 +389,19 @@ class SalesInvoiceController extends Controller
     public function post(SalesInvoice $salesInvoice)
     {
         if(Auth::user()->can('post-sales-invoices')){
-        if ($salesInvoice->status !== 'draft') {
-            return back()->withErrors(['error' => __('Only draft invoices can be posted.')]);
-        }
-
         try {
-            PostSalesInvoice::dispatch($salesInvoice);
+            DB::transaction(function () use ($salesInvoice) {
+                $lockedInvoice = SalesInvoice::whereKey($salesInvoice->id)->lockForUpdate()->firstOrFail();
+                if ($lockedInvoice->status !== 'draft') {
+                    throw new \RuntimeException(__('Only draft invoices can be posted.'));
+                }
+
+                PostSalesInvoice::dispatch($lockedInvoice);
+                $lockedInvoice->update(['status' => 'posted']);
+            });
         } catch (\Throwable $th) {
             return back()->with('error', $th->getMessage());
         }
-
-        $salesInvoice->update(['status' => 'posted']);
 
         return back()->with('success', __('The sales invoice has been posted successfully.'));
         }
@@ -397,25 +412,33 @@ class SalesInvoiceController extends Controller
 
     public function getWarehouseProducts(Request $request)
     {
-        if(Auth::user()->can('create-sales-invoices') || Auth::user()->can('edit-sales-invoices')){
+        $canEditInvoice = Auth::user()->can('create-sales-invoices') || Auth::user()->can('edit-sales-invoices');
+        if($canEditInvoice){
             $validated = $request->validate([
                 'warehouse_id' => ['nullable', 'integer', 'exists:warehouses,id'],
             ]);
             $warehouseId = $validated['warehouse_id'] ?? null;
 
-            $productsQuery = ProductServiceItem::select('id', 'name', 'sku', 'description', 'long_description', 'sale_price', 'tax_ids', 'unit', 'type')
+            if ($warehouseId && !Warehouse::where('id', $warehouseId)->where('created_by', creatorId())->exists()) {
+                return response()->json([], 404);
+            }
+
+            $productsQuery = ProductServiceItem::select('id', 'name', 'sku', 'description', 'long_description', 'sale_price', 'tax_ids', 'unit', 'type', 'category_id')
                 ->where('is_active', true)
-                ->where('created_by', creatorId());
+                ->where(function ($query) {
+                    $query->whereNull('type')->orWhere('type', '!=', 'service');
+                })
+                ->where('created_by', creatorId())
+                ->with(['category:id,name', 'unitRelation:id,unit_name']);
 
             if ($warehouseId) {
                 $productsQuery
-                    ->whereHas('warehouseStocks', function($q) use ($warehouseId) {
-                    $q->where('warehouse_id', $warehouseId)
-                      ->where('quantity', '>', 0);
-                })
                     ->with(['warehouseStocks' => function($q) use ($warehouseId) {
                         $q->where('warehouse_id', $warehouseId);
                     }]);
+            }
+            else {
+                $productsQuery->with('warehouseStocks:product_id,quantity');
             }
 
             $products = $productsQuery
@@ -428,7 +451,10 @@ class SalesInvoiceController extends Controller
                         'description' => \App\Services\SalesLineAmounts::description($product->long_description ?: $product->description),
                         'sale_price' => $product->sale_price,
                         'unit' => $product->unit,
+                        'unit_name' => $product->unitRelation?->unit_name,
                         'type' => $product->type,
+                        'category_id' => $product->category_id,
+                        'category_name' => $product->category?->name,
                         'taxes' => $product->taxes->map(function ($tax) {
                             return [
                                 'id' => $tax->id,
@@ -441,6 +467,8 @@ class SalesInvoiceController extends Controller
                     if ($warehouseId) {
                         $stock = $product->warehouseStocks->first();
                         $productData['stock_quantity'] = $stock ? $stock->quantity : 0;
+                    } else {
+                        $productData['stock_quantity'] = $product->warehouseStocks->sum('quantity');
                     }
 
                     return $productData;
@@ -454,11 +482,13 @@ class SalesInvoiceController extends Controller
 
     public function getServices(Request $request)
     {
-        if(Auth::user()->can('create-sales-invoices') || Auth::user()->can('edit-sales-invoices')){
-            $services = ProductServiceItem::select('id', 'name', 'sku', 'description', 'long_description', 'sale_price', 'tax_ids', 'unit', 'type')
+        $canEditInvoice = Auth::user()->can('create-sales-invoices') || Auth::user()->can('edit-sales-invoices');
+        if($canEditInvoice){
+            $services = ProductServiceItem::select('id', 'name', 'sku', 'description', 'long_description', 'sale_price', 'tax_ids', 'unit', 'type', 'category_id')
                 ->where('is_active', true)
                 ->where('type', 'service')
                 ->where('created_by', creatorId())
+                ->with(['category:id,name', 'unitRelation:id,unit_name'])
                 ->get()
                 ->map(function ($service) {
                     return [
@@ -468,7 +498,10 @@ class SalesInvoiceController extends Controller
                         'description' => \App\Services\SalesLineAmounts::description($service->long_description ?: $service->description),
                         'sale_price' => $service->sale_price,
                         'unit' => $service->unit,
+                        'unit_name' => $service->unitRelation?->unit_name,
                         'type' => $service->type,
+                        'category_id' => $service->category_id,
+                        'category_name' => $service->category?->name,
                         'taxes' => $service->taxes->map(function ($tax) {
                             return [
                                 'id' => $tax->id,

@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MultiSelectEnhanced } from "@/components/ui/multi-select-enhanced";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog } from "@/components/ui/dialog";
@@ -26,8 +25,10 @@ export default function Edit() {
 
     useFlashMessages();
 
-    const { data, setData, put, processing, errors } = useForm<ItemFormData>({
+    const { data, setData, put, processing, errors, setError, clearErrors } = useForm<ItemFormData>({
         ...item,
+        warehouse_id: item.warehouse_id?.toString() || '',
+        quantity: item.quantity?.toString() || '0',
         images: item.images ? (typeof item.images === 'string' ? JSON.parse(item.images) : item.images) : []
     });
 
@@ -51,7 +52,7 @@ export default function Edit() {
     const validatePricingTab = () => {
         return data.sale_price.trim() !== '' &&
             data.purchase_price.trim() !== '' &&
-            (data.type === 'service' || data.unit !== '');
+            (data.type === 'service' || (data.unit !== '' && Number(data.quantity) >= 0));
     };
 
     const nextTab = () => {
@@ -63,6 +64,12 @@ export default function Edit() {
         }
         else if (activeTab === 'pricing') {
             if (!validatePricingTab()) {
+                if (data.type !== 'service' && !data.unit) {
+                    setError('unit', t('The unit field is required.'));
+                }
+                if (data.type !== 'service' && (data.quantity === '' || Number(data.quantity) < 0)) {
+                    setError('quantity', t('Please enter a valid stock quantity.'));
+                }
                 return;
             }
             setActiveTab('media');
@@ -113,13 +120,15 @@ export default function Edit() {
 
 
                                 <TabsContent value="details" className="space-y-6 mt-6">
-                                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                    <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                                         <div>
                                             <Label htmlFor="type">{t('Item Type (Product / Service / Part)')}</Label>
                                             <Select value={data.type || ''} onValueChange={(value) => {
                                                 setData('type', value);
                                                 if (value === 'service') {
                                                     setData('unit', '');
+                                                    setData('warehouse_id', '');
+                                                    setData('quantity', '');
                                                 }
                                             }}>
                                                 <SelectTrigger>
@@ -169,15 +178,18 @@ export default function Edit() {
                                         </div>
                                         <div>
                                             <Label htmlFor="tax_ids">{t('Tax')}</Label>
-                                            <MultiSelectEnhanced
-                                                options={taxes.map(tax => ({
-                                                    value: tax.id.toString(),
-                                                    label: `${tax.tax_name} (${tax.rate}%)`
-                                                }))}
-                                                value={data.tax_ids ? data.tax_ids.map(String) : []}
-                                                onValueChange={(value) => setData('tax_ids', value)}
-                                                placeholder={t('Select Taxes')}
-                                            />
+                                            <Select
+                                                value={data.tax_ids?.[0]?.toString() || 'none'}
+                                                onValueChange={(value) => setData('tax_ids', value === 'none' ? [] : [value])}
+                                            >
+                                                <SelectTrigger id="tax_ids"><SelectValue placeholder="_" /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="none">_</SelectItem>
+                                                    {taxes.filter(tax => !(Number(tax.rate) === 0 && tax.tax_name.trim().toLowerCase() === 'no tax')).map(tax => (
+                                                        <SelectItem key={tax.id} value={tax.id.toString()}>{tax.tax_name} ({tax.rate}%)</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                             <InputError message={errors.tax_ids} />
                                         </div>
                                         <div>
@@ -245,8 +257,7 @@ export default function Edit() {
                                         <Button
                                             type="button"
                                             onClick={nextTab}
-                                            // amazonq-ignore-next-line
-                                            disabled={!validatePricingTab()}
+                                            disabled={!validateDetailsTab()}
                                         >
                                             {t('Next')}
                                         </Button>
@@ -285,7 +296,10 @@ export default function Edit() {
                                         {data.type !== 'service' && (
                                             <div>
                                                 <Label htmlFor="unit" required>{t('Unit')}</Label>
-                                                <Select value={data.unit?.toString() || ''} onValueChange={(value) => setData('unit', value)} required>
+                                                <Select value={data.unit?.toString() || ''} onValueChange={(value) => {
+                                                    setData('unit', value);
+                                                    clearErrors('unit');
+                                                }} required>
                                                     <SelectTrigger>
                                                         <SelectValue placeholder={t('Select Unit')} />
                                                     </SelectTrigger>
@@ -298,6 +312,53 @@ export default function Edit() {
                                                     </SelectContent>
                                                 </Select>
                                                 <InputError message={errors.unit} />
+                                            </div>
+                                        )}
+                                        {data.type !== 'service' && (
+                                            <div>
+                                                <Label htmlFor="warehouse_id">{t('Warehouse')}</Label>
+                                                <Select
+                                                    value={data.warehouse_id || ''}
+                                                    onValueChange={(value) => {
+                                                        const stock = item.warehouse_stocks?.find(entry => entry.warehouse_id.toString() === value);
+                                                        setData(previous => ({
+                                                            ...previous,
+                                                            warehouse_id: value,
+                                                            quantity: String(stock?.quantity ?? 0),
+                                                        }));
+                                                        clearErrors('warehouse_id', 'quantity');
+                                                    }}
+                                                >
+                                                    <SelectTrigger id="warehouse_id">
+                                                        <SelectValue placeholder={t('Select Warehouse')} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {warehouses.map((warehouse) => (
+                                                            <SelectItem key={warehouse.id} value={warehouse.id.toString()}>
+                                                                {warehouse.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <InputError message={errors.warehouse_id} />
+                                            </div>
+                                        )}
+                                        {data.type !== 'service' && (
+                                            <div>
+                                                <Label htmlFor="quantity" required>{t('Stock Quantity')}</Label>
+                                                <Input
+                                                    id="quantity"
+                                                    type="number"
+                                                    min="0"
+                                                    step="1"
+                                                    value={data.quantity || '0'}
+                                                    onChange={(e) => {
+                                                        setData('quantity', e.target.value);
+                                                        if (e.target.value !== '' && Number(e.target.value) >= 0) clearErrors('quantity');
+                                                    }}
+                                                    required
+                                                />
+                                                <InputError message={errors.quantity} />
                                             </div>
                                         )}
                                     </div>

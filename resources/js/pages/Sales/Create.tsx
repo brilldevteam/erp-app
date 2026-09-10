@@ -6,7 +6,8 @@ import { useFormFields } from '@/hooks/useFormFields';
 import { InvoiceCustomerOption, InvoiceTaxOption, SalesInvoiceItem } from './types';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import InvoiceItemsTable from './components/InvoiceItemsTable';
-import { useTaxCalculator } from './components/TaxCalculator';
+import ProductPickerDialog, { QuotationProduct } from '@/components/product-picker-dialog';
+import { calculateLineItemAmounts, useTaxCalculator } from './components/TaxCalculator';
 import { formatCurrency } from '@/utils/helpers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +26,12 @@ interface CreateProps {
     taxes: InvoiceTaxOption[];
     warehouses: Array<{ id: number; name: string; address: string }>;
     documentTemplates: Array<{ id: number; name: string; is_default: boolean }>;
+    productCatalog: {
+        categories: Array<{ id: number; name: string }>;
+        units: Array<{ id: number; unit_name: string }>;
+        taxes: Array<{ id: number; tax_name: string; rate: number }>;
+    };
+    auth: { user: { permissions?: string[] } };
     initialProducts?: Array<{
         id: number;
         name: string;
@@ -55,11 +62,13 @@ interface CreateProps {
 
 export default function Create() {
     const { t } = useTranslation();
-    const { customers, taxes = [], warehouses, documentTemplates = [], initialInvoice, initialProducts = [] } = usePage<CreateProps>().props;
-    const [availableProducts, setAvailableProducts] = useState<any[]>(initialProducts);
+    const { customers, taxes = [], warehouses, documentTemplates = [], productCatalog, auth, initialInvoice, initialProducts = [] } = usePage<CreateProps>().props;
+    const [availableProducts, setAvailableProducts] = useState<QuotationProduct[]>(initialProducts);
+    const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
+    const [productsLoading, setProductsLoading] = useState(false);
 
     useFlashMessages();
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors, clearErrors } = useForm({
         quotation_id: initialInvoice?.quotation_id ?? null,
         invoice_date: initialInvoice?.invoice_date ?? new Date().toISOString().split('T')[0],
         due_date: initialInvoice?.due_date ?? '',
@@ -100,20 +109,46 @@ export default function Create() {
 
     const loadAvailableProducts = async (type: string, warehouseId: string) => {
         try {
+            setProductsLoading(true);
             const url = type === 'service'
                 ? route('sales-invoices.services')
                 : route('sales-invoices.warehouse.products') + (warehouseId ? `?warehouse_id=${warehouseId}` : '');
             const response = await fetch(url);
+            if (!response.ok) throw new Error(`Invoice item request failed with status ${response.status}`);
             setAvailableProducts(mergeInitialProducts(await response.json()));
         } catch (error) {
             console.error('Failed to fetch invoice items:', error);
             setAvailableProducts(initialProducts);
+        } finally {
+            setProductsLoading(false);
         }
+    };
+
+    const addProducts = (products: QuotationProduct[]) => {
+        const selectedItems = products.map(product => {
+            const taxPercentage = product.taxes?.reduce((sum, tax) => sum + Number(tax.rate), 0) || 0;
+            const price = Number(product.sale_price) || 0;
+            const amounts = calculateLineItemAmounts(1, price, 0, taxPercentage, 'percentage', 0);
+            return {
+                product_id: product.id, quantity: 1, unit_price: price, description: product.description || '',
+                discount_type: 'percentage' as const, discount_value: 0, discount_percentage: 0,
+                discount_amount: amounts.discountAmount, tax_percentage: taxPercentage,
+                tax_amount: amounts.taxAmount, total_amount: amounts.totalAmount,
+                taxes: product.taxes?.map(tax => ({ id: tax.id, tax_name: tax.tax_name, tax_rate: Number(tax.rate) })) || [],
+            } as SalesInvoiceItem;
+        });
+        setData(current => ({
+            ...current,
+            items: [...current.items.filter(item => item.product_id > 0), ...selectedItems],
+        }));
+        const productErrors = Object.keys(errors).filter(key => /^items\.\d+\.product_id$/.test(key));
+        if (productErrors.length) clearErrors(...productErrors as any);
     };
 
     const handleWarehouseChange = async (value: string, resetItems = true) => {
         const warehouseId = value === 'none' ? '' : value;
         setData('warehouse_id', warehouseId);
+        clearErrors('warehouse_id');
         await loadAvailableProducts('product', warehouseId);
 
         if (resetItems) {
@@ -238,7 +273,10 @@ export default function Create() {
                                     <DatePicker
                                         id="invoice_date"
                                         value={data.invoice_date}
-                                        onChange={(value) => setData('invoice_date', value)}
+                                        onChange={(value) => {
+                                            setData('invoice_date', value);
+                                            if (value) clearErrors('invoice_date');
+                                        }}
                                         required
                                     />
                                     <InputError message={errors.invoice_date} />
@@ -251,7 +289,10 @@ export default function Create() {
                                     <DatePicker
                                         id="due_date"
                                         value={data.due_date}
-                                        onChange={(value) => setData('due_date', value)}
+                                        onChange={(value) => {
+                                            setData('due_date', value);
+                                            if (value) clearErrors('due_date');
+                                        }}
                                         required
                                     />
                                     <InputError message={errors.due_date} />
@@ -261,16 +302,19 @@ export default function Create() {
                                     <Label htmlFor="customer_id" required>
                                         {t('Customer')}
                                     </Label>
-                                    <Select value={data.customer_id} onValueChange={(value) => setData('customer_id', value)}>
+                                    <Select value={data.customer_id} onValueChange={(value) => {
+                                        setData('customer_id', value);
+                                        if (value) clearErrors('customer_id');
+                                    }}>
                                         <SelectTrigger>
                                             <SelectValue placeholder={t('Select Customer')} />
                                         </SelectTrigger>
                                         <SelectContent searchable>
                                             {customers.map((customer) => (
                                                 <SelectItem key={customer.id} value={customer.id.toString()}>
-                                                    {customer.company_name
-                                                        ? `${customer.company_name} — ${customer.contact_person_name || customer.name}`
-                                                        : `${customer.name} — ${customer.email}`}
+                                                    {customer.company_name || customer.name}
+                                                    {customer.contact_person_name && customer.contact_person_name !== customer.company_name ? ` — ${customer.contact_person_name}` : ''}
+                                                    {customer.email ? ` — ${customer.email}` : ''}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
@@ -305,7 +349,10 @@ export default function Create() {
                                     <Label htmlFor="document_template_id">
                                         {t('Template')}
                                     </Label>
-                                    <Select value={data.document_template_id || 'default'} onValueChange={(value) => setData('document_template_id', value === 'default' ? '' : value)}>
+                                    <Select value={data.document_template_id || 'default'} onValueChange={(value) => {
+                                        setData('document_template_id', value === 'default' ? '' : value);
+                                        clearErrors('document_template_id');
+                                    }}>
                                         <SelectTrigger>
                                             <SelectValue placeholder={t('Default Template')} />
                                         </SelectTrigger>
@@ -337,7 +384,10 @@ export default function Create() {
 
                                 <div>
                                     <Label htmlFor="subject">{t('Subject')}</Label>
-                                    <Input id="subject" value={data.subject} onChange={(e) => setData('subject', e.target.value)} placeholder={t('e.g., Event Coverage')} />
+                                    <Input id="subject" value={data.subject} onChange={(e) => {
+                                        setData('subject', e.target.value);
+                                        if (e.target.value.trim()) clearErrors('subject');
+                                    }} placeholder={t('e.g., Event Coverage')} />
                                     <InputError message={errors.subject} />
                                 </div>
 
@@ -413,26 +463,11 @@ export default function Create() {
                                 </CardTitle>
                                 <Button
                                     type="button"
-                                    onClick={() => {
-                                        const newItem = {
-                                            product_id: 0,
-                                            quantity: 1,
-                                            unit_price: 0,
-                                            description: '',
-                                            discount_type: 'percentage' as const,
-                                            discount_value: 0,
-                                            discount_percentage: 0,
-                                            discount_amount: 0,
-                                            tax_percentage: 0,
-                                            tax_amount: 0,
-                                            total_amount: 0
-                                        };
-                                        setData('items', [...data.items, newItem]);
-                                    }}
+                                    onClick={() => setIsProductPickerOpen(true)}
                                     variant="default"
                                     size="sm"
                                 >
-                                    + {t('Add Item')}
+                                    + {t(data.type === 'service' ? 'Add Service' : 'Add Product')}
                                 </Button>
                             </div>
                         </CardHeader>
@@ -445,6 +480,7 @@ export default function Create() {
                                 taxTypes={taxes}
                                 showAddButton={false}
                                 invoiceType={data.type}
+                                onClearError={(field) => clearErrors(field as any)}
                             />
 
                             <div className="mt-6 flex justify-end">
@@ -473,6 +509,23 @@ export default function Create() {
                             </div>
                         </CardContent>
                     </Card>
+
+                    <ProductPickerDialog
+                        open={isProductPickerOpen}
+                        onOpenChange={setIsProductPickerOpen}
+                        products={availableProducts}
+                        categories={productCatalog?.categories || []}
+                        units={productCatalog?.units || []}
+                        taxes={productCatalog?.taxes || taxes}
+                        warehouses={warehouses}
+                        warehouseId={data.warehouse_id}
+                        defaultProductType={data.type}
+                        catalogMode={data.type === 'service' ? 'service' : 'stock'}
+                        canCreateProduct={auth.user.permissions?.includes('create-product-service-item') || false}
+                        loading={productsLoading}
+                        onAdd={addProducts}
+                        onProductCreated={product => setAvailableProducts(current => [...current, product])}
+                    />
 
 
 

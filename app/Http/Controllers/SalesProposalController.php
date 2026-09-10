@@ -162,7 +162,7 @@ class SalesProposalController extends Controller
                 return redirect()->route('sales-proposals.index')->with('error', __('Permission denied'));
             }
 
-            $salesProposal->load(['customer', 'items.product', 'items.taxes', 'warehouse']);
+            $salesProposal->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'warehouse']);
 
             return Inertia::render('SalesProposals/View', [
                 'proposal' => $salesProposal
@@ -428,7 +428,7 @@ class SalesProposalController extends Controller
     public function print(SalesProposal $salesProposal)
     {
         if(Auth::user()->can('print-sales-proposals')){
-            $salesProposal->load(['customer', 'items.product', 'items.taxes', 'warehouse']);
+            $salesProposal->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'warehouse']);
 
             return Inertia::render('SalesProposals/Print', [
                 'proposal' => $salesProposal

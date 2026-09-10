@@ -160,7 +160,7 @@ export default function Show() {
                                                     ))}
                                                 </div>
                                             ) : (
-                                                <p className="text-lg text-gray-900">-</p>
+                                                <p className="text-lg text-gray-900">_</p>
                                             )}
                                         </div>
                                     </div>
@@ -243,5 +243,4 @@ export default function Show() {
         </AuthenticatedLayout>
     );
 }
-
 

@@ -76,7 +76,7 @@ class QuotationController extends Controller
 
             $perPage    = $request->get('per_page', 15);
             $quotations = $query->paginate($perPage);
-            $customers  = User::where('type', 'client')->select('id', 'name', 'email')->where('created_by', creatorId())->get();
+            $customers  = $this->quotationCustomers();
 
             return Inertia::render('Quotation/Quotations/Index', [
                 'quotations' => $quotations,
@@ -91,7 +91,7 @@ class QuotationController extends Controller
     public function create()
     {
         if (Auth::user()->can('create-quotations')) {
-            $customers  = User::where('type', 'client')->select('id', 'name', 'email')->where('created_by', creatorId())->get();
+            $customers  = $this->quotationCustomers();
             $warehouses = Warehouse::where('is_active', true)->select('id', 'name', 'address')->where('created_by', creatorId())->get();
             $customerUsers = User::where('type', 'client')
                 ->where('created_by', creatorId())
@@ -184,7 +184,7 @@ class QuotationController extends Controller
             }
 
             $quotation->load(['items.taxes']);
-            $customers  = User::where('type', 'client')->select('id', 'name', 'email')->where('created_by', creatorId())->get();
+            $customers  = $this->quotationCustomers();
             $warehouses = Warehouse::where('is_active', true)->select('id', 'name', 'address')->where('created_by', creatorId())->get();
 
             return Inertia::render('Quotation/Quotations/Edit', [
@@ -307,6 +307,27 @@ class QuotationController extends Controller
             ->orderByDesc('is_default')
             ->orderBy('name')
             ->get(['id', 'name', 'is_default']);
+    }
+
+    private function quotationCustomers()
+    {
+        return Customer::query()
+            ->join('users', 'users.id', '=', 'customers.user_id')
+            ->where('customers.created_by', creatorId())
+            ->where('users.type', 'client')
+            ->orderBy('customers.company_name')
+            ->get([
+                'users.id',
+                'users.name as user_name',
+                'customers.company_name',
+                'customers.contact_person_name',
+                'customers.contact_person_email',
+            ])
+            ->map(fn ($customer) => [
+                'id' => $customer->id,
+                'name' => $customer->company_name ?: ($customer->contact_person_name ?: $customer->user_name),
+                'email' => $customer->contact_person_email ?: null,
+            ]);
     }
 
     private function productCatalog(): array
@@ -498,10 +519,7 @@ class QuotationController extends Controller
             fn ($item) => $item->product?->type === 'service'
         ) ? 'service' : 'product';
 
-        $customers = User::where('type', 'client')
-            ->select('id', 'name', 'email')
-            ->where('created_by', creatorId())
-            ->get();
+        $customers = $this->quotationCustomers();
         $warehouses = Warehouse::where('is_active', true)
             ->select('id', 'name', 'address')
             ->where('created_by', creatorId())
@@ -511,6 +529,8 @@ class QuotationController extends Controller
             'customers' => $customers,
             'warehouses' => $warehouses,
             'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_INVOICE),
+            'productCatalog' => $this->productCatalog(),
+            'taxes' => ProductServiceTax::where('created_by', creatorId())->orderBy('tax_name')->get(['id', 'tax_name', 'rate']),
             'initialProducts' => $quotation->items
                 ->filter(fn ($item) => $item->product)
                 ->unique('product_id')

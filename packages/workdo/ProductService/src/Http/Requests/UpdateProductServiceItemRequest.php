@@ -3,6 +3,7 @@
 namespace Workdo\ProductService\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateProductServiceItemRequest extends FormRequest
 {
@@ -16,18 +17,19 @@ class UpdateProductServiceItemRequest extends FormRequest
         return [
             'name' => 'required|string|max:255',
             'sku' => 'required|string|max:255',
-            'tax_ids' => 'nullable|array',
-            'category_id' => 'required|exists:product_service_categories,id',
+            'tax_ids' => 'nullable|array|max:1',
+            'tax_ids.*' => ['integer', Rule::exists('product_service_taxes', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
+            'category_id' => ['required', Rule::exists('product_service_categories', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
             'description' => 'nullable|string',
             'long_description' => 'nullable|string',
             'sale_price' => 'required|numeric|min:0',
             'purchase_price' => 'required|numeric|min:0',
-            'unit' => 'nullable|string|required_unless:type,service',
+            'unit' => ['nullable', 'required_unless:type,service', Rule::exists('product_service_units', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
             'quantity' => 'nullable|integer|min:0',
             'image' => 'nullable|string',
             'images' => 'nullable|array',
-            'warehouse_id' => 'nullable|exists:warehouses,id',
-            'type' => 'nullable|string|max:255',
+            'warehouse_id' => ['nullable', Rule::exists('warehouses', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
+            'type' => 'nullable|in:product,service,part',
         ];
     }
 }

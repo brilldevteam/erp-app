@@ -93,8 +93,8 @@ export default function Print() {
                     <div className="w-1/2">
                         <h3 className="font-bold mb-3">{t('BILL TO')}</h3>
                         <div className="text-sm space-y-1">
-                            <p className="font-semibold">{retainer.customer?.name}</p>
-                            <p>{retainer.customer?.email}</p>
+                            <p className="font-semibold">{retainer.customer_details?.company_name || retainer.customer?.name || '-'}</p>
+                            {retainer.customer_details?.contact_person_email && <p>{retainer.customer_details.contact_person_email}</p>}
                             {retainer.customer_details?.billing_address && (
                                 <AddressDisplay address={retainer.customer_details.billing_address} />
                             )}

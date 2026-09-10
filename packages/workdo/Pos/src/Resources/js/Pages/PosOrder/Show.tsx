@@ -40,6 +40,7 @@ interface PosSale {
         email?: string;
         phone?: string;
     };
+    customer_details?: { company_name?: string; contact_person_email?: string | null; contact_person_mobile?: string | null };
     warehouse?: {
         name: string;
     };
@@ -125,10 +126,12 @@ export default function Show() {
                             <div>
                                 <h3 className="font-semibold mb-2">{t('CUSTOMER')}</h3>
                                 <div className="text-sm space-y-1">
-                                    <div className="font-medium">{sale.customer?.name || t('Walk-in Customer')}</div>
-                                    <div className="text-muted-foreground">{sale.customer?.email || '-'}</div>
-                                    {sale.customer?.phone && (
-                                        <div className="text-muted-foreground">{sale.customer.phone}</div>
+                                    <div className="font-medium">{sale.customer_details?.company_name || sale.customer?.name || t('Walk-in Customer')}</div>
+                                    {sale.customer_details?.contact_person_email && (
+                                        <div className="text-muted-foreground">{sale.customer_details.contact_person_email}</div>
+                                    )}
+                                    {sale.customer_details?.contact_person_mobile && (
+                                        <div className="text-muted-foreground">{sale.customer_details.contact_person_mobile}</div>
                                     )}
                                 </div>
                                 <div className="mt-3">

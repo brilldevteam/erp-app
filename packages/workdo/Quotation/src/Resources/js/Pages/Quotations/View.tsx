@@ -78,8 +78,10 @@ export default function View() {
                             <div>
                                 <h3 className="font-semibold mb-2">{t('CUSTOMER')}</h3>
                                 <div className="text-sm space-y-1">
-                                    <div className="font-medium">{quotation.customer?.name}</div>
-                                    <div className="text-muted-foreground">{quotation.customer?.email}</div>
+                                    <div className="font-medium">{quotation.customer_details?.company_name || quotation.customer?.name || '-'}</div>
+                                    {quotation.customer_details?.contact_person_email && (
+                                        <div className="text-muted-foreground">{quotation.customer_details.contact_person_email}</div>
+                                    )}
                                 </div>
                                 {quotation.customer_details?.billing_address && (
                                     <div className="mt-3">

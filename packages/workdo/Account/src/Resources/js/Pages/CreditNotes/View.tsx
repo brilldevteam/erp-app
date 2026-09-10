@@ -16,6 +16,7 @@ interface CreditNote {
         name: string;
         email: string;
     };
+    customer_details?: { company_name?: string; contact_person_email?: string | null };
     total_amount: number;
     applied_amount: number;
     balance_amount: number;
@@ -109,8 +110,10 @@ function View() {
                             <div>
                                 <h3 className="font-semibold mb-2">{t('CUSTOMER')}</h3>
                                 <div className="text-sm space-y-1">
-                                    <div className="font-medium">{creditNote.customer?.name}</div>
-                                    <div className="text-muted-foreground">{creditNote.customer?.email}</div>
+                                    <div className="font-medium">{creditNote.customer_details?.company_name || creditNote.customer?.name || '-'}</div>
+                                    {creditNote.customer_details?.contact_person_email && (
+                                        <div className="text-muted-foreground">{creditNote.customer_details.contact_person_email}</div>
+                                    )}
                                 </div>
                             </div>
 

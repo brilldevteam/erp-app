@@ -17,7 +17,7 @@ class StoreProductServiceItemRequest extends FormRequest
         return [
             'name' => 'required|string|max:255',
             'sku' => 'required|string|max:255',
-            'tax_ids' => 'nullable|array',
+            'tax_ids' => 'nullable|array|max:1',
             'tax_ids.*' => ['integer', Rule::exists('product_service_taxes', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
             'category_id' => ['required', Rule::exists('product_service_categories', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
             'description' => 'nullable|string',

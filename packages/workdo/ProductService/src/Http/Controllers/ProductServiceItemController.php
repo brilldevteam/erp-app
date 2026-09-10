@@ -107,11 +107,12 @@ class ProductServiceItemController extends Controller
 
             $item->save();
 
-            // Create warehouse stock entry if warehouse and quantity are provided
-            if (isset($validated['warehouse_id']) && $validated['warehouse_id'] !== 'none' && isset($validated['quantity'])) {
+            // Products always need a stock location, even when the warehouse field is omitted.
+            $warehouseId = $this->resolveStockWarehouseId($validated['warehouse_id'] ?? null, $item->type);
+            if ($warehouseId && isset($validated['quantity'])) {
                 WarehouseStock::create([
                     'product_id' => $item->id,
-                    'warehouse_id' => $validated['warehouse_id'],
+                    'warehouse_id' => $warehouseId,
                     'quantity' => $validated['quantity'] ?? 0,
                 ]);
             }
@@ -193,7 +194,10 @@ class ProductServiceItemController extends Controller
             $warehouses = Warehouse::where('is_active', true)->where('created_by', creatorId())->get(['id', 'name']);
 
             // Load the item with all necessary fields
-            $item->load(['category', 'unitRelation']);
+            $item->load(['category', 'unitRelation', 'warehouseStocks:product_id,warehouse_id,quantity']);
+            $firstStock = $item->warehouseStocks->first();
+            $item->setAttribute('warehouse_id', $firstStock?->warehouse_id);
+            $item->setAttribute('quantity', $firstStock?->quantity ?? 0);
 
             return Inertia::render('ProductService/Items/Edit', [
                 'item' => $item,
@@ -241,12 +245,14 @@ class ProductServiceItemController extends Controller
 
             $item->save();
 
-            // Update warehouse stock if warehouse is selected
-            if ($item->warehouse_id && isset($validated['quantity'])) {
+            // Use the selected warehouse, or the company's default active warehouse when omitted.
+            $warehouseId = $this->resolveStockWarehouseId($validated['warehouse_id'] ?? null, $item->type);
+
+            if ($item->type !== 'service' && $warehouseId && isset($validated['quantity'])) {
                 WarehouseStock::updateOrCreate(
                     [
                         'product_id' => $item->id,
-                        'warehouse_id' => $item->warehouse_id,
+                        'warehouse_id' => $warehouseId,
                     ],
                     [
                         'quantity' => $validated['quantity'],
@@ -260,6 +266,39 @@ class ProductServiceItemController extends Controller
             return redirect()->route('product-service.items.index')->with('success', __('The item details are updated successfully.'));
         }
         return redirect()->route('product-service.items.index')->with('error', __('Permission denied'));
+    }
+
+    private function resolveStockWarehouseId(mixed $warehouseId, ?string $itemType): ?int
+    {
+        if ($itemType === 'service') {
+            return null;
+        }
+
+        if (!empty($warehouseId) && $warehouseId !== 'none') {
+            return (int) $warehouseId;
+        }
+
+        $existingWarehouseId = Warehouse::where('created_by', creatorId())
+            ->where('is_active', true)
+            ->value('id');
+
+        if ($existingWarehouseId) {
+            return (int) $existingWarehouseId;
+        }
+
+        $warehouse = Warehouse::create([
+            'name' => __('Main Warehouse'),
+            'address' => company_setting('company_address', creatorId()) ?: '-',
+            'city' => company_setting('company_city', creatorId()) ?: '-',
+            'zip_code' => company_setting('company_zipcode', creatorId()) ?: '-',
+            'phone' => company_setting('company_telephone', creatorId()) ?: null,
+            'email' => company_setting('company_email', creatorId()) ?: null,
+            'is_active' => true,
+            'creator_id' => Auth::id(),
+            'created_by' => creatorId(),
+        ]);
+
+        return (int) $warehouse->id;
     }
 
     public function destroy(ProductServiceItem $item)

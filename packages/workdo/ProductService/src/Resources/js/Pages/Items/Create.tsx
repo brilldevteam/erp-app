@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MultiSelectEnhanced } from "@/components/ui/multi-select-enhanced";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog } from "@/components/ui/dialog";
@@ -187,15 +186,18 @@ export default function Create() {
                                         </div>
                                         <div>
                                             <Label htmlFor="tax_ids">{t('Tax')}</Label>
-                                            <MultiSelectEnhanced
-                                                options={taxes.map(tax => ({
-                                                    value: tax.id.toString(),
-                                                    label: `${tax.tax_name} (${tax.rate}%)`
-                                                }))}
-                                                value={data.tax_ids}
-                                                onValueChange={(value) => setData('tax_ids', value)}
-                                                placeholder={t('Select Taxes')}
-                                            />
+                                            <Select
+                                                value={data.tax_ids[0] || 'none'}
+                                                onValueChange={(value) => setData('tax_ids', value === 'none' ? [] : [value])}
+                                            >
+                                                <SelectTrigger id="tax_ids"><SelectValue placeholder="_" /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="none">_</SelectItem>
+                                                    {taxes.filter(tax => !(Number(tax.rate) === 0 && tax.tax_name.trim().toLowerCase() === 'no tax')).map(tax => (
+                                                        <SelectItem key={tax.id} value={tax.id.toString()}>{tax.tax_name} ({tax.rate}%)</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                             <InputError message={errors.tax_ids} />
                                         </div>
                                         <div>

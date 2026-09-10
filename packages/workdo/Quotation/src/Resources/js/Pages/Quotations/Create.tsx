@@ -5,7 +5,7 @@ import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { QuotationItem } from './types';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import QuotationItemsTable from './components/QuotationItemsTable';
-import ProductPickerDialog, { QuotationProduct } from './components/ProductPickerDialog';
+import ProductPickerDialog, { QuotationProduct } from '@/components/product-picker-dialog';
 import { useTaxCalculator } from './components/TaxCalculator';
 import { formatCurrency } from '@/utils/helpers';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,7 @@ import CreateCustomer from '../../../../../../Account/src/Resources/js/Pages/Cus
 import CreateWarehouse from '@/pages/warehouses/create';
 
 interface CreateProps {
-    customers: Array<{id: number; name: string; email: string}>;
+    customers: Array<{id: number; name: string; email?: string | null}>;
     customerUsers: Array<{id: number; name: string; email: string; mobile_no?: string}>;
     warehouses: Array<{id: number; name: string; address: string}>;
     documentTemplates: Array<{ id: number; name: string; is_default: boolean }>;
@@ -53,7 +53,7 @@ export default function Create() {
     const addWarehouseValue = 'add-new-warehouse';
 
     useFlashMessages();
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors, clearErrors } = useForm({
         invoice_date: new Date().toISOString().split('T')[0],
         due_date: '',
         customer_id: '',
@@ -120,8 +120,12 @@ export default function Create() {
                 total_amount: (Number(product.sale_price) || 0) * (1 + taxPercentage / 100),
             } as QuotationItem;
         });
-        const retainedItems = data.items.filter(item => item.product_id > 0);
-        setData('items', [...retainedItems, ...selectedItems]);
+        setData(current => ({
+            ...current,
+            items: [...current.items.filter(item => item.product_id > 0), ...selectedItems],
+        }));
+        const productErrors = Object.keys(errors).filter(key => /^items\.\d+\.product_id$/.test(key));
+        if (productErrors.length) clearErrors(...productErrors as any);
     };
 
     useEffect(() => {
@@ -233,7 +237,7 @@ export default function Create() {
                                         <SelectContent searchable>
                                             {customers.map((customer) => (
                                                 <SelectItem key={customer.id} value={customer.id.toString()}>
-                                                    {customer.name} - {customer.email}
+                                                    {customer.name}{customer.email ? ` - ${customer.email}` : ''}
                                                 </SelectItem>
                                             ))}
                                             {auth.user.permissions?.includes('create-customers') && (
@@ -359,6 +363,7 @@ export default function Create() {
                                 errors={errors}
                                 products={availableProducts}
                                 showAddButton={false}
+                                onClearError={(field) => clearErrors(field as any)}
                             />
 
                             <div className="mt-6 flex justify-end">

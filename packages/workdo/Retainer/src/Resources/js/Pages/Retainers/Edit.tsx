@@ -138,7 +138,7 @@ export default function Edit() {
                                         <SelectContent searchable>
                                             {customers.map((customer) => (
                                                 <SelectItem key={customer.id} value={customer.id.toString()}>
-                                                    {customer.name} - {customer.email}
+                                                    {customer.name}{customer.email && !customer.email.endsWith('@import.local') ? ` - ${customer.email}` : ''}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
