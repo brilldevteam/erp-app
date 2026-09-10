@@ -7,6 +7,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Workdo\DoubleEntry\Services\ProfitLossService;
+use Workdo\DoubleEntry\Services\AccountingReportExcelExportService;
 
 class ProfitLossController extends Controller
 {
@@ -51,5 +52,21 @@ class ProfitLossController extends Controller
         else{
             return back()->with('error', __('Permission denied'));
         }
+    }
+
+    public function excel(Request $request, AccountingReportExcelExportService $exporter)
+    {
+        abort_unless(Auth::user()->can('print-profit-loss'), 403);
+        $filters = $request->validate(['from_date' => ['required', 'date'], 'to_date' => ['required', 'date', 'after_or_equal:from_date']]);
+        $report = $this->profitLossService->generateProfitLoss($filters['from_date'], $filters['to_date']);
+        $rows = [];
+        foreach ($report['revenue'] as $account) $rows[] = [__('Revenue'), $account->account_code, $account->account_name, (float) $account->balance];
+        $rows[] = [__('Total Revenue'), '', '', (float) $report['total_revenue']];
+        foreach ($report['expenses'] as $account) $rows[] = [__('Expense'), $account->account_code, $account->account_name, (float) $account->balance];
+        $rows[] = [__('Total Expenses'), '', '', (float) $report['total_expenses']];
+        $rows[] = [__('Net Profit'), '', '', (float) $report['net_profit']];
+        $path = $exporter->create(__('Profit & Loss'), [__('Period') => $filters['from_date'].' to '.$filters['to_date']],
+            [__('Section'), __('Account Code'), __('Account Name'), __('Amount')], $rows, ['D']);
+        return response()->download($path, 'profit-loss-'.$filters['from_date'].'-to-'.$filters['to_date'].'.xlsx')->deleteFileAfterSend(true);
     }
 }

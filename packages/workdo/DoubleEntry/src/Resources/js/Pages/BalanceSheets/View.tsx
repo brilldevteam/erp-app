@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, FileText, Printer, Plus, GitCompare, LayoutGrid, Columns, Trash2, Calendar } from "lucide-react";
+import { CheckCircle, FileText, Plus, GitCompare, LayoutGrid, Columns, Trash2, Calendar } from "lucide-react";
+import { AccountingReportDownloadMenu } from '@/components/accounting-report-download-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
@@ -301,13 +302,10 @@ export default function View() {
                                     </Button>
                                 )}
                                 {auth.user?.permissions?.includes('print-balance-sheets') && (
-                                    <Button variant="outline" size="sm" onClick={() => {
-                                        const printUrl = route('double-entry.balance-sheets.print', balanceSheet.id) + '?download=pdf';
-                                        window.open(printUrl, '_blank');
-                                    }}>
-                                        <Printer className="h-4 w-4 mr-2" />
-                                        {t('Download PDF')}
-                                    </Button>
+                                    <AccountingReportDownloadMenu
+                                        onPdf={() => window.open(route('double-entry.balance-sheets.print', balanceSheet.id) + '?download=pdf', '_blank')}
+                                        onExcel={() => { window.location.href = route('double-entry.balance-sheets.excel', balanceSheet.id); }}
+                                    />
                                 )}
                                 {auth.user?.permissions?.includes('finalize-balance-sheets') &&
                                  balanceSheet.status === 'draft' &&

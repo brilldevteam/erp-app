@@ -34,6 +34,11 @@ class JournalEntry extends Model
         return $this->hasMany(JournalEntryItem::class);
     }
 
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(JournalEntryAttachment::class);
+    }
+
     public function isBalanced(): bool
     {
         return $this->total_debit == $this->total_credit;

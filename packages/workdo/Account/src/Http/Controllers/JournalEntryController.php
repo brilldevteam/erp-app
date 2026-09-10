@@ -76,22 +76,30 @@ class JournalEntryController extends Controller
         $totalDebit = round($items->sum('debit_amount'), 2);
         $totalCredit = round($items->sum('credit_amount'), 2);
 
-        DB::transaction(function () use ($validated, $items, $totalDebit, $totalCredit) {
-            $journalEntry = JournalEntry::create([
-                'journal_date' => $validated['journal_date'],
-                'entry_type' => 'manual',
-                'reference_type' => $validated['reference_type'] ?: 'Manual Journal',
-                'reference_id' => null,
-                'description' => $validated['description'],
-                'total_debit' => $totalDebit,
-                'total_credit' => $totalCredit,
-                'status' => 'posted',
-                'creator_id' => Auth::id(),
-                'created_by' => creatorId(),
-            ]);
+        $paths = [];
+        $documents = new \Workdo\Account\Services\JournalAttachmentService();
+        try {
+            DB::transaction(function () use ($validated, $items, $totalDebit, $totalCredit, $request, $documents, &$paths) {
+                $journalEntry = JournalEntry::create([
+                    'journal_date' => $validated['journal_date'],
+                    'entry_type' => 'manual',
+                    'reference_type' => $validated['reference_type'] ?: 'Manual Journal',
+                    'reference_id' => null,
+                    'description' => $validated['description'],
+                    'total_debit' => $totalDebit,
+                    'total_credit' => $totalCredit,
+                    'status' => 'posted',
+                    'creator_id' => Auth::id(),
+                    'created_by' => creatorId(),
+                ]);
 
-            $journalEntry->items()->createMany($items->toArray());
-        });
+                $journalEntry->items()->createMany($items->toArray());
+                $documents->store($journalEntry, $request->file('attachments', []), $paths);
+            });
+        } catch (\Throwable $exception) {
+            $documents->cleanup($paths);
+            throw $exception;
+        }
 
         return redirect()->route('account.journal-entries.index')->with('success', __('Journal entry recorded successfully.'));
     }
@@ -107,7 +115,9 @@ class JournalEntryController extends Controller
         }
 
         return Inertia::render('Account/JournalEntries/View', [
-            'journalEntry' => $journalEntry->load(['items.account']),
+            'journalEntry' => $journalEntry->load(['items.account', 'attachments.uploader:id,name']),
+            'canAttach' => Auth::user()->can('create-journal-entries'),
+            'canRemoveAttachment' => Auth::user()->can('delete-journal-entries'),
         ]);
     }
 
@@ -121,7 +131,9 @@ class JournalEntryController extends Controller
             return redirect()->route('account.journal-entries.index')->with('error', __('Permission denied'));
         }
 
+        $paths = $journalEntry->attachments()->withTrashed()->pluck('file_path')->all();
         $journalEntry->delete();
+        (new \Workdo\Account\Services\JournalAttachmentService())->cleanup($paths);
 
         return redirect()->route('account.journal-entries.index')->with('success', __('Journal entry deleted successfully.'));
     }

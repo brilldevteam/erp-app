@@ -10,7 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Input } from '@/components/ui/input';
-import { Plus, Eye, Trash2, FileText, CheckCircle, GitCompare, Calendar, Download } from "lucide-react";
+import { Plus, Eye, Trash2, FileText, CheckCircle, GitCompare, Calendar, Download, FileSpreadsheet, Printer } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FilterButton } from '@/components/ui/filter-button';
 import { Pagination } from "@/components/ui/pagination";
@@ -164,24 +165,26 @@ export default function Index() {
                             </Tooltip>
                         )}
                         {auth.user?.permissions?.includes('print-balance-sheets') && (
-                            <Tooltip delayDuration={0}>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => {
-                                            const printUrl = route('double-entry.balance-sheets.print', balanceSheet.id) + '?download=pdf';
-                                            window.open(printUrl, '_blank');
-                                        }}
-                                        className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
-                                    >
-                                        <Download className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t('Download PDF')}</p>
-                                </TooltipContent>
-                            </Tooltip>
+                            <DropdownMenu>
+                                <Tooltip delayDuration={0}>
+                                    <TooltipTrigger asChild>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700">
+                                                <Download className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>{t('Download')}</p></TooltipContent>
+                                </Tooltip>
+                                <DropdownMenuContent align="end" className="min-w-[190px]">
+                                    <DropdownMenuItem onSelect={() => window.open(route('double-entry.balance-sheets.print', balanceSheet.id) + '?download=pdf', '_blank')}>
+                                        <Printer className="h-4 w-4" /> {t('Download as PDF')}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => { window.location.href = route('double-entry.balance-sheets.excel', balanceSheet.id); }}>
+                                        <FileSpreadsheet className="h-4 w-4" /> {t('Download as Excel')}
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         )}
                         {auth.user?.permissions?.includes('view-balance-sheets') && (
                             <Tooltip delayDuration={0}>

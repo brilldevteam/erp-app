@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Workdo\DoubleEntry\Services\LedgerSummaryService;
 use Workdo\Account\Models\ChartOfAccount;
+use Workdo\DoubleEntry\Services\AccountingReportExcelExportService;
 
 class LedgerSummaryController extends Controller
 {
@@ -77,5 +78,20 @@ class LedgerSummaryController extends Controller
         else{
             return back()->with('error', __('Permission denied'));
         }
+    }
+
+    public function excel(Request $request, AccountingReportExcelExportService $exporter)
+    {
+        abort_unless(Auth::user()->can('print-ledger-summary'), 403);
+        $filters = $request->validate([
+            'from_date' => ['nullable', 'date'], 'to_date' => ['nullable', 'date', 'after_or_equal:from_date'],
+            'account_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('chart_of_accounts', 'id')->where(fn ($q) => $q->where('created_by', creatorId()))],
+        ]);
+        $entries = $this->ledgerSummaryService->getAllLedgerEntries($filters['from_date'] ?? null, $filters['to_date'] ?? null, $filters['account_id'] ?? null, false);
+        $rows = $entries->map(fn ($entry) => [$entry->journal_date, $entry->account_code, $entry->account_name,
+            $entry->reference_type, $entry->description ?: $entry->journal_description, (float) $entry->debit_amount, (float) $entry->credit_amount])->all();
+        $path = $exporter->create(__('Ledger Summary'), [__('Period') => ($filters['from_date'] ?? __('All')).' to '.($filters['to_date'] ?? __('All'))],
+            [__('Date'), __('Account Code'), __('Account Name'), __('Reference'), __('Description'), __('Debit'), __('Credit')], $rows, ['F', 'G']);
+        return response()->download($path, 'ledger-summary.xlsx')->deleteFileAfterSend(true);
     }
 }

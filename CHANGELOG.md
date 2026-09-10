@@ -5,6 +5,8 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Added
+- Added per-account PDF/Excel transaction downloads from Chart of Accounts, with date filters, company checks, opening/closing balances, period totals and Dr/Cr labels. Corrected General Ledger opening snapshots to use the current schema.
+- Added private supporting documents to journal creation and viewing: PDF/images, Word, Excel and ZIP files, with authorized downloads, supported previews, removal audit metadata, and rollback cleanup.
 - Added an in-page product picker to quotation and sales invoice create/edit flows with multi-select, name/SKU search, category filtering, stock and service visibility, automatic price/tax population, row-click selection, and permission-controlled quick product creation.
 - Added a separate square watermark image field for quotation and invoice templates, rendered large and centered in previews and PDFs without changing the header logo.
 - Applied the reference-matched professional layout to every managed sales invoice and quotation template, including dynamic company branding, dates, subject and item descriptions, totals, notes, watermark, signatures where applicable, and the company contact footer.

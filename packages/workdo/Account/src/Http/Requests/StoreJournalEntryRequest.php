@@ -15,6 +15,7 @@ class StoreJournalEntryRequest extends FormRequest
     public function rules(): array
     {
         return [
+            ...\Workdo\Account\Services\JournalAttachmentService::rules(),
             'journal_date' => 'required|date',
             'reference_type' => 'nullable|string|max:255',
             'description' => 'required|string|max:2000',

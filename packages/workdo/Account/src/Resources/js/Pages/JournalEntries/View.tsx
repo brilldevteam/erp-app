@@ -6,14 +6,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency, formatDate } from '@/utils/helpers';
 import { ArrowLeft } from 'lucide-react';
 import { JournalEntry } from './types';
+import SavedJournalDocuments from './SavedJournalDocuments';
 
 interface ViewProps {
     journalEntry: JournalEntry;
+    canAttach: boolean;
+    canRemoveAttachment: boolean;
 }
 
 export default function View() {
     const { t } = useTranslation();
-    const { journalEntry } = usePage<ViewProps>().props;
+    const { journalEntry, canAttach, canRemoveAttachment } = usePage<ViewProps>().props;
 
     return (
         <AuthenticatedLayout
@@ -63,6 +66,7 @@ export default function View() {
                         <div className="mt-4 border-t pt-4">
                             <div className="text-sm text-muted-foreground">{t('Description')}</div>
                             <div>{journalEntry.description}</div>
+                            <SavedJournalDocuments journalId={journalEntry.id} attachments={journalEntry.attachments || []} canAttach={canAttach} canRemove={canRemoveAttachment} />
                         </div>
                     </CardContent>
                 </Card>

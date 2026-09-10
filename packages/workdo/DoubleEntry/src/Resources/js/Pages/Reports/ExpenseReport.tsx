@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Printer, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
+import { AccountingReportDownloadMenu } from '@/components/accounting-report-download-menu';
 import { formatDate, formatCurrency } from '@/utils/helpers';
 import NoRecordsFound from '@/components/no-records-found';
 import axios from 'axios';
@@ -61,6 +62,10 @@ export default function ExpenseReport({ financialYear }: ExpenseReportProps) {
         window.open(printUrl, '_blank');
     };
 
+    const handleDownloadExcel = () => {
+        window.location.href = route('double-entry.reports.expense-report.excel') + `?from_date=${fromDate}&to_date=${toDate}`;
+    };
+
     const clearFilters = () => {
         setFromDate(financialYear?.year_start_date || '');
         setToDate(financialYear?.year_end_date || '');
@@ -99,10 +104,7 @@ export default function ExpenseReport({ financialYear }: ExpenseReportProps) {
                             </Button>
                             <Button variant="outline" onClick={clearFilters} size="sm">{t('Clear')}</Button>
                             {data && auth.user?.permissions?.includes('print-expense-report') && (
-                                <Button variant="outline" size="sm" onClick={handleDownloadPDF} className="gap-2">
-                                    <Printer className="h-4 w-4" />
-                                    {t('Download PDF')}
-                                </Button>
+                                <AccountingReportDownloadMenu onPdf={handleDownloadPDF} onExcel={handleDownloadExcel} />
                             )}
                         </div>
                     </div>

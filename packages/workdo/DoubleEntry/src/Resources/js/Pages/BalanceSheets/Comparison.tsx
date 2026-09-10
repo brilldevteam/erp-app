@@ -2,8 +2,9 @@ import { Head, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import AuthenticatedLayout from "@/layouts/authenticated-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Printer } from "lucide-react";
+import { FileText } from "lucide-react";
 import { Button } from '@/components/ui/button';
+import { AccountingReportDownloadMenu } from '@/components/accounting-report-download-menu';
 import { formatDate, formatCurrency } from '@/utils/helpers';
 
 interface ComparisonProps {
@@ -188,15 +189,18 @@ export default function Comparison() {
                                 </p>
                             </div>
                             {auth?.user?.permissions?.includes('print-balance-sheets') && (
-                                <Button variant="outline" size="sm" onClick={() => {
-                                    const currentId = comparison.current_period?.id || comparison.currentPeriod?.id;
-                                    const previousId = comparison.previous_period?.id || comparison.previousPeriod?.id;
-                                    const printUrl = route('double-entry.balance-sheets.comparison.print') + `?current_id=${currentId}&previous_id=${previousId}&download=pdf`;
-                                    window.open(printUrl, '_blank');
-                                }} className="gap-2">
-                                    <Printer className="h-4 w-4" />
-                                    {t('Download PDF')}
-                                </Button>
+                                <AccountingReportDownloadMenu
+                                    onPdf={() => {
+                                        const currentId = comparison.current_period?.id || comparison.currentPeriod?.id;
+                                        const previousId = comparison.previous_period?.id || comparison.previousPeriod?.id;
+                                        window.open(route('double-entry.balance-sheets.comparison.print') + `?current_id=${currentId}&previous_id=${previousId}&download=pdf`, '_blank');
+                                    }}
+                                    onExcel={() => {
+                                        const currentId = comparison.current_period?.id || comparison.currentPeriod?.id;
+                                        const previousId = comparison.previous_period?.id || comparison.previousPeriod?.id;
+                                        window.location.href = route('double-entry.balance-sheets.comparison.excel') + `?current_id=${currentId}&previous_id=${previousId}`;
+                                    }}
+                                />
                             )}
                         </div>
                     </CardHeader>
