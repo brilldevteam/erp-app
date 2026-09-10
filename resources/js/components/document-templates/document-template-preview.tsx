@@ -2,6 +2,8 @@ import { DocumentTemplate, DocumentTemplateConfig, TemplateSampleDocument } from
 import { formatCurrency, getImagePath } from '@/utils/helpers';
 import { Globe2, Mail, MapPin, Phone } from 'lucide-react';
 import { useState } from 'react';
+import '@fontsource/noto-sans/400.css';
+import '@fontsource/noto-sans/700.css';
 
 const labels: Record<string, string> = {
     item: 'Item',
@@ -15,6 +17,23 @@ const labels: Record<string, string> = {
 
 const money = (value: number) => formatCurrency(value);
 const hasTax = (item: Record<string, any>) => Boolean(item.has_tax ?? Number(item.tax) > 0);
+
+const documentColumns = (columns: string[]) => {
+    const configuredColumns = [...new Set(columns)].filter((column) => column !== 'tax' && column !== 'discount');
+    const visibleColumns = configuredColumns.includes('item')
+        ? configuredColumns.filter((column) => column !== 'description')
+        : configuredColumns;
+
+    return visibleColumns.length ? visibleColumns : ['item', 'quantity', 'rate', 'total'];
+};
+
+const documentColumnClass = (column: string) => {
+    if (column === 'item' || column === 'description') return 'w-[59%] text-left';
+    if (column === 'quantity') return 'w-[10%] text-center';
+    if (column === 'rate') return 'w-[13%] text-right';
+    if (column === 'total') return 'w-[13%] text-right';
+    return 'text-right';
+};
 
 const documentDate = (value?: string) => {
     if (!value) return '-';
@@ -232,36 +251,32 @@ function ReferenceQuotationTemplate({
         document.company.postal_code,
         document.company.country,
     ].filter(Boolean).join(', ');
-    const configuredColumns = [...config.itemsTable.columns].filter((column) => column !== 'tax' && column !== 'discount');
-    const columns = configuredColumns.includes('item')
-        ? configuredColumns.filter((column) => column !== 'description')
-        : configuredColumns;
-    const visibleColumns = columns.length ? columns : ['item', 'quantity', 'rate', 'total'];
+    const visibleColumns = documentColumns(config.itemsTable.columns);
     const pageStyle = compact ? { aspectRatio: '210 / 297' } : { minHeight: '297mm' };
 
     return (
-        <div className={`bg-white text-[#303030] shadow-sm ${compact ? 'text-[9px]' : 'text-[13px]'}`}>
-            <div className={`relative mx-auto flex w-[210mm] max-w-full flex-col border bg-white ${compact ? 'p-5' : 'px-10 py-10'}`} style={pageStyle}>
+        <div className={`bg-white font-['Noto_Sans'] font-normal text-[#303030] shadow-sm ${compact ? 'text-[9px]' : 'text-[9pt]'}`}>
+            <div className={`relative mx-auto flex w-[210mm] max-w-full flex-col bg-white ${compact ? 'p-5' : 'px-10 py-10'}`} style={pageStyle}>
                 <div className="relative z-10 flex items-start justify-between gap-8">
                     <div className="min-h-20 max-w-[42%]">
                         {logo && !logoFailed && <img src={getImagePath(String(logo))} alt={document.company.name || 'Company logo'} className="max-h-20 max-w-52 object-contain object-left" onError={() => setLogoFailed(true)} />}
                         {(!logo || logoFailed) && <div className="text-2xl font-bold uppercase">{document.company.name}</div>}
                     </div>
                     <div className="min-w-[36%] text-right">
-                        <h1 className={`${compact ? 'text-3xl' : 'text-5xl'} font-normal leading-none text-black`}>Quotation</h1>
-                        {config.documentDetails.showDocumentNumber && <div className="mt-3 font-bold"># {document.number}</div>}
+                        <h1 className={`${compact ? 'text-[28px]' : 'text-[28pt]'} font-normal leading-none text-black`}>Quotation</h1>
+                        {config.documentDetails.showDocumentNumber && <div className={`${compact ? 'text-[9px]' : 'text-[10pt]'} mt-3 font-bold`}># {document.number}</div>}
                     </div>
                 </div>
 
                 <div className="relative z-10 mt-14 grid grid-cols-[1fr_44%] gap-10">
                     <div>
-                        <div>Bill To</div>
+                        <div className={compact ? 'text-[9px]' : 'text-[10pt]'}>Bill To</div>
                         <div className="font-bold">{document.customer.name || '-'}</div>
                         {config.customerBlock.showBillingAddress && document.customer.billing_address?.map((line) => <div key={line}>{line}</div>)}
                     </div>
                     <dl className="grid grid-cols-[1fr_auto] gap-x-7 gap-y-4 text-right">
-                        {config.documentDetails.showDocumentDate && <><dt>Estimate Date :</dt><dd>{documentDate(document.date)}</dd></>}
-                        {config.documentDetails.showDueDate && <><dt>Expiry Date :</dt><dd>{documentDate(document.due_date)}</dd></>}
+                        {config.documentDetails.showDocumentDate && <><dt className={compact ? 'text-[9px]' : 'text-[10pt]'}>Estimate Date :</dt><dd>{documentDate(document.date)}</dd></>}
+                        {config.documentDetails.showDueDate && <><dt className={compact ? 'text-[9px]' : 'text-[10pt]'}>Expiry Date :</dt><dd>{documentDate(document.due_date)}</dd></>}
                     </dl>
                 </div>
 
@@ -275,9 +290,9 @@ function ReferenceQuotationTemplate({
                 <table className="relative z-10 mt-7 w-full table-fixed border-collapse">
                     <thead>
                         <tr className="bg-[#383a36] text-white">
-                            <th className="w-[5%] px-3 py-3 text-center font-normal">#</th>
+                            <th className="w-[5%] px-3 py-3 text-center text-[9pt] font-normal">#</th>
                             {visibleColumns.map((column) => (
-                                <th key={column} className={`${column === 'item' || column === 'description' ? 'text-left' : 'text-right'} px-3 py-3 font-normal`}>
+                                <th key={column} className={`${documentColumnClass(column)} px-3 py-3 text-[9pt] font-normal`}>
                                     {column === 'item' ? 'Item & Description' : labels[column] || column}
                                 </th>
                             ))}
@@ -286,11 +301,11 @@ function ReferenceQuotationTemplate({
                     <tbody>
                         {document.items.map((item, index) => (
                             <tr key={index} className="border-b border-[#9f9f9f]">
-                                <td className="px-3 py-4 text-center align-top">{index + 1}</td>
+                                <td className="px-3 py-4 text-center text-[9pt] align-top">{index + 1}</td>
                                 {visibleColumns.map((column) => (
-                                    <td key={column} className={`${column === 'item' || column === 'description' ? 'text-left' : 'text-right'} px-3 py-4 align-top`}>
-                                        {column === 'item' ? <><div>{item.item}</div>{item.description && <div className="mt-3 whitespace-pre-wrap leading-relaxed">{item.description}</div>}</>
-                                            : column === 'description' ? <div className="whitespace-pre-wrap">{item.description || '-'}</div>
+                                    <td key={column} className={`${documentColumnClass(column)} px-3 py-4 align-top`}>
+                                        {column === 'item' ? <><div className="text-[8pt]">{item.item}</div>{item.description && <div className="mt-3 whitespace-pre-wrap break-words text-[8pt] leading-[1.5]">{item.description}</div>}</>
+                                            : column === 'description' ? <div className="whitespace-pre-wrap break-words text-[8pt] leading-[1.5]">{item.description || '-'}</div>
                                             : ['rate', 'total'].includes(column) ? money(Number(item[column])) : item[column]}
                                     </td>
                                 ))}
@@ -321,7 +336,7 @@ function ReferenceQuotationTemplate({
                 )}
 
                 {watermark && <img src={getImagePath(String(watermark))} aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 z-0 aspect-square w-[64%] -translate-x-1/2 -translate-y-1/2 object-contain opacity-[0.045] grayscale" />}
-                <div className="relative z-10 mt-3 break-inside-avoid border-t pt-3 text-center text-xs leading-relaxed">
+                <div className="relative z-10 mt-3 break-inside-avoid border-t pt-3 text-center text-[7pt] leading-relaxed">
                     <FooterContact config={config} company={document.company} fallbackAddress={address} />
                     {config.footer.footerText && <div>{config.footer.footerText}</div>}
                 </div>
@@ -351,24 +366,20 @@ function ReferenceInvoiceTemplate({
         document.company.postal_code,
         document.company.country,
     ].filter(Boolean).join(', ');
-    const configuredColumns = [...config.itemsTable.columns].filter((column) => column !== 'tax' && column !== 'discount');
-    const columns = configuredColumns.includes('item')
-        ? configuredColumns.filter((column) => column !== 'description')
-        : configuredColumns;
-    const visibleColumns = columns.length ? columns : ['item', 'quantity', 'rate', 'total'];
+    const visibleColumns = documentColumns(config.itemsTable.columns);
     const pageStyle = compact ? { aspectRatio: '210 / 297' } : { minHeight: '297mm' };
 
     return (
-        <div className={`bg-white text-[#303030] shadow-sm ${compact ? 'text-[9px]' : 'text-[13px]'}`}>
-            <div className={`relative mx-auto flex w-[210mm] max-w-full flex-col border bg-white ${compact ? 'p-5' : 'px-10 py-12'}`} style={pageStyle}>
+        <div className={`bg-white font-['Noto_Sans'] font-normal text-[#303030] shadow-sm ${compact ? 'text-[9px]' : 'text-[9pt]'}`}>
+            <div className={`relative mx-auto flex w-[210mm] max-w-full flex-col bg-white ${compact ? 'p-5' : 'px-10 py-12'}`} style={pageStyle}>
                 <div className="relative z-10 flex items-start justify-between gap-8">
                     <div className="min-h-24 max-w-[42%]">
                         {logo && !logoFailed && <img src={getImagePath(String(logo))} alt={document.company.name || 'Company logo'} className="max-h-20 max-w-52 object-contain object-left" onError={() => setLogoFailed(true)} />}
                         {(!logo || logoFailed) && <div className="text-2xl font-bold uppercase">{document.company.name}</div>}
                     </div>
                     <div className="min-w-[36%] text-right">
-                        <h1 className={`${compact ? 'text-3xl' : 'text-5xl'} font-normal leading-none text-black`}>Invoice</h1>
-                        {config.documentDetails.showDocumentNumber && <div className="mt-3 text-base font-bold"># {document.number}</div>}
+                        <h1 className={`${compact ? 'text-[28px]' : 'text-[28pt]'} font-normal leading-none text-black`}>Invoice</h1>
+                        {config.documentDetails.showDocumentNumber && <div className={`${compact ? 'text-[9px]' : 'text-[10pt]'} mt-3 font-bold`}># {document.number}</div>}
                         <div className="mt-6 font-bold">Balance Due</div>
                         <div className={`${compact ? 'text-lg' : 'text-2xl'} font-bold text-black`}>{money(balanceDue)}</div>
                     </div>
@@ -376,11 +387,11 @@ function ReferenceInvoiceTemplate({
 
                 <div className="relative z-10 mt-12 grid grid-cols-[1fr_44%] gap-10">
                     <div className="self-end">
-                        <div className="text-base">Bill To</div>
-                        <div className="text-base font-bold">{document.customer.name || '-'}</div>
+                        <div className={compact ? 'text-[9px]' : 'text-[10pt]'}>Bill To</div>
+                        <div className="font-bold">{document.customer.name || '-'}</div>
                         {config.customerBlock.showBillingAddress && document.customer.billing_address?.map((line) => <div key={line}>{line}</div>)}
                     </div>
-                    <dl className="grid grid-cols-[1fr_auto] gap-x-7 gap-y-4 text-right text-base">
+                    <dl className="grid grid-cols-[1fr_auto] gap-x-7 gap-y-4 text-right">
                         {config.documentDetails.showDocumentDate && <><dt>Invoice Date :</dt><dd>{documentDate(document.date)}</dd></>}
                         <dt>Terms :</dt><dd>{document.payment_terms || '-'}</dd>
                         {config.documentDetails.showDueDate && <><dt>Due Date :</dt><dd>{documentDate(document.due_date)}</dd></>}
@@ -394,12 +405,12 @@ function ReferenceInvoiceTemplate({
                     </div>
                 )}
 
-                <table className="relative z-10 mt-7 w-full table-fixed border-collapse text-base">
+                <table className="relative z-10 mt-7 w-full table-fixed border-collapse">
                     <thead>
                         <tr className="bg-[#383a36] text-white">
-                            <th className="w-[5%] px-3 py-3 text-center font-normal">#</th>
+                            <th className="w-[5%] px-3 py-3 text-center text-[9pt] font-normal">#</th>
                             {visibleColumns.map((column) => (
-                                <th key={column} className={`${column === 'item' || column === 'description' ? 'text-left' : 'text-right'} px-3 py-3 font-normal`}>
+                                <th key={column} className={`${documentColumnClass(column)} px-3 py-3 text-[9pt] font-normal`}>
                                     {column === 'item' ? 'Item & Description' : labels[column] || column}
                                 </th>
                             ))}
@@ -408,11 +419,11 @@ function ReferenceInvoiceTemplate({
                     <tbody>
                         {document.items.map((item, index) => (
                             <tr key={index} className="border-b border-[#b8b8b8]">
-                                <td className="px-3 py-4 text-center align-top">{index + 1}</td>
+                                <td className="px-3 py-4 text-center text-[9pt] align-top">{index + 1}</td>
                                 {visibleColumns.map((column) => (
-                                    <td key={column} className={`${column === 'item' || column === 'description' ? 'text-left' : 'text-right'} px-3 py-4 align-top`}>
-                                        {column === 'item' ? <><div>{item.item}</div>{item.description && <div className="mt-1 whitespace-pre-wrap text-sm">{item.description}</div>}</>
-                                            : column === 'description' ? <div className="whitespace-pre-wrap">{item.description || '-'}</div>
+                                    <td key={column} className={`${documentColumnClass(column)} px-3 py-4 align-top`}>
+                                        {column === 'item' ? <><div className="text-[8pt]">{item.item}</div>{item.description && <div className="mt-1 whitespace-pre-wrap break-words text-[8pt] leading-[1.5]">{item.description}</div>}</>
+                                            : column === 'description' ? <div className="whitespace-pre-wrap break-words text-[8pt] leading-[1.5]">{item.description || '-'}</div>
                                             : ['rate', 'total'].includes(column) ? money(Number(item[column])) : item[column]}
                                     </td>
                                 ))}
@@ -421,7 +432,7 @@ function ReferenceInvoiceTemplate({
                     </tbody>
                 </table>
 
-                <div className="relative z-10 ml-auto w-[50%] text-base">
+                <div className="relative z-10 ml-auto w-[50%] text-[9pt]">
                     {config.totals.showSubtotal && <InvoiceTotalRow label="Sub Total" value={money(document.totals.subtotal)} />}
                     {config.totals.showDiscount && Number(document.totals.discount) > 0 && <InvoiceTotalRow label="Discount" value={`-${money(document.totals.discount)}`} />}
                     {config.totals.showTax && Number(document.totals.tax) > 0 && <InvoiceTotalRow label="Tax" value={money(document.totals.tax)} />}
@@ -437,14 +448,14 @@ function ReferenceInvoiceTemplate({
 
                 <div className="mt-auto" />
                 {config.footer.showSignature && (
-                    <div className="relative z-10 mb-2 mt-6 flex break-inside-avoid gap-10 text-base">
+                    <div className="relative z-10 mb-2 mt-6 flex break-inside-avoid gap-10 text-[9pt]">
                         <SignatureLine label={template.signature_text || document.company.name || 'Authorized Signature'} image={template.signature_url} />
                         <SignatureLine label="Client Signature" />
                     </div>
                 )}
 
                 {watermark && <img src={getImagePath(String(watermark))} aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 z-0 aspect-square w-[64%] -translate-x-1/2 -translate-y-1/2 object-contain opacity-[0.045] grayscale" />}
-                <div className="relative z-10 mt-3 break-inside-avoid border-t pt-3 text-center text-xs leading-relaxed">
+                <div className="relative z-10 mt-3 break-inside-avoid border-t pt-3 text-center text-[7pt] leading-relaxed">
                     <FooterContact config={config} company={document.company} fallbackAddress={address} />
                     {config.footer.footerText && <div>{config.footer.footerText}</div>}
                 </div>
@@ -482,7 +493,7 @@ function FooterContact({
                 {address && <FooterDetail icon={MapPin} text={address} />}
             </div>
             <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-                <span className="rounded bg-[#e9e9e7] px-2 py-0.5">C.R. No. 156793</span>
+                <span className="relative top-[3px] inline-flex h-[18px] items-center rounded bg-[#e9e9e7] px-2 leading-none"><span className="relative -top-[6px]">C.R. No. 156793</span></span>
                 {email && <FooterDetail icon={Mail} text={email} />}
                 {website && <FooterDetail icon={Globe2} text={website} />}
             </div>
@@ -491,7 +502,7 @@ function FooterContact({
 }
 
 function FooterDetail({ icon: Icon, text }: { icon: typeof Phone; text: string }) {
-    return <span className="inline-flex items-center gap-1.5"><Icon className="h-3.5 w-3.5" strokeWidth={1.5} /><span>{text}</span></span>;
+    return <span className="inline-flex h-[18px] items-center gap-1.5"><Icon className="relative top-[2px] h-3.5 w-3.5 shrink-0 overflow-visible" strokeWidth={1.5} /><span className="relative -top-[2px] leading-none">{text}</span></span>;
 }
 
 function TotalRow({ label, value }: { label: string; value: string }) {
@@ -499,5 +510,5 @@ function TotalRow({ label, value }: { label: string; value: string }) {
 }
 
 function Section({ title, content }: { title: string; content: string }) {
-    return <div><div className="mb-1 font-semibold">{title}</div><div className="whitespace-pre-line text-slate-600">{content}</div></div>;
+    return <div><div className="mb-1 text-[10pt] font-normal">{title}</div><div className="whitespace-pre-line text-[7pt] leading-[1.35] text-slate-600">{content}</div></div>;
 }

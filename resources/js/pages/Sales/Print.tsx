@@ -71,7 +71,7 @@ export default function Print() {
         const printContent = document.querySelector('.invoice-container');
         if (printContent) {
             const opt = {
-                margin: 0.25,
+                margin: documentTemplate ? 0 : 0.25,
                 filename: `sales-invoice-${invoice.invoice_number}.pdf`,
                 image: { type: 'jpeg' as const, quality: 0.98 },
                 html2canvas: { scale: 2 },

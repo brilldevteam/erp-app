@@ -14,6 +14,10 @@ All notable changes to the Wazely ERP application are documented here.
 - New features currently in development will be listed here before release.
 
 ### Changed
+- Matched quotation and invoice typography to the Zoho Books reference using bundled Noto Sans and its measured 28pt, 10pt, 9pt, 8pt, and 7pt document hierarchy.
+- Expanded the Item & Description column to the Zoho-style table proportion for cleaner multiline product descriptions.
+- Removed the printed page border, reduced oversized document titles, and widened the Item & Description column in quotation and invoice previews and PDFs.
+- Deduplicated configured document table columns to prevent repeated headings and unnecessarily narrow item descriptions.
 - Updated the Payment template to match the reference receipt with a black corner mark, neutral payer styling, Bank Account details, and no fixed amount-in-words text.
 - Restored the Payment template type and its receipt/voucher preview alongside the redesigned quotation and invoice templates.
 - Removed the unused Primary Color control from the fixed-design quotation and invoice template editor.
@@ -71,6 +75,9 @@ main
 - Updated profile/security separation so profile details and password security are managed on separate pages.
 
 ### Fixed
+- Prevented footer contact icons from being clipped and balanced the C.R. number badge padding around its text.
+- Corrected the visual baseline between footer contact icons and their text in quotation and invoice previews and PDFs, including html2canvas exports.
+- Prevented managed quotation and invoice PDFs from creating a second page for the footer by removing the duplicate html2pdf margin around the already padded A4 template.
 - Bug fixes and production stability improvements will be listed here before release.
 - Invoice and quotation template previews now place the document badge on the left when the header is aligned right.
 - Document template previews now use saved currency settings instead of hardcoded dollar formatting.
