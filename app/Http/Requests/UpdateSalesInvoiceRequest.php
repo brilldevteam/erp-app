@@ -20,6 +20,7 @@ class UpdateSalesInvoiceRequest extends FormRequest
             'document_template_id' => 'nullable|integer|exists:document_templates,id',
             'warehouse_id' => 'nullable|integer|exists:warehouses,id',
             'payment_terms' => 'nullable|string|max:255',
+            'subject' => 'nullable|string|max:500',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|integer|min:1',

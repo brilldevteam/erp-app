@@ -112,6 +112,7 @@ class QuotationController extends Controller
         if (Auth::user()->can('create-quotations')) {
             $totals = $this->calculateTotals($request->items);
 
+            $quotation = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $totals) {
             $quotation                  = new SalesQuotation();
             $quotation->quotation_date  = $request->invoice_date;
             $quotation->document_template_id = app(DocumentTemplateService::class)
@@ -121,6 +122,7 @@ class QuotationController extends Controller
             $quotation->customer_id     = $request->customer_id;
             $quotation->warehouse_id    = $request->filled('warehouse_id') ? $request->warehouse_id : null;
             $quotation->payment_terms   = $request->payment_terms;
+            $quotation->subject         = $request->subject;
             $quotation->notes           = $request->notes;
             $quotation->subtotal        = $totals['subtotal'];
             $quotation->tax_amount      = $totals['tax_amount'];
@@ -132,6 +134,8 @@ class QuotationController extends Controller
 
               // Create quotation items
             $this->createQuotationItems($quotation->id, $request->items);
+            return $quotation;
+            });
 
             try {
                 CreateQuotation::dispatch($request, $quotation);
@@ -199,6 +203,7 @@ class QuotationController extends Controller
 
             $totals = $this->calculateTotals($request->items);
 
+            \Illuminate\Support\Facades\DB::transaction(function () use ($request, $quotation, $totals) {
             $quotation->quotation_date  = $request->invoice_date;
             $quotation->due_date        = $request->due_date;
             $quotation->customer_id     = $request->customer_id;
@@ -207,6 +212,7 @@ class QuotationController extends Controller
                 ->id;
             $quotation->warehouse_id    = $request->filled('warehouse_id') ? $request->warehouse_id : null;
             $quotation->payment_terms   = $request->payment_terms;
+            $quotation->subject         = $request->subject;
             $quotation->notes           = $request->notes;
             $quotation->subtotal        = $totals['subtotal'];
             $quotation->tax_amount      = $totals['tax_amount'];
@@ -216,6 +222,8 @@ class QuotationController extends Controller
 
             $quotation->items()->delete();
             $this->createQuotationItems($quotation->id, $request->items);
+
+            });
 
             UpdateQuotation::dispatch($request, $quotation);
 
@@ -514,6 +522,7 @@ class QuotationController extends Controller
                     : '',
                 'type' => $type,
                 'payment_terms' => $quotation->payment_terms ?? '',
+                'subject' => $quotation->subject ?? '',
                 'notes' => $quotation->notes ?? '',
                 'items' => $quotation->items->map(fn ($item) => [
                     'product_id' => $item->product_id,
@@ -587,6 +596,7 @@ class QuotationController extends Controller
                         'id'             => $product->id,
                         'name'           => $product->name,
                         'sku'            => $product->sku,
+                        'description' => \App\Services\SalesLineAmounts::description($product->long_description ?: $product->description),
                         'sale_price'     => $product->sale_price,
                         'unit'           => $product->unit,
                         'type'           => $product->type,

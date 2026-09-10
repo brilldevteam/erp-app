@@ -25,7 +25,6 @@ use App\Models\DocumentTemplate;
 use App\Services\SalesInvoiceService;
 use App\Services\DocumentTemplates\DocumentTemplateService;
 use Workdo\Quotation\Events\ConvertSalesQuotation;
-use Workdo\Account\Models\BankAccount;
 
 class SalesInvoiceController extends Controller
 {
@@ -101,21 +100,8 @@ class SalesInvoiceController extends Controller
                     $query->where('status', $request->status);
                 }
             }
-            if ($request->filled('search')) {
-                $search = strtolower(trim($request->search));
-                $query->where(function ($q) use ($search) {
-                    $like = "%{$search}%";
-
-                    $q->whereRaw('LOWER(invoice_number) LIKE ?', [$like])
-                        ->orWhereHas('customer', function ($customerQuery) use ($like) {
-                            $customerQuery->whereRaw('LOWER(name) LIKE ?', [$like])
-                                ->orWhereRaw('LOWER(email) LIKE ?', [$like]);
-                        })
-                        ->orWhereHas('customerDetails', function ($customerDetailsQuery) use ($like) {
-                            $customerDetailsQuery->whereRaw('LOWER(company_name) LIKE ?', [$like])
-                                ->orWhereRaw('LOWER(contact_person_name) LIKE ?', [$like]);
-                        });
-                });
+            if ($request->search) {
+                $query->where('invoice_number', 'like', '%' . $request->search . '%');
             }
             if ($request->date_range) {
                 $dates = explode(' - ', $request->date_range);
@@ -232,12 +218,7 @@ class SalesInvoiceController extends Controller
             $salesInvoice->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'warehouse', 'quotation']);
 
             return Inertia::render('Sales/View', [
-                'invoice' => $salesInvoice,
-                'customers' => $this->invoiceCustomers(),
-                'bankAccounts' => BankAccount::where('created_by', creatorId())
-                    ->where('is_active', true)
-                    ->orderBy('account_name')
-                    ->get(['id', 'account_name', 'account_number', 'bank_name']),
+                'invoice' => $salesInvoice
             ]);
         }
         else{
@@ -284,6 +265,7 @@ class SalesInvoiceController extends Controller
             }
             $totals = $this->calculateTotals($request->items);
 
+            \Illuminate\Support\Facades\DB::transaction(function () use ($request, $salesInvoice, $totals) {
             $salesInvoice->invoice_date = $request->invoice_date;
             $salesInvoice->due_date = $request->due_date;
             $salesInvoice->customer_id = $request->customer_id;
@@ -294,6 +276,7 @@ class SalesInvoiceController extends Controller
                 ? $request->warehouse_id
                 : null;
             $salesInvoice->payment_terms = $request->payment_terms;
+            $salesInvoice->subject = $request->subject;
             $salesInvoice->notes = $request->notes;
             $salesInvoice->subtotal = $totals['subtotal'];
             $salesInvoice->tax_amount = $totals['tax_amount'];
@@ -305,6 +288,7 @@ class SalesInvoiceController extends Controller
             // Delete existing items and recreate
             $salesInvoice->items()->delete();
             $this->createInvoiceItems($salesInvoice->id, $request->items);
+            });
 
             // Dispatch event for packages to handle their fields
             UpdateSalesInvoice::dispatch($request, $salesInvoice);
