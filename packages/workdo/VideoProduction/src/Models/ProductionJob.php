@@ -5,6 +5,7 @@ namespace Workdo\VideoProduction\Models;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class ProductionJob extends Model
 {
@@ -44,7 +45,11 @@ class ProductionJob extends Model
     public static function nextReference(?int $companyId = null): string
     {
         $companyId ??= creatorId();
-        $prefix = 'DOC-'.now()->format('Y').'-';
+        $companyName = company_setting('company_name', $companyId)
+            ?: User::query()->find($companyId)?->name
+            ?: 'Job';
+        $companyCode = substr(preg_replace('/[^A-Z0-9]/', '', Str::upper(Str::ascii($companyName))), 0, 3);
+        $prefix = ($companyCode ?: 'JOB').'-'.now()->format('Y').'-';
         $lastReference = static::query()
             ->where('created_by', $companyId)
             ->where('reference', 'like', $prefix.'%')
