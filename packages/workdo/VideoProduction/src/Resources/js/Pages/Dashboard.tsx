@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, Fragment, useEffect, useState } from 'react';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { TimePicker } from '@/components/ui/time-picker';
-import { CalendarDays, CheckCircle2, Clock3, FileCheck2, FolderKanban, Gauge, ListChecks, Pencil, Plus, Settings2, Trash2, Video } from 'lucide-react';
+import { CalendarDays, CheckCircle2, ChevronDown, ChevronUp, Clock3, Eye, FileCheck2, FolderKanban, Gauge, ListChecks, Pencil, Plus, Settings2, Trash2, Video } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import JobForm from './Jobs/JobForm';
@@ -96,10 +96,185 @@ function DateTimeField({ value, onChange }: { value?: string; onChange: (value: 
     </div>;
 }
 
-function Manager({kind,items,settings,jobId,jobs,nextRecordKey}:any){const {t}=useTranslation();const [open,setOpen]=useState(false);const [edit,setEdit]=useState<any>();const blank=Object.fromEntries(fields[kind as Kind].map(f=>[f[0],'']));const form=useForm({production_job_id:jobId,record_key:'',recorded_at:'',status:'',data:blank});
- const launch=(r?:any)=>{if(!jobId)return;setEdit(r);form.setData({production_job_id:r?.production_job_id||jobId,record_key:r?.record_key||'',recorded_at:r?.recorded_at?.slice(0,16)||'',status:r?.status||'',data:{...blank,...r?.data,proof_image:r?.data?.proof_image_path||''}});setOpen(true)};
- const submit=(e:FormEvent)=>{e.preventDefault();let d:any={...form.data.data};if(kind==='shoot'&&d.actual_start&&d.actual_end){let h=(new Date('2000-01-01T'+d.actual_end).getTime()-new Date('2000-01-01T'+d.actual_start).getTime())/3600000;if(h<0)h+=24;d.total_hours=+h.toFixed(2);d.contract_hours=+settings.included_hours_per_shoot;d.extra_hours=Math.max(0,d.total_hours-d.contract_hours);d.lead_requirement=['Unplanned','Urgent'].includes(d.shoot_type)?'N/A - Unplanned':(!d.script_received_at?'No - Not Received':(Math.floor((new Date(d.shoot_date).getTime()-new Date(d.script_received_at).getTime())/86400000)>=settings.required_lead_days?'Yes':'No'))}if(kind==='time'&&d.start_time&&d.end_time){let h=(new Date('2000-01-01T'+d.end_time).getTime()-new Date('2000-01-01T'+d.start_time).getTime())/3600000;if(h<0)h+=24;d.total_hours=+h.toFixed(2)}if(kind==='revision')d.included_status=+d.revision_no<=+settings.included_revisions?'Yes':'No - Revision 4+';form.transform(v=>({...v,...(edit?{_method:'put'}:{}),data:d,recorded_at:v.recorded_at||d.shoot_date||d.date||d.requested_at||d.evidence_at||d.final_delivery_date||'',status:d.current_status||v.status}));const o={preserveScroll:true,forceFormData:true,onSuccess:()=>setOpen(false)};form.post(edit?route('video-production.records.update',[kind,edit.id]):route('video-production.records.store',kind),o)};
- return <Card><CardHeader className="flex-row items-center justify-between"><div><CardTitle>{t(titles[kind])}</CardTitle><p className="mt-1 text-sm text-muted-foreground">{jobId?t('Showing records for the selected production job.'):t('Create or select a production job before adding records.')}</p></div><Button disabled={!jobId} onClick={()=>launch()}><Plus className="h-4 w-4"/>{t('Add Record')}</Button></CardHeader><CardContent><div className="max-h-[62vh] overflow-auto rounded-lg border"><table className="min-w-max text-sm"><thead className="sticky top-0 z-20 bg-primary text-primary-foreground"><tr><th className="sticky left-0 z-30 min-w-32 bg-primary p-3 text-left">{t('Record ID')}</th>{displayFields(kind).map(([key,label])=><th className="min-w-40 whitespace-nowrap p-3 text-left" key={key}>{t(label)}</th>)}<th className="sticky right-0 z-30 min-w-24 bg-primary p-3 text-right">{t('Actions')}</th></tr></thead><tbody>{items.map((r:any)=><tr className="border-t bg-background hover:bg-muted/40" key={r.id}><td className="sticky left-0 z-10 bg-inherit p-3 font-medium">{r.record_key}</td>{displayFields(kind).map(([key])=><td className="max-w-64 truncate p-3" title={String(r.data?.[key] || '')} key={key}>{r.data?.[key] || '-'}</td>)}<td className="sticky right-0 z-10 whitespace-nowrap bg-inherit p-3 text-right"><Button variant="ghost" size="icon" onClick={()=>launch(r)}><Pencil className="h-4 w-4"/></Button><Button variant="ghost" size="icon" className="text-destructive" onClick={()=>confirm(t('Delete this record?'))&&router.delete(route('video-production.records.destroy',[kind,r.id]),{preserveScroll:true})}><Trash2 className="h-4 w-4"/></Button></td></tr>)}</tbody></table>{!items.length&&<p className="p-10 text-center text-muted-foreground">{jobId?t('No records found for this job.'):t('No production job selected.')}</p>}</div></CardContent><Dialog open={open} onOpenChange={setOpen}>{open&&<DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto"><DialogHeader><DialogTitle>{edit?t('Edit'):t('Add')} {t(titles[kind])}</DialogTitle></DialogHeader><form onSubmit={submit} className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"><div><Label>{t('Production Job')} *</Label><Select value={String(form.data.production_job_id || '')} onValueChange={value=>form.setData('production_job_id',Number(value))}><SelectTrigger><SelectValue placeholder={t('Select a production job')}/></SelectTrigger><SelectContent>{jobs.map((job:any)=><SelectItem key={job.id} value={String(job.id)}>{job.reference} - {job.name}</SelectItem>)}</SelectContent></Select><InputError message={form.errors.production_job_id}/></div><div><Label>{t('Record ID')} *</Label><div className="flex gap-2"><Input required value={form.data.record_key} onChange={e=>form.setData('record_key',e.target.value)}/><Button type="button" variant="outline" className="shrink-0" disabled={!nextRecordKey} onClick={()=>form.setData('record_key',nextRecordKey)}>{t('Generate ID')}</Button></div><InputError message={form.errors.record_key}/></div>{fields[kind as Kind].map(([key,label,type='text',options])=><div key={key} className={type==='textarea'?'md:col-span-2 lg:col-span-3':''}><Label>{t(label)}</Label>{type==='textarea'?<Textarea value={(form.data.data as any)[key]} onChange={e=>form.setData('data',{...form.data.data,[key]:e.target.value})}/>:type==='select'?<Select value={(form.data.data as any)[key]||'none'} onValueChange={v=>form.setData('data',{...form.data.data,[key]:v==='none'?'':v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="none">{t('Not specified')}</SelectItem>{options?.map(x=><SelectItem key={x} value={x}>{t(x)}</SelectItem>)}</SelectContent></Select>:<Input type={type} step={type==='number'?'0.01':undefined} value={(form.data.data as any)[key]} onChange={e=>form.setData('data',{...form.data.data,[key]:e.target.value})}/>}</div>)}<div className="flex justify-end gap-2 md:col-span-2 lg:col-span-3"><Button type="button" variant="outline" onClick={()=>setOpen(false)}>{t('Cancel')}</Button><Button disabled={form.processing}>{t('Save')}</Button></div></form></DialogContent>}</Dialog></Card>}
+const summaryKeys: Record<Kind, string[]> = {
+    shoot: ['shoot_date', 'branch_location', 'shoot_type', 'doctor_subject', 'actual_start', 'actual_end'],
+    deliverable: ['content_name', 'content_type', 'doctor_department', 'current_status', 'final_delivery_date'],
+    revision: ['deliverable_id', 'revision_no', 'category', 'requested_at', 'delivered_at'],
+    time: ['date', 'team_member', 'activity_type', 'classification', 'total_hours'],
+    evidence: ['evidence_at', 'linked_type', 'linked_id', 'evidence_type', 'captured_by'],
+};
+
+const fieldFor = (kind: Kind, key: string) => displayFields(kind).find(([fieldKey]) => fieldKey === key);
+
+function formatRecordValue(value: any, type?: string) {
+    if (value === null || value === undefined || value === '') return '-';
+
+    if (type === 'date' || type === 'datetime-local') {
+        const date = new Date(String(value).replace(' ', 'T'));
+        if (!Number.isNaN(date.getTime())) {
+            return new Intl.DateTimeFormat('en-GB', {
+                day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true,
+            }).format(date);
+        }
+    }
+
+    if (type === 'time' && /^\d{2}:\d{2}/.test(String(value))) {
+        const [hours, minutes] = String(value).split(':').map(Number);
+        return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+            .format(new Date(2000, 0, 1, hours, minutes));
+    }
+
+    return String(value);
+}
+
+function formatDateOnly(value?: string) {
+    if (!value) return '-';
+    const date = new Date(`${value.slice(0, 10)}T00:00:00`);
+    return Number.isNaN(date.getTime())
+        ? value
+        : new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
+}
+
+function RecordValue({ value, type }: { value: any; type?: string }) {
+    if (type === 'url' && value) {
+        return <a href={value} target="_blank" rel="noreferrer" className="text-primary underline-offset-4 hover:underline">{value}</a>;
+    }
+
+    return <>{formatRecordValue(value, type)}</>;
+}
+
+function Manager({ kind, items, settings, jobId, jobs, nextRecordKey }: any) {
+    const { t } = useTranslation();
+    const [open, setOpen] = useState(false);
+    const [edit, setEdit] = useState<any>();
+    const [expanded, setExpanded] = useState<number | null>(null);
+    const blank = Object.fromEntries(fields[kind as Kind].map(field => [field[0], '']));
+    const form = useForm({ production_job_id: jobId, record_key: '', recorded_at: '', status: '', data: blank });
+    const compactFields = summaryKeys[kind as Kind].map(key => fieldFor(kind, key)).filter(Boolean) as Field[];
+
+    const launch = (record?: any) => {
+        if (!jobId) return;
+        setEdit(record);
+        form.setData({
+            production_job_id: record?.production_job_id || jobId,
+            record_key: record?.record_key || '',
+            recorded_at: record?.recorded_at?.slice(0, 16) || '',
+            status: record?.status || '',
+            data: { ...blank, ...record?.data, proof_image: record?.data?.proof_image_path || '' },
+        });
+        setOpen(true);
+    };
+
+    const submit = (event: FormEvent) => {
+        event.preventDefault();
+        const data: any = { ...form.data.data };
+        if (kind === 'shoot' && data.actual_start && data.actual_end) {
+            let hours = (new Date(`2000-01-01T${data.actual_end}`).getTime() - new Date(`2000-01-01T${data.actual_start}`).getTime()) / 3600000;
+            if (hours < 0) hours += 24;
+            data.total_hours = +hours.toFixed(2);
+            data.contract_hours = +settings.included_hours_per_shoot;
+            data.extra_hours = Math.max(0, data.total_hours - data.contract_hours);
+            data.lead_requirement = ['Unplanned', 'Urgent'].includes(data.shoot_type)
+                ? 'N/A - Unplanned'
+                : (!data.script_received_at ? 'No - Not Received' : (Math.floor((new Date(data.shoot_date).getTime() - new Date(data.script_received_at).getTime()) / 86400000) >= settings.required_lead_days ? 'Yes' : 'No'));
+        }
+        if (kind === 'time' && data.start_time && data.end_time) {
+            let hours = (new Date(`2000-01-01T${data.end_time}`).getTime() - new Date(`2000-01-01T${data.start_time}`).getTime()) / 3600000;
+            if (hours < 0) hours += 24;
+            data.total_hours = +hours.toFixed(2);
+        }
+        if (kind === 'revision') data.included_status = +data.revision_no <= +settings.included_revisions ? 'Yes' : 'No - Revision 4+';
+
+        form.transform(values => ({
+            ...values,
+            ...(edit ? { _method: 'put' } : {}),
+            data,
+            recorded_at: values.recorded_at || data.shoot_date || data.date || data.requested_at || data.evidence_at || data.final_delivery_date || '',
+            status: data.current_status || values.status,
+        }));
+        form.post(edit ? route('video-production.records.update', [kind, edit.id]) : route('video-production.records.store', kind), {
+            preserveScroll: true,
+            forceFormData: true,
+            onSuccess: () => setOpen(false),
+        });
+    };
+
+    return <Card className="overflow-hidden">
+        <CardHeader className="flex-row items-center justify-between gap-4 border-b bg-muted/20">
+            <div>
+                <CardTitle>{t(titles[kind])}</CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">{jobId ? t('Showing records for the selected production job.') : t('Create or select a production job before adding records.')}</p>
+            </div>
+            <Button disabled={!jobId} onClick={() => launch()}><Plus className="h-4 w-4" />{t('Add Record')}</Button>
+        </CardHeader>
+        <CardContent className="p-0">
+            <div className="overflow-x-auto">
+                <table className="w-full min-w-[900px] text-sm">
+                    <thead className="border-b bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground">
+                        <tr>
+                            <th className="w-10 px-3 py-3" aria-label={t('Details')} />
+                            <th className="px-3 py-3 text-left">{t('Record ID')}</th>
+                            {compactFields.map(([key, label]) => <th className="px-3 py-3 text-left" key={key}>{t(label)}</th>)}
+                            <th className="w-32 px-3 py-3 text-right">{t('Actions')}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {items.map((record: any) => <Fragment key={record.id}>
+                            <tr className="border-b transition-colors hover:bg-muted/30">
+                                <td className="px-3 py-3">
+                                    <Button type="button" variant="ghost" size="icon" title={t('View details')} aria-label={t('View details')} onClick={() => setExpanded(expanded === record.id ? null : record.id)}>
+                                        {expanded === record.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                    </Button>
+                                </td>
+                                <td className="px-3 py-3 font-semibold text-foreground">{record.record_key}</td>
+                                {compactFields.map(([key, , type]) => <td className="max-w-52 px-3 py-3" key={key}>
+                                    {type === 'select' && record.data?.[key]
+                                        ? <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">{record.data[key]}</span>
+                                        : <span className="line-clamp-2"><RecordValue value={record.data?.[key]} type={type} /></span>}
+                                </td>)}
+                                <td className="px-3 py-3 text-right">
+                                    <div className="flex justify-end gap-1">
+                                        <Button type="button" variant="ghost" size="icon" title={t('View details')} aria-label={t('View details')} onClick={() => setExpanded(expanded === record.id ? null : record.id)}><Eye className="h-4 w-4" /></Button>
+                                        <Button type="button" variant="ghost" size="icon" title={t('Edit')} aria-label={t('Edit')} onClick={() => launch(record)}><Pencil className="h-4 w-4" /></Button>
+                                        <Button type="button" variant="ghost" size="icon" title={t('Delete')} aria-label={t('Delete')} className="text-destructive hover:text-destructive" onClick={() => confirm(t('Delete this record?')) && router.delete(route('video-production.records.destroy', [kind, record.id]), { preserveScroll: true })}><Trash2 className="h-4 w-4" /></Button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {expanded === record.id && <tr className="border-b bg-muted/20">
+                                <td colSpan={compactFields.length + 3} className="p-5">
+                                    <div className="mb-4 flex items-center justify-between">
+                                        <div><p className="font-semibold">{t('Record details')}</p><p className="text-xs text-muted-foreground">{record.record_key}</p></div>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => launch(record)}><Pencil className="h-3.5 w-3.5" />{t('Edit record')}</Button>
+                                    </div>
+                                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                        {displayFields(kind).map(([key, label, type]) => <div className="rounded-lg border bg-background p-3" key={key}>
+                                            <p className="text-xs font-medium text-muted-foreground">{t(label)}</p>
+                                            <div className="mt-1 break-words font-medium"><RecordValue value={record.data?.[key]} type={type} /></div>
+                                        </div>)}
+                                        {kind === 'shoot' && record.data?.proof_image_path && <div className="rounded-lg border bg-background p-3 sm:col-span-2">
+                                            <p className="mb-2 text-xs font-medium text-muted-foreground">{t('Proof Image')}</p>
+                                            <img src={`/storage/${record.data.proof_image_path}`} alt={t('Proof Image')} className="max-h-64 w-full rounded-md object-contain" />
+                                        </div>}
+                                    </div>
+                                </td>
+                            </tr>}
+                        </Fragment>)}
+                    </tbody>
+                </table>
+                {!items.length && <div className="flex flex-col items-center justify-center gap-2 p-12 text-center text-muted-foreground"><FolderKanban className="h-9 w-9 opacity-40" /><p>{jobId ? t('No records found for this job.') : t('No production job selected.')}</p></div>}
+            </div>
+        </CardContent>
+        <Dialog open={open} onOpenChange={setOpen}>{open && <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
+            <DialogHeader><DialogTitle>{edit ? t('Edit') : t('Add')} {t(titles[kind])}</DialogTitle></DialogHeader>
+            <form onSubmit={submit} className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div><Label>{t('Production Job')} *</Label><Select value={String(form.data.production_job_id || '')} onValueChange={value => form.setData('production_job_id', Number(value))}><SelectTrigger><SelectValue placeholder={t('Select a production job')} /></SelectTrigger><SelectContent>{jobs.map((job: any) => <SelectItem key={job.id} value={String(job.id)}>{job.reference} - {job.name}</SelectItem>)}</SelectContent></Select><InputError message={form.errors.production_job_id} /></div>
+                <div><Label>{t('Record ID')} *</Label><div className="flex gap-2"><Input required value={form.data.record_key} onChange={event => form.setData('record_key', event.target.value)} /><Button type="button" variant="outline" className="shrink-0" disabled={!nextRecordKey} onClick={() => form.setData('record_key', nextRecordKey)}>{t('Generate ID')}</Button></div><InputError message={form.errors.record_key} /></div>
+                {fields[kind as Kind].map(([key, label, type = 'text', options]) => <div key={key} className={type === 'textarea' || type === 'image' ? 'md:col-span-2 lg:col-span-3' : ''}><Label>{t(label)}</Label>{type === 'textarea' ? <Textarea value={(form.data.data as any)[key]} onChange={event => form.setData('data', { ...form.data.data, [key]: event.target.value })} /> : type === 'select' ? <Select value={(form.data.data as any)[key] || 'none'} onValueChange={value => form.setData('data', { ...form.data.data, [key]: value === 'none' ? '' : value })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">{t('Not specified')}</SelectItem>{options?.map(option => <SelectItem key={option} value={option}>{t(option)}</SelectItem>)}</SelectContent></Select> : <Input type={type} step={type === 'number' ? '0.01' : undefined} value={(form.data.data as any)[key]} onChange={event => form.setData('data', { ...form.data.data, [key]: event.target.value })} />}</div>)}
+                <div className="flex justify-end gap-2 md:col-span-2 lg:col-span-3"><Button type="button" variant="outline" onClick={() => setOpen(false)}>{t('Cancel')}</Button><Button disabled={form.processing}>{t('Save')}</Button></div>
+            </form>
+        </DialogContent>}</Dialog>
+    </Card>;
+}
 
 function JobsManager({ jobs, statuses, nextReference, permissions }: any) {
     const { t } = useTranslation();
@@ -109,7 +284,7 @@ function JobsManager({ jobs, statuses, nextReference, permissions }: any) {
     const canEdit = permissions.includes('edit-video-production-job');
     const canDelete = permissions.includes('delete-video-production-job');
     const launch = (job?: any) => { setEditing(job); setOpen(true); };
-    return <Card><CardHeader className="flex-row items-center justify-between"><CardTitle>{t('Production Jobs')}</CardTitle>{canCreate && <Button onClick={() => launch()}><Plus className="h-4 w-4" />{t('Add Job')}</Button>}</CardHeader><CardContent><div className="overflow-x-auto rounded-lg border"><table className="w-full text-sm"><thead className="bg-muted"><tr><th className="p-3 text-left">{t('Job')}</th><th className="p-3 text-left">{t('Status')}</th><th className="p-3 text-left">{t('Dates')}</th><th className="p-3 text-right">{t('Actions')}</th></tr></thead><tbody>{jobs.map((job: any) => <tr className="border-t" key={job.id}><td className="p-3"><p className="font-medium">{job.name}</p><p className="text-xs text-muted-foreground">{job.reference || '-'}</p></td><td className="p-3 capitalize">{job.status.replaceAll('_', ' ')}</td><td className="p-3">{job.start_date?.slice(0, 10) || '-'} / {job.end_date?.slice(0, 10) || '-'}</td><td className="p-3 text-right">{canEdit && <Button variant="ghost" size="icon" onClick={() => launch(job)}><Pencil className="h-4 w-4" /></Button>}{canDelete && <Button variant="ghost" size="icon" className="text-destructive" onClick={() => confirm(t('Delete this production job and all of its linked shoots, deliverables, revisions, time entries, and evidence?')) && router.delete(route('video-production.jobs.destroy', job.id), { preserveScroll: true })}><Trash2 className="h-4 w-4" /></Button>}</td></tr>)}</tbody></table>{!jobs.length && <p className="p-10 text-center text-muted-foreground">{t('No production jobs yet.')}</p>}</div></CardContent><Dialog open={open} onOpenChange={setOpen}>{open && <JobForm job={editing} statuses={statuses} nextReference={nextReference} onClose={() => setOpen(false)} />}</Dialog></Card>;
+    return <Card><CardHeader className="flex-row items-center justify-between"><CardTitle>{t('Production Jobs')}</CardTitle>{canCreate && <Button onClick={() => launch()}><Plus className="h-4 w-4" />{t('Add Job')}</Button>}</CardHeader><CardContent><div className="overflow-x-auto rounded-lg border"><table className="w-full text-sm"><thead className="bg-muted"><tr><th className="p-3 text-left">{t('Job')}</th><th className="p-3 text-left">{t('Status')}</th><th className="p-3 text-left">{t('Dates')}</th><th className="p-3 text-right">{t('Actions')}</th></tr></thead><tbody>{jobs.map((job: any) => <tr className="border-t" key={job.id}><td className="p-3"><p className="font-medium">{job.name}</p><p className="text-xs text-muted-foreground">{job.reference || '-'}</p></td><td className="p-3 capitalize">{job.status.replaceAll('_', ' ')}</td><td className="p-3">{formatDateOnly(job.start_date)} / {formatDateOnly(job.end_date)}</td><td className="p-3 text-right">{canEdit && <Button variant="ghost" size="icon" onClick={() => launch(job)}><Pencil className="h-4 w-4" /></Button>}{canDelete && <Button variant="ghost" size="icon" className="text-destructive" onClick={() => confirm(t('Delete this production job and all of its linked shoots, deliverables, revisions, time entries, and evidence?')) && router.delete(route('video-production.jobs.destroy', job.id), { preserveScroll: true })}><Trash2 className="h-4 w-4" /></Button>}</td></tr>)}</tbody></table>{!jobs.length && <p className="p-10 text-center text-muted-foreground">{t('No production jobs yet.')}</p>}</div></CardContent><Dialog open={open} onOpenChange={setOpen}>{open && <JobForm job={editing} statuses={statuses} nextReference={nextReference} onClose={() => setOpen(false)} />}</Dialog></Card>;
 }
 
 export default function Dashboard() {

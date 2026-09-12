@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import InputError from '@/components/ui/input-error';
 import { Label } from '@/components/ui/label';
@@ -53,7 +54,7 @@ export default function SettingsForm({ settings }: any) {
             {numberField('included_hours_per_shoot', t('Included Hours per Shoot'), '0.25')}
             {numberField('required_lead_days', t('Required Lead Time (working days)'))}
             {numberField('included_revisions', t('Included Revisions'))}
-            <div><Label>{t('Workflow Effective Date')}</Label><Input type="date" value={form.data.workflow_effective_date} onChange={e => form.setData('workflow_effective_date', e.target.value)} /><InputError message={form.errors.workflow_effective_date} /></div>
+            <div><Label>{t('Workflow Effective Date')}</Label><DatePicker value={form.data.workflow_effective_date} onChange={value => form.setData('workflow_effective_date', value)} placeholder={t('Select effective date')} /><InputError message={form.errors.workflow_effective_date} /></div>
             <div className="md:col-span-2 lg:col-span-3"><Label>{t('Working Days')}</Label><div className="mt-2 flex flex-wrap gap-4">{days.map(day => <label key={day} className="flex items-center gap-2 capitalize"><Checkbox checked={form.data.working_days.includes(day)} onCheckedChange={checked => toggleDay(day, checked === true)} />{t(day)}</label>)}</div><InputError message={form.errors.working_days} /></div>
             <div className="flex justify-end md:col-span-2 lg:col-span-3"><Button disabled={form.processing}>{t('Save Settings')}</Button></div>
         </CardContent></Card>
