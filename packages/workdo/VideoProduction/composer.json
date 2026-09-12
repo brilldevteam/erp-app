@@ -1,0 +1,25 @@
+{
+    "name": "workdo/video-production",
+    "description": "Description for video-production package",
+    "type": "library",
+    "license": "MIT",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Workdo\\VideoProduction\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "WorkDo",
+            "email": "support@workdo.io"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Workdo\\VideoProduction\\Providers\\VideoProductionServiceProvider"
+            ]
+        }
+    }
+}
