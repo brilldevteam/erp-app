@@ -10,6 +10,9 @@ class PurchaseInvoice extends Model
 {
     protected $fillable = [
         'invoice_number',
+        'purchase_order_reference',
+        'currency_code',
+        'exchange_rate',
         'invoice_date',
         'due_date',
         'vendor_id',
@@ -39,6 +42,7 @@ class PurchaseInvoice extends Model
         'paid_amount' => 'decimal:2',
         'debit_note_applied' => 'decimal:2',
         'balance_amount' => 'decimal:2'
+        ,'exchange_rate' => 'decimal:8'
     ];
 
     protected $appends = ['display_status'];

@@ -12,6 +12,8 @@ class PurchaseInvoiceItem extends Model
     protected $fillable = [
         'invoice_id',
         'product_id',
+        'unit',
+        'description',
         'quantity',
         'unit_price',
         'discount_percentage',
@@ -22,7 +24,7 @@ class PurchaseInvoiceItem extends Model
     ];
 
     protected $casts = [
-        'quantity' => 'integer',
+        'quantity' => 'decimal:4',
         'unit_price' => 'decimal:2',
         'discount_percentage' => 'decimal:2',
         'discount_amount' => 'decimal:2',

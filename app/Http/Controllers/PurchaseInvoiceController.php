@@ -408,6 +408,8 @@ class PurchaseInvoiceController extends Controller
             $item = new PurchaseInvoiceItem();
             $item->invoice_id = $invoiceId;
             $item->product_id = $itemData['product_id'];
+            $item->description = $itemData['description'] ?? null;
+            $item->unit = $itemData['unit'] ?? null;
             $item->quantity = $itemData['quantity'];
             $item->unit_price = $itemData['unit_price'];
             $item->discount_percentage = $itemData['discount_percentage'] ?? 0;

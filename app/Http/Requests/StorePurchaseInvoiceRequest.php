@@ -23,9 +23,11 @@ class StorePurchaseInvoiceRequest extends FormRequest
             'payment_terms' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|integer|min:1',
+            'items.*.product_id' => 'nullable|integer|min:1|exists:product_service_items,id',
+            'items.*.description' => 'required_without:items.*.product_id|nullable|string',
+            'items.*.unit' => 'nullable|string|max:50',
 
-            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.quantity' => 'required|numeric|gt:0',
             'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.discount_percentage' => 'nullable|numeric|min:0|max:100',
             'items.*.tax_percentage' => 'nullable|numeric|min:0|max:100',

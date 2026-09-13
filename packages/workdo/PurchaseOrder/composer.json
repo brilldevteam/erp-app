@@ -1,0 +1,8 @@
+{
+  "name": "workdo/purchase-order",
+  "description": "Purchase Order and LPO management",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {"psr-4": {"Workdo\\PurchaseOrder\\": "src/"}},
+  "extra": {"laravel": {"providers": ["Workdo\\PurchaseOrder\\Providers\\PurchaseOrderServiceProvider"]}}
+}
