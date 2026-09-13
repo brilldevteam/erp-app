@@ -5,6 +5,7 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Fixed
+- Allow complete Purchase Order terms to be preserved when converting to a draft Purchase Invoice instead of failing when the text exceeds 255 characters.
 - Made Purchase Order / LPO activation migrations safely retryable after a partial or interrupted production activation.
 - Show the Purchase Orders / LPO navigation entry only for companies whose active plan includes the add-on, preventing dashboard redirects from unavailable module links.
 
