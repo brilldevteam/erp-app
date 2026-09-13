@@ -18,12 +18,6 @@ class PermissionTableSeeder extends Seeder
         $permission = [
             ['name' => 'manage-video-production', 'module' => 'video-production', 'label' => 'Manage Video Production'],
             ['name' => 'view-video-production-dashboard', 'module' => 'video-production', 'label' => 'View Video Production Dashboard'],
-            ['name' => 'manage-any-video-production-job', 'module' => 'video-production-job', 'label' => 'Manage All Production Jobs'],
-            ['name' => 'manage-own-video-production-job', 'module' => 'video-production-job', 'label' => 'Manage Own Production Jobs'],
-            ['name' => 'view-video-production-job', 'module' => 'video-production-job', 'label' => 'View Production Jobs'],
-            ['name' => 'create-video-production-job', 'module' => 'video-production-job', 'label' => 'Create Production Jobs'],
-            ['name' => 'edit-video-production-job', 'module' => 'video-production-job', 'label' => 'Edit Production Jobs'],
-            ['name' => 'delete-video-production-job', 'module' => 'video-production-job', 'label' => 'Delete Production Jobs'],
             ['name' => 'manage-video-production-settings', 'module' => 'video-production-settings', 'label' => 'Manage Video Production Settings'],
         ];
 
