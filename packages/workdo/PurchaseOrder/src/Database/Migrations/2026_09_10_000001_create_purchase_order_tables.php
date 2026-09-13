@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
+        if (!Schema::hasTable('purchase_orders')) {
         Schema::create('purchase_orders', function (Blueprint $table) {
             $table->id();
             $table->string('purchase_order_number');
@@ -48,7 +49,9 @@ return new class extends Migration {
             $table->unique(['created_by', 'purchase_order_number']);
             $table->index(['created_by', 'order_status', 'billing_status']);
         });
+        }
 
+        if (!Schema::hasTable('purchase_order_items')) {
         Schema::create('purchase_order_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('purchase_order_id')->constrained()->cascadeOnDelete();
@@ -67,7 +70,9 @@ return new class extends Migration {
             $table->unsignedInteger('line_order')->default(0);
             $table->timestamps();
         });
+        }
 
+        if (!Schema::hasTable('purchase_order_item_taxes')) {
         Schema::create('purchase_order_item_taxes', function (Blueprint $table) {
             $table->id();
             $table->foreignId('purchase_order_item_id')->constrained()->cascadeOnDelete();
@@ -77,7 +82,9 @@ return new class extends Migration {
             $table->decimal('tax_amount', 18, 2);
             $table->timestamps();
         });
+        }
 
+        if (!Schema::hasTable('purchase_order_approvals')) {
         Schema::create('purchase_order_approvals', function (Blueprint $table) {
             $table->id();
             $table->foreignId('purchase_order_id')->constrained()->cascadeOnDelete();
@@ -89,7 +96,9 @@ return new class extends Migration {
             $table->timestamp('acted_at')->nullable();
             $table->timestamps();
         });
+        }
 
+        if (!Schema::hasTable('purchase_order_status_histories')) {
         Schema::create('purchase_order_status_histories', function (Blueprint $table) {
             $table->id();
             $table->foreignId('purchase_order_id')->constrained()->cascadeOnDelete();
@@ -101,7 +110,9 @@ return new class extends Migration {
             $table->json('metadata')->nullable();
             $table->timestamps();
         });
+        }
 
+        if (!Schema::hasTable('purchase_order_attachments')) {
         Schema::create('purchase_order_attachments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('purchase_order_id')->constrained()->cascadeOnDelete();
@@ -112,7 +123,9 @@ return new class extends Migration {
             $table->foreignId('uploaded_by')->constrained('users');
             $table->timestamps();
         });
+        }
 
+        if (!Schema::hasTable('purchase_order_invoice_links')) {
         Schema::create('purchase_order_invoice_links', function (Blueprint $table) {
             $table->id();
             $table->foreignId('purchase_order_id')->constrained()->cascadeOnDelete();
@@ -121,7 +134,9 @@ return new class extends Migration {
             $table->timestamps();
             $table->unique(['purchase_order_id', 'purchase_invoice_id']);
         });
+        }
 
+        if (!Schema::hasTable('purchase_order_invoice_items')) {
         Schema::create('purchase_order_invoice_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('purchase_order_item_id')->constrained()->cascadeOnDelete();
@@ -131,6 +146,7 @@ return new class extends Migration {
             $table->timestamps();
             $table->unique(['purchase_order_item_id', 'purchase_invoice_item_id'], 'po_invoice_item_unique');
         });
+        }
     }
 
     public function down(): void

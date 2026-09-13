@@ -4,6 +4,9 @@ All notable changes to the Wazely ERP application are documented here.
 
 ## [Unreleased]
 
+### Fixed
+- Made Purchase Order / LPO activation migrations safely retryable after a partial or interrupted production activation.
+
 ### Added
 - Added a tenant-scoped Purchase Order / LPO add-on with draft-to-issued approval workflow, vendor and catalogue/custom lines, taxes and discounts, attachments, billing status, activity history, and partial or full conversion into draft purchase invoices without changing stock or accounting until invoice posting.
 - Added per-account PDF/Excel transaction downloads from Chart of Accounts, with date filters, company checks, opening/closing balances, period totals and Dr/Cr labels. Corrected General Ledger opening snapshots to use the current schema.
