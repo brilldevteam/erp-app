@@ -61,15 +61,11 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
     },
     {
         title: t('Purchase'),
+        name: 'purchase',
         icon: ShoppingCart,
         permission: 'manage-purchase-invoices',
         order: 40,
         children: [
-            {
-                title: t('Purchase Orders / LPO'),
-                href: route('purchase-orders.index'),
-                permission: 'manage-purchase-orders',
-            },
             {
                 title: t('Purchase Invoice'),
                 href: route('purchase-invoices.index'),

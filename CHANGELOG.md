@@ -6,6 +6,7 @@ All notable changes to the Wazely ERP application are documented here.
 
 ### Fixed
 - Made Purchase Order / LPO activation migrations safely retryable after a partial or interrupted production activation.
+- Show the Purchase Orders / LPO navigation entry only for companies whose active plan includes the add-on, preventing dashboard redirects from unavailable module links.
 
 ### Added
 - Added a tenant-scoped Purchase Order / LPO add-on with draft-to-issued approval workflow, vendor and catalogue/custom lines, taxes and discounts, attachments, billing status, activity history, and partial or full conversion into draft purchase invoices without changing stock or accounting until invoice posting.
