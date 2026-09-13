@@ -30,10 +30,8 @@ export default function SettingsForm({ settings }: any) {
         ['1', 'Create a Shoot ID', 'Add every planned or unplanned shoot as soon as the request is received.'],
         ['2', 'Record exact timestamps', 'Enter when requests, confirmations, content plans, and scripts were actually received.'],
         ['3', 'Create each deliverable', 'Add every reel or static post and link it to the Shoot ID where applicable.'],
-        ['4', 'Log every revision', 'Record every revision round, request, category, delivery date, and evidence.'],
-        ['5', 'Track working hours', 'Log shooting, editing, revisions, planning, meetings, setup, and other production work.'],
-        ['6', 'Save evidence', 'Keep screenshots and source files in Drive, then add the link to the relevant record and Evidence Register.'],
-        ['7', 'Review monthly', 'Choose the reporting month on Overview before every management review.'],
+        ['4', 'Save supporting proof', 'Attach proof images or add source links directly to the relevant shoot or deliverable.'],
+        ['5', 'Review monthly', 'Choose the reporting month on Overview before every management review.'],
     ];
     const definitions = [
         ['Planned Shoot', 'Normal scheduled shoot. The configured script and plan lead-time rule applies.'],
@@ -65,7 +63,7 @@ export default function SettingsForm({ settings }: any) {
         </div>
         <Card><CardHeader><CardTitle>{t('Evidence Standard')}</CardTitle></CardHeader><CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div><Label>{t('Recommended folder structure')}</Label><p className="mt-1 text-sm text-muted-foreground">Company / YYYY / Month / Shoot ID / 01 Script & Brief / 02 Shoot / 03 V1 / 04 Revisions / 05 Final Approval</p></div>
-            <div><Label>{t('Recommended screenshot name')}</Label><p className="mt-1 text-sm text-muted-foreground">DOC_R041_ScriptReceived_YYYY-MM-DD_HHMM.png</p></div>
+            <div><Label>{t('Recommended screenshot name')}</Label><p className="mt-1 text-sm text-muted-foreground">COMPANY_ShootID_Description_YYYY-MM-DD_HHMM.png</p></div>
             <div><Label>{t('Neutral wording')}</Label><p className="mt-1 text-sm text-muted-foreground">Script Lead Time, Awaiting Client Input, Client Review Time, and Brill Turnaround.</p></div>
             <div><Label>{t('Evidence reminder')}</Label><p className="mt-1 text-sm text-muted-foreground">Save important scripts, confirmations, deliveries, revisions, approvals, and disputes with exact timestamps.</p></div>
         </CardContent></Card>

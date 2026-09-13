@@ -5,12 +5,14 @@ namespace Workdo\VideoProduction\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use App\Models\User;
 
 class ProductionRecord extends Model
 {
     protected $table = 'video_production_records';
 
-    protected $fillable = ['production_job_id', 'type', 'record_key', 'recorded_at', 'status', 'data', 'creator_id', 'created_by'];
+    protected $fillable = ['type', 'record_key', 'recorded_at', 'status', 'data', 'creator_id', 'created_by'];
 
     protected static function booted(): void
     {
@@ -19,6 +21,10 @@ class ProductionRecord extends Model
             if ($proofImagePath) {
                 Storage::disk('public')->delete($proofImagePath);
             }
+            collect(data_get($record->data, 'supporting_files', []))
+                ->pluck('path')
+                ->filter()
+                ->each(fn (string $path) => Storage::disk('public')->delete($path));
         });
     }
 
@@ -32,24 +38,19 @@ class ProductionRecord extends Model
         return $query->where('created_by', $companyId ?? creatorId());
     }
 
-    public function job()
-    {
-        return $this->belongsTo(ProductionJob::class, 'production_job_id');
-    }
-
-    public static function nextKey(ProductionJob $job, string $type): string
+    public static function nextKey(int $companyId, string $type): string
     {
         $labels = [
             'shoot' => 'SHOOT',
             'deliverable' => 'DEL',
-            'revision' => 'REV',
-            'time' => 'TIME',
-            'evidence' => 'EVD',
         ];
-        $prefix = $job->reference.'-'.($labels[$type] ?? strtoupper($type)).'-';
+        $companyName = company_setting('company_name', $companyId)
+            ?: User::query()->find($companyId)?->name
+            ?: 'Production';
+        $companyCode = substr(preg_replace('/[^A-Z0-9]/', '', Str::upper(Str::ascii($companyName))), 0, 3);
+        $prefix = ($companyCode ?: 'PRO').'-'.now()->format('Y').'-'.($labels[$type] ?? strtoupper($type)).'-';
         $sequence = static::query()
-            ->where('created_by', $job->created_by)
-            ->where('production_job_id', $job->id)
+            ->where('created_by', $companyId)
             ->where('type', $type)
             ->where('record_key', 'like', $prefix.'%')
             ->pluck('record_key')

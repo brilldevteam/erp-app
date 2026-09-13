@@ -9,23 +9,23 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Workdo\VideoProduction\Models\ProductionRecord;
 use Workdo\VideoProduction\Models\ProductionSetting;
 
 class ProductionRecordController extends Controller
 {
-    private const TYPES = ['shoot', 'deliverable', 'revision', 'time', 'evidence'];
+    private const TYPES = ['shoot', 'deliverable'];
 
     public function store(Request $request, string $type)
     {
         abort_unless($request->user()->can('manage-video-production') && in_array($type, self::TYPES, true), 403);
         $values = $this->validated($request, $type);
-        $values['data'] = $this->storeProofImage($values['data'], $values['production_job_id']);
+        $values['data'] = $this->storeSupportingFiles($values['data']);
         $values['data'] = $this->calculateFields($type, $values['data']);
 
         ProductionRecord::create([
             'type' => $type,
-            'production_job_id' => $values['production_job_id'],
             'record_key' => $values['record_key'],
             'recorded_at' => $values['recorded_at'] ?: null,
             'status' => $values['status'] ?: null,
@@ -41,9 +41,9 @@ class ProductionRecordController extends Controller
     {
         abort_unless($request->user()->can('manage-video-production') && $record->created_by === creatorId() && $record->type === $type, 403);
         $values = $this->validated($request, $type, $record->id);
-        $values['data'] = $this->storeProofImage($values['data'], $values['production_job_id'], $record);
+        $values['data'] = $this->storeSupportingFiles($values['data']);
         $values['data'] = $this->calculateFields($type, $values['data']);
-        $record->update(Arr::only($values, ['production_job_id', 'record_key', 'recorded_at', 'status', 'data']));
+        $record->update(Arr::only($values, ['record_key', 'recorded_at', 'status', 'data']));
 
         return back()->with('success', __('Production record updated successfully.'));
     }
@@ -61,37 +61,46 @@ class ProductionRecordController extends Controller
         $companyId = creatorId();
 
         return $request->validate([
-            'production_job_id' => ['required', 'integer', Rule::exists('video_production_jobs', 'id')->where('created_by', $companyId)],
-            'record_key' => ['required', 'string', 'max:100', Rule::unique('video_production_records')->where(fn ($query) => $query->where('created_by', $companyId)->where('production_job_id', $request->integer('production_job_id'))->where('type', $type))->ignore($ignoreId)],
+            'record_key' => ['required', 'string', 'max:100', Rule::unique('video_production_records')->where(fn ($query) => $query->where('created_by', $companyId)->where('type', $type))->ignore($ignoreId)],
             'recorded_at' => ['nullable', 'date'],
             'status' => ['nullable', 'string', 'max:60'],
             'data' => ['required', 'array'],
             'data.*' => ['nullable'],
-            'data.proof_image' => [
-                'nullable',
-                Rule::when($request->hasFile('data.proof_image'), ['image', 'mimes:jpg,jpeg,png,webp', 'max:5120'], ['string', 'max:500']),
-            ],
+            'data.supporting_files' => ['nullable', 'array', 'max:10'],
+            'data.supporting_files.*.path' => ['required', 'string', 'max:500'],
+            'data.supporting_files.*.name' => ['required', 'string', 'max:255'],
+            'data.supporting_files.*.type' => ['nullable', 'string', 'max:100'],
+            'data.supporting_files.*.size' => ['nullable', 'integer', 'min:0'],
+            'data.new_supporting_files' => ['nullable', 'array', 'max:10'],
+            'data.new_supporting_files.*' => ['file', 'mimes:jpg,jpeg,png,webp,pdf,doc,docx,xls,xlsx', 'max:10240'],
+            'data.evidence_links' => ['nullable', 'array', 'max:10'],
+            'data.evidence_links.*' => ['nullable', 'url', 'max:2048'],
         ]);
     }
 
-    private function storeProofImage(array $data, int $jobId, ?ProductionRecord $record = null): array
+    private function storeSupportingFiles(array $data): array
     {
-        $proofImage = $data['proof_image'] ?? null;
-        unset($data['proof_image']);
+        $newFiles = collect($data['new_supporting_files'] ?? [])->filter(fn ($file) => $file instanceof UploadedFile);
+        unset($data['new_supporting_files']);
 
-        if (! $proofImage instanceof UploadedFile) {
-            return $data;
+        $storedFiles = collect($data['supporting_files'] ?? [])->values();
+        if ($storedFiles->count() + $newFiles->count() > 10) {
+            throw ValidationException::withMessages([
+                'data.new_supporting_files' => __('A maximum of 10 supporting files is allowed.'),
+            ]);
         }
 
-        $oldPath = data_get($record?->data, 'proof_image_path');
-        if ($oldPath) {
-            Storage::disk('public')->delete($oldPath);
-        }
+        $newFiles->each(function (UploadedFile $file) use ($storedFiles) {
+            $storedFiles->push([
+                'path' => $file->store('video-production/'.creatorId().'/supporting-files', 'public'),
+                'name' => $file->getClientOriginalName(),
+                'type' => $file->getClientMimeType(),
+                'size' => $file->getSize(),
+            ]);
+        });
 
-        $data['proof_image_path'] = $proofImage->store(
-            'video-production/'.creatorId().'/'.$jobId.'/shoot-proofs',
-            'public'
-        );
+        $data['supporting_files'] = $storedFiles->all();
+        $data['evidence_links'] = collect($data['evidence_links'] ?? [])->filter()->values()->all();
 
         return $data;
     }
