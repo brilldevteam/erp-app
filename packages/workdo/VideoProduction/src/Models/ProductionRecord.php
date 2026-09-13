@@ -22,6 +22,9 @@ class ProductionRecord extends Model
                 Storage::disk('public')->delete($proofImagePath);
             }
             collect(data_get($record->data, 'supporting_files', []))
+                ->merge(data_get($record->data, 'revision_1_files', []))
+                ->merge(data_get($record->data, 'revision_2_files', []))
+                ->merge(data_get($record->data, 'revision_3_files', []))
                 ->pluck('path')
                 ->filter()
                 ->each(fn (string $path) => Storage::disk('public')->delete($path));

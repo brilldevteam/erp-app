@@ -28,7 +28,7 @@ const opts:any = {
 };
 const fields:Record<Kind,Field[]> = {
  shoot:[['shoot_date','Shoot Date','date'],['branch_location','Branch / Location'],['shoot_type','Shoot Type','select',opts.shoot],['shoot_confirmed_at','Shoot Confirmed','datetime-local'],['doctor_subject','Doctor / Subject'],['planned_start','Planned Start','time'],['actual_start','Actual Start','time'],['actual_end','Actual End','time'],['content_plan_received','Content / Script Plan Received','select',['Yes','Partial','No']],['script_received_at','Script / Plan Received','datetime-local'],['script_type','Script Type','select',['Video Script','Speech Script','None']],['planning_contribution','Brill Contributed to Planning','select',['Yes','No']],['b_roll_requirements','B-roll Requirements','select',opts.yes],['editing_references','Editing References','select',opts.yes],['props_requirements','Props / Special Requirements','select',opts.yes],['reels_shot','Reels Shot','number'],['additional_topics','Additional Topics Added on Shoot Day','textarea'],['shoot_notes','Shoot Notes','textarea'],['supporting_files','Supporting Documents','files'],['evidence_links','Evidence Links','links'],['client_confirmation','DOC Confirmation','select',['Confirmed','No Response','Disputed','Not Sent']]],
- deliverable:[['content_type','Content Type','select',opts.content],['content_name','Reel / Content Name'],['shoot_id','Shoot ID'],['doctor_department','Doctor / Department'],['shoot_date','Shoot Date','date'],['script_received_at','Script / Plan Received','datetime-local'],['b_roll_defined','B-roll / Inserts Defined','select',opts.yes],['editing_reference','Editing Reference Provided','select',opts.yes],['input_status','Input Status','select',['Awaiting Inputs','Ready for Production']],['complete_inputs_received_at','Complete Inputs Received','datetime-local'],['editing_started_at','Editing Started','datetime-local'],['v1_delivered_at','V1 Delivered','datetime-local'],['v1_evidence_link','V1 Evidence Link','url'],['client_v1_response_at','Client V1 Response','datetime-local'],['v1_response_status','V1 Response Status','select',['Approved','Revision Required','Still Under Review','No Response']],['revision_1_requested_at','Revision 01 Requested','datetime-local'],['revision_1_summary','Revision 01 Summary','textarea'],['revision_1_category','Revision 01 Category','select',opts.revision],['revision_1_delivered_at','Revision 01 Delivered','datetime-local'],['revision_2_requested_at','Revision 02 Requested','datetime-local'],['revision_2_summary','Revision 02 Summary','textarea'],['revision_2_category','Revision 02 Category','select',opts.revision],['revision_2_delivered_at','Revision 02 Delivered','datetime-local'],['revision_3_requested_at','Revision 03 Requested','datetime-local'],['revision_3_summary','Revision 03 Summary','textarea'],['revision_3_category','Revision 03 Category','select',opts.revision],['revision_3_delivered_at','Revision 03 Delivered','datetime-local'],['final_approval_date','Final Approval Date','date'],['final_delivery_date','Final Delivery Date','date'],['final_evidence_link','Final Evidence Link','url'],['current_status','Current Status','select',opts.delivery],['supporting_files','Supporting Documents','files'],['evidence_links','Evidence Links','links'],['notes','Notes','textarea']],
+ deliverable:[['content_type','Content Type','select',opts.content],['content_name','Reel / Content Name'],['shoot_id','Shoot ID','shoot-link'],['doctor_department','Doctor / Department'],['shoot_date','Shoot Date','date'],['script_received_at','Script / Plan Received','datetime-local'],['b_roll_defined','B-roll / Inserts Defined','select',opts.yes],['editing_reference','Editing Reference Provided','select',opts.yes],['input_status','Input Status','select',['Awaiting Inputs','Ready for Production']],['complete_inputs_received_at','Complete Inputs Received','datetime-local'],['editing_started_at','Editing Started','datetime-local'],['v1_delivered_at','V1 Delivered','datetime-local'],['v1_evidence_link','V1 Evidence Link','url'],['client_v1_response_at','Client V1 Response','datetime-local'],['v1_response_status','V1 Response Status','select',['Approved','Revision Required','Still Under Review','No Response']],['revision_1_requested_at','Revision 01 Requested','datetime-local'],['revision_1_summary','Revision 01 Summary','textarea'],['revision_1_category','Revision 01 Category','select',opts.revision],['revision_1_delivered_at','Revision 01 Delivered','datetime-local'],['revision_1_files','Revision 01 Evidence Files','files'],['revision_1_evidence_links','Revision 01 Evidence Links','links'],['revision_2_requested_at','Revision 02 Requested','datetime-local'],['revision_2_summary','Revision 02 Summary','textarea'],['revision_2_category','Revision 02 Category','select',opts.revision],['revision_2_delivered_at','Revision 02 Delivered','datetime-local'],['revision_2_files','Revision 02 Evidence Files','files'],['revision_2_evidence_links','Revision 02 Evidence Links','links'],['revision_3_requested_at','Revision 03 Requested','datetime-local'],['revision_3_summary','Revision 03 Summary','textarea'],['revision_3_category','Revision 03 Category','select',opts.revision],['revision_3_delivered_at','Revision 03 Delivered','datetime-local'],['revision_3_files','Revision 03 Evidence Files','files'],['revision_3_evidence_links','Revision 03 Evidence Links','links'],['additional_revision_count','Additional Revisions (4+)','number'],['final_approval_date','Final Approval Date','date'],['final_delivery_date','Final Delivery Date','date'],['final_evidence_link','Final Evidence Link','url'],['current_status','Current Status','select',opts.delivery],['evidence_folder_link','Evidence Folder Link','url'],['supporting_files','Supporting Documents','files'],['evidence_links','Evidence Links','links'],['notes','Notes','textarea']],
 };
 const titles:any={shoot:'Shooting Log',deliverable:'Deliverables'};
 const calculated: Record<Kind, Field[]> = {
@@ -117,17 +117,17 @@ function RecordValue({ value, type }: { value: any; type?: string }) {
     return <>{formatRecordValue(value, type)}</>;
 }
 
-function storedFiles(data: any): any[] {
-    const files = Array.isArray(data?.supporting_files) ? data.supporting_files : [];
-    if (data?.proof_image_path && !files.some((file: any) => file.path === data.proof_image_path)) {
+function storedFiles(data: any, key = 'supporting_files'): any[] {
+    const files = Array.isArray(data?.[key]) ? data[key] : [];
+    if (key === 'supporting_files' && data?.proof_image_path && !files.some((file: any) => file.path === data.proof_image_path)) {
         return [{ path: data.proof_image_path, name: data.proof_image_path.split('/').pop() || 'Proof image' }, ...files];
     }
     return files;
 }
 
-function evidenceLinks(data: any): string[] {
-    if (Array.isArray(data?.evidence_links)) return [...new Set<string>(data.evidence_links.filter(Boolean))];
-    return data?.evidence_folder_link ? [data.evidence_folder_link] : [];
+function evidenceLinks(data: any, key = 'evidence_links'): string[] {
+    if (Array.isArray(data?.[key])) return [...new Set<string>(data[key].filter(Boolean))];
+    return key === 'evidence_links' && data?.evidence_folder_link ? [data.evidence_folder_link] : [];
 }
 
 function isImageFile(file: any): boolean {
@@ -185,6 +185,11 @@ function RecordPdfButton({ record, kind, companyName }: { record: any; kind: Kin
             {(storedFiles(record.data).length > 0 || evidenceLinks(record.data).length > 0) && <div className="pdf-evidence-page" />}
             {storedFiles(record.data).length > 0 && <div className="mt-6"><h2 className="text-lg font-bold">Supporting Documents</h2><div className="mt-3 grid grid-cols-2 gap-3">{storedFiles(record.data).map((file: any, index: number) => <div className="pdf-field overflow-hidden rounded-lg border border-slate-200" key={`${file.path}-${index}`}>{isImageFile(file) && <img src={`/storage/${file.path}`} alt={file.name} className="h-52 w-full bg-slate-50 object-contain" crossOrigin="anonymous" />}<div className="flex items-center gap-2 p-3"><FileText className="h-4 w-4 shrink-0 text-slate-500" /><span className="min-w-0 flex-1 truncate text-sm font-medium">{file.name}</span><a href={`/storage/${file.path}`} target="_blank" rel="noreferrer" className="text-xs font-semibold text-emerald-700 underline">View</a></div></div>)}</div></div>}
             {evidenceLinks(record.data).length > 0 && <div className="mt-6"><h2 className="text-lg font-bold">Evidence Links</h2><div className="mt-2 space-y-2">{evidenceLinks(record.data).map((link, index) => <a className="pdf-field block break-all rounded border border-slate-200 p-3 text-sm text-emerald-700 underline" href={link} key={`${link}-${index}`}>{link}</a>)}</div></div>}
+            {kind === 'deliverable' && [1, 2, 3].map(number => {
+                const files = storedFiles(record.data, `revision_${number}_files`);
+                const links = evidenceLinks(record.data, `revision_${number}_evidence_links`);
+                return (files.length > 0 || links.length > 0) && <div className="mt-6" key={number}><h2 className="text-lg font-bold">Revision {String(number).padStart(2, '0')} Evidence</h2><div className="mt-2 space-y-2">{files.map((file: any, index: number) => <a className="pdf-field block rounded border border-slate-200 p-3 text-sm text-emerald-700 underline" href={`/storage/${file.path}`} key={`${file.path}-${index}`}>{file.name}</a>)}{links.map((link, index) => <a className="pdf-field block break-all rounded border border-slate-200 p-3 text-sm text-emerald-700 underline" href={link} key={`${link}-${index}`}>{link}</a>)}</div></div>;
+            })}
             <div className="mt-8 border-t pt-4 text-center text-xs text-slate-400">Generated from wazely.io Production Management</div>
                 </div>
                 </div>
@@ -203,18 +208,38 @@ function calculateHours(start?: string, end?: string): number | null {
     return +hours.toFixed(2);
 }
 
-function Manager({ kind, items, settings, nextRecordKey, companyName }: any) {
+function Manager({ kind, items, settings, nextRecordKey, companyName, shoots = [] }: any) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [edit, setEdit] = useState<any>();
     const [expanded, setExpanded] = useState<number | null>(null);
+    const [visibleRevisions, setVisibleRevisions] = useState(1);
     const blank = Object.fromEntries(fields[kind as Kind].map(([key, , type]) => [key, ['files', 'links'].includes(type || '') ? [] : '']));
     const form = useForm({ record_key: '', recorded_at: '', status: '', data: blank });
     const compactFields = summaryKeys[kind as Kind].map(key => fieldFor(kind, key)).filter(Boolean) as Field[];
     const liveTotalHours = kind === 'shoot' ? calculateHours((form.data.data as any).actual_start, (form.data.data as any).actual_end) : null;
     const liveExtraHours = liveTotalHours === null ? null : Math.max(0, +(liveTotalHours - Number(settings.included_hours_per_shoot)).toFixed(2));
 
+    const linkShoot = (shootId: string) => {
+        const shoot = shoots.find((item: any) => item.record_key === shootId);
+        const shootData = shoot?.data || {};
+        form.setData('data', {
+            ...form.data.data,
+            shoot_id: shootId,
+            doctor_department: shootData.doctor_subject || '',
+            shoot_date: shootData.shoot_date || '',
+            script_received_at: shootData.script_received_at || '',
+            b_roll_defined: shootData.b_roll_requirements || '',
+            editing_reference: shootData.editing_references || '',
+            evidence_folder_link: evidenceLinks(shootData)[0] || '',
+        });
+    };
+
     const launch = (record?: any) => {
+        const lastRevision = [3, 2, 1].find(number => Object.entries(record?.data || {}).some(([key, value]) =>
+            key.startsWith(`revision_${number}_`) && (Array.isArray(value) ? value.length > 0 : Boolean(value))
+        )) || 1;
+        setVisibleRevisions(lastRevision);
         setEdit(record);
         form.setData({
             record_key: record?.record_key || '',
@@ -229,6 +254,23 @@ function Manager({ kind, items, settings, nextRecordKey, companyName }: any) {
             },
         });
         setOpen(true);
+    };
+
+    const renderField = ([key, label, type = 'text', options]: Field) => {
+        const value = (form.data.data as any)[key];
+        const newFilesKey = `new_${key}`;
+        const wide = ['textarea', 'files', 'links'].includes(type);
+
+        return <div key={key} className={wide ? 'md:col-span-2 lg:col-span-3' : ''}>
+            <Label>{t(label)}</Label>
+            {type === 'textarea' ? <Textarea value={value || ''} onChange={event => form.setData('data', { ...form.data.data, [key]: event.target.value })} />
+                : type === 'select' ? <Select value={value || 'none'} onValueChange={next => form.setData('data', { ...form.data.data, [key]: next === 'none' ? '' : next })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">{t('Not specified')}</SelectItem>{options?.map(option => <SelectItem key={option} value={option}>{t(option)}</SelectItem>)}</SelectContent></Select>
+                : type === 'shoot-link' ? <Select value={value || 'none'} onValueChange={next => linkShoot(next === 'none' ? '' : next)}><SelectTrigger><SelectValue placeholder={t('Select Shooting Log record')} /></SelectTrigger><SelectContent><SelectItem value="none">{t('No linked shoot')}</SelectItem>{shoots.map((shoot: any) => <SelectItem key={shoot.id} value={shoot.record_key}>{shoot.record_key} - {shoot.data?.doctor_subject || shoot.data?.branch_location || t('Shooting Log')}</SelectItem>)}</SelectContent></Select>
+                : type === 'files' ? <SupportingFilesInput existing={value || []} selected={(form.data.data as any)[newFilesKey] || []} onChange={files => form.setData('data', { ...form.data.data, [newFilesKey]: files })} />
+                : type === 'links' ? <EvidenceLinksInput value={value || []} onChange={links => form.setData('data', { ...form.data.data, [key]: links })} />
+                : <Input type={type} step={type === 'number' ? '1' : undefined} min={type === 'number' ? '0' : undefined} value={value || ''} onChange={event => form.setData('data', { ...form.data.data, [key]: event.target.value })} />}
+            <InputError message={(form.errors as any)[`data.${key}`] || (form.errors as any)[`data.${newFilesKey}`]} />
+        </div>;
     };
 
     const submit = (event: FormEvent) => {
@@ -316,6 +358,11 @@ function Manager({ kind, items, settings, nextRecordKey, companyName }: any) {
                                             <p className="mb-2 text-xs font-medium text-muted-foreground">{t('Evidence Links')}</p>
                                             <div className="space-y-2">{evidenceLinks(record.data).map((link, index) => <div key={`${link}-${index}`} className="flex items-center gap-2 rounded-md border px-3 py-2"><span className="min-w-0 flex-1 truncate">{link}</span><Button type="button" variant="ghost" size="icon" asChild title={t('Open link')}><a href={link} target="_blank" rel="noreferrer"><Eye className="h-4 w-4" /></a></Button></div>)}</div>
                                         </div>}
+                                        {kind === 'deliverable' && [1, 2, 3].map(number => {
+                                            const files = storedFiles(record.data, `revision_${number}_files`);
+                                            const links = evidenceLinks(record.data, `revision_${number}_evidence_links`);
+                                            return (files.length > 0 || links.length > 0) && <div className="rounded-lg border bg-background p-3 sm:col-span-2" key={number}><p className="mb-2 text-xs font-medium text-muted-foreground">{t(`Revision ${String(number).padStart(2, '0')} Evidence`)}</p><div className="space-y-2">{files.map((file: any, index: number) => <div key={`${file.path}-${index}`} className="flex items-center gap-2 rounded-md border px-3 py-2"><FileText className="h-4 w-4 text-muted-foreground" /><span className="min-w-0 flex-1 truncate font-medium">{file.name}</span><Button type="button" variant="ghost" size="icon" asChild><a href={`/storage/${file.path}`} target="_blank" rel="noreferrer"><Eye className="h-4 w-4" /></a></Button></div>)}{links.map((link, index) => <div key={`${link}-${index}`} className="flex items-center gap-2 rounded-md border px-3 py-2"><span className="min-w-0 flex-1 truncate">{link}</span><Button type="button" variant="ghost" size="icon" asChild><a href={link} target="_blank" rel="noreferrer"><Eye className="h-4 w-4" /></a></Button></div>)}</div></div>;
+                                        })}
                                     </div>
                                 </td>
                             </tr>}
@@ -327,9 +374,22 @@ function Manager({ kind, items, settings, nextRecordKey, companyName }: any) {
         </CardContent>
         <Dialog open={open} onOpenChange={setOpen}>{open && <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
             <DialogHeader><DialogTitle>{edit ? t('Edit') : t('Add')} {t(titles[kind])}</DialogTitle></DialogHeader>
-            <form onSubmit={submit} className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <form onSubmit={submit} className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                 <div><Label>{t('Record ID')} *</Label><div className="flex gap-2"><Input required value={form.data.record_key} onChange={event => form.setData('record_key', event.target.value)} /><Button type="button" variant="outline" className="shrink-0" disabled={!nextRecordKey} onClick={() => form.setData('record_key', nextRecordKey)}>{t('Generate ID')}</Button></div><InputError message={form.errors.record_key} /></div>
-                {fields[kind as Kind].map(([key, label, type = 'text', options]) => <div key={key} className={['textarea', 'files', 'links'].includes(type) ? 'md:col-span-2 lg:col-span-3' : ''}><Label>{t(label)}</Label>{type === 'textarea' ? <Textarea value={(form.data.data as any)[key]} onChange={event => form.setData('data', { ...form.data.data, [key]: event.target.value })} /> : type === 'select' ? <Select value={(form.data.data as any)[key] || 'none'} onValueChange={value => form.setData('data', { ...form.data.data, [key]: value === 'none' ? '' : value })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">{t('Not specified')}</SelectItem>{options?.map(option => <SelectItem key={option} value={option}>{t(option)}</SelectItem>)}</SelectContent></Select> : type === 'files' ? <SupportingFilesInput existing={(form.data.data as any).supporting_files || []} selected={(form.data.data as any).new_supporting_files || []} onChange={files => form.setData('data', { ...form.data.data, new_supporting_files: files })} /> : type === 'links' ? <EvidenceLinksInput value={(form.data.data as any)[key] || []} onChange={links => form.setData('data', { ...form.data.data, [key]: links })} /> : <Input type={type} step={type === 'number' ? '0.01' : undefined} value={(form.data.data as any)[key]} onChange={event => form.setData('data', { ...form.data.data, [key]: event.target.value })} />}<InputError message={(form.errors as any)[`data.${key}`]} /></div>)}
+                {kind === 'shoot' && fields.shoot.map(renderField)}
+                {kind === 'deliverable' && <>
+                    <div className="md:col-span-2 lg:col-span-3"><h3 className="text-base font-semibold">{t('Deliverable information')}</h3><p className="text-sm text-muted-foreground">{t('Link a shoot to prefill its related production details.')}</p></div>
+                    {fields.deliverable.slice(0, fields.deliverable.findIndex(([key]) => key === 'revision_1_requested_at')).map(renderField)}
+                    <div className="space-y-4 md:col-span-2 lg:col-span-3">
+                        {[1, 2, 3].slice(0, visibleRevisions).map(number => <div key={number} className="rounded-xl border bg-muted/20 p-5 shadow-sm">
+                            <div className="mb-4 flex items-center justify-between"><div><h3 className="font-semibold">{t(`Revision ${String(number).padStart(2, '0')}`)}</h3><p className="text-xs text-muted-foreground">{t('Request, delivery and evidence for this revision.')}</p></div><span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{number} / 3</span></div>
+                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{fields.deliverable.filter(([key]) => key.startsWith(`revision_${number}_`)).map(renderField)}</div>
+                        </div>)}
+                        {visibleRevisions < 3 && <Button type="button" variant="outline" className="w-full border-dashed" onClick={() => setVisibleRevisions(count => count + 1)}><Plus className="h-4 w-4" />{t(`Add Revision ${String(visibleRevisions + 1).padStart(2, '0')}`)}</Button>}
+                    </div>
+                    <div className="md:col-span-2 lg:col-span-3"><h3 className="text-base font-semibold">{t('Approval, delivery and general evidence')}</h3></div>
+                    {fields.deliverable.slice(fields.deliverable.findIndex(([key]) => key === 'additional_revision_count')).map(renderField)}
+                </>}
                 {kind === 'shoot' && liveTotalHours !== null && <div className={`rounded-lg border p-4 md:col-span-2 lg:col-span-3 ${liveExtraHours && liveExtraHours > 0 ? 'border-red-300 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/30' : 'bg-muted/30'}`}><div className="flex flex-wrap gap-8"><div><p className="text-xs font-medium">{t('Calculated Total Hours')}</p><p className="text-xl font-semibold">{liveTotalHours}</p></div><div><p className="text-xs font-medium">{t('Calculated Extra Hours')}</p><p className="text-xl font-semibold">{liveExtraHours}</p></div></div>{liveTotalHours === 0 && <p className="mt-2 text-xs">{t('Actual Start and Actual End are the same, so the calculated duration is 0 hours.')}</p>}{liveExtraHours !== null && liveExtraHours > 0 && <p className="mt-2 text-xs font-semibold">{t('The shoot exceeds the included contract hours.')}</p>}</div>}
                 <div className="flex justify-end gap-2 md:col-span-2 lg:col-span-3"><Button type="button" variant="outline" onClick={() => setOpen(false)}>{t('Cancel')}</Button><Button disabled={form.processing}>{t('Save')}</Button></div>
             </form>
@@ -353,7 +413,7 @@ export default function Dashboard() {
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{metrics.map(([label,value,Icon]:any) => <Card key={label}><CardContent className="flex items-center justify-between p-5"><div><p className="text-sm text-muted-foreground">{t(label)}</p><p className="text-3xl font-semibold">{value}</p></div><Icon className="h-8 w-8 text-primary" /></CardContent></Card>)}</div>
                 <Card><CardHeader><CardTitle>{t('Agreed process and targets')}</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{targets.map(([label,value]) => <div className="flex justify-between rounded-lg bg-muted/50 p-3" key={label}><span>{t(label)}</span><strong>{value}</strong></div>)}</CardContent></Card>
             </TabsContent>
-            {(['shoot','deliverable'] as Kind[]).map(kind => <TabsContent value={kind} key={kind}><Manager kind={kind} items={records[kind] || []} settings={settings} nextRecordKey={nextRecordKeys?.[kind]} companyName={companyName} /></TabsContent>)}
+            {(['shoot','deliverable'] as Kind[]).map(kind => <TabsContent value={kind} key={kind}><Manager kind={kind} items={records[kind] || []} shoots={records.shoot || []} settings={settings} nextRecordKey={nextRecordKeys?.[kind]} companyName={companyName} /></TabsContent>)}
             <TabsContent value="settings"><SettingsForm settings={settings} /></TabsContent>
         </Tabs>
     </AuthenticatedLayout>;

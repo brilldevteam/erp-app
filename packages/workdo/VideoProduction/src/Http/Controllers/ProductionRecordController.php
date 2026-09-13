@@ -22,6 +22,7 @@ class ProductionRecordController extends Controller
         abort_unless($request->user()->can('manage-video-production') && in_array($type, self::TYPES, true), 403);
         $values = $this->validated($request, $type);
         $values['data'] = $this->storeSupportingFiles($values['data']);
+        $values['data'] = $this->syncLinkedShoot($type, $values['data']);
         $values['data'] = $this->calculateFields($type, $values['data']);
 
         ProductionRecord::create([
@@ -42,6 +43,7 @@ class ProductionRecordController extends Controller
         abort_unless($request->user()->can('manage-video-production') && $record->created_by === creatorId() && $record->type === $type, 403);
         $values = $this->validated($request, $type, $record->id);
         $values['data'] = $this->storeSupportingFiles($values['data']);
+        $values['data'] = $this->syncLinkedShoot($type, $values['data']);
         $values['data'] = $this->calculateFields($type, $values['data']);
         $record->update(Arr::only($values, ['record_key', 'recorded_at', 'status', 'data']));
 
@@ -60,7 +62,7 @@ class ProductionRecordController extends Controller
     {
         $companyId = creatorId();
 
-        return $request->validate([
+        $rules = [
             'record_key' => ['required', 'string', 'max:100', Rule::unique('video_production_records')->where(fn ($query) => $query->where('created_by', $companyId)->where('type', $type))->ignore($ignoreId)],
             'recorded_at' => ['nullable', 'date'],
             'status' => ['nullable', 'string', 'max:60'],
@@ -75,32 +77,52 @@ class ProductionRecordController extends Controller
             'data.new_supporting_files.*' => ['file', 'mimes:jpg,jpeg,png,webp,pdf,doc,docx,xls,xlsx', 'max:10240'],
             'data.evidence_links' => ['nullable', 'array', 'max:10'],
             'data.evidence_links.*' => ['nullable', 'url', 'max:2048'],
-        ]);
+        ];
+
+        foreach ([1, 2, 3] as $revision) {
+            $rules["data.revision_{$revision}_files"] = ['nullable', 'array', 'max:10'];
+            $rules["data.revision_{$revision}_files.*.path"] = ['required', 'string', 'max:500'];
+            $rules["data.revision_{$revision}_files.*.name"] = ['required', 'string', 'max:255'];
+            $rules["data.revision_{$revision}_files.*.type"] = ['nullable', 'string', 'max:100'];
+            $rules["data.revision_{$revision}_files.*.size"] = ['nullable', 'integer', 'min:0'];
+            $rules["data.new_revision_{$revision}_files"] = ['nullable', 'array', 'max:10'];
+            $rules["data.new_revision_{$revision}_files.*"] = ['file', 'mimes:jpg,jpeg,png,webp,pdf,doc,docx,xls,xlsx', 'max:10240'];
+            $rules["data.revision_{$revision}_evidence_links"] = ['nullable', 'array', 'max:10'];
+            $rules["data.revision_{$revision}_evidence_links.*"] = ['nullable', 'url', 'max:2048'];
+        }
+
+        return $request->validate($rules);
     }
 
     private function storeSupportingFiles(array $data): array
     {
-        $newFiles = collect($data['new_supporting_files'] ?? [])->filter(fn ($file) => $file instanceof UploadedFile);
-        unset($data['new_supporting_files']);
+        $fileGroups = ['supporting_files', 'revision_1_files', 'revision_2_files', 'revision_3_files'];
+        foreach ($fileGroups as $key) {
+            $newKey = 'new_'.$key;
+            $newFiles = collect($data[$newKey] ?? [])->filter(fn ($file) => $file instanceof UploadedFile);
+            unset($data[$newKey]);
 
-        $storedFiles = collect($data['supporting_files'] ?? [])->values();
-        if ($storedFiles->count() + $newFiles->count() > 10) {
-            throw ValidationException::withMessages([
-                'data.new_supporting_files' => __('A maximum of 10 supporting files is allowed.'),
-            ]);
+            $storedFiles = collect($data[$key] ?? [])->values();
+            if ($storedFiles->count() + $newFiles->count() > 10) {
+                throw ValidationException::withMessages([
+                    'data.'.$newKey => __('A maximum of 10 files is allowed for each evidence section.'),
+                ]);
+            }
+
+            $newFiles->each(function (UploadedFile $file) use ($storedFiles, $key) {
+                $storedFiles->push([
+                    'path' => $file->store('video-production/'.creatorId().'/'.$key, 'public'),
+                    'name' => $file->getClientOriginalName(),
+                    'type' => $file->getClientMimeType(),
+                    'size' => $file->getSize(),
+                ]);
+            });
+            $data[$key] = $storedFiles->all();
         }
 
-        $newFiles->each(function (UploadedFile $file) use ($storedFiles) {
-            $storedFiles->push([
-                'path' => $file->store('video-production/'.creatorId().'/supporting-files', 'public'),
-                'name' => $file->getClientOriginalName(),
-                'type' => $file->getClientMimeType(),
-                'size' => $file->getSize(),
-            ]);
-        });
-
-        $data['supporting_files'] = $storedFiles->all();
-        $data['evidence_links'] = collect($data['evidence_links'] ?? [])->filter()->values()->all();
+        foreach (['evidence_links', 'revision_1_evidence_links', 'revision_2_evidence_links', 'revision_3_evidence_links'] as $key) {
+            $data[$key] = collect($data[$key] ?? [])->filter()->values()->all();
+        }
 
         return $data;
     }
@@ -124,10 +146,21 @@ class ProductionRecordController extends Controller
             $data['script_lead_category'] = $this->scriptLeadCategory($data);
             $data['v1_turnaround_days'] = $this->workingDaysBetween($data['complete_inputs_received_at'] ?? null, $data['v1_delivered_at'] ?? null, $settings->working_days);
             $data['client_review_days'] = $this->workingDaysBetween($data['v1_delivered_at'] ?? null, $data['client_v1_response_at'] ?? null, $settings->working_days);
-            $data['total_revisions'] = collect([1, 2, 3])->filter(fn ($number) => ! empty($data["revision_{$number}_requested_at"]))->count();
+            $data['total_revisions'] = collect([1, 2, 3])->filter(fn ($number) => ! empty($data["revision_{$number}_requested_at"]))->count()
+                + max(0, (int) ($data['additional_revision_count'] ?? 0));
             $data['revision_4_plus'] = $data['total_revisions'] > $settings->included_revisions ? 'Yes' : 'No';
-            $data['total_brill_days'] = $data['v1_turnaround_days'];
-            $data['total_client_wait_days'] = $data['client_review_days'];
+            $data['total_brill_days'] = $this->sumWorkingDayPeriods([
+                [$data['complete_inputs_received_at'] ?? null, $data['v1_delivered_at'] ?? null],
+                [$data['revision_1_requested_at'] ?? null, $data['revision_1_delivered_at'] ?? null],
+                [$data['revision_2_requested_at'] ?? null, $data['revision_2_delivered_at'] ?? null],
+                [$data['revision_3_requested_at'] ?? null, $data['revision_3_delivered_at'] ?? null],
+            ], $settings->working_days);
+            $data['total_client_wait_days'] = $this->sumWorkingDayPeriods([
+                [$data['v1_delivered_at'] ?? null, $data['client_v1_response_at'] ?? null],
+                [$data['revision_1_delivered_at'] ?? null, $data['revision_2_requested_at'] ?? null],
+                [$data['revision_2_delivered_at'] ?? null, $data['revision_3_requested_at'] ?? null],
+                [$data['revision_3_delivered_at'] ?? null, $data['final_approval_date'] ?? null],
+            ], $settings->working_days);
         }
 
         if ($type === 'revision') {
@@ -141,6 +174,53 @@ class ProductionRecordController extends Controller
         }
 
         return $data;
+    }
+
+    private function syncLinkedShoot(string $type, array $data): array
+    {
+        if ($type !== 'deliverable' || empty($data['shoot_id'])) {
+            return $data;
+        }
+
+        $shoot = ProductionRecord::query()
+            ->forCompany()
+            ->where('type', 'shoot')
+            ->where('record_key', $data['shoot_id'])
+            ->first();
+
+        if (! $shoot) {
+            throw ValidationException::withMessages([
+                'data.shoot_id' => __('Select a valid Shooting Log record.'),
+            ]);
+        }
+
+        $shootData = $shoot->data ?? [];
+        $defaults = [
+            'doctor_department' => $shootData['doctor_subject'] ?? null,
+            'shoot_date' => $shootData['shoot_date'] ?? null,
+            'script_received_at' => $shootData['script_received_at'] ?? null,
+            'b_roll_defined' => $shootData['b_roll_requirements'] ?? null,
+            'editing_reference' => $shootData['editing_references'] ?? null,
+            'evidence_folder_link' => collect($shootData['evidence_links'] ?? [])->filter()->first()
+                ?: ($shootData['evidence_folder_link'] ?? null),
+        ];
+
+        foreach ($defaults as $key => $value) {
+            if (($data[$key] ?? null) === null || $data[$key] === '') {
+                $data[$key] = $value;
+            }
+        }
+
+        return $data;
+    }
+
+    private function sumWorkingDayPeriods(array $periods, ?array $workingDays): int
+    {
+        return collect($periods)->sum(function (array $period) use ($workingDays) {
+            [$start, $end] = $period;
+
+            return $start && $end ? max(0, $this->workingDaysBetween($start, $end, $workingDays) ?? 0) : 0;
+        });
     }
 
     private function hoursBetween(?string $start, ?string $end): ?float
