@@ -40,7 +40,7 @@ class ProjectController extends Controller
     {
         if (Auth::user()->can('manage-project')) {
             $items = Project::query()
-                ->select('id', 'name', 'description', 'budget', 'start_date', 'end_date', 'status', 'created_by')
+                ->select('id', 'name', 'category', 'description', 'budget', 'start_date', 'end_date', 'status', 'created_by')
                 ->with(['teamMembers:id,name,avatar'])
                 ->where(function($q) {
                     if(Auth::user()->can('manage-any-project')) {
@@ -111,17 +111,20 @@ class ProjectController extends Controller
 
             $project                = new Project();
             $project->name          = $validated['name'];
+            $project->category      = $validated['category'];
             $project->description   = $validated['description'];
-            $project->property_information = $validated['property_information'];
-            $project->budget        = $validated['budget'];
-            $project->start_date    = $validated['start_date'];
-            $project->end_date      = $validated['end_date'];
+            $project->property_information = $validated['category'] === 'property'
+                ? $validated['property_information']
+                : null;
+            $project->budget        = $validated['category'] === 'production' ? 0 : $validated['budget'];
+            $project->start_date    = $validated['category'] === 'production' ? null : $validated['start_date'];
+            $project->end_date      = $validated['category'] === 'production' ? null : $validated['end_date'];
             $project->status        = 'Ongoing';
             $project->creator_id    = Auth::id();
             $project->created_by    = creatorId();
             $project->save();
 
-            $project->teamMembers()->sync($validated['user_ids']);
+            $project->teamMembers()->sync($validated['user_ids'] ?? []);
 
             CreateProject::dispatch($request, $project);
             if(company_setting('Create Project') == 'on') {
@@ -129,20 +132,26 @@ class ProjectController extends Controller
                 $emailData = [
                     'name'         => $project->name ?? null,
                     'budget'       => $project->budget ?? null,
-                    'start_date'   => $validated['start_date'] ?? null,
-                    'end_date'     => $validated['end_date'] ?? null,
+                    'start_date'   => $project->start_date,
+                    'end_date'     => $project->end_date,
                 ];
-                $memberEmails = User::whereIn('id', $validated['user_ids'])->pluck('email')->toArray();
-               
-                $message = EmailTemplate::sendEmailTemplate('Create Project', $memberEmails, $emailData);
-                if($message['is_success'] == false && !empty($message['error'])) {
-                    return back()
-                        ->with('success', __('project has been created successfully.'))
-                        ->with('error', $message['error']);
+                $memberEmails = User::whereIn('id', $validated['user_ids'] ?? [])->pluck('email')->toArray();
+
+                if (!empty($memberEmails)) {
+                    $message = EmailTemplate::sendEmailTemplate('Create Project', $memberEmails, $emailData);
+                    if($message['is_success'] == false && !empty($message['error'])) {
+                        return back()
+                            ->with('success', __('project has been created successfully.'))
+                            ->with('error', $message['error']);
+                    }
                 }
             }
 
-            return redirect()->route('project.index')->with('success', __('The project has been created successfully.'));
+            $destination = $project->category === 'production'
+                ? route('video-production.dashboard', $project)
+                : route('project.index');
+
+            return redirect($destination)->with('success', __('The project has been created successfully.'));
         } else {
             return redirect()->route('project.index')->with('error', __('Permission denied'));
         }
@@ -286,7 +295,7 @@ class ProjectController extends Controller
     {
         if (Auth::user()->can('edit-project') && $project->created_by == creatorId()) {
             return response()->json([
-                'project' => $project->only(['id', 'name', 'description', 'property_information', 'budget', 'start_date', 'end_date', 'status'])
+                'project' => $project->only(['id', 'name', 'category', 'description', 'property_information', 'budget', 'start_date', 'end_date', 'status'])
             ]);
         } else {
             return response()->json(['error' => 'Permission denied'], 403);
@@ -300,11 +309,14 @@ class ProjectController extends Controller
             $validated = $request->validated();
 
             $project->name         = $validated['name'];
+            $project->category     = $validated['category'];
             $project->description  = $validated['description'];
-            $project->property_information = $validated['property_information'];
-            $project->budget       = $validated['budget'];
-            $project->start_date   = $validated['start_date'];
-            $project->end_date     = $validated['end_date'];
+            $project->property_information = $validated['category'] === 'property'
+                ? $validated['property_information']
+                : null;
+            $project->budget       = $validated['category'] === 'production' ? 0 : $validated['budget'];
+            $project->start_date   = $validated['category'] === 'production' ? null : $validated['start_date'];
+            $project->end_date     = $validated['category'] === 'production' ? null : $validated['end_date'];
             $project->status       = $validated['status'] ?? $project->status;
             $project->save();
 

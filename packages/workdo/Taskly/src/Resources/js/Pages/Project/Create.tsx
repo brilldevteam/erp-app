@@ -10,7 +10,8 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { useFormFields } from '@/hooks/useFormFields';
 import { ProjectPropertyFields } from './ProjectPropertyFields';
-import { emptyProjectPropertyInformation } from './types';
+import { ProjectCategory, emptyProjectPropertyInformation } from './types';
+import { ProjectCategoryField } from './ProjectCategoryField';
 
 interface CreateProps {
     onSuccess: () => void;
@@ -26,6 +27,7 @@ export default function Create({ onSuccess, users }: CreateProps) {
 
     const { data, setData, post, processing, errors } = useForm({
         name: '',
+        category: 'production' as ProjectCategory,
         user_ids: [],
         description: '',
         budget: 0,
@@ -55,6 +57,11 @@ export default function Create({ onSuccess, users }: CreateProps) {
             </DialogHeader>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+                <ProjectCategoryField
+                    value={data.category}
+                    onChange={(value) => setData('category', value)}
+                    error={errors.category}
+                />
                 <div>
                     <div className="flex gap-2 items-end">
                         <div className="flex-1">
@@ -72,7 +79,7 @@ export default function Create({ onSuccess, users }: CreateProps) {
                         {nameAI.map(field => <div key={field.id}>{field.component}</div>)}
                     </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                {data.category !== 'production' && <div className="grid grid-cols-2 gap-4">
                     <div>
                         <Label required>{t('Start Date')}</Label>
                         <DatePicker
@@ -91,8 +98,8 @@ export default function Create({ onSuccess, users }: CreateProps) {
                         />
                         {errors.end_date && <p className="text-sm text-red-500 mt-1">{errors.end_date}</p>}
                     </div>
-                </div>
-                <div>
+                </div>}
+                {data.category !== 'production' && <div>
                     <Label required>{t('Users')}</Label>
                     <MultiSelectEnhanced
                         options={users.map(user => ({ value: user.id.toString(), label: user.name }))}
@@ -107,15 +114,17 @@ export default function Create({ onSuccess, users }: CreateProps) {
                         </p>
                     )}
                     {errors.user_ids && <p className="text-sm text-red-500 mt-1">{errors.user_ids}</p>}
-                </div>
+                </div>}
 
-                <ProjectPropertyFields
-                    value={data.property_information}
-                    onChange={(value) => setData('property_information', value)}
-                    errors={errors}
-                />
+                {data.category === 'property' && (
+                    <ProjectPropertyFields
+                        value={data.property_information}
+                        onChange={(value) => setData('property_information', value)}
+                        errors={errors}
+                    />
+                )}
 
-                <div>
+                {data.category !== 'production' && <div>
                     <CurrencyInput
                         label={t('Budget')}
                         value={data.budget.toString()}
@@ -123,7 +132,7 @@ export default function Create({ onSuccess, users }: CreateProps) {
                         error={errors.budget}
                         required
                     />
-                </div>
+                </div>}
 
                 <div>
                     <div className="flex items-center justify-between mb-2">

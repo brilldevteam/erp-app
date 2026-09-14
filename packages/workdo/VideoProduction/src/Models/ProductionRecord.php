@@ -4,6 +4,7 @@ namespace Workdo\VideoProduction\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Models\User;
@@ -12,7 +13,7 @@ class ProductionRecord extends Model
 {
     protected $table = 'video_production_records';
 
-    protected $fillable = ['type', 'record_key', 'recorded_at', 'status', 'data', 'creator_id', 'created_by'];
+    protected $fillable = ['project_id', 'type', 'record_key', 'recorded_at', 'status', 'data', 'creator_id', 'created_by'];
 
     protected static function booted(): void
     {
@@ -41,21 +42,30 @@ class ProductionRecord extends Model
         return $query->where('created_by', $companyId ?? creatorId());
     }
 
-    public static function nextKey(int $companyId, string $type): string
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(\Workdo\Taskly\Models\Project::class, 'project_id');
+    }
+
+    public static function nextKey(int $companyId, string $type, ?int $projectId = null, ?string $projectName = null): string
     {
         $labels = [
             'shoot' => 'SHOOT',
             'deliverable' => 'DEL',
         ];
-        $companyName = company_setting('company_name', $companyId)
+        $scopeName = $projectName ?: company_setting('company_name', $companyId)
             ?: User::query()->find($companyId)?->name
             ?: 'Production';
-        $companyCode = substr(preg_replace('/[^A-Z0-9]/', '', Str::upper(Str::ascii($companyName))), 0, 3);
-        $prefix = ($companyCode ?: 'PRO').'-'.now()->format('Y').'-'.($labels[$type] ?? strtoupper($type)).'-';
-        $sequence = static::query()
+        $scopeCode = substr(preg_replace('/[^A-Z0-9]/', '', Str::upper(Str::ascii($scopeName))), 0, 3);
+        $prefix = ($scopeCode ?: 'PRO').'-'.now()->format('Y').'-'.($labels[$type] ?? strtoupper($type)).'-';
+        $query = static::query()
             ->where('created_by', $companyId)
             ->where('type', $type)
-            ->where('record_key', 'like', $prefix.'%')
+            ->where('record_key', 'like', $prefix.'%');
+        if ($projectId !== null) {
+            $query->where('project_id', $projectId);
+        }
+        $sequence = $query
             ->pluck('record_key')
             ->map(function (string $key) use ($prefix) {
                 $suffix = substr($key, strlen($prefix));

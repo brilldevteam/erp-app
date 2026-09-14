@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { Dialog } from "@/components/ui/dialog";
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Plus, Edit, Trash2, Package, Eye, Copy } from "lucide-react";
+import { Plus, Edit, Trash2, Package, Eye, Copy, Video } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Pagination } from "@/components/ui/pagination";
 import { SearchInput } from "@/components/ui/search-input";
@@ -25,10 +25,12 @@ import Create from './Create';
 import EditItem from './Edit';
 import DuplicateModal from './DuplicateModal';
 import NoRecordsFound from '@/components/no-records-found';
+import { ProjectCategory } from './types';
 
 interface ProjectItem {
     id: number;
     name: string;
+    category?: ProjectCategory;
     description?: string;
     budget?: number;
     start_date?: string;
@@ -266,6 +268,24 @@ export default function Index() {
             render: (_: any, item: ProjectItem) => (
                 <div className="flex gap-1">
                     {renderTemplateButtons(item)}
+                    {item.category === 'production' && auth.user?.permissions?.includes('view-project') && (
+                        <Tooltip key={`production-${item.id}`} delayDuration={0}>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => router.get(route('video-production.dashboard', item.id))}
+                                    className="h-8 gap-1 px-2 text-emerald-700 hover:text-emerald-800"
+                                >
+                                    <Video className="h-4 w-4" />
+                                    {t('Production')}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{t('Open Production')}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    )}
                     {auth.user?.permissions?.includes('duplicate-project') && (
                         <Tooltip key={`duplicate-${item.id}`} delayDuration={0}>
                             <TooltipTrigger asChild>
@@ -561,6 +581,24 @@ export default function Index() {
                                             <div className="flex justify-end gap-2 p-3 border-t bg-gray-50/50 flex-shrink-0 mt-auto">
                                                 <TooltipProvider>
                                                     {renderGridTemplateButtons(project)}
+                                                    {project.category === 'production' && auth.user?.permissions?.includes('view-project') && (
+                                                        <Tooltip delayDuration={300}>
+                                                            <TooltipTrigger asChild>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => router.get(route('video-production.dashboard', project.id))}
+                                                                    className="h-9 gap-1 px-2 text-emerald-700 hover:text-emerald-800"
+                                                                >
+                                                                    <Video className="h-4 w-4" />
+                                                                    {t('Production')}
+                                                                </Button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p>{t('Open Production')}</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    )}
                                                     {auth.user?.permissions?.includes('duplicate-project') && (
                                                         <Tooltip delayDuration={300}>
                                                             <TooltipTrigger asChild>

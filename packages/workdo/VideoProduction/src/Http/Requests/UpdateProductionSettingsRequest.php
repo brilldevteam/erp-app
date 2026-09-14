@@ -24,6 +24,13 @@ class UpdateProductionSettingsRequest extends FormRequest
             'working_days' => ['required', 'array', 'min:1'],
             'working_days.*' => ['required', 'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday'],
             'workflow_effective_date' => ['nullable', 'date'],
+            'report_email_enabled' => ['required', 'boolean'],
+            'report_email_recipients' => ['nullable', 'array', 'max:10'],
+            'report_email_recipients.*' => ['required', 'email:rfc', 'distinct'],
+            'report_email_cc' => ['nullable', 'array', 'max:10'],
+            'report_email_cc.*' => ['required', 'email:rfc', 'distinct'],
+            'report_email_subject' => ['required', 'string', 'max:200'],
+            'report_email_message' => ['nullable', 'string', 'max:5000'],
         ];
     }
 }

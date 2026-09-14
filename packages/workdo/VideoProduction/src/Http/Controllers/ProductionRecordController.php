@@ -12,20 +12,23 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Workdo\VideoProduction\Models\ProductionRecord;
 use Workdo\VideoProduction\Models\ProductionSetting;
+use Workdo\Taskly\Models\Project;
 
 class ProductionRecordController extends Controller
 {
     private const TYPES = ['shoot', 'deliverable'];
 
-    public function store(Request $request, string $type)
+    public function store(Request $request, Project $project, string $type)
     {
-        abort_unless($request->user()->can('manage-video-production') && in_array($type, self::TYPES, true), 403);
-        $values = $this->validated($request, $type);
+        $this->authorizeProject($request, $project);
+        abort_unless(in_array($type, self::TYPES, true), 404);
+        $values = $this->validated($request, $project, $type);
         $values['data'] = $this->storeSupportingFiles($values['data']);
-        $values['data'] = $this->syncLinkedShoot($type, $values['data']);
-        $values['data'] = $this->calculateFields($type, $values['data']);
+        $values['data'] = $this->syncLinkedShoot($project, $type, $values['data']);
+        $values['data'] = $this->calculateFields($project, $type, $values['data']);
 
         ProductionRecord::create([
+            'project_id' => $project->id,
             'type' => $type,
             'record_key' => $values['record_key'],
             'recorded_at' => $values['recorded_at'] ?: null,
@@ -38,32 +41,34 @@ class ProductionRecordController extends Controller
         return back()->with('success', __('Production record created successfully.'));
     }
 
-    public function update(Request $request, string $type, ProductionRecord $record)
+    public function update(Request $request, Project $project, string $type, ProductionRecord $record)
     {
-        abort_unless($request->user()->can('manage-video-production') && $record->created_by === creatorId() && $record->type === $type, 403);
-        $values = $this->validated($request, $type, $record->id);
+        $this->authorizeProject($request, $project);
+        abort_unless($record->created_by === creatorId() && $record->project_id === $project->id && $record->type === $type, 404);
+        $values = $this->validated($request, $project, $type, $record->id);
         $values['data'] = $this->storeSupportingFiles($values['data']);
-        $values['data'] = $this->syncLinkedShoot($type, $values['data']);
-        $values['data'] = $this->calculateFields($type, $values['data']);
+        $values['data'] = $this->syncLinkedShoot($project, $type, $values['data']);
+        $values['data'] = $this->calculateFields($project, $type, $values['data']);
         $record->update(Arr::only($values, ['record_key', 'recorded_at', 'status', 'data']));
 
         return back()->with('success', __('Production record updated successfully.'));
     }
 
-    public function destroy(Request $request, string $type, ProductionRecord $record)
+    public function destroy(Request $request, Project $project, string $type, ProductionRecord $record)
     {
-        abort_unless($request->user()->can('manage-video-production') && $record->created_by === creatorId() && $record->type === $type, 403);
+        $this->authorizeProject($request, $project);
+        abort_unless($record->created_by === creatorId() && $record->project_id === $project->id && $record->type === $type, 404);
         $record->delete();
 
         return back()->with('success', __('Production record deleted successfully.'));
     }
 
-    private function validated(Request $request, string $type, ?int $ignoreId = null): array
+    private function validated(Request $request, Project $project, string $type, ?int $ignoreId = null): array
     {
         $companyId = creatorId();
 
         $rules = [
-            'record_key' => ['required', 'string', 'max:100', Rule::unique('video_production_records')->where(fn ($query) => $query->where('created_by', $companyId)->where('type', $type))->ignore($ignoreId)],
+            'record_key' => ['required', 'string', 'max:100', Rule::unique('video_production_records')->where(fn ($query) => $query->where('created_by', $companyId)->where('project_id', $project->id)->where('type', $type))->ignore($ignoreId)],
             'recorded_at' => ['nullable', 'date'],
             'status' => ['nullable', 'string', 'max:60'],
             'data' => ['required', 'array'],
@@ -127,9 +132,9 @@ class ProductionRecordController extends Controller
         return $data;
     }
 
-    private function calculateFields(string $type, array $data): array
+    private function calculateFields(Project $project, string $type, array $data): array
     {
-        $settings = ProductionSetting::forCompany(creatorId());
+        $settings = ProductionSetting::forProject(creatorId(), $project->id);
 
         if ($type === 'shoot') {
             $data['contract_hours'] = (float) $settings->included_hours_per_shoot;
@@ -176,7 +181,7 @@ class ProductionRecordController extends Controller
         return $data;
     }
 
-    private function syncLinkedShoot(string $type, array $data): array
+    private function syncLinkedShoot(Project $project, string $type, array $data): array
     {
         if ($type !== 'deliverable' || empty($data['shoot_id'])) {
             return $data;
@@ -184,6 +189,7 @@ class ProductionRecordController extends Controller
 
         $shoot = ProductionRecord::query()
             ->forCompany()
+            ->where('project_id', $project->id)
             ->where('type', 'shoot')
             ->where('record_key', $data['shoot_id'])
             ->first();
@@ -212,6 +218,14 @@ class ProductionRecordController extends Controller
         }
 
         return $data;
+    }
+
+    private function authorizeProject(Request $request, Project $project): void
+    {
+        abort_unless(
+            $request->user()->can('manage-video-production') && $project->created_by === creatorId(),
+            403
+        );
     }
 
     private function sumWorkingDayPeriods(array $periods, ?array $workingDays): int
