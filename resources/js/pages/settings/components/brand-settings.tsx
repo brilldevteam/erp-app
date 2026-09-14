@@ -42,8 +42,8 @@ export default function BrandSettings({ userSettings, auth }: BrandSettingsProps
     logo_dark: userSettings?.logo_dark || '',
     logo_light: userSettings?.logo_light || '',
     favicon: userSettings?.favicon || '',
-    titleText: userSettings?.titleText || 'wazely.io',
-    footerText: userSettings?.footerText || '© wazely.io. All rights reserved.',
+    titleText: userSettings?.titleText || 'Wazely ERP',
+    footerText: userSettings?.footerText || '© Wazely ERP. All rights reserved.',
     sidebarVariant: userSettings?.sidebarVariant || 'inset',
     sidebarStyle: userSettings?.sidebarStyle || 'plain',
     layoutDirection: userSettings?.layoutDirection || 'ltr',
@@ -59,8 +59,8 @@ export default function BrandSettings({ userSettings, auth }: BrandSettingsProps
         logo_dark: userSettings?.logo_dark || '',
         logo_light: userSettings?.logo_light || '',
         favicon: userSettings?.favicon || '',
-        titleText: userSettings?.titleText || 'wazely.io',
-        footerText: userSettings?.footerText || '© wazely.io. All rights reserved.',
+        titleText: userSettings?.titleText || 'Wazely ERP',
+        footerText: userSettings?.footerText || '© Wazely ERP. All rights reserved.',
         sidebarVariant: userSettings?.sidebarVariant || 'inset',
         sidebarStyle: userSettings?.sidebarStyle || 'plain',
         layoutDirection: userSettings?.layoutDirection || 'ltr',
@@ -277,7 +277,7 @@ export default function BrandSettings({ userSettings, auth }: BrandSettingsProps
                       name="titleText"
                       value={settings.titleText}
                       onChange={handleInputChange}
-                      placeholder="wazely.io"
+                      placeholder="Wazely ERP"
                       disabled={!canEdit}
                     />
                     <p className="text-xs text-muted-foreground">
@@ -292,7 +292,7 @@ export default function BrandSettings({ userSettings, auth }: BrandSettingsProps
                       name="footerText"
                       value={settings.footerText}
                       onChange={handleInputChange}
-                      placeholder={t('© wazely.io. All rights reserved.')}
+                      placeholder={t('© Wazely ERP. All rights reserved.')}
                       disabled={!canEdit}
                     />
                     <p className="text-xs text-muted-foreground">

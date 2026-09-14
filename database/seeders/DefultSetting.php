@@ -29,8 +29,8 @@ class DefultSetting extends Seeder
                 'logo_light' => 'logo_light.png',
                 'logo_dark' => 'logo_dark.png',
                 'favicon' => 'favicon.png',
-                'titleText' => !empty(env('APP_NAME')) ? env('APP_NAME') : 'wazely.io',
-                'footerText' => 'Copyright © ' . (!empty(env('APP_NAME')) ? env('APP_NAME') : 'wazely.io'),
+                'titleText' => !empty(env('APP_NAME')) ? env('APP_NAME') : 'Wazely ERP',
+                'footerText' => 'Copyright © ' . (!empty(env('APP_NAME')) ? env('APP_NAME') : 'Wazely ERP'),
                 'sidebarVariant' => 'inset',
                 'sidebarStyle' => 'plain',
                 'layoutDirection' => 'ltr',
@@ -66,8 +66,8 @@ class DefultSetting extends Seeder
                 'currencySymbolPosition' => 'left',
 
                 // SEO Settings
-                'metaKeywords' => 'workdo, dashboard, admin, panel, management',
-                'metaTitle' => !empty(env('APP_NAME')) ? env('APP_NAME') . ' - Dashboard' : 'wazely.io - Dashboard',
+                'metaKeywords' => 'wazely, erp, dashboard, admin, panel, management',
+                'metaTitle' => !empty(env('APP_NAME')) ? env('APP_NAME') . ' - Dashboard' : 'Wazely ERP - Dashboard',
                 'metaDescription' => 'Modern dashboard and management system built with Laravel and React',
                 'metaImage' => 'meta_image.png',
 

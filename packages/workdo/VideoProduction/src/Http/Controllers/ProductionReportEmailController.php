@@ -50,7 +50,7 @@ class ProductionReportEmailController extends Controller
             .'<h2 style="margin-bottom:8px">'.e($project->name).'</h2>'
             .'<p style="color:#64748b;margin-top:0">'.e($record->record_key).'</p>'
             .'<div>'.$safeMessage.'</div>'
-            .'<p style="margin-top:24px;color:#94a3b8;font-size:12px">'.e(__('Generated from wazely.io Production Management')).'</p>'
+            .'<p style="margin-top:24px;color:#94a3b8;font-size:12px">'.e(__('Generated from Wazely ERP Production Management')).'</p>'
             .'</div>';
 
         try {
