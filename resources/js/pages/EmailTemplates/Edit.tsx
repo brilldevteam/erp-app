@@ -61,7 +61,7 @@ export default function Edit() {
     useFlashMessages();
 
     const templateForm = useForm({
-        from: emailTemplate.from || 'wazely.io',
+        from: emailTemplate.from || 'Wazely ERP',
     });
 
     const contentForm = useForm({

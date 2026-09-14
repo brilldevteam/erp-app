@@ -267,7 +267,7 @@ function RecordPdfButton({ record, kind, companyName, project, settings, canEmai
                 const links = evidenceLinks(record.data, `revision_${number}_evidence_links`);
                 return (files.length > 0 || links.length > 0) && <div className="mt-6" key={number}><h2 className="text-lg font-bold">Revision {String(number).padStart(2, '0')} Evidence</h2><div className="mt-2 space-y-2">{files.map((file: any, index: number) => <a className="pdf-field block rounded border border-slate-200 p-3 text-sm text-emerald-700 underline" href={`/storage/${file.path}`} key={`${file.path}-${index}`}>{file.name}</a>)}{links.map((link, index) => <a className="pdf-field block break-all rounded border border-slate-200 p-3 text-sm text-emerald-700 underline" href={link} key={`${link}-${index}`}>{link}</a>)}</div></div>;
             })}
-            <div className="mt-8 border-t pt-4 text-center text-xs text-slate-400">Generated from wazely.io Production Management</div>
+            <div className="mt-8 border-t pt-4 text-center text-xs text-slate-400">Generated from Wazely ERP Production Management</div>
                 </div>
                 </div>
                 <div className="flex flex-wrap justify-end gap-2 border-t bg-background px-6 py-4"><Button type="button" variant="outline" onClick={() => setPreviewOpen(false)}>{t('Close')}</Button>{canEmail && settings.report_email_enabled && <Button type="button" variant="outline" onClick={openEmail}><Mail className="h-4 w-4" />{t('Send Email')}</Button>}<Button type="button" disabled={generating} onClick={downloadPdf}><Download className="h-4 w-4" />{generating ? t('Preparing PDF...') : t('Download PDF')}</Button></div>

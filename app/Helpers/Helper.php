@@ -530,6 +530,10 @@ if (!function_exists('SetConfigEmail')) {
                 'mail.mailers.smtp.username' => $company_settings['email_username'] ?? '',
                 'mail.mailers.smtp.password' => $company_settings['email_password'] ?? '',
                 'mail.from.address' => $company_settings['email_fromAddress'] ?? 'noreply@example.com',
+                'mail.from.name' => !empty($company_settings['company_email_from_name'])
+                    && !preg_match('/work\s*do\s*dash/i', $company_settings['company_email_from_name'])
+                        ? $company_settings['company_email_from_name']
+                        : 'Wazely ERP',
             ]);
             return true;
         } catch (\Exception $e) {

@@ -33,7 +33,7 @@ class MarketplaceSettingSeeder extends Seeder
                 'sections' => [
                     'hero' => [
                         'variant' => 'hero1',
-                        'title' => 'Hrm Module for WorkDo Dash',
+                        'title' => 'Hrm Module for Wazely ERP',
                         'subtitle' => 'Streamline your hrm workflow with comprehensive tools and automated management.',
                         'primary_button_text' => 'Install Hrm Module',
                         'primary_button_link' => '#install',
