@@ -182,18 +182,18 @@ function RecordPdfButton({ record, kind, companyName }: { record: any; kind: Kin
             <DialogContent className="max-h-[95vh] max-w-5xl overflow-hidden p-0">
                 <DialogHeader className="border-b px-6 py-4"><DialogTitle>{t('Client Report Preview')}</DialogTitle></DialogHeader>
                 <div className="overflow-auto bg-slate-100 p-5">
-                <div className="mx-auto min-h-[1123px] w-[794px] bg-white p-10 font-sans text-slate-900 shadow-lg" ref={reportRef}>
+                <div className="mx-auto min-h-[281mm] w-[194mm] max-w-full overflow-hidden bg-white p-10 font-sans text-slate-900 shadow-lg" ref={reportRef}>
             <div className="border-b-4 border-emerald-500 pb-5">
                 <p className="text-sm font-semibold uppercase tracking-widest text-emerald-600">{companyName}</p>
                 <h1 className="mt-2 text-3xl font-bold">{t(titles[kind])} Report</h1>
-                <div className="mt-3 flex justify-between text-sm text-slate-500"><span>{record.record_key}</span><span>Generated {new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium' }).format(new Date())}</span></div>
+                <div className="mt-3 grid grid-cols-2 gap-4 text-sm text-slate-500"><span className="min-w-0 break-words">{record.record_key}</span><span className="text-right">Generated {new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium' }).format(new Date())}</span></div>
             </div>
             <div className="mt-5 grid grid-cols-3 gap-2">
                 {reportFields(kind).map(([key, label, type]) => <div className="pdf-field rounded-lg border border-slate-200 p-2.5" key={key}><p className="text-[10px] font-semibold uppercase leading-tight text-slate-500">{t(label)}</p><div className="mt-1 whitespace-pre-wrap break-words text-xs font-medium leading-snug"><RecordValue value={record.data?.[key]} type={type} /></div></div>)}
             </div>
             {kind === 'shoot' && <div className="pdf-field mt-6 rounded-lg border-2 border-amber-400 bg-amber-50 p-5 text-amber-950">
                 <p className="text-sm font-bold uppercase tracking-wide">Note</p>
-                <div className="mt-2 space-y-3 text-xs font-medium leading-relaxed">
+                <div className="mt-2 space-y-3 whitespace-normal break-words text-xs font-medium leading-relaxed">
                     <p>If the final script is not received at least 5 Brill Creations working days before the scheduled shoot, the full agreed pre-production period is considered unavailable. In such cases, Brill Creations may not have sufficient time to properly prepare the shot plan, B-roll requirements, visual direction, references, and other pre-production elements.</p>
                     <p>For record purposes, the session will be categorized as an "Unplanned Shoot", and "Brill Contributed to Planning" will be marked as "No".</p>
                     <p className="font-bold">Brill Creations working days are Sunday to Thursday only.</p>
