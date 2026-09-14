@@ -6,11 +6,13 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import InputError from '@/components/ui/input-error';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useTranslation } from 'react-i18next';
 
 const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+const emailList = (value: unknown): string[] => Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 
-export default function SettingsForm({ settings }: any) {
+export default function SettingsForm({ settings, projectId }: any) {
     const { t } = useTranslation();
     const form = useForm({
         monthly_reel_target: settings.monthly_reel_target,
@@ -22,6 +24,11 @@ export default function SettingsForm({ settings }: any) {
         included_revisions: settings.included_revisions,
         working_days: settings.working_days || days.slice(0, 5),
         workflow_effective_date: settings.workflow_effective_date?.slice(0, 10) || '',
+        report_email_enabled: settings.report_email_enabled ?? true,
+        report_email_recipients: emailList(settings.report_email_recipients),
+        report_email_cc: emailList(settings.report_email_cc),
+        report_email_subject: settings.report_email_subject || 'Production Report: {record_id}',
+        report_email_message: settings.report_email_message || 'Hello,\n\nPlease find the production report attached.\n\nRegards',
     });
     const numberField = (key: string, label: string, step = '1') => <div><Label>{label}</Label><Input type="number" min="0" step={step} value={(form.data as any)[key]} onChange={e => form.setData(key as any, e.target.value as any)} /><InputError message={(form.errors as any)[key]} /></div>;
     const toggleDay = (day: string, checked: boolean) => form.setData('working_days', checked ? [...form.data.working_days, day] : form.data.working_days.filter(item => item !== day));
@@ -43,7 +50,7 @@ export default function SettingsForm({ settings }: any) {
         ['Revision 4+', 'A revision number above the revisions included in the agreement.'],
     ];
 
-    return <div className="space-y-5"><form onSubmit={e => { e.preventDefault(); form.put(route('video-production.settings.update'), { preserveScroll: true }); }}>
+    return <div className="space-y-5"><form onSubmit={e => { e.preventDefault(); form.put(route('video-production.settings.update', projectId), { preserveScroll: true }); }}>
         <Card><CardHeader><CardTitle>{t('Production Settings')}</CardTitle></CardHeader><CardContent className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {numberField('monthly_reel_target', t('Monthly Reel Target'))}
             {numberField('monthly_static_target', t('Monthly Static Post Target'))}
@@ -54,6 +61,11 @@ export default function SettingsForm({ settings }: any) {
             {numberField('included_revisions', t('Included Revisions'))}
             <div><Label>{t('Workflow Effective Date')}</Label><DatePicker value={form.data.workflow_effective_date} onChange={value => form.setData('workflow_effective_date', value)} placeholder={t('Select effective date')} /><InputError message={form.errors.workflow_effective_date} /></div>
             <div className="md:col-span-2 lg:col-span-3"><Label>{t('Working Days')}</Label><div className="mt-2 flex flex-wrap gap-4">{days.map(day => <label key={day} className="flex items-center gap-2 capitalize"><Checkbox checked={form.data.working_days.includes(day)} onCheckedChange={checked => toggleDay(day, checked === true)} />{t(day)}</label>)}</div><InputError message={form.errors.working_days} /></div>
+            <div className="md:col-span-2 lg:col-span-3"><div className="rounded-lg border p-4"><div className="flex items-center gap-2"><Checkbox checked={form.data.report_email_enabled} onCheckedChange={checked => form.setData('report_email_enabled', checked === true)} /><Label>{t('Enable Report Email')}</Label></div><p className="mt-1 text-xs text-muted-foreground">{t('Allow users to email PDF reports from the report preview.')}</p></div></div>
+            <div className="md:col-span-2"><Label>{t('Default Recipients')}</Label><Textarea rows={3} value={form.data.report_email_recipients.join('\n')} onChange={event => form.setData('report_email_recipients', event.target.value.split(/[\n,;]+/).map(value => value.trim()).filter(Boolean))} placeholder="client@example.com" /><p className="mt-1 text-xs text-muted-foreground">{t('Enter up to 10 addresses, one per line.')}</p><InputError message={(form.errors as any).report_email_recipients} /></div>
+            <div><Label>{t('Default CC')}</Label><Textarea rows={3} value={form.data.report_email_cc.join('\n')} onChange={event => form.setData('report_email_cc', event.target.value.split(/[\n,;]+/).map(value => value.trim()).filter(Boolean))} placeholder="manager@example.com" /><InputError message={(form.errors as any).report_email_cc} /></div>
+            <div className="md:col-span-2 lg:col-span-3"><Label>{t('Default Email Subject')}</Label><Input value={form.data.report_email_subject} onChange={event => form.setData('report_email_subject', event.target.value)} /><p className="mt-1 text-xs text-muted-foreground">{t('Use {record_id} and {project_name} as placeholders.')}</p><InputError message={form.errors.report_email_subject} /></div>
+            <div className="md:col-span-2 lg:col-span-3"><Label>{t('Default Email Message')}</Label><Textarea rows={5} value={form.data.report_email_message} onChange={event => form.setData('report_email_message', event.target.value)} /><InputError message={form.errors.report_email_message} /></div>
             <div className="flex justify-end md:col-span-2 lg:col-span-3"><Button disabled={form.processing}>{t('Save Settings')}</Button></div>
         </CardContent></Card>
     </form>

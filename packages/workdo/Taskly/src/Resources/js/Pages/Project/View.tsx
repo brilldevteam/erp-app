@@ -33,12 +33,15 @@ import { LocationQrCode } from '@/components/location-qr-code';
 import { formatCountryAddressLines } from '@/types/address';
 import { ProjectPropertyFields } from './ProjectPropertyFields';
 import { ProjectPropertyInformation, emptyProjectPropertyInformation } from './types';
+import { ProjectCategory } from './types';
+import { ProjectCategoryField } from './ProjectCategoryField';
 
 
 
 interface Project {
     id: number;
     name: string;
+    category?: ProjectCategory;
     description?: string;
     budget?: number;
     start_date?: string;
@@ -174,6 +177,7 @@ export default function Show() {
 
     const { data: editProjectData, setData: setEditProjectData, put: putProject, processing: editProjectProcessing, errors: editProjectErrors, reset: resetEditProject } = useForm({
         name: '',
+        category: 'general' as ProjectCategory,
         description: '',
         budget: 0,
         start_date: '',
@@ -205,6 +209,7 @@ export default function Show() {
             setProjectEditData(projectData);
             setEditProjectData({
                 name: projectData.name || '',
+                category: projectData.category || 'general',
                 description: projectData.description || '',
                 budget: projectData.budget || 0,
                 start_date: projectData.start_date || '',
@@ -335,6 +340,12 @@ export default function Show() {
             pageTitle={project.name}
             pageActions={
                 <div className="flex gap-2">
+                    {project.category === 'production' && (
+                        <Button size="sm" onClick={() => router.get(route('video-production.dashboard', project.id))}>
+                            <Video className="h-4 w-4" />
+                            {t('Production')}
+                        </Button>
+                    )}
                     <TooltipProvider>
                         {videoHubButtons.map((button) => (
                             <div key={button.id}>
@@ -1392,6 +1403,11 @@ export default function Show() {
 
                     {projectEditData && (
                         <form onSubmit={handleEditProjectSubmit} className="space-y-4">
+                            <ProjectCategoryField
+                                value={editProjectData.category}
+                                onChange={(value) => setEditProjectData('category', value)}
+                                error={editProjectErrors.category}
+                            />
                             <div>
                                 <Label htmlFor="edit_project_name">{t('Name')}</Label>
                                 <Input
@@ -1405,7 +1421,7 @@ export default function Show() {
                                 <InputError message={editProjectErrors.name} />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            {editProjectData.category !== 'production' && <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <Label required>{t('Start Date')}</Label>
                                     <DatePicker
@@ -1424,9 +1440,9 @@ export default function Show() {
                                     />
                                     <InputError message={editProjectErrors.end_date} />
                                 </div>
-                            </div>
+                            </div>}
 
-                            <div>
+                            {editProjectData.category !== 'production' && <div>
                                 <CurrencyInput
                                     label={t('Budget')}
                                     value={editProjectData.budget.toString()}
@@ -1434,13 +1450,15 @@ export default function Show() {
                                     error={editProjectErrors.budget}
                                     required
                                 />
-                            </div>
+                            </div>}
 
-                            <ProjectPropertyFields
-                                value={editProjectData.property_information}
-                                onChange={(value) => setEditProjectData('property_information', value)}
-                                errors={editProjectErrors}
-                            />
+                            {editProjectData.category === 'property' && (
+                                <ProjectPropertyFields
+                                    value={editProjectData.property_information}
+                                    onChange={(value) => setEditProjectData('property_information', value)}
+                                    errors={editProjectErrors}
+                                />
+                            )}
 
                             <div>
                                 <Label htmlFor="edit_project_status">{t('Status')}</Label>

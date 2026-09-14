@@ -7,6 +7,8 @@ export interface ProjectPropertyInformation extends CountryAddress {
     location_url: string;
 }
 
+export type ProjectCategory = 'general' | 'production' | 'property';
+
 export const emptyProjectPropertyInformation = (): ProjectPropertyInformation => ({
     country: '',
     country_code: '',
@@ -18,6 +20,7 @@ export const emptyProjectPropertyInformation = (): ProjectPropertyInformation =>
 export interface Project {
     id: number;
     name: string;
+    category: ProjectCategory;
     description?: string;
     budget?: number;
     start_date?: string;
@@ -33,6 +36,7 @@ export interface Project {
 
 export interface ProjectFormData {
     name: string;
+    category: ProjectCategory;
     description?: string;
     budget?: number;
     start_date?: string;
@@ -76,6 +80,7 @@ export interface ProjectsIndexProps {
 
 export interface ProjectFormErrors {
     name?: string;
+    category?: string;
     description?: string;
     budget?: string;
     start_date?: string;

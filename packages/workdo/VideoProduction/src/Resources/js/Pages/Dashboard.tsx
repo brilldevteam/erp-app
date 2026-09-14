@@ -1,5 +1,6 @@
 import { FormEvent, Fragment, useRef, useState } from 'react';
 import html2pdf from 'html2pdf.js';
+import axios from 'axios';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { TimePicker } from '@/components/ui/time-picker';
-import { CalendarDays, CheckCircle2, ChevronDown, ChevronUp, Clock3, Download, Eye, FileCheck2, FileText, FolderKanban, Gauge, Pencil, Plus, Settings2, Trash2, Video, X } from 'lucide-react';
+import { CalendarDays, CheckCircle2, ChevronDown, ChevronUp, Clock3, Download, Eye, FileCheck2, FileText, FolderKanban, Gauge, Mail, Pencil, Plus, Settings2, Trash2, Video, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import SettingsForm from './Settings/SettingsForm';
@@ -146,23 +147,31 @@ function isImageFile(file: any): boolean {
     return String(file?.type || '').startsWith('image/') || /\.(jpe?g|png|webp|gif)$/i.test(String(file?.name || file?.path || ''));
 }
 
-function RecordPdfButton({ record, kind, companyName }: { record: any; kind: Kind; companyName: string }) {
+const splitEmails = (value: string) => value.split(/[\n,;]+/).map(email => email.trim()).filter(Boolean);
+
+function RecordPdfButton({ record, kind, companyName, project, settings, canEmail }: { record: any; kind: Kind; companyName: string; project: any; settings: any; canEmail: boolean }) {
     const { t } = useTranslation();
     const reportRef = useRef<HTMLDivElement>(null);
     const [generating, setGenerating] = useState(false);
     const [previewOpen, setPreviewOpen] = useState(false);
-    const downloadPdf = async () => {
+    const [emailOpen, setEmailOpen] = useState(false);
+    const [emailSending, setEmailSending] = useState(false);
+    const [emailStatus, setEmailStatus] = useState<{ type: 'success'|'error'; message: string } | null>(null);
+    const [emailData, setEmailData] = useState({ recipients: '', cc: '', subject: '', message: '' });
+
+    const waitForReportImages = async () => {
         if (!reportRef.current) return;
-        setGenerating(true);
-        try {
-            const images = Array.from(reportRef.current.querySelectorAll('img'));
-            await Promise.all(images.map(image => image.complete
-                ? Promise.resolve()
-                : new Promise<void>(resolve => {
-                    image.addEventListener('load', () => resolve(), { once: true });
-                    image.addEventListener('error', () => resolve(), { once: true });
-                })));
-            await html2pdf().set({
+        const images = Array.from(reportRef.current.querySelectorAll('img'));
+        await Promise.all(images.map(image => image.complete
+            ? Promise.resolve()
+            : new Promise<void>(resolve => {
+                image.addEventListener('load', () => resolve(), { once: true });
+                image.addEventListener('error', () => resolve(), { once: true });
+            })));
+    };
+    const createPdfWorker = () => {
+        if (!reportRef.current) throw new Error(t('The report preview is not ready.'));
+        return html2pdf().set({
                 filename: `${record.record_key}.pdf`,
                 margin: 8,
                 image: { type: 'jpeg', quality: 0.98 },
@@ -170,9 +179,59 @@ function RecordPdfButton({ record, kind, companyName }: { record: any; kind: Kin
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
                 pagebreak: { mode: ['css', 'legacy'], before: '.pdf-evidence-page', avoid: '.pdf-field' },
                 enableLinks: true,
-            }).from(reportRef.current).save();
+            }).from(reportRef.current);
+    };
+    const downloadPdf = async () => {
+        setGenerating(true);
+        try {
+            await waitForReportImages();
+            await createPdfWorker().save();
         } finally {
             setGenerating(false);
+        }
+    };
+    const openEmail = () => {
+        const subjectTemplate = settings.report_email_subject || 'Production Report: {record_id}';
+        setEmailData({
+            recipients: (settings.report_email_recipients || []).join('\n'),
+            cc: (settings.report_email_cc || []).join('\n'),
+            subject: subjectTemplate.replaceAll('{record_id}', record.record_key).replaceAll('{project_name}', project.name),
+            message: settings.report_email_message || 'Hello,\n\nPlease find the production report attached.\n\nRegards',
+        });
+        setEmailStatus(null);
+        setEmailOpen(true);
+    };
+    const sendEmail = async () => {
+        const recipients = splitEmails(emailData.recipients);
+        if (!recipients.length) {
+            setEmailStatus({ type: 'error', message: t('Enter at least one recipient email address.') });
+            return;
+        }
+        setEmailSending(true);
+        setEmailStatus(null);
+        try {
+            await waitForReportImages();
+            const output = await createPdfWorker().outputPdf('blob');
+            const blob = output instanceof Blob ? output : new Blob([output], { type: 'application/pdf' });
+            if (blob.size > 15 * 1024 * 1024) {
+                throw new Error(t('The generated PDF is larger than 15 MB. Remove large supporting images and try again.'));
+            }
+            const payload = new FormData();
+            payload.append('record_id', String(record.id));
+            payload.append('type', kind);
+            recipients.forEach(email => payload.append('recipients[]', email));
+            splitEmails(emailData.cc).forEach(email => payload.append('cc[]', email));
+            payload.append('subject', emailData.subject);
+            payload.append('message', emailData.message);
+            payload.append('report', blob, `${record.record_key}.pdf`);
+            const response = await axios.post(route('video-production.reports.email', project.id), payload);
+            setEmailStatus({ type: 'success', message: response.data.message || t('Report emailed successfully.') });
+        } catch (error: any) {
+            const validationErrors = error.response?.data?.errors;
+            const firstError = validationErrors ? Object.values(validationErrors).flat()[0] : null;
+            setEmailStatus({ type: 'error', message: String(firstError || error.response?.data?.message || error.message || t('The report could not be emailed.')) });
+        } finally {
+            setEmailSending(false);
         }
     };
 
@@ -186,6 +245,7 @@ function RecordPdfButton({ record, kind, companyName }: { record: any; kind: Kin
             <div className="border-b-4 border-emerald-500 pb-5">
                 <p className="text-sm font-semibold uppercase tracking-widest text-emerald-600">{companyName}</p>
                 <h1 className="mt-2 text-3xl font-bold">{t(titles[kind])} Report</h1>
+                <p className="mt-1 text-sm font-semibold text-slate-700">Project: {project.name}</p>
                 <div className="mt-3 grid grid-cols-2 gap-4 text-sm text-slate-500"><span className="min-w-0 break-words">{record.record_key}</span><span className="text-right">Generated {new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium' }).format(new Date())}</span></div>
             </div>
             <div className="mt-5 grid grid-cols-3 gap-2">
@@ -210,7 +270,21 @@ function RecordPdfButton({ record, kind, companyName }: { record: any; kind: Kin
             <div className="mt-8 border-t pt-4 text-center text-xs text-slate-400">Generated from wazely.io Production Management</div>
                 </div>
                 </div>
-                <div className="flex justify-end gap-2 border-t bg-background px-6 py-4"><Button type="button" variant="outline" onClick={() => setPreviewOpen(false)}>{t('Close')}</Button><Button type="button" disabled={generating} onClick={downloadPdf}><Download className="h-4 w-4" />{generating ? t('Preparing PDF...') : t('Download PDF')}</Button></div>
+                <div className="flex flex-wrap justify-end gap-2 border-t bg-background px-6 py-4"><Button type="button" variant="outline" onClick={() => setPreviewOpen(false)}>{t('Close')}</Button>{canEmail && settings.report_email_enabled && <Button type="button" variant="outline" onClick={openEmail}><Mail className="h-4 w-4" />{t('Send Email')}</Button>}<Button type="button" disabled={generating} onClick={downloadPdf}><Download className="h-4 w-4" />{generating ? t('Preparing PDF...') : t('Download PDF')}</Button></div>
+            </DialogContent>
+        </Dialog>
+        <Dialog open={emailOpen} onOpenChange={setEmailOpen}>
+            <DialogContent className="max-w-2xl">
+                <DialogHeader><DialogTitle>{t('Email Production Report')}</DialogTitle></DialogHeader>
+                <div className="space-y-4">
+                    <div><Label required>{t('Recipients')}</Label><Textarea rows={3} value={emailData.recipients} onChange={event => setEmailData(data => ({ ...data, recipients: event.target.value }))} placeholder="client@example.com" /><p className="mt-1 text-xs text-muted-foreground">{t('Enter up to 10 addresses, separated by commas or one per line.')}</p></div>
+                    <div><Label>{t('CC')}</Label><Textarea rows={2} value={emailData.cc} onChange={event => setEmailData(data => ({ ...data, cc: event.target.value }))} placeholder="manager@example.com" /></div>
+                    <div><Label required>{t('Subject')}</Label><BaseInput value={emailData.subject} onChange={event => setEmailData(data => ({ ...data, subject: event.target.value }))} maxLength={200} /></div>
+                    <div><Label>{t('Message')}</Label><Textarea rows={6} value={emailData.message} onChange={event => setEmailData(data => ({ ...data, message: event.target.value }))} maxLength={5000} /></div>
+                    <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm"><FileText className="mr-2 inline h-4 w-4" />{record.record_key}.pdf <span className="text-xs text-muted-foreground">({t('maximum 15 MB')})</span></div>
+                    {emailStatus && <div className={`rounded-md border px-3 py-2 text-sm ${emailStatus.type === 'success' ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-red-300 bg-red-50 text-red-700'}`}>{emailStatus.message}</div>}
+                    <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setEmailOpen(false)}>{t('Close')}</Button><Button type="button" disabled={emailSending || !emailData.subject.trim()} onClick={sendEmail}><Mail className="h-4 w-4" />{emailSending ? t('Sending...') : t('Send Report')}</Button></div>
+                </div>
             </DialogContent>
         </Dialog>
     </>;
@@ -225,7 +299,7 @@ function calculateHours(start?: string, end?: string): number | null {
     return +hours.toFixed(2);
 }
 
-function Manager({ kind, items, settings, nextRecordKey, companyName, shoots = [] }: any) {
+function Manager({ kind, items, settings, nextRecordKey, companyName, project, shoots = [], canEdit }: any) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [edit, setEdit] = useState<any>();
@@ -308,7 +382,7 @@ function Manager({ kind, items, settings, nextRecordKey, companyName, shoots = [
             recorded_at: values.recorded_at || data.shoot_date || data.date || data.requested_at || data.evidence_at || data.final_delivery_date || '',
             status: data.current_status || values.status,
         }));
-        form.post(edit ? route('video-production.records.update', [kind, edit.id]) : route('video-production.records.store', kind), {
+        form.post(edit ? route('video-production.records.update', [project.id, kind, edit.id]) : route('video-production.records.store', [project.id, kind]), {
             preserveScroll: true,
             forceFormData: true,
             onSuccess: () => setOpen(false),
@@ -321,7 +395,7 @@ function Manager({ kind, items, settings, nextRecordKey, companyName, shoots = [
                 <CardTitle>{t(titles[kind])}</CardTitle>
                 <p className="mt-1 text-sm text-muted-foreground">{t('Showing all company production records.')}</p>
             </div>
-            <Button onClick={() => launch()}><Plus className="h-4 w-4" />{t('Add Record')}</Button>
+            {canEdit && <Button onClick={() => launch()}><Plus className="h-4 w-4" />{t('Add Record')}</Button>}
         </CardHeader>
         <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -342,7 +416,7 @@ function Manager({ kind, items, settings, nextRecordKey, companyName, shoots = [
                                         {expanded === record.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                     </Button>
                                 </td>
-                                <td className="px-3 py-3 font-semibold text-foreground">{record.record_key}</td>
+                                <td className="px-3 py-3"><p className="font-semibold text-foreground">{record.record_key}</p><p className="mt-0.5 text-xs text-muted-foreground">{project.name}</p></td>
                                 {compactFields.map(([key, , type]) => <td className="max-w-52 px-3 py-3" key={key}>
                                     {type === 'select' && record.data?.[key]
                                         ? <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">{record.data[key]}</span>
@@ -351,8 +425,8 @@ function Manager({ kind, items, settings, nextRecordKey, companyName, shoots = [
                                 <td className="px-3 py-3 text-right">
                                     <div className="flex justify-end gap-1">
                                         <Button type="button" variant="ghost" size="icon" title={t('View details')} aria-label={t('View details')} onClick={() => setExpanded(expanded === record.id ? null : record.id)}><Eye className="h-4 w-4" /></Button>
-                                        <Button type="button" variant="ghost" size="icon" title={t('Edit')} aria-label={t('Edit')} onClick={() => launch(record)}><Pencil className="h-4 w-4" /></Button>
-                                        <Button type="button" variant="ghost" size="icon" title={t('Delete')} aria-label={t('Delete')} className="text-destructive hover:text-destructive" onClick={() => confirm(t('Delete this record?')) && router.delete(route('video-production.records.destroy', [kind, record.id]), { preserveScroll: true })}><Trash2 className="h-4 w-4" /></Button>
+                                        {canEdit && <Button type="button" variant="ghost" size="icon" title={t('Edit')} aria-label={t('Edit')} onClick={() => launch(record)}><Pencil className="h-4 w-4" /></Button>}
+                                        {canEdit && <Button type="button" variant="ghost" size="icon" title={t('Delete')} aria-label={t('Delete')} className="text-destructive hover:text-destructive" onClick={() => confirm(t('Delete this record?')) && router.delete(route('video-production.records.destroy', [project.id, kind, record.id]), { preserveScroll: true })}><Trash2 className="h-4 w-4" /></Button>}
                                     </div>
                                 </td>
                             </tr>
@@ -360,7 +434,7 @@ function Manager({ kind, items, settings, nextRecordKey, companyName, shoots = [
                                 <td colSpan={compactFields.length + 3} className="p-5">
                                     <div className="mb-4 flex items-center justify-between">
                                         <div><p className="font-semibold">{t('Record details')}</p><p className="text-xs text-muted-foreground">{record.record_key}</p></div>
-                                        <div className="flex gap-2"><RecordPdfButton record={record} kind={kind} companyName={companyName} /><Button type="button" variant="outline" size="sm" onClick={() => launch(record)}><Pencil className="h-3.5 w-3.5" />{t('Edit record')}</Button></div>
+                                        <div className="flex gap-2"><RecordPdfButton record={record} kind={kind} companyName={companyName} project={project} settings={settings} canEmail={canEdit} />{canEdit && <Button type="button" variant="outline" size="sm" onClick={() => launch(record)}><Pencil className="h-3.5 w-3.5" />{t('Edit record')}</Button>}</div>
                                     </div>
                                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                                         {displayFields(kind).map(([key, label, type]) => <div className={`rounded-lg border p-3 ${isOvertimeField(record, key) ? 'border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950/30' : 'bg-background'}`} key={key}>
@@ -416,22 +490,23 @@ function Manager({ kind, items, settings, nextRecordKey, companyName, shoots = [
 
 export default function Dashboard() {
     const { t } = useTranslation();
-    const { companyName, nextRecordKeys, settings, month, records, productionMetrics } = usePage<any>().props;
+    const { companyName, project, canEdit, canManageSettings, unassignedRecordCount, nextRecordKeys, settings, range, month, records, productionMetrics } = usePage<any>().props;
     useFlashMessages();
-    const tabs: any[] = [['overview','Overview',Gauge],['shoot','Shooting Log',Video],['deliverable','Deliverables',FileCheck2],['settings','Settings',Settings2]];
+    const tabs: any[] = [['overview','Overview',Gauge],['shoot','Shooting Log',Video],['deliverable','Deliverables',FileCheck2],...(canManageSettings ? [['settings','Settings',Settings2]] : [])];
     const metrics = [['Shooting sessions',productionMetrics.shoots,Video],['Reels delivered',productionMetrics.reels_delivered,CheckCircle2],['Static posts delivered',productionMetrics.static_delivered,FileCheck2],['Work hours',productionMetrics.work_hours,Clock3]];
     const targets = [['Reels / month',settings.monthly_reel_target],['Static posts / month',settings.monthly_static_target],['Shoot sessions',`${settings.minimum_shoots} - ${settings.maximum_shoots}`],['Hours / shoot',settings.included_hours_per_shoot],['Script lead days',settings.required_lead_days],['Included revisions',settings.included_revisions],['Extra shooting hours',productionMetrics.extra_hours],['Waiting for client',productionMetrics.waiting_for_client]];
-    return <AuthenticatedLayout breadcrumbs={[{label:t('Project')},{label:t('Production')}]} pageTitle={t('Production')}>
-        <Head title={t('Production')} />
+    return <AuthenticatedLayout breadcrumbs={[{label:t('Project'),url:route('project.index')},{label:project.name,url:route('project.show',project.id)},{label:t('Production')}]} pageTitle={`${project.name} - ${t('Production')}`}>
+        <Head title={`${project.name} - ${t('Production')}`} />
         <Tabs defaultValue="overview" className="space-y-5">
             <div className="overflow-x-auto rounded-xl border bg-card p-2"><TabsList className="h-auto min-w-max bg-transparent">{tabs.map(([value,label,Icon]) => <TabsTrigger value={value} key={value} className="gap-2"><Icon className="h-4 w-4" />{t(label)}</TabsTrigger>)}</TabsList></div>
             <TabsContent value="overview" className="space-y-5">
-                <Card><CardContent className="flex items-center justify-between p-5"><div><p className="text-sm text-muted-foreground">{t('Monthly management view')}</p><h2 className="text-xl font-semibold">{companyName} {t('Production')}</h2></div><div className="flex items-center gap-2"><CalendarDays className="h-4 w-4" /><Input type="month" className="w-44" value={month} onChange={e => router.get(route('video-production.dashboard'), {month:e.target.value}, {preserveState:true,replace:true})} /></div></CardContent></Card>
+                {unassignedRecordCount > 0 && <Card className="border-amber-300 bg-amber-50"><CardContent className="flex flex-col justify-between gap-4 p-5 text-amber-950 md:flex-row md:items-center"><div><p className="font-semibold">{t('Existing production records need a project')}</p><p className="mt-1 text-sm">{unassignedRecordCount} {t('record(s) are currently unassigned. Move them here only if they belong to this project.')}</p></div><Button type="button" variant="outline" className="border-amber-500 bg-white" onClick={() => confirm(t(`Move all ${unassignedRecordCount} unassigned records to ${project.name}?`)) && router.post(route('video-production.claim-unassigned', project.id), {}, { preserveScroll: true })}>{t('Move Existing Records Here')}</Button></CardContent></Card>}
+                <Card><CardContent className="flex flex-col justify-between gap-4 p-5 md:flex-row md:items-center"><div><p className="text-sm text-muted-foreground">{range === 'monthly' ? t('Monthly management view') : t('All-time management view')}</p><h2 className="text-xl font-semibold">{project.name} {t('Production')}</h2></div><div className="flex flex-wrap items-center gap-2"><Select value={range || 'all'} onValueChange={value => router.get(route('video-production.dashboard', project.id), {range:value,month}, {preserveState:true,replace:true})}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t('All Time')}</SelectItem><SelectItem value="monthly">{t('Monthly')}</SelectItem></SelectContent></Select>{range === 'monthly' && <><CalendarDays className="h-4 w-4" /><Input type="month" className="w-44" value={month} onChange={e => router.get(route('video-production.dashboard', project.id), {range:'monthly',month:e.target.value}, {preserveState:true,replace:true})} /></>}</div></CardContent></Card>
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{metrics.map(([label,value,Icon]:any) => <Card key={label}><CardContent className="flex items-center justify-between p-5"><div><p className="text-sm text-muted-foreground">{t(label)}</p><p className="text-3xl font-semibold">{value}</p></div><Icon className="h-8 w-8 text-primary" /></CardContent></Card>)}</div>
                 <Card><CardHeader><CardTitle>{t('Agreed process and targets')}</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{targets.map(([label,value]) => <div className="flex justify-between rounded-lg bg-muted/50 p-3" key={label}><span>{t(label)}</span><strong>{value}</strong></div>)}</CardContent></Card>
             </TabsContent>
-            {(['shoot','deliverable'] as Kind[]).map(kind => <TabsContent value={kind} key={kind}><Manager kind={kind} items={records[kind] || []} shoots={records.shoot || []} settings={settings} nextRecordKey={nextRecordKeys?.[kind]} companyName={companyName} /></TabsContent>)}
-            <TabsContent value="settings"><SettingsForm settings={settings} /></TabsContent>
+            {(['shoot','deliverable'] as Kind[]).map(kind => <TabsContent value={kind} key={kind}><Manager kind={kind} items={records[kind] || []} shoots={records.shoot || []} settings={settings} nextRecordKey={nextRecordKeys?.[kind]} companyName={companyName} project={project} canEdit={canEdit} /></TabsContent>)}
+            {canManageSettings && <TabsContent value="settings"><SettingsForm settings={settings} projectId={project.id} /></TabsContent>}
         </Tabs>
     </AuthenticatedLayout>;
 }

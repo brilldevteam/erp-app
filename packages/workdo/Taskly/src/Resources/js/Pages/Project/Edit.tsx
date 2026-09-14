@@ -11,11 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import InputError from '@/components/ui/input-error';
 import { useFormFields } from '@/hooks/useFormFields';
 import { ProjectPropertyFields } from './ProjectPropertyFields';
-import { ProjectPropertyInformation, emptyProjectPropertyInformation } from './types';
+import { ProjectCategory, ProjectPropertyInformation, emptyProjectPropertyInformation } from './types';
+import { ProjectCategoryField } from './ProjectCategoryField';
 
 interface ProjectItem {
     id: number;
     name: string;
+    category?: ProjectCategory;
     user_id: number;
     description?: string;
     budget?: number;
@@ -43,6 +45,7 @@ export default function Edit({ item, users, onSuccess }: EditProps) {
 
     const { data, setData, put, processing, errors } = useForm({
         name: item.name,
+        category: item.category || 'general' as ProjectCategory,
         description: item.description || '',
         budget: item.budget || 0,
         start_date: item.start_date || '',
@@ -72,6 +75,11 @@ export default function Edit({ item, users, onSuccess }: EditProps) {
             </DialogHeader>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+                <ProjectCategoryField
+                    value={data.category}
+                    onChange={(value) => setData('category', value)}
+                    error={errors.category}
+                />
                 <div>
                     <div className="flex gap-2 items-end">
                         <div className="flex-1">
@@ -90,7 +98,7 @@ export default function Edit({ item, users, onSuccess }: EditProps) {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                {data.category !== 'production' && <div className="grid grid-cols-2 gap-4">
                     <div>
                         <Label required>{t('Start Date')}</Label>
                         <DatePicker
@@ -109,9 +117,9 @@ export default function Edit({ item, users, onSuccess }: EditProps) {
                         />
                         {errors.end_date && <p className="text-sm text-red-500 mt-1">{errors.end_date}</p>}
                     </div>
-                </div>
+                </div>}
 
-                <div>
+                {data.category !== 'production' && <div>
                     <CurrencyInput
                         label={t('Budget')}
                         value={data.budget.toString()}
@@ -119,13 +127,15 @@ export default function Edit({ item, users, onSuccess }: EditProps) {
                         error={errors.budget}
                         required
                     />
-                </div>
+                </div>}
 
-                <ProjectPropertyFields
-                    value={data.property_information}
-                    onChange={(value) => setData('property_information', value)}
-                    errors={errors}
-                />
+                {data.category === 'property' && (
+                    <ProjectPropertyFields
+                        value={data.property_information}
+                        onChange={(value) => setData('property_information', value)}
+                        errors={errors}
+                    />
+                )}
 
                 <div>
                     <Label htmlFor="status">{t('Status')}</Label>

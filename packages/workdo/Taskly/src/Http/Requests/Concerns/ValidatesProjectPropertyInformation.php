@@ -9,6 +9,10 @@ trait ValidatesProjectPropertyInformation
 {
     protected function projectPropertyInformationRules(): array
     {
+        if ($this->input('category') !== 'property') {
+            return ['property_information' => 'nullable|array'];
+        }
+
         return CountryAddressValidation::rules('property_information', true, true) + [
             'property_information.plot_number' => 'required|string|max:50',
             'property_information.property_number' => 'required|string|max:50',
@@ -25,6 +29,8 @@ trait ValidatesProjectPropertyInformation
 
     public function withValidator(Validator $validator): void
     {
-        $validator->after(fn (Validator $validator) => CountryAddressValidation::validate($validator, 'property_information'));
+        if ($this->input('category') === 'property') {
+            $validator->after(fn (Validator $validator) => CountryAddressValidation::validate($validator, 'property_information'));
+        }
     }
 }
