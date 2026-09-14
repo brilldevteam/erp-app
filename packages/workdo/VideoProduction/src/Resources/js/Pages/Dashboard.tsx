@@ -37,6 +37,18 @@ const calculated: Record<Kind, Field[]> = {
 };
 
 const displayFields = (kind: Kind) => [...fields[kind].filter(([, , type]) => !['files', 'links'].includes(type || '')), ...calculated[kind]];
+const shootingReportHiddenFields = new Set([
+    'content_plan_received',
+    'b_roll_requirements',
+    'editing_references',
+    'props_requirements',
+    'client_confirmation',
+    'contract_hours',
+    'extra_hours',
+    'working_days_before',
+    'lead_requirement',
+]);
+const reportFields = (kind: Kind) => displayFields(kind).filter(([key]) => kind !== 'shoot' || !shootingReportHiddenFields.has(key));
 
 function SupportingFilesInput({ existing, selected, onChange }: { existing: any[]; selected: File[]; onChange: (files: File[]) => void }) {
     return <div className="space-y-2">
@@ -139,8 +151,6 @@ function RecordPdfButton({ record, kind, companyName }: { record: any; kind: Kin
     const reportRef = useRef<HTMLDivElement>(null);
     const [generating, setGenerating] = useState(false);
     const [previewOpen, setPreviewOpen] = useState(false);
-    const overtime = Number(record.data?.extra_hours || 0) > 0;
-
     const downloadPdf = async () => {
         if (!reportRef.current) return;
         setGenerating(true);
@@ -178,10 +188,17 @@ function RecordPdfButton({ record, kind, companyName }: { record: any; kind: Kin
                 <h1 className="mt-2 text-3xl font-bold">{t(titles[kind])} Report</h1>
                 <div className="mt-3 flex justify-between text-sm text-slate-500"><span>{record.record_key}</span><span>Generated {new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium' }).format(new Date())}</span></div>
             </div>
-            {overtime && <div className="mt-5 rounded-lg border border-red-300 bg-red-50 p-4 text-red-700"><strong>Contract hours exceeded:</strong> {formatRecordValue(record.data.extra_hours)} extra hour(s).</div>}
             <div className="mt-5 grid grid-cols-3 gap-2">
-                {displayFields(kind).map(([key, label, type]) => <div className={`pdf-field rounded-lg border p-2.5 ${overtime && ['total_hours', 'extra_hours'].includes(key) ? 'border-red-300 bg-red-50 text-red-700' : 'border-slate-200'}`} key={key}><p className="text-[10px] font-semibold uppercase leading-tight text-slate-500">{t(label)}</p><div className="mt-1 whitespace-pre-wrap break-words text-xs font-medium leading-snug"><RecordValue value={record.data?.[key]} type={type} /></div></div>)}
+                {reportFields(kind).map(([key, label, type]) => <div className="pdf-field rounded-lg border border-slate-200 p-2.5" key={key}><p className="text-[10px] font-semibold uppercase leading-tight text-slate-500">{t(label)}</p><div className="mt-1 whitespace-pre-wrap break-words text-xs font-medium leading-snug"><RecordValue value={record.data?.[key]} type={type} /></div></div>)}
             </div>
+            {kind === 'shoot' && <div className="pdf-field mt-6 rounded-lg border-2 border-amber-400 bg-amber-50 p-5 text-amber-950">
+                <p className="text-sm font-bold uppercase tracking-wide">Note</p>
+                <div className="mt-2 space-y-3 text-xs font-medium leading-relaxed">
+                    <p>If the final script is not received at least 5 Brill Creations working days before the scheduled shoot, the full agreed pre-production period is considered unavailable. In such cases, Brill Creations may not have sufficient time to properly prepare the shot plan, B-roll requirements, visual direction, references, and other pre-production elements.</p>
+                    <p>For record purposes, the session will be categorized as an "Unplanned Shoot", and "Brill Contributed to Planning" will be marked as "No".</p>
+                    <p className="font-bold">Brill Creations working days are Sunday to Thursday only.</p>
+                </div>
+            </div>}
             {(storedFiles(record.data).length > 0 || evidenceLinks(record.data).length > 0) && <div className="pdf-evidence-page" />}
             {storedFiles(record.data).length > 0 && <div className="mt-6"><h2 className="text-lg font-bold">Supporting Documents</h2><div className="mt-3 grid grid-cols-2 gap-3">{storedFiles(record.data).map((file: any, index: number) => <div className="pdf-field overflow-hidden rounded-lg border border-slate-200" key={`${file.path}-${index}`}>{isImageFile(file) && <img src={`/storage/${file.path}`} alt={file.name} className="h-52 w-full bg-slate-50 object-contain" crossOrigin="anonymous" />}<div className="flex items-center gap-2 p-3"><FileText className="h-4 w-4 shrink-0 text-slate-500" /><span className="min-w-0 flex-1 truncate text-sm font-medium">{file.name}</span><a href={`/storage/${file.path}`} target="_blank" rel="noreferrer" className="text-xs font-semibold text-emerald-700 underline">View</a></div></div>)}</div></div>}
             {evidenceLinks(record.data).length > 0 && <div className="mt-6"><h2 className="text-lg font-bold">Evidence Links</h2><div className="mt-2 space-y-2">{evidenceLinks(record.data).map((link, index) => <a className="pdf-field block break-all rounded border border-slate-200 p-3 text-sm text-emerald-700 underline" href={link} key={`${link}-${index}`}>{link}</a>)}</div></div>}
