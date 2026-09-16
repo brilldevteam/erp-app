@@ -82,6 +82,9 @@ class ProductionRecordController extends Controller
             'data.new_supporting_files.*' => ['file', 'mimes:jpg,jpeg,png,webp,pdf,doc,docx,xls,xlsx', 'max:10240'],
             'data.evidence_links' => ['nullable', 'array', 'max:10'],
             'data.evidence_links.*' => ['nullable', 'url', 'max:2048'],
+            'data.episodes_reels_count' => $type === 'deliverable'
+                ? ['required', 'integer', 'min:1', 'max:999']
+                : ['nullable'],
         ];
 
         foreach ([1, 2, 3] as $revision) {
@@ -147,6 +150,7 @@ class ProductionRecordController extends Controller
         }
 
         if ($type === 'deliverable') {
+            $data['episodes_reels_count'] = max(1, (int) ($data['episodes_reels_count'] ?? 1));
             $data['working_days_before'] = $this->workingDaysBetween($data['script_received_at'] ?? null, $data['shoot_date'] ?? null, $settings->working_days);
             $data['script_lead_category'] = $this->scriptLeadCategory($data);
             $data['v1_turnaround_days'] = $this->workingDaysBetween($data['complete_inputs_received_at'] ?? null, $data['v1_delivered_at'] ?? null, $settings->working_days);
