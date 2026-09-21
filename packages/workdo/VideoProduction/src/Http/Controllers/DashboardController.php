@@ -53,7 +53,10 @@ class DashboardController extends Controller
                     'urgent_shoots' => $shoots->filter(fn ($shoot) => in_array(data_get($shoot->data, 'shoot_type'), ['Unplanned', 'Urgent'], true))->count(),
                     'shooting_hours' => round($shoots->sum(fn ($item) => (float) data_get($item->data, 'total_hours', 0)), 2),
                     'extra_hours' => round($shoots->sum(fn ($item) => (float) data_get($item->data, 'extra_hours', 0)), 2),
-                    'reels_delivered' => $deliverables->where('data.content_type', 'Reel')->whereNotNull('data.final_delivery_date')->count(),
+                    'reels_delivered' => $deliverables
+                        ->where('data.content_type', 'Reel')
+                        ->whereNotNull('data.final_delivery_date')
+                        ->sum(fn ($item) => max(1, (int) data_get($item->data, 'episodes_reels_count', 1))),
                     'static_delivered' => $deliverables->where('data.content_type', 'Static')->whereNotNull('data.final_delivery_date')->count(),
                     'waiting_for_client' => $deliverables->where('status', 'Waiting for DOC')->count(),
                     'work_hours' => round($shoots->sum(fn ($item) => (float) data_get($item->data, 'total_hours', 0)), 2),
