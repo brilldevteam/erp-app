@@ -69,6 +69,14 @@ interface ProjectIndexProps {
 export default function Index() {
     const { t } = useTranslation();
     const { items, users, auth } = usePage<ProjectIndexProps>().props;
+    const canAccessVideoProduction = auth.user?.permissions?.some(permission => [
+        'view-video-production',
+        'view-video-production-dashboard',
+        'manage-video-production',
+        'manage-video-production-settings',
+    ].includes(permission));
+    const canViewProjectDetails = auth.user?.permissions?.includes('view-project')
+        && auth.user?.permissions?.some(permission => ['manage-any-project', 'manage-own-project'].includes(permission));
     const urlParams = useMemo(() => new URLSearchParams(window.location.search), []);
 
     const [filters, setFilters] = useState({
@@ -262,13 +270,14 @@ export default function Index() {
                 );
             }
         },
-        ...(auth.user?.permissions?.some((p: string) => ['view-project', 'edit-project', 'delete-project', 'duplicate-project'].includes(p)) ? [{
+        ...(canAccessVideoProduction || auth.user?.permissions?.some((p: string) => ['view-project', 'edit-project', 'delete-project', 'duplicate-project'].includes(p)) ? [{
             key: 'actions',
             header: t('Actions'),
             render: (_: any, item: ProjectItem) => (
                 <div className="flex gap-1">
                     {renderTemplateButtons(item)}
-                    {item.category === 'production' && auth.user?.permissions?.includes('view-project') && (
+                    {item.category === 'production'
+                        && canAccessVideoProduction && (
                         <Tooltip key={`production-${item.id}`} delayDuration={0}>
                             <TooltipTrigger asChild>
                                 <Button
@@ -299,7 +308,7 @@ export default function Index() {
                         </Tooltip>
                     )}
 
-                    {auth.user?.permissions?.includes('view-project') && (
+                    {canViewProjectDetails && (
                         <Tooltip key={`view-${item.id}`} delayDuration={0}>
                             <TooltipTrigger asChild>
                                 <Button variant="ghost" size="sm" onClick={() => router.get(route('project.show', item.id))} className="h-8 w-8 p-0 text-green-600 hover:text-green-700">
@@ -581,7 +590,8 @@ export default function Index() {
                                             <div className="flex justify-end gap-2 p-3 border-t bg-gray-50/50 flex-shrink-0 mt-auto">
                                                 <TooltipProvider>
                                                     {renderGridTemplateButtons(project)}
-                                                    {project.category === 'production' && auth.user?.permissions?.includes('view-project') && (
+                                                    {project.category === 'production'
+                                                        && canAccessVideoProduction && (
                                                         <Tooltip delayDuration={300}>
                                                             <TooltipTrigger asChild>
                                                                 <Button
@@ -611,7 +621,7 @@ export default function Index() {
                                                             </TooltipContent>
                                                         </Tooltip>
                                                     )}
-                                                    {auth.user?.permissions?.includes('view-project') && (
+                                                    {canViewProjectDetails && (
                                                         <Tooltip delayDuration={300}>
                                                             <TooltipTrigger asChild>
                                                                 <Button variant="ghost" size="sm" onClick={() => router.get(route('project.show', project.id))} className="h-9 w-9 p-0 text-green-600 hover:text-green-700">

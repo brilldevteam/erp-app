@@ -7,6 +7,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Artisan;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class PermissionTableSeeder extends Seeder
 {
@@ -17,6 +18,7 @@ class PermissionTableSeeder extends Seeder
 
         $permission = [
             ['name' => 'manage-video-production', 'module' => 'video-production', 'label' => 'Manage Video Production'],
+            ['name' => 'view-video-production', 'module' => 'video-production', 'label' => 'View Video Production'],
             ['name' => 'view-video-production-dashboard', 'module' => 'video-production', 'label' => 'View Video Production Dashboard'],
             ['name' => 'manage-video-production-settings', 'module' => 'video-production-settings', 'label' => 'Manage Video Production Settings'],
         ];
@@ -39,5 +41,7 @@ class PermissionTableSeeder extends Seeder
                 $company_role->givePermissionTo($permission_obj);
             }
         }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }
