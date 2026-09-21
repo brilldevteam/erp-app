@@ -270,7 +270,12 @@ export default function Index() {
                     {renderTemplateButtons(item)}
                     {item.category === 'production'
                         && auth.user?.permissions?.includes('view-project')
-                        && auth.user?.permissions?.includes('view-video-production-dashboard') && (
+                        && auth.user?.permissions?.some(permission => [
+                            'view-video-production',
+                            'view-video-production-dashboard',
+                            'manage-video-production',
+                            'manage-video-production-settings',
+                        ].includes(permission)) && (
                         <Tooltip key={`production-${item.id}`} delayDuration={0}>
                             <TooltipTrigger asChild>
                                 <Button
@@ -585,7 +590,12 @@ export default function Index() {
                                                     {renderGridTemplateButtons(project)}
                                                     {project.category === 'production'
                                                         && auth.user?.permissions?.includes('view-project')
-                                                        && auth.user?.permissions?.includes('view-video-production-dashboard') && (
+                                                        && auth.user?.permissions?.some(permission => [
+                                                            'view-video-production',
+                                                            'view-video-production-dashboard',
+                                                            'manage-video-production',
+                                                            'manage-video-production-settings',
+                                                        ].includes(permission)) && (
                                                         <Tooltip delayDuration={300}>
                                                             <TooltipTrigger asChild>
                                                                 <Button

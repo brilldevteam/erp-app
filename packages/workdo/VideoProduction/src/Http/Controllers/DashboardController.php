@@ -14,6 +14,9 @@ class DashboardController extends Controller
     public function index(Project $project)
     {
         if ($this->canViewProject($project)) {
+            $canEdit = Auth::user()->can('manage-video-production');
+            $canViewProduction = $canEdit || Auth::user()->can('view-video-production');
+            $canViewDashboard = Auth::user()->can('view-video-production-dashboard');
             $settings = ProductionSetting::forProject(creatorId(), $project->id);
             $range = request('range') === 'monthly' ? 'monthly' : 'all';
             $month = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', (string) request('month'))
@@ -35,7 +38,9 @@ class DashboardController extends Controller
             return Inertia::render('VideoProduction/Dashboard', [
                 'companyName' => company_setting('company_name', creatorId()) ?: Auth::user()->name,
                 'project' => $project->only(['id', 'name']),
-                'canEdit' => Auth::user()->can('manage-video-production'),
+                'canEdit' => $canEdit,
+                'canViewProduction' => $canViewProduction,
+                'canViewDashboard' => $canViewDashboard,
                 'canManageSettings' => Auth::user()->can('manage-video-production-settings'),
                 'unassignedRecordCount' => Auth::user()->can('manage-video-production')
                     ? ProductionRecord::query()->forCompany()->whereNull('project_id')->count()
@@ -43,11 +48,13 @@ class DashboardController extends Controller
                 'settings' => $settings,
                 'range' => $range,
                 'month' => $month,
-                'records' => collect(self::recordTypes())->mapWithKeys(fn ($type) => [$type => ($records->get($type, collect()))->values()]),
+                'records' => $canViewProduction
+                    ? collect(self::recordTypes())->mapWithKeys(fn ($type) => [$type => ($records->get($type, collect()))->values()])
+                    : collect(),
                 'nextRecordKeys' => collect(self::recordTypes())->mapWithKeys(fn ($type) => [
                     $type => ProductionRecord::nextKey(creatorId(), $type, $project->id, $project->name),
                 ]),
-                'productionMetrics' => [
+                'productionMetrics' => $canViewDashboard ? [
                     'shoots' => $shoots->count(),
                     'planned_shoots' => $shoots->where('data.shoot_type', 'Planned')->count(),
                     'urgent_shoots' => $shoots->filter(fn ($shoot) => in_array(data_get($shoot->data, 'shoot_type'), ['Unplanned', 'Urgent'], true))->count(),
@@ -60,7 +67,7 @@ class DashboardController extends Controller
                     'static_delivered' => $deliverables->where('data.content_type', 'Static')->whereNotNull('data.final_delivery_date')->count(),
                     'waiting_for_client' => $deliverables->where('status', 'Waiting for DOC')->count(),
                     'work_hours' => round($shoots->sum(fn ($item) => (float) data_get($item->data, 'total_hours', 0)), 2),
-                ],
+                ] : [],
             ]);
         }
 
@@ -84,7 +91,12 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
         if (
-            ! $user->can('view-video-production-dashboard')
+            (
+                ! $user->can('view-video-production-dashboard')
+                && ! $user->can('view-video-production')
+                && ! $user->can('manage-video-production')
+                && ! $user->can('manage-video-production-settings')
+            )
             || ! $user->can('view-project')
             || $project->created_by !== creatorId()
         ) {

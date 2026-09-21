@@ -494,22 +494,27 @@ function Manager({ kind, items, settings, nextRecordKey, companyName, project, s
 
 export default function Dashboard() {
     const { t } = useTranslation();
-    const { companyName, project, canEdit, canManageSettings, unassignedRecordCount, nextRecordKeys, settings, range, month, records, productionMetrics } = usePage<any>().props;
+    const { companyName, project, canEdit, canViewProduction, canViewDashboard, canManageSettings, unassignedRecordCount, nextRecordKeys, settings, range, month, records, productionMetrics } = usePage<any>().props;
     useFlashMessages();
-    const tabs: any[] = [['overview','Overview',Gauge],['shoot','Shooting Log',Video],['deliverable','Deliverables',FileCheck2],...(canManageSettings ? [['settings','Settings',Settings2]] : [])];
+    const tabs: any[] = [
+        ...(canViewDashboard ? [['overview','Overview',Gauge]] : []),
+        ...(canViewProduction ? [['shoot','Shooting Log',Video],['deliverable','Deliverables',FileCheck2]] : []),
+        ...(canManageSettings ? [['settings','Settings',Settings2]] : []),
+    ];
+    const defaultTab = tabs[0]?.[0] || 'overview';
     const metrics = [['Shooting sessions',productionMetrics.shoots,Video],['Reels delivered',productionMetrics.reels_delivered,CheckCircle2],['Static posts delivered',productionMetrics.static_delivered,FileCheck2],['Work hours',productionMetrics.work_hours,Clock3]];
     const targets = [['Reels / month',settings.monthly_reel_target],['Static posts / month',settings.monthly_static_target],['Shoot sessions',`${settings.minimum_shoots} - ${settings.maximum_shoots}`],['Hours / shoot',settings.included_hours_per_shoot],['Script lead days',settings.required_lead_days],['Included revisions',settings.included_revisions],['Extra shooting hours',productionMetrics.extra_hours],['Waiting for client',productionMetrics.waiting_for_client]];
     return <AuthenticatedLayout breadcrumbs={[{label:t('Project'),url:route('project.index')},{label:project.name,url:route('project.show',project.id)},{label:t('Production')}]} pageTitle={`${project.name} - ${t('Production')}`}>
         <Head title={`${project.name} - ${t('Production')}`} />
-        <Tabs defaultValue="overview" className="space-y-5">
+        <Tabs defaultValue={defaultTab} className="space-y-5">
             <div className="overflow-x-auto rounded-xl border bg-card p-2"><TabsList className="h-auto min-w-max bg-transparent">{tabs.map(([value,label,Icon]) => <TabsTrigger value={value} key={value} className="gap-2"><Icon className="h-4 w-4" />{t(label)}</TabsTrigger>)}</TabsList></div>
-            <TabsContent value="overview" className="space-y-5">
+            {canViewDashboard && <TabsContent value="overview" className="space-y-5">
                 {unassignedRecordCount > 0 && <Card className="border-amber-300 bg-amber-50"><CardContent className="flex flex-col justify-between gap-4 p-5 text-amber-950 md:flex-row md:items-center"><div><p className="font-semibold">{t('Existing production records need a project')}</p><p className="mt-1 text-sm">{unassignedRecordCount} {t('record(s) are currently unassigned. Move them here only if they belong to this project.')}</p></div><Button type="button" variant="outline" className="border-amber-500 bg-white" onClick={() => confirm(t(`Move all ${unassignedRecordCount} unassigned records to ${project.name}?`)) && router.post(route('video-production.claim-unassigned', project.id), {}, { preserveScroll: true })}>{t('Move Existing Records Here')}</Button></CardContent></Card>}
                 <Card><CardContent className="flex flex-col justify-between gap-4 p-5 md:flex-row md:items-center"><div><p className="text-sm text-muted-foreground">{range === 'monthly' ? t('Monthly management view') : t('All-time management view')}</p><h2 className="text-xl font-semibold">{project.name} {t('Production')}</h2></div><div className="flex flex-wrap items-center gap-2"><Select value={range || 'all'} onValueChange={value => router.get(route('video-production.dashboard', project.id), {range:value,month}, {preserveState:true,replace:true})}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t('All Time')}</SelectItem><SelectItem value="monthly">{t('Monthly')}</SelectItem></SelectContent></Select>{range === 'monthly' && <><CalendarDays className="h-4 w-4" /><Input type="month" className="w-44" value={month} onChange={e => router.get(route('video-production.dashboard', project.id), {range:'monthly',month:e.target.value}, {preserveState:true,replace:true})} /></>}</div></CardContent></Card>
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{metrics.map(([label,value,Icon]:any) => <Card key={label}><CardContent className="flex items-center justify-between p-5"><div><p className="text-sm text-muted-foreground">{t(label)}</p><p className="text-3xl font-semibold">{value}</p></div><Icon className="h-8 w-8 text-primary" /></CardContent></Card>)}</div>
                 <Card><CardHeader><CardTitle>{t('Agreed process and targets')}</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{targets.map(([label,value]) => <div className="flex justify-between rounded-lg bg-muted/50 p-3" key={label}><span>{t(label)}</span><strong>{value}</strong></div>)}</CardContent></Card>
-            </TabsContent>
-            {(['shoot','deliverable'] as Kind[]).map(kind => <TabsContent value={kind} key={kind}><Manager kind={kind} items={records[kind] || []} shoots={records.shoot || []} settings={settings} nextRecordKey={nextRecordKeys?.[kind]} companyName={companyName} project={project} canEdit={canEdit} /></TabsContent>)}
+            </TabsContent>}
+            {canViewProduction && (['shoot','deliverable'] as Kind[]).map(kind => <TabsContent value={kind} key={kind}><Manager kind={kind} items={records[kind] || []} shoots={records.shoot || []} settings={settings} nextRecordKey={nextRecordKeys?.[kind]} companyName={companyName} project={project} canEdit={canEdit} /></TabsContent>)}
             {canManageSettings && <TabsContent value="settings"><SettingsForm settings={settings} projectId={project.id} /></TabsContent>}
         </Tabs>
     </AuthenticatedLayout>;
