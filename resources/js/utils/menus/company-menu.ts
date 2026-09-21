@@ -61,6 +61,7 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
     },
     {
         title: t('Purchase'),
+        name: 'purchase',
         icon: ShoppingCart,
         permission: 'manage-purchase-invoices',
         order: 40,

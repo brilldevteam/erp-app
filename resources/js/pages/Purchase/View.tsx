@@ -110,31 +110,31 @@ export default function View() {
 
                             <div>
                                 <h3 className="font-semibold mb-2">{t('DETAILS')}</h3>
-                                <div className="space-y-1 text-sm">
-                                    <div className="flex justify-between">
+                                <div className="space-y-2 text-sm">
+                                    <div className="grid grid-cols-[minmax(7rem,auto)_1fr] gap-4">
                                         <span className="text-muted-foreground">{t('Invoice Date')}</span>
-                                        <span>{formatDate(invoice.invoice_date)}</span>
+                                        <span className="text-right">{formatDate(invoice.invoice_date)}</span>
                                     </div>
-                                    <div className="flex justify-between">
+                                    <div className="grid grid-cols-[minmax(7rem,auto)_1fr] gap-4">
                                         <span className="text-muted-foreground">{t('Due Date')}</span>
-                                        <span className={new Date(invoice.due_date) < new Date() ? 'text-red-600' : ''}>
+                                        <span className={`text-right ${new Date(invoice.due_date) < new Date() ? 'text-red-600' : ''}`}>
                                             {formatDate(invoice.due_date)}
                                         </span>
                                     </div>
-                                    <div className="flex justify-between">
+                                    <div className="grid grid-cols-[minmax(7rem,auto)_1fr] gap-4">
                                         <span className="text-muted-foreground">{t('Warehouse')}</span>
-                                        <span>{invoice.warehouse?.name || '-'}</span>
+                                        <span className="text-right">{invoice.warehouse?.name || '-'}</span>
                                     </div>
                                     {invoice.payment_terms && (
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">{t('Terms')}</span>
-                                            <span>{invoice.payment_terms}</span>
+                                        <div className="border-t pt-2">
+                                            <div className="mb-1 text-muted-foreground">{t('Terms')}</div>
+                                            <p className="whitespace-pre-wrap break-words leading-6">{invoice.payment_terms}</p>
                                         </div>
                                     )}
                                 </div>
-                                <div className="mt-4 p-3 bg-blue-50 rounded">
-                                    <div className="flex justify-between items-center">
-                                        <div className="flex gap-2">
+                                <div className="mt-5 rounded bg-blue-50 p-4">
+                                    <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                                        <div className="flex flex-wrap gap-2">
                                             {auth.user?.permissions?.includes('print-purchase-invoices') && (
                                                 <Button
                                                     variant="outline"
@@ -168,7 +168,7 @@ export default function View() {
                                                 </TooltipProvider>
                                             )}
                                         </div>
-                                        <div className="text-right">
+                                        <div className="min-w-0 text-left xl:text-right">
                                             <div className="text-xl font-bold text-blue-600">{formatCurrency(invoice.balance_amount)}</div>
                                             <div className="text-sm text-muted-foreground">{t('Balance Due')}</div>
                                         </div>

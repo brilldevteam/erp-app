@@ -4,7 +4,15 @@ All notable changes to the Wazely ERP application are documented here.
 
 ## [Unreleased]
 
+### Fixed
+- Add payment-mode selection and receiving-account labeling when recording customer payments.
+- Populate the customer and receiving-account dropdowns when recording a payment from a sales invoice.
+- Allow complete Purchase Order terms to be preserved when converting to a draft Purchase Invoice instead of failing when the text exceeds 255 characters.
+- Made Purchase Order / LPO activation migrations safely retryable after a partial or interrupted production activation.
+- Show the Purchase Orders / LPO navigation entry only for companies whose active plan includes the add-on, preventing dashboard redirects from unavailable module links.
+
 ### Added
+- Added a tenant-scoped Purchase Order / LPO add-on with draft-to-issued approval workflow, vendor and catalogue/custom lines, taxes and discounts, attachments, billing status, activity history, and partial or full conversion into draft purchase invoices without changing stock or accounting until invoice posting.
 - Added per-account PDF/Excel transaction downloads from Chart of Accounts, with date filters, company checks, opening/closing balances, period totals and Dr/Cr labels. Corrected General Ledger opening snapshots to use the current schema.
 - Added private supporting documents to journal creation and viewing: PDF/images, Word, Excel and ZIP files, with authorized downloads, supported previews, removal audit metadata, and rollback cleanup.
 - Added an in-page product picker to quotation and sales invoice create/edit flows with multi-select, name/SKU search, category filtering, stock and service visibility, automatic price/tax population, row-click selection, and permission-controlled quick product creation.
@@ -17,6 +25,7 @@ All notable changes to the Wazely ERP application are documented here.
 - New features currently in development will be listed here before release.
 
 ### Changed
+- Hidden purchase-price inputs from product and service create/edit interfaces while preserving existing stored costs and purchase/accounting behavior.
 - Added warehouse-aware product stock editing and automatic default stock locations, prevented zero-stock selection, made quick-created products appear immediately in quotation and sales invoice lines, and deduct stock atomically when product invoices are posted.
 - Aligned quotation and sales invoice customer selectors with Accounts customer master data, showing the real contact email only when present and hiding internal `@import.local` placeholder addresses.
 - Changed Product/Service tax assignment to an optional single-select dropdown backed by the company tax master, with `_` representing no tax across create, edit, quick-create, and item details.

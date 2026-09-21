@@ -74,6 +74,10 @@ class BankTransactionsService
         $bankTransaction->transaction_type = 'credit';
         $bankTransaction->reference_number = $customerPayment->payment_number;
         $bankTransaction->description = 'Customer Payment #' . $customerPayment->payment_number . ' - ' . $customerPayment->customer->name;
+        $mode = ['cash' => 'Cash', 'bank_transfer' => 'Bank Transfer', 'cheque' => 'Cheque'][$customerPayment->payment_mode] ?? null;
+        if ($mode) {
+            $bankTransaction->description .= ' (' . $mode . ')';
+        }
         $bankTransaction->amount = $customerPayment->payment_amount;
         $bankTransaction->running_balance = $runningBalance;
         $bankTransaction->transaction_status = 'cleared';

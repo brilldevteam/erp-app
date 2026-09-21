@@ -116,6 +116,7 @@ class CustomerPaymentController extends Controller
                 DB::transaction(function () use ($request, $allocations, $creditNotes, &$payment) {
                     $payment = new CustomerPayment();
                     $payment->payment_date = $request->payment_date;
+                    $payment->payment_mode = $request->payment_mode;
                     $payment->customer_id = $request->customer_id;
                     $payment->bank_account_id = $request->bank_account_id;
                     $payment->reference_number = $request->reference_number;

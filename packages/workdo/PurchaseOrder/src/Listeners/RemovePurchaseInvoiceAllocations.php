@@ -1,0 +1,4 @@
+<?php
+namespace Workdo\PurchaseOrder\Listeners;
+use App\Events\DestroyPurchaseInvoice; use Illuminate\Support\Facades\DB; use Illuminate\Support\Facades\Schema; use Workdo\PurchaseOrder\Models\PurchaseOrder; use Workdo\PurchaseOrder\Services\PurchaseOrderToInvoiceService;
+class RemovePurchaseInvoiceAllocations { public function handle(DestroyPurchaseInvoice $event):void{if(!Schema::hasTable('purchase_order_invoice_links'))return;$id=$event->purchaseInvoice->id;$orderIds=DB::table('purchase_order_invoice_links')->where('purchase_invoice_id',$id)->pluck('purchase_order_id');DB::table('purchase_order_invoice_items')->where('purchase_invoice_id',$id)->delete();DB::table('purchase_order_invoice_links')->where('purchase_invoice_id',$id)->delete();foreach($orderIds as $orderId){$order=PurchaseOrder::find($orderId);if($order)app(PurchaseOrderToInvoiceService::class)->refreshBillingStatus($order);}} }
