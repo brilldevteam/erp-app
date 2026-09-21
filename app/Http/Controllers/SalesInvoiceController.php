@@ -230,7 +230,13 @@ class SalesInvoiceController extends Controller
             $salesInvoice->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'warehouse', 'quotation']);
 
             return Inertia::render('Sales/View', [
-                'invoice' => $salesInvoice
+                'invoice' => $salesInvoice,
+                'customers' => Auth::user()->can('create-customer-payments') ? $this->invoiceCustomers() : [],
+                'bankAccounts' => Auth::user()->can('create-customer-payments')
+                    ? \Workdo\Account\Models\BankAccount::where('created_by', creatorId())
+                        ->where('is_active', true)
+                        ->get(['id', 'account_name', 'account_number', 'bank_name'])
+                    : [],
             ]);
         }
         else{
