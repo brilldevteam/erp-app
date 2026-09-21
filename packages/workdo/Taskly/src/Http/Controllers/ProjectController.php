@@ -148,6 +148,7 @@ class ProjectController extends Controller
             }
 
             $destination = $project->category === 'production'
+                && Auth::user()->can('view-video-production-dashboard')
                 ? route('video-production.dashboard', $project)
                 : route('project.index');
 

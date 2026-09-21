@@ -268,7 +268,9 @@ export default function Index() {
             render: (_: any, item: ProjectItem) => (
                 <div className="flex gap-1">
                     {renderTemplateButtons(item)}
-                    {item.category === 'production' && auth.user?.permissions?.includes('view-project') && (
+                    {item.category === 'production'
+                        && auth.user?.permissions?.includes('view-project')
+                        && auth.user?.permissions?.includes('view-video-production-dashboard') && (
                         <Tooltip key={`production-${item.id}`} delayDuration={0}>
                             <TooltipTrigger asChild>
                                 <Button
@@ -581,7 +583,9 @@ export default function Index() {
                                             <div className="flex justify-end gap-2 p-3 border-t bg-gray-50/50 flex-shrink-0 mt-auto">
                                                 <TooltipProvider>
                                                     {renderGridTemplateButtons(project)}
-                                                    {project.category === 'production' && auth.user?.permissions?.includes('view-project') && (
+                                                    {project.category === 'production'
+                                                        && auth.user?.permissions?.includes('view-project')
+                                                        && auth.user?.permissions?.includes('view-video-production-dashboard') && (
                                                         <Tooltip delayDuration={300}>
                                                             <TooltipTrigger asChild>
                                                                 <Button

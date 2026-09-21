@@ -83,7 +83,11 @@ class DashboardController extends Controller
     private function canViewProject(Project $project): bool
     {
         $user = Auth::user();
-        if (! $user->can('view-project') || $project->created_by !== creatorId()) {
+        if (
+            ! $user->can('view-video-production-dashboard')
+            || ! $user->can('view-project')
+            || $project->created_by !== creatorId()
+        ) {
             return false;
         }
         if ($user->can('manage-any-project') || $project->creator_id === $user->id) {

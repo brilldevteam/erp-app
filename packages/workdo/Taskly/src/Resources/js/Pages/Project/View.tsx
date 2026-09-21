@@ -340,7 +340,7 @@ export default function Show() {
             pageTitle={project.name}
             pageActions={
                 <div className="flex gap-2">
-                    {project.category === 'production' && (
+                    {project.category === 'production' && auth.user?.permissions?.includes('view-video-production-dashboard') && (
                         <Button size="sm" onClick={() => router.get(route('video-production.dashboard', project.id))}>
                             <Video className="h-4 w-4" />
                             {t('Production')}
