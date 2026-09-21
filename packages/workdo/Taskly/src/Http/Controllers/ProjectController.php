@@ -38,12 +38,22 @@ class ProjectController extends Controller
 {
     public function index()
     {
-        if (Auth::user()->can('manage-project')) {
+        $canManageProjects = Auth::user()->can('manage-project');
+        $canAccessVideoProduction = Auth::user()->canAny([
+            'view-video-production',
+            'view-video-production-dashboard',
+            'manage-video-production',
+            'manage-video-production-settings',
+        ]);
+
+        if ($canManageProjects || $canAccessVideoProduction) {
             $items = Project::query()
                 ->select('id', 'name', 'category', 'description', 'budget', 'start_date', 'end_date', 'status', 'created_by')
                 ->with(['teamMembers:id,name,avatar'])
-                ->where(function($q) {
-                    if(Auth::user()->can('manage-any-project')) {
+                ->where(function($q) use ($canManageProjects) {
+                    if (! $canManageProjects) {
+                        $q->where('created_by', creatorId())->where('category', 'production');
+                    } else if(Auth::user()->can('manage-any-project')) {
                          $q->where('created_by', creatorId());
                     } else if(Auth::user()->can('manage-own-project')) {
                         // For all other users, show projects they are involved in

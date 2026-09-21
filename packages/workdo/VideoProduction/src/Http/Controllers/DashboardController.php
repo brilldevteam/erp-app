@@ -97,18 +97,12 @@ class DashboardController extends Controller
                 && ! $user->can('manage-video-production')
                 && ! $user->can('manage-video-production-settings')
             )
-            || ! $user->can('view-project')
+            || $project->category !== 'production'
             || $project->created_by !== creatorId()
         ) {
             return false;
         }
-        if ($user->can('manage-any-project') || $project->creator_id === $user->id) {
-            return true;
-        }
 
-        return $user->can('manage-own-project') && (
-            $project->teamMembers()->where('users.id', $user->id)->exists()
-            || $project->clients()->where('users.id', $user->id)->exists()
-        );
+        return true;
     }
 }
