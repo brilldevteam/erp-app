@@ -177,7 +177,18 @@ export default function ProductPickerDialog(props: Props) {
                     <form onSubmit={saveProduct} className="space-y-4">
                         <div className="grid gap-4 sm:grid-cols-2">
                             <Field label={t('Name')} error={formErrors.name?.[0]}><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required /></Field>
-                            <Field label={t('SKU')} error={formErrors.sku?.[0]}><Input value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })} required /></Field>
+                            <Field label={t('SKU')} error={formErrors.sku?.[0]}>
+                                <div className="flex gap-2">
+                                    <Input value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })} required />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => setForm({ ...form, sku: `SKU-${Date.now()}` })}
+                                    >
+                                        {t('Generate')}
+                                    </Button>
+                                </div>
+                            </Field>
                             <Field label={t('Type')} error={formErrors.type?.[0]}>
                                 <Select value={form.type} onValueChange={value => setForm({ ...form, type: value })} disabled={props.catalogMode === 'service'}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{props.catalogMode !== 'service' && <SelectItem value="product">{t('Product')}</SelectItem>}{props.catalogMode !== 'stock' && <SelectItem value="service">{t('Service')}</SelectItem>}{props.catalogMode !== 'service' && <SelectItem value="part">{t('Part')}</SelectItem>}</SelectContent></Select>
                             </Field>
