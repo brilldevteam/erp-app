@@ -75,6 +75,8 @@ export default function Index() {
         'manage-video-production',
         'manage-video-production-settings',
     ].includes(permission));
+    const canViewProjectDetails = auth.user?.permissions?.includes('view-project')
+        && auth.user?.permissions?.some(permission => ['manage-any-project', 'manage-own-project'].includes(permission));
     const urlParams = useMemo(() => new URLSearchParams(window.location.search), []);
 
     const [filters, setFilters] = useState({
@@ -306,7 +308,7 @@ export default function Index() {
                         </Tooltip>
                     )}
 
-                    {auth.user?.permissions?.includes('view-project') && (
+                    {canViewProjectDetails && (
                         <Tooltip key={`view-${item.id}`} delayDuration={0}>
                             <TooltipTrigger asChild>
                                 <Button variant="ghost" size="sm" onClick={() => router.get(route('project.show', item.id))} className="h-8 w-8 p-0 text-green-600 hover:text-green-700">
@@ -619,7 +621,7 @@ export default function Index() {
                                                             </TooltipContent>
                                                         </Tooltip>
                                                     )}
-                                                    {auth.user?.permissions?.includes('view-project') && (
+                                                    {canViewProjectDetails && (
                                                         <Tooltip delayDuration={300}>
                                                             <TooltipTrigger asChild>
                                                                 <Button variant="ghost" size="sm" onClick={() => router.get(route('project.show', project.id))} className="h-9 w-9 p-0 text-green-600 hover:text-green-700">
