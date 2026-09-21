@@ -50,30 +50,36 @@ class ProjectController extends Controller
             $items = Project::query()
                 ->select('id', 'name', 'category', 'description', 'budget', 'start_date', 'end_date', 'status', 'created_by')
                 ->with(['teamMembers:id,name,avatar'])
-                ->where(function($q) use ($canManageProjects) {
-                    if (! $canManageProjects) {
-                        $q->where('created_by', creatorId())->where('category', 'production');
-                    } else if(Auth::user()->can('manage-any-project')) {
-                         $q->where('created_by', creatorId());
-                    } else if(Auth::user()->can('manage-own-project')) {
-                        // For all other users, show projects they are involved in
-                        $q->where(function($subQ) {
-                            // Show own created projects
-                            $subQ->where('creator_id', Auth::id());
-                            // OR show assigned projects (for staff)
-                            if (Auth::user()->type === 'client') {
-                                $subQ->orWhereHas('clients', function($clientQ) {
-                                    $clientQ->where('client_id', Auth::id());
+                ->where(function($q) use ($canManageProjects, $canAccessVideoProduction) {
+                    if ($canAccessVideoProduction) {
+                        $q->where(function ($productionQuery) {
+                            $productionQuery->where('created_by', creatorId())
+                                ->where('category', 'production');
+                        });
+                    }
+
+                    if ($canManageProjects) {
+                        $method = $canAccessVideoProduction ? 'orWhere' : 'where';
+                        $q->{$method}(function ($projectQuery) {
+                            if (Auth::user()->can('manage-any-project')) {
+                                $projectQuery->where('created_by', creatorId());
+                            } else if (Auth::user()->can('manage-own-project')) {
+                                $projectQuery->where(function($subQ) {
+                                    $subQ->where('creator_id', Auth::id());
+                                    if (Auth::user()->type === 'client') {
+                                        $subQ->orWhereHas('clients', function($clientQ) {
+                                            $clientQ->where('client_id', Auth::id());
+                                        });
+                                    } else {
+                                        $subQ->orWhereHas('teamMembers', function($teamQ) {
+                                            $teamQ->where('user_id', Auth::id());
+                                        });
+                                    }
                                 });
                             } else {
-                                $subQ->orWhereHas('teamMembers', function($teamQ) {
-                                    $teamQ->where('user_id', Auth::id());
-                                });
+                                $projectQuery->whereRaw('1 = 0');
                             }
                         });
-                    } else {
-                        // If no permissions, show nothing
-                        $q->whereRaw('1 = 0');
                     }
                 })
                 ->when(request('name'), fn($q) => $q->where('name', 'like', '%' . request('name') . '%'))
