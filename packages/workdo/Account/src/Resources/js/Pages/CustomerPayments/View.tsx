@@ -110,7 +110,11 @@ export default function View({ payment, canApplyDeposit = false, onApplied }: Cu
                                 <p className="mt-1 text-gray-500">{payment.customer?.name || '-'}</p>
                             </div>
                             <div>
-                                <span className="font-semibold">{t('Bank Account')}</span>
+                                <span className="font-semibold">{t('Payment Mode')}</span>
+                                <p className="mt-1 text-gray-500">{payment.payment_mode ? t({cash: 'Cash', bank_transfer: 'Bank Transfer', cheque: 'Cheque'}[payment.payment_mode]) : '-'}</p>
+                            </div>
+                            <div>
+                                <span className="font-semibold">{t('Receiving Account')}</span>
                                 <p className="mt-1 text-gray-500">
                                     {payment.bank_account?.account_name || '-'}
                                     {payment.bank_account?.account_number && ` (${payment.bank_account.account_number})`}

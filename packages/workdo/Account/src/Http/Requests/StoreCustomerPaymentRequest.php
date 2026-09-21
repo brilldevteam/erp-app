@@ -17,8 +17,9 @@ class StoreCustomerPaymentRequest extends FormRequest
         return [
             'payment_date' => 'required|date|before_or_equal:today',
             'customer_id' => 'required|exists:users,id',
-            'bank_account_id' => 'required|exists:bank_accounts,id',
-            'reference_number' => 'nullable|string|max:100',
+            'bank_account_id' => ['required', \Illuminate\Validation\Rule::exists('bank_accounts', 'id')->where('created_by', creatorId())->where('is_active', true)],
+            'payment_mode' => 'required|in:cash,bank_transfer,cheque',
+            'reference_number' => 'required_if:payment_mode,cheque|nullable|string|max:100',
             'payment_amount' => 'required|numeric|min:0',
             'notes' => 'nullable|string',
             'allocations' => 'nullable|array',

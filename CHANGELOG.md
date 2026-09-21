@@ -5,6 +5,7 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Fixed
+- Add payment-mode selection and receiving-account labeling when recording customer payments.
 - Populate the customer and receiving-account dropdowns when recording a payment from a sales invoice.
 - Allow complete Purchase Order terms to be preserved when converting to a draft Purchase Invoice instead of failing when the text exceeds 255 characters.
 - Made Purchase Order / LPO activation migrations safely retryable after a partial or interrupted production activation.

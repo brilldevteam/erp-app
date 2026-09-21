@@ -51,6 +51,7 @@ export interface CustomerDetails {
 }
 
 export interface CustomerPayment {
+    payment_mode?: 'cash' | 'bank_transfer' | 'cheque' | null;
     id: number;
     payment_number: string;
     payment_date: string;
@@ -70,6 +71,7 @@ export interface CustomerPayment {
 }
 
 export interface CreateCustomerPaymentFormData {
+    payment_mode: string;
     payment_date: string;
     customer_id: string;
     bank_account_id: string;
