@@ -25,6 +25,7 @@ All notable changes to the Wazely ERP application are documented here.
 - New features currently in development will be listed here before release.
 
 ### Changed
+- Hidden purchase-price inputs from product and service create/edit interfaces while preserving existing stored costs and purchase/accounting behavior.
 - Added warehouse-aware product stock editing and automatic default stock locations, prevented zero-stock selection, made quick-created products appear immediately in quotation and sales invoice lines, and deduct stock atomically when product invoices are posted.
 - Aligned quotation and sales invoice customer selectors with Accounts customer master data, showing the real contact email only when present and hiding internal `@import.local` placeholder addresses.
 - Changed Product/Service tax assignment to an optional single-select dropdown backed by the company tax master, with `_` representing no tax across create, edit, quick-create, and item details.

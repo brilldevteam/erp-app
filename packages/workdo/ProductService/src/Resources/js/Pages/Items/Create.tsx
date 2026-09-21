@@ -32,7 +32,7 @@ export default function Create() {
         description: '',
         long_description: '',
         sale_price: '',
-        purchase_price: '',
+        purchase_price: '0',
         unit: '',
         quantity: '',
         image: '',
@@ -62,8 +62,7 @@ export default function Create() {
     };
 
     const validatePricingTab = () => {
-        const baseValidation = data.sale_price.trim() !== '' &&
-               data.purchase_price.trim() !== '';
+        const baseValidation = data.sale_price.trim() !== '';
 
         if (data.type === 'service') {
             return baseValidation;
@@ -287,19 +286,6 @@ export default function Create() {
                                                 required
                                             />
                                             <InputError message={errors.sale_price} />
-                                        </div>
-                                        <div>
-                                            <Label htmlFor="purchase_price">{t('Purchase Price')}</Label>
-                                            <Input
-                                                id="purchase_price"
-                                                type="number"
-                                                step="0.01"
-                                                value={data.purchase_price}
-                                                onChange={(e) => setData('purchase_price', e.target.value)}
-                                                placeholder={t('Enter Purchase Price')}
-                                                required
-                                            />
-                                            <InputError message={errors.purchase_price} />
                                         </div>
                                     </div>
 
