@@ -5,6 +5,7 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Fixed
+- Removed the duplicate scrollbar and excess empty space from Video Production record forms.
 - Separated Video Production overview access from read-only production record access and limited production-only roles to production projects within the Project section.
 - Add payment-mode selection and receiving-account labeling when recording customer payments.
 - Populate the customer and receiving-account dropdowns when recording a payment from a sales invoice.
