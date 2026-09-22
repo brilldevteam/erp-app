@@ -44,17 +44,25 @@ class ProjectController extends Controller
             'view-video-production-dashboard',
             'manage-video-production',
             'manage-video-production-settings',
+            'manage-video-production-client-access',
         ]);
 
         if ($canManageProjects || $canAccessVideoProduction) {
             $items = Project::query()
                 ->select('id', 'name', 'category', 'description', 'budget', 'start_date', 'end_date', 'status', 'created_by')
                 ->with(['teamMembers:id,name,avatar'])
+                ->when(Auth::user()->can('manage-video-production-client-access'), fn ($query) => $query->with([
+                    'clients:id,name,email,is_enable_login,is_disable',
+                    'clients.roles:id,name',
+                ]))
                 ->where(function($q) use ($canManageProjects, $canAccessVideoProduction) {
                     if ($canAccessVideoProduction) {
                         $q->where(function ($productionQuery) {
                             $productionQuery->where('created_by', creatorId())
                                 ->where('category', 'production');
+                            if (Auth::user()->type === 'client') {
+                                $productionQuery->whereHas('clients', fn ($clientQuery) => $clientQuery->where('users.id', Auth::id()));
+                            }
                         });
                     }
 
@@ -102,6 +110,17 @@ class ProjectController extends Controller
                     ];
                 });
                 $project->task_count = ProjectTask::where('project_id', $project->id)->count();
+                $project->production_clients = Auth::user()->can('manage-video-production-client-access')
+                    ? $project->clients
+                        ->filter(fn ($client) => $client->roles->contains('name', 'production-client'))
+                        ->map(fn ($client) => [
+                            'id' => $client->id,
+                            'name' => $client->name,
+                            'email' => $client->email,
+                            'is_enable_login' => (bool) $client->is_enable_login,
+                            'is_disable' => (bool) $client->is_disable,
+                        ])->values()
+                    : collect();
 
                 // Add user relationship status
                 $project->is_creator = $project->creator_id == Auth::id();
@@ -114,6 +133,14 @@ class ProjectController extends Controller
             return Inertia::render('Taskly/Project/Index', [
                 'items' => $items,
                 'users' => $users,
+                'productionClientAccounts' => Auth::user()->can('manage-video-production-client-access')
+                    ? User::query()
+                        ->where('created_by', creatorId())
+                        ->where('type', 'client')
+                        ->whereHas('roles', fn ($query) => $query->where('name', 'production-client')->where('roles.created_by', creatorId()))
+                        ->orderBy('name')
+                        ->get(['id', 'name', 'email'])
+                    : [],
             ]);
         } else {
             return back()->with('error', __('Permission denied'));

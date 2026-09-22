@@ -285,11 +285,12 @@ class UserController extends Controller
             return redirect()->route('login')->with('error', __('Original user not found'));
         }
 
+        $returnRoute = Session::pull('impersonator_return_route', 'users.index');
         Session::forget('impersonator_id');
         Auth::login($originalUser);
         $authSessions->initializeWebSession(request());
 
-        return redirect()->route('users.index')->with('success', __('You have stopped login as user'));
+        return redirect()->route($returnRoute)->with('success', __('You have stopped login as user'));
     }
 
     public function loginHistory()

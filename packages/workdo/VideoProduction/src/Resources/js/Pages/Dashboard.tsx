@@ -494,7 +494,7 @@ function Manager({ kind, items, settings, nextRecordKey, companyName, project, s
 
 export default function Dashboard() {
     const { t } = useTranslation();
-    const { companyName, project, canEdit, canViewProduction, canViewDashboard, canManageSettings, unassignedRecordCount, nextRecordKeys, settings, range, month, records, productionMetrics } = usePage<any>().props;
+    const { companyName, project, availableProjects = [], isProductionClient, canEdit, canViewProduction, canViewDashboard, canManageSettings, unassignedRecordCount, nextRecordKeys, settings, range, month, records, productionMetrics } = usePage<any>().props;
     useFlashMessages();
     const tabs: any[] = [
         ...(canViewDashboard ? [['overview','Overview',Gauge]] : []),
@@ -504,8 +504,12 @@ export default function Dashboard() {
     const defaultTab = tabs[0]?.[0] || 'overview';
     const metrics = [['Shooting sessions',productionMetrics.shoots,Video],['Reels delivered',productionMetrics.reels_delivered,CheckCircle2],['Static posts delivered',productionMetrics.static_delivered,FileCheck2],['Work hours',productionMetrics.work_hours,Clock3]];
     const targets = [['Reels / month',settings.monthly_reel_target],['Static posts / month',settings.monthly_static_target],['Shoot sessions',`${settings.minimum_shoots} - ${settings.maximum_shoots}`],['Hours / shoot',settings.included_hours_per_shoot],['Script lead days',settings.required_lead_days],['Included revisions',settings.included_revisions],['Extra shooting hours',productionMetrics.extra_hours],['Waiting for client',productionMetrics.waiting_for_client]];
-    return <AuthenticatedLayout breadcrumbs={[{label:t('Project'),url:route('project.index')},{label:project.name,url:route('project.show',project.id)},{label:t('Production')}]} pageTitle={`${project.name} - ${t('Production')}`}>
+    const breadcrumbs = isProductionClient
+        ? [{label:project.name},{label:t('Production')}]
+        : [{label:t('Project'),url:route('project.index')},{label:project.name,url:route('project.show',project.id)},{label:t('Production')}];
+    return <AuthenticatedLayout breadcrumbs={breadcrumbs} pageTitle={`${project.name} - ${t('Production')}`}>
         <Head title={`${project.name} - ${t('Production')}`} />
+        {isProductionClient && availableProjects.length > 1 && <div className="mb-5 flex justify-end"><Select value={String(project.id)} onValueChange={value => router.get(route('video-production.dashboard', value))}><SelectTrigger className="w-full sm:w-72"><SelectValue placeholder={t('Select production project')} /></SelectTrigger><SelectContent>{availableProjects.map((item:any) => <SelectItem key={item.id} value={String(item.id)}>{item.name}</SelectItem>)}</SelectContent></Select></div>}
         <Tabs defaultValue={defaultTab} className="space-y-5">
             <div className="overflow-x-auto rounded-xl border bg-card p-2"><TabsList className="h-auto min-w-max bg-transparent">{tabs.map(([value,label,Icon]) => <TabsTrigger value={value} key={value} className="gap-2"><Icon className="h-4 w-4" />{t(label)}</TabsTrigger>)}</TabsList></div>
             {canViewDashboard && <TabsContent value="overview" className="space-y-5">

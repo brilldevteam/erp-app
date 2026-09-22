@@ -26,6 +26,7 @@ import EditItem from './Edit';
 import DuplicateModal from './DuplicateModal';
 import NoRecordsFound from '@/components/no-records-found';
 import { ProjectCategory } from './types';
+import ProductionClientAccess from './ProductionClientAccess';
 
 interface ProjectItem {
     id: number;
@@ -42,6 +43,13 @@ interface ProjectItem {
         avatar?: string;
     }>;
     task_count?: number;
+    production_clients?: Array<{
+        id: number;
+        name: string;
+        email: string;
+        is_enable_login: boolean;
+        is_disable: boolean;
+    }>;
     created_at: string;
 }
 
@@ -59,6 +67,7 @@ interface ProjectIndexProps {
         id: number;
         name: string;
     }>;
+    productionClientAccounts: Array<{ id: number; name: string; email: string }>;
     auth: {
         user: {
             permissions: string[];
@@ -68,7 +77,7 @@ interface ProjectIndexProps {
 
 export default function Index() {
     const { t } = useTranslation();
-    const { items, users, auth } = usePage<ProjectIndexProps>().props;
+    const { items, users, auth, productionClientAccounts = [] } = usePage<ProjectIndexProps>().props;
     const canAccessVideoProduction = auth.user?.permissions?.some(permission => [
         'view-video-production',
         'view-video-production-dashboard',
@@ -77,6 +86,7 @@ export default function Index() {
     ].includes(permission));
     const canViewProjectDetails = auth.user?.permissions?.includes('view-project')
         && auth.user?.permissions?.some(permission => ['manage-any-project', 'manage-own-project'].includes(permission));
+    const canManageProductionClientAccess = auth.user?.permissions?.includes('manage-video-production-client-access');
     const urlParams = useMemo(() => new URLSearchParams(window.location.search), []);
 
     const [filters, setFilters] = useState({
@@ -270,11 +280,11 @@ export default function Index() {
                 );
             }
         },
-        ...(canAccessVideoProduction || auth.user?.permissions?.some((p: string) => ['view-project', 'edit-project', 'delete-project', 'duplicate-project'].includes(p)) ? [{
+        ...(canAccessVideoProduction || canManageProductionClientAccess || auth.user?.permissions?.some((p: string) => ['view-project', 'edit-project', 'delete-project', 'duplicate-project'].includes(p)) ? [{
             key: 'actions',
             header: t('Actions'),
             render: (_: any, item: ProjectItem) => (
-                <div className="flex gap-1">
+                <div className="flex items-center gap-1 whitespace-nowrap">
                     {renderTemplateButtons(item)}
                     {item.category === 'production'
                         && canAccessVideoProduction && (
@@ -294,6 +304,11 @@ export default function Index() {
                                 <p>{t('Open Production')}</p>
                             </TooltipContent>
                         </Tooltip>
+                    )}
+                    {item.category === 'production' && canManageProductionClientAccess && (
+                        <div className="flex w-36 shrink-0 items-center">
+                            <ProductionClientAccess project={item} accounts={productionClientAccounts} />
+                        </div>
                     )}
                     {auth.user?.permissions?.includes('duplicate-project') && (
                         <Tooltip key={`duplicate-${item.id}`} delayDuration={0}>
@@ -587,7 +602,7 @@ export default function Index() {
                                             </div>
 
                                             {/* Actions Footer */}
-                                            <div className="flex justify-end gap-2 p-3 border-t bg-gray-50/50 flex-shrink-0 mt-auto">
+                                            <div className="flex items-center justify-end gap-2 p-3 border-t bg-gray-50/50 flex-shrink-0 mt-auto">
                                                 <TooltipProvider>
                                                     {renderGridTemplateButtons(project)}
                                                     {project.category === 'production'
@@ -608,6 +623,11 @@ export default function Index() {
                                                                 <p>{t('Open Production')}</p>
                                                             </TooltipContent>
                                                         </Tooltip>
+                                                    )}
+                                                    {project.category === 'production' && canManageProductionClientAccess && (
+                                                        <div className="flex w-36 shrink-0 items-center">
+                                                            <ProductionClientAccess project={project} accounts={productionClientAccounts} />
+                                                        </div>
                                                     )}
                                                     {auth.user?.permissions?.includes('duplicate-project') && (
                                                         <Tooltip delayDuration={300}>

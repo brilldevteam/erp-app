@@ -24,7 +24,13 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        if (Auth::user()->can('manage-project-dashboard'))
+        if (
+            Auth::user()->can('manage-project-dashboard')
+            || (
+                Auth::user()->hasRole('production-client')
+                && Auth::user()->can('view-video-production')
+            )
+        )
         {
             $user = Auth::user();
             $userType = $user->type;
