@@ -467,7 +467,7 @@ function Manager({ kind, items, settings, nextRecordKey, companyName, project, s
                 {!items.length && <div className="flex flex-col items-center justify-center gap-2 p-12 text-center text-muted-foreground"><FolderKanban className="h-9 w-9 opacity-40" /><p>{t('No production records found.')}</p></div>}
             </div>
         </CardContent>
-        <Dialog open={open} onOpenChange={setOpen}>{open && <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
+        <Dialog open={open} onOpenChange={setOpen}>{open && <DialogContent className="max-w-5xl">
             <DialogHeader><DialogTitle>{edit ? t('Edit') : t('Add')} {t(titles[kind])}</DialogTitle></DialogHeader>
             <form onSubmit={submit} className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                 <div><Label>{t('Record ID')} *</Label><div className="flex gap-2"><Input required value={form.data.record_key} onChange={event => form.setData('record_key', event.target.value)} /><Button type="button" variant="outline" className="shrink-0" disabled={!nextRecordKey} onClick={() => form.setData('record_key', nextRecordKey)}>{t('Generate ID')}</Button></div><InputError message={form.errors.record_key} /></div>
