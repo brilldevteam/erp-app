@@ -67,7 +67,6 @@ interface ProjectIndexProps {
         id: number;
         name: string;
     }>;
-    productionClientAccounts: Array<{ id: number; name: string; email: string }>;
     auth: {
         user: {
             permissions: string[];
@@ -77,7 +76,7 @@ interface ProjectIndexProps {
 
 export default function Index() {
     const { t } = useTranslation();
-    const { items, users, auth, productionClientAccounts = [] } = usePage<ProjectIndexProps>().props;
+    const { items, users, auth } = usePage<ProjectIndexProps>().props;
     const canAccessVideoProduction = auth.user?.permissions?.some(permission => [
         'view-video-production',
         'view-video-production-dashboard',
@@ -307,7 +306,7 @@ export default function Index() {
                     )}
                     {item.category === 'production' && canManageProductionClientAccess && (
                         <div className="flex w-36 shrink-0 items-center">
-                            <ProductionClientAccess project={item} accounts={productionClientAccounts} />
+                            <ProductionClientAccess project={item} />
                         </div>
                     )}
                     {auth.user?.permissions?.includes('duplicate-project') && (
@@ -626,7 +625,7 @@ export default function Index() {
                                                     )}
                                                     {project.category === 'production' && canManageProductionClientAccess && (
                                                         <div className="flex w-36 shrink-0 items-center">
-                                                            <ProductionClientAccess project={project} accounts={productionClientAccounts} />
+                                                            <ProductionClientAccess project={project} />
                                                         </div>
                                                     )}
                                                     {auth.user?.permissions?.includes('duplicate-project') && (

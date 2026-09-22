@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input';
 import InputError from '@/components/ui/input-error';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 type ClientAccount = {
@@ -19,20 +18,18 @@ type ClientAccount = {
     is_disable?: boolean;
 };
 
-export default function ProductionClientAccess({ project, accounts }: { project: any; accounts: ClientAccount[] }) {
+export default function ProductionClientAccess({ project }: { project: any }) {
     const { t } = useTranslation();
     const clients: ClientAccount[] = project.production_clients || [];
     const [createOpen, setCreateOpen] = useState(false);
     const [profileClient, setProfileClient] = useState<ClientAccount | null>(null);
     const [passwordClient, setPasswordClient] = useState<ClientAccount | null>(null);
-    const [existingId, setExistingId] = useState('');
 
     const createForm = useForm({
         name: project.name || '', email: '', password: '', password_confirmation: '', send_welcome_email: true,
     });
     const profileForm = useForm({ name: '', email: '', is_enable_login: true });
     const passwordForm = useForm({ password: '', password_confirmation: '' });
-    const availableAccounts = accounts.filter(account => !clients.some(client => client.id === account.id));
 
     useEffect(() => {
         if (!profileClient) return;
@@ -48,14 +45,6 @@ export default function ProductionClientAccess({ project, accounts }: { project:
         preserveScroll: true,
         onSuccess: () => { setCreateOpen(false); createForm.reset(); },
     });
-
-    const attachExisting = () => {
-        if (!existingId) return;
-        router.post(route('video-production.client-access.attach', [project.id, existingId]), {}, {
-            preserveScroll: true,
-            onSuccess: () => { setExistingId(''); setCreateOpen(false); },
-        });
-    };
 
     const updateProfile = () => profileClient && profileForm.put(
         route('video-production.client-access.update', [project.id, profileClient.id]),
@@ -76,7 +65,6 @@ export default function ProductionClientAccess({ project, accounts }: { project:
             send_welcome_email: true,
         });
         createForm.clearErrors();
-        setExistingId('');
         setCreateOpen(true);
     };
 
@@ -89,16 +77,11 @@ export default function ProductionClientAccess({ project, accounts }: { project:
             <Tooltip delayDuration={0}><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => setProfileClient(client)}><UserCog className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>{t('Client Profile')} - {client.name}</TooltipContent></Tooltip>
             <Tooltip delayDuration={0}><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600" onClick={() => setPasswordClient(client)}><KeyRound className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>{t('Change Password')}</TooltipContent></Tooltip>
             <Tooltip delayDuration={0}><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-700" disabled={!client.is_enable_login || client.is_disable} onClick={() => router.post(route('video-production.client-access.impersonate', [project.id, client.id]))}><LogIn className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>{t('Login as Client')}</TooltipContent></Tooltip>
-            {availableAccounts.length > 0 && <Tooltip delayDuration={0}><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={openCreateLogin}><UserPlus className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>{t('Add Client Access')}</TooltipContent></Tooltip>}
         </div>)}
 
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogContent className="sm:max-w-xl" onOpenAutoFocus={event => event.preventDefault()}>
                 <DialogHeader><DialogTitle>{t('Create Production Client Login')}</DialogTitle></DialogHeader>
-                {availableAccounts.length > 0 && <div className="space-y-2 rounded-md border p-4">
-                    <Label>{t('Attach Existing Production Client')} ({t('Optional')})</Label>
-                    <div className="flex gap-2"><Select value={existingId} onValueChange={setExistingId}><SelectTrigger><SelectValue placeholder={t('Select client')} /></SelectTrigger><SelectContent>{availableAccounts.map(account => <SelectItem value={String(account.id)} key={account.id}>{account.name} ({account.email})</SelectItem>)}</SelectContent></Select><Button type="button" variant="outline" disabled={!existingId} onClick={attachExisting}>{t('Attach')}</Button></div>
-                </div>}
                 <form className="space-y-4" autoComplete="off" onSubmit={event => { event.preventDefault(); createLogin(); }}>
                     <div className="grid gap-4 sm:grid-cols-2"><div><Label required>{t('Client Name')}</Label><Input value={createForm.data.name} autoComplete="organization" onChange={e => createForm.setData('name', e.target.value)} /><InputError message={createForm.errors.name} /></div><div><Label required>{t('Login Email')}</Label><Input type="email" name="production_client_email" autoComplete="off" data-1p-ignore="true" data-lpignore="true" value={createForm.data.email} onChange={e => createForm.setData('email', e.target.value)} /><InputError message={createForm.errors.email} /></div></div>
                     <div className="grid gap-4 sm:grid-cols-2"><div><Label required>{t('Password')}</Label><Input type="password" name="production_client_new_password" autoComplete="new-password" data-1p-ignore="true" data-lpignore="true" value={createForm.data.password} onChange={e => createForm.setData('password', e.target.value)} /><InputError message={createForm.errors.password} /></div><div><Label required>{t('Confirm Password')}</Label><Input type="password" name="production_client_password_confirmation" autoComplete="new-password" data-1p-ignore="true" data-lpignore="true" value={createForm.data.password_confirmation} onChange={e => createForm.setData('password_confirmation', e.target.value)} /></div></div>

@@ -133,14 +133,6 @@ class ProjectController extends Controller
             return Inertia::render('Taskly/Project/Index', [
                 'items' => $items,
                 'users' => $users,
-                'productionClientAccounts' => Auth::user()->can('manage-video-production-client-access')
-                    ? User::query()
-                        ->where('created_by', creatorId())
-                        ->where('type', 'client')
-                        ->whereHas('roles', fn ($query) => $query->where('name', 'production-client')->where('roles.created_by', creatorId()))
-                        ->orderBy('name')
-                        ->get(['id', 'name', 'email'])
-                    : [],
             ]);
         } else {
             return back()->with('error', __('Permission denied'));
