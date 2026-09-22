@@ -127,7 +127,7 @@ class ClientAccessController extends Controller
         Auth::login($user);
         $authSessions->initializeWebSession(request());
 
-        return redirect()->route('video-production.dashboard', $project)
+        return redirect()->route('dashboard')
             ->with('success', __('You are now logged in as :name', ['name' => $user->name]));
     }
 
