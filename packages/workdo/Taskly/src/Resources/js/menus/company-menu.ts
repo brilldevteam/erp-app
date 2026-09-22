@@ -9,6 +9,7 @@ export const projectCompanyMenu = (t: (key: string) => string) => [
         title: t('Project Dashboard'),
         href: route('project.dashboard.index'),
         permission: 'manage-project-dashboard',
+        anyPermission: ['view-video-production'],
         parent: 'dashboard',
         order: 20,
     },
@@ -16,6 +17,7 @@ export const projectCompanyMenu = (t: (key: string) => string) => [
         title: t('Project'),
         icon: FolderKanban,
         permission: 'manage-project',
+        anyPermission: ['view-video-production'],
         order: 300,
         name : 'project',
         children: [
@@ -23,6 +25,7 @@ export const projectCompanyMenu = (t: (key: string) => string) => [
                 title: t('Projects'),
                 href: route('project.index'),
                 permission: 'manage-project',
+                anyPermission: ['view-video-production'],
                 order: 5,
             },
             {

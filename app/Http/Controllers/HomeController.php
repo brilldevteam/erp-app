@@ -137,12 +137,13 @@ class HomeController extends Controller
     {
         if (
             Auth::user()->type === 'client'
+            && Auth::user()->hasRole('production-client')
             && Auth::user()->can('view-video-production-dashboard')
             && Auth::user()->can('view-video-production')
-            && Module_is_active('VideoProduction')
-            && Route::has('video-production.index')
+            && Module_is_active('Taskly')
+            && Route::has('project.dashboard.index')
         ) {
-            return redirect()->route('video-production.index');
+            return redirect()->route('project.dashboard.index');
         }
 
         $packagesPath = base_path('packages/workdo');
