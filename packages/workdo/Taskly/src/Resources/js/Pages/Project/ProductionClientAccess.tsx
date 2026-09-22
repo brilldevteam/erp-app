@@ -67,16 +67,29 @@ export default function ProductionClientAccess({ project, accounts }: { project:
         { preserveScroll: true, onSuccess: () => { setPasswordClient(null); passwordForm.reset(); } },
     );
 
+    const openCreateLogin = () => {
+        createForm.setData({
+            name: project.name || '',
+            email: '',
+            password: '',
+            password_confirmation: '',
+            send_welcome_email: true,
+        });
+        createForm.clearErrors();
+        setExistingId('');
+        setCreateOpen(true);
+    };
+
     return <>
         {clients.length === 0 ? (
-            <Button variant="ghost" size="sm" className="h-8 gap-1 px-2 text-blue-600 hover:text-blue-700" onClick={() => setCreateOpen(true)}>
+            <Button variant="ghost" size="sm" className="h-8 gap-1 px-2 text-blue-600 hover:text-blue-700" onClick={openCreateLogin}>
                 <UserPlus className="h-4 w-4" />{t('Create Login')}
             </Button>
         ) : clients.map(client => <div className="flex items-center gap-1" key={client.id}>
             <Tooltip delayDuration={0}><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => setProfileClient(client)}><UserCog className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>{t('Client Profile')} - {client.name}</TooltipContent></Tooltip>
             <Tooltip delayDuration={0}><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600" onClick={() => setPasswordClient(client)}><KeyRound className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>{t('Change Password')}</TooltipContent></Tooltip>
             <Tooltip delayDuration={0}><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-700" disabled={!client.is_enable_login || client.is_disable} onClick={() => router.post(route('video-production.client-access.impersonate', [project.id, client.id]))}><LogIn className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>{t('Login as Client')}</TooltipContent></Tooltip>
-            {availableAccounts.length > 0 && <Tooltip delayDuration={0}><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => setCreateOpen(true)}><UserPlus className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>{t('Add Client Access')}</TooltipContent></Tooltip>}
+            {availableAccounts.length > 0 && <Tooltip delayDuration={0}><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={openCreateLogin}><UserPlus className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>{t('Add Client Access')}</TooltipContent></Tooltip>}
         </div>)}
 
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -86,9 +99,9 @@ export default function ProductionClientAccess({ project, accounts }: { project:
                     <Label>{t('Attach Existing Production Client')}</Label>
                     <div className="flex gap-2"><Select value={existingId} onValueChange={setExistingId}><SelectTrigger><SelectValue placeholder={t('Select client')} /></SelectTrigger><SelectContent>{availableAccounts.map(account => <SelectItem value={String(account.id)} key={account.id}>{account.name} ({account.email})</SelectItem>)}</SelectContent></Select><Button type="button" variant="outline" disabled={!existingId} onClick={attachExisting}>{t('Attach')}</Button></div>
                 </div>}
-                <form className="space-y-4" onSubmit={event => { event.preventDefault(); createLogin(); }}>
-                    <div className="grid gap-4 sm:grid-cols-2"><div><Label required>{t('Client Name')}</Label><Input value={createForm.data.name} onChange={e => createForm.setData('name', e.target.value)} /><InputError message={createForm.errors.name} /></div><div><Label required>{t('Login Email')}</Label><Input type="email" value={createForm.data.email} onChange={e => createForm.setData('email', e.target.value)} /><InputError message={createForm.errors.email} /></div></div>
-                    <div className="grid gap-4 sm:grid-cols-2"><div><Label required>{t('Password')}</Label><Input type="password" value={createForm.data.password} onChange={e => createForm.setData('password', e.target.value)} /><InputError message={createForm.errors.password} /></div><div><Label required>{t('Confirm Password')}</Label><Input type="password" value={createForm.data.password_confirmation} onChange={e => createForm.setData('password_confirmation', e.target.value)} /></div></div>
+                <form className="space-y-4" autoComplete="off" onSubmit={event => { event.preventDefault(); createLogin(); }}>
+                    <div className="grid gap-4 sm:grid-cols-2"><div><Label required>{t('Client Name')}</Label><Input value={createForm.data.name} autoComplete="organization" onChange={e => createForm.setData('name', e.target.value)} /><InputError message={createForm.errors.name} /></div><div><Label required>{t('Login Email')}</Label><Input type="email" name="production_client_email" autoComplete="off" data-1p-ignore="true" data-lpignore="true" value={createForm.data.email} onChange={e => createForm.setData('email', e.target.value)} /><InputError message={createForm.errors.email} /></div></div>
+                    <div className="grid gap-4 sm:grid-cols-2"><div><Label required>{t('Password')}</Label><Input type="password" name="production_client_new_password" autoComplete="new-password" data-1p-ignore="true" data-lpignore="true" value={createForm.data.password} onChange={e => createForm.setData('password', e.target.value)} /><InputError message={createForm.errors.password} /></div><div><Label required>{t('Confirm Password')}</Label><Input type="password" name="production_client_password_confirmation" autoComplete="new-password" data-1p-ignore="true" data-lpignore="true" value={createForm.data.password_confirmation} onChange={e => createForm.setData('password_confirmation', e.target.value)} /></div></div>
                     <label className="flex items-center gap-2 text-sm"><Checkbox checked={createForm.data.send_welcome_email} onCheckedChange={checked => createForm.setData('send_welcome_email', checked === true)} />{t('Send welcome email')}</label>
                     <p className="text-xs text-muted-foreground">{t('The email includes the login link and email address only. Share the password separately.')}</p>
                     <DialogFooter><Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>{t('Cancel')}</Button><Button disabled={createForm.processing}>{t('Create Login')}</Button></DialogFooter>
