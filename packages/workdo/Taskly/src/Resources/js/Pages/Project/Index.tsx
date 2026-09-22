@@ -284,7 +284,7 @@ export default function Index() {
             key: 'actions',
             header: t('Actions'),
             render: (_: any, item: ProjectItem) => (
-                <div className="flex gap-1">
+                <div className="flex items-center gap-1 whitespace-nowrap">
                     {renderTemplateButtons(item)}
                     {item.category === 'production'
                         && canAccessVideoProduction && (
@@ -305,7 +305,11 @@ export default function Index() {
                             </TooltipContent>
                         </Tooltip>
                     )}
-                    {item.category === 'production' && canManageProductionClientAccess && <ProductionClientAccess project={item} accounts={productionClientAccounts} />}
+                    {item.category === 'production' && canManageProductionClientAccess && (
+                        <div className="flex w-36 shrink-0 items-center">
+                            <ProductionClientAccess project={item} accounts={productionClientAccounts} />
+                        </div>
+                    )}
                     {auth.user?.permissions?.includes('duplicate-project') && (
                         <Tooltip key={`duplicate-${item.id}`} delayDuration={0}>
                             <TooltipTrigger asChild>
@@ -598,7 +602,7 @@ export default function Index() {
                                             </div>
 
                                             {/* Actions Footer */}
-                                            <div className="flex justify-end gap-2 p-3 border-t bg-gray-50/50 flex-shrink-0 mt-auto">
+                                            <div className="flex items-center justify-end gap-2 p-3 border-t bg-gray-50/50 flex-shrink-0 mt-auto">
                                                 <TooltipProvider>
                                                     {renderGridTemplateButtons(project)}
                                                     {project.category === 'production'
@@ -620,7 +624,11 @@ export default function Index() {
                                                             </TooltipContent>
                                                         </Tooltip>
                                                     )}
-                                                    {project.category === 'production' && canManageProductionClientAccess && <ProductionClientAccess project={project} accounts={productionClientAccounts} />}
+                                                    {project.category === 'production' && canManageProductionClientAccess && (
+                                                        <div className="flex w-36 shrink-0 items-center">
+                                                            <ProductionClientAccess project={project} accounts={productionClientAccounts} />
+                                                        </div>
+                                                    )}
                                                     {auth.user?.permissions?.includes('duplicate-project') && (
                                                         <Tooltip delayDuration={300}>
                                                             <TooltipTrigger asChild>
