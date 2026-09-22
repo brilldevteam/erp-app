@@ -27,6 +27,12 @@ class ClientAccessController extends Controller
     {
         $this->authorizeManagement($project);
 
+        if ($project->clients()->whereHas('roles', fn ($query) => $query->where('name', 'production-client'))->exists()) {
+            throw ValidationException::withMessages([
+                'email' => __('This production project already has a client login.'),
+            ]);
+        }
+
         $capacity = canCreateUser();
         if (! $capacity['can_create']) {
             throw ValidationException::withMessages(['email' => $capacity['message']]);
@@ -86,21 +92,6 @@ class ClientAccessController extends Controller
         return back()->with('success', __('Production client profile updated successfully.'));
     }
 
-    public function attach(Project $project, User $user)
-    {
-        $this->authorizeManagement($project);
-        abort_unless(
-            $user->type === 'client'
-            && $user->created_by === creatorId()
-            && $user->hasRole('production-client'),
-            404
-        );
-
-        $project->clients()->syncWithoutDetaching([$user->id]);
-
-        return back()->with('success', __('Production client attached successfully.'));
-    }
-
     public function changePassword(Request $request, Project $project, User $user)
     {
         $this->authorizeClient($project, $user);
@@ -127,7 +118,7 @@ class ClientAccessController extends Controller
         Auth::login($user);
         $authSessions->initializeWebSession(request());
 
-        return redirect()->route('dashboard')
+        return redirect()->route('video-production.client.overview')
             ->with('success', __('You are now logged in as :name', ['name' => $user->name]));
     }
 

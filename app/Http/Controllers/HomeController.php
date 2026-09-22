@@ -141,7 +141,7 @@ class HomeController extends Controller
             && Auth::user()->can('view-video-production-dashboard')
             && Auth::user()->can('view-video-production')
         ) {
-            return Inertia::render('dashboard');
+            return redirect()->route('video-production.client.overview');
         }
 
         $packagesPath = base_path('packages/workdo');
