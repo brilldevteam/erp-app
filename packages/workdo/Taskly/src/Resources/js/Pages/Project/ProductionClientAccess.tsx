@@ -85,7 +85,7 @@ export default function ProductionClientAccess({ project, accounts }: { project:
             <Button variant="ghost" size="sm" className="h-8 gap-1 px-2 text-blue-600 hover:text-blue-700" onClick={openCreateLogin}>
                 <UserPlus className="h-4 w-4" />{t('Create Login')}
             </Button>
-        ) : clients.map(client => <div className="flex items-center gap-1" key={client.id}>
+        ) : clients.map(client => <div className="flex w-full items-center justify-between" key={client.id}>
             <Tooltip delayDuration={0}><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => setProfileClient(client)}><UserCog className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>{t('Client Profile')} - {client.name}</TooltipContent></Tooltip>
             <Tooltip delayDuration={0}><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600" onClick={() => setPasswordClient(client)}><KeyRound className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>{t('Change Password')}</TooltipContent></Tooltip>
             <Tooltip delayDuration={0}><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-700" disabled={!client.is_enable_login || client.is_disable} onClick={() => router.post(route('video-production.client-access.impersonate', [project.id, client.id]))}><LogIn className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>{t('Login as Client')}</TooltipContent></Tooltip>
