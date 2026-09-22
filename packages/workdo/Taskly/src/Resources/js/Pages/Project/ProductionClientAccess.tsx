@@ -93,7 +93,7 @@ export default function ProductionClientAccess({ project, accounts }: { project:
         </div>)}
 
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogContent className="sm:max-w-xl">
+            <DialogContent className="sm:max-w-xl" onOpenAutoFocus={event => event.preventDefault()}>
                 <DialogHeader><DialogTitle>{t('Create Production Client Login')}</DialogTitle></DialogHeader>
                 {availableAccounts.length > 0 && <div className="space-y-2 rounded-md border p-4">
                     <Label>{t('Attach Existing Production Client')}</Label>
