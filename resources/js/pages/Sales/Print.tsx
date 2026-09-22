@@ -72,7 +72,7 @@ export default function Print() {
         if (printContent) {
             const opt = {
                 margin: documentTemplate ? 0 : 0.25,
-                filename: `sales-invoice-${invoice.invoice_number}.pdf`,
+                filename: `INV-${invoice.invoice_number.replace(/^SI-/, '')}.pdf`,
                 image: { type: 'jpeg' as const, quality: 0.98 },
                 html2canvas: { scale: 2 },
                 pagebreak: { mode: ['css', 'legacy'] },
