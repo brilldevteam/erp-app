@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\HelpdeskTicket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 class HomeController extends Controller
@@ -134,6 +135,16 @@ class HomeController extends Controller
 
     private function regularDashboard()
     {
+        if (
+            Auth::user()->type === 'client'
+            && Auth::user()->can('view-video-production-dashboard')
+            && Auth::user()->can('view-video-production')
+            && Module_is_active('VideoProduction')
+            && Route::has('video-production.index')
+        ) {
+            return redirect()->route('video-production.index');
+        }
+
         $packagesPath = base_path('packages/workdo');
 
         // find dashboard menu from all  active package and redirect if found

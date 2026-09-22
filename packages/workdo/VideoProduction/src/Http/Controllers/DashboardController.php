@@ -11,8 +11,33 @@ use Workdo\Taskly\Models\Project;
 
 class DashboardController extends Controller
 {
+    public function portal()
+    {
+        if (Auth::user()->type !== 'client') {
+            return redirect()->route('project.index');
+        }
+
+        $project = Project::query()
+            ->where('created_by', creatorId())
+            ->where('category', 'production')
+            ->whereHas('clients', fn ($query) => $query->where('users.id', Auth::id()))
+            ->orderBy('name')
+            ->first();
+
+        return $project
+            ? redirect()->route('video-production.dashboard', $project)
+            : redirect()->route('profile.edit')->with('error', __('No production project is assigned to this account.'));
+    }
+
     public function index(Project $project)
     {
+        if (
+            Auth::user()->type === 'client'
+            && ! $project->clients()->where('users.id', Auth::id())->exists()
+        ) {
+            abort(403, __('You do not have access to this production project.'));
+        }
+
         if ($this->canViewProject($project)) {
             $canEdit = Auth::user()->can('manage-video-production');
             $canViewProduction = $canEdit || Auth::user()->can('view-video-production');
@@ -38,10 +63,19 @@ class DashboardController extends Controller
             return Inertia::render('VideoProduction/Dashboard', [
                 'companyName' => company_setting('company_name', creatorId()) ?: Auth::user()->name,
                 'project' => $project->only(['id', 'name']),
+                'availableProjects' => Auth::user()->type === 'client'
+                    ? Project::query()
+                        ->where('created_by', creatorId())
+                        ->where('category', 'production')
+                        ->whereHas('clients', fn ($query) => $query->where('users.id', Auth::id()))
+                        ->orderBy('name')
+                        ->get(['id', 'name'])
+                    : collect(),
+                'isProductionClient' => Auth::user()->type === 'client',
                 'canEdit' => $canEdit,
                 'canViewProduction' => $canViewProduction,
                 'canViewDashboard' => $canViewDashboard,
-                'canManageSettings' => Auth::user()->can('manage-video-production-settings'),
+                'canManageSettings' => Auth::user()->type !== 'client' && Auth::user()->can('manage-video-production-settings'),
                 'unassignedRecordCount' => Auth::user()->can('manage-video-production')
                     ? ProductionRecord::query()->forCompany()->whereNull('project_id')->count()
                     : 0,
@@ -100,6 +134,10 @@ class DashboardController extends Controller
             || $project->category !== 'production'
             || $project->created_by !== creatorId()
         ) {
+            return false;
+        }
+
+        if ($user->type === 'client' && ! $project->clients()->where('users.id', $user->id)->exists()) {
             return false;
         }
 
