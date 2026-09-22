@@ -96,7 +96,7 @@ export default function ProductionClientAccess({ project, accounts }: { project:
             <DialogContent className="sm:max-w-xl" onOpenAutoFocus={event => event.preventDefault()}>
                 <DialogHeader><DialogTitle>{t('Create Production Client Login')}</DialogTitle></DialogHeader>
                 {availableAccounts.length > 0 && <div className="space-y-2 rounded-md border p-4">
-                    <Label>{t('Attach Existing Production Client')}</Label>
+                    <Label>{t('Attach Existing Production Client')} ({t('Optional')})</Label>
                     <div className="flex gap-2"><Select value={existingId} onValueChange={setExistingId}><SelectTrigger><SelectValue placeholder={t('Select client')} /></SelectTrigger><SelectContent>{availableAccounts.map(account => <SelectItem value={String(account.id)} key={account.id}>{account.name} ({account.email})</SelectItem>)}</SelectContent></Select><Button type="button" variant="outline" disabled={!existingId} onClick={attachExisting}>{t('Attach')}</Button></div>
                 </div>}
                 <form className="space-y-4" autoComplete="off" onSubmit={event => { event.preventDefault(); createLogin(); }}>
