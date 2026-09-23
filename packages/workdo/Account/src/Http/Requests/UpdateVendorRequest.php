@@ -19,6 +19,7 @@ class UpdateVendorRequest extends FormRequest
             'contact_person_email' => 'nullable|email|max:255',
             'contact_person_mobile' => 'nullable|string|max:255',
             'tax_number' => 'nullable|string|max:255',
+            'cr_number' => 'nullable|string|max:255',
             'payment_terms' => 'nullable|string|max:255',
             'billing_address' => 'required|array',
             'billing_address.name' => 'required|string|max:255',
@@ -38,6 +39,6 @@ class UpdateVendorRequest extends FormRequest
             'shipping_address.country' => 'required_if:same_as_billing,false|string|max:255',
             'shipping_address.zip_code' => 'required_if:same_as_billing,false|string|max:20',
             'notes' => 'nullable|string',
-        ];
+        ] + \Workdo\Account\Services\PartyAttachmentService::rules();
     }
 }

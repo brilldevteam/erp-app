@@ -54,9 +54,6 @@ class CountryAddressValidation
 
         if ($code === 'QA') {
             foreach (['zone_number' => 'Zone Number', 'street_number' => 'Street Number', 'building_number' => 'Building Number'] as $field => $label) {
-                if ($requireAddressDetails) {
-                    $required($field, $label);
-                }
                 $value = trim((string) ($address[$field] ?? ''));
                 if ($value !== '' && !ctype_digit($value)) {
                     $validator->errors()->add("{$prefix}.{$field}", __(':attribute must contain only numbers.', ['attribute' => __($label)]));

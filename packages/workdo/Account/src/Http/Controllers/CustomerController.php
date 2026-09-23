@@ -12,6 +12,8 @@ use Workdo\Account\Http\Requests\UpdateCustomerRequest;
 use Workdo\Account\Events\CreateCustomer;
 use Workdo\Account\Events\UpdateCustomer;
 use Workdo\Account\Events\DestroyCustomer;
+use Illuminate\Support\Facades\DB;
+use Workdo\Account\Services\PartyAttachmentService;
 
 class CustomerController extends Controller
 {
@@ -19,7 +21,7 @@ class CustomerController extends Controller
     {
         if(Auth::user()->can('manage-customers')){
             $customers = Customer::query()
-                ->with('user:id,name,avatar,is_disable')
+                ->with(['user:id,name,avatar,is_disable', 'attachments.uploader:id,name'])
                 ->where(function($q) {
                     if(Auth::user()->can('manage-any-customers')) {
                         $q->where('created_by', creatorId());
@@ -50,11 +52,12 @@ class CustomerController extends Controller
         return back()->with('error', __('Permission denied'));
     }
 
-    public function store(StoreCustomerRequest $request)
+    public function store(StoreCustomerRequest $request, PartyAttachmentService $attachments)
     {
         if(Auth::user()->can('create-customers')){
             $validated = $request->validated();
 
+            $paths = [];
             $customer = new Customer();
             $customer->user_id = $validated['user_id'] ?? null;
             $customer->company_name = $validated['company_name'];
@@ -62,6 +65,7 @@ class CustomerController extends Controller
             $customer->contact_person_email = $validated['contact_person_email'] ?? null;
             $customer->contact_person_mobile = $validated['contact_person_mobile'] ?? null;
             $customer->tax_number = $validated['tax_number'] ?? null;
+            $customer->cr_number = $validated['cr_number'] ?? null;
             $customer->payment_terms = $validated['payment_terms'] ?? null;
             $customer->billing_address = $validated['billing_address'];
             $customer->shipping_address = $validated['same_as_billing'] ? $validated['billing_address'] : $validated['shipping_address'];
@@ -69,7 +73,15 @@ class CustomerController extends Controller
             $customer->notes = $validated['notes'] ?? null;
             $customer->creator_id = Auth::id();
             $customer->created_by = creatorId();
-            $customer->save();
+            try {
+                DB::transaction(function () use ($customer, $request, $attachments, &$paths) {
+                    $customer->save();
+                    $attachments->store($customer, $request->file('attachments', []), $paths);
+                });
+            } catch (\Throwable $e) {
+                $attachments->cleanup($paths);
+                throw $e;
+            }
 
             CreateCustomer::dispatch($request, $customer);
 
@@ -82,7 +94,7 @@ class CustomerController extends Controller
         return redirect()->route('account.customers.index')->with('error', __('Permission denied'));
     }
 
-    public function update(UpdateCustomerRequest $request, Customer $customer)
+    public function update(UpdateCustomerRequest $request, Customer $customer, PartyAttachmentService $attachments)
     {
         if(Auth::user()->can('edit-customers')){
             $validated = $request->validated();
@@ -92,12 +104,22 @@ class CustomerController extends Controller
             $customer->contact_person_email = $validated['contact_person_email'] ?? null;
             $customer->contact_person_mobile = $validated['contact_person_mobile'] ?? null;
             $customer->tax_number = $validated['tax_number'] ?? null;
+            $customer->cr_number = $validated['cr_number'] ?? null;
             $customer->payment_terms = $validated['payment_terms'] ?? null;
             $customer->billing_address = $validated['billing_address'];
             $customer->shipping_address = $validated['same_as_billing'] ? $validated['billing_address'] : ($validated['shipping_address'] ?? null);
             $customer->same_as_billing = $validated['same_as_billing'] ?? false;
             $customer->notes = $validated['notes'] ?? null;
-            $customer->save();
+            $paths = [];
+            try {
+                DB::transaction(function () use ($customer, $request, $attachments, &$paths) {
+                    $customer->save();
+                    $attachments->store($customer, $request->file('attachments', []), $paths);
+                });
+            } catch (\Throwable $e) {
+                $attachments->cleanup($paths);
+                throw $e;
+            }
 
             UpdateCustomer::dispatch($request, $customer);
 

@@ -14,12 +14,13 @@ class StoreVendorRequest extends FormRequest
     public function rules()
     {
         return [
-            'user_id' => 'required|exists:users,id',
+            'user_id' => 'nullable|exists:users,id',
             'company_name' => 'required|string|max:255',
             'contact_person_name' => 'required|string|max:255',
             'contact_person_email' => 'nullable|email|max:255',
             'contact_person_mobile' => 'nullable|string|max:255',
             'tax_number' => 'nullable|string|max:255',
+            'cr_number' => 'nullable|string|max:255',
             'payment_terms' => 'nullable|string|max:255',
             'billing_address' => 'required|array',
             'billing_address.name' => 'required|string|max:255',
@@ -40,6 +41,6 @@ class StoreVendorRequest extends FormRequest
             'shipping_address.zip_code' => 'required_if:same_as_billing,false|string|max:20',
             'notes' => 'nullable|string',
             'return_to' => 'nullable|in:project.contractors.index',
-        ];
+        ] + \Workdo\Account\Services\PartyAttachmentService::rules();
     }
 }

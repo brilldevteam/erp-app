@@ -1,4 +1,5 @@
 import { PaginatedData, ModalState, AuthContext } from '@/types/common';
+import { PartyAttachment } from '../Parties/SavedPartyDocuments';
 
 export interface Address {
     name: string;
@@ -21,6 +22,7 @@ export interface Vendor {
     primary_email?: string;
     primary_mobile?: string;
     tax_number?: string;
+    cr_number?: string;
     payment_terms?: string;
     currency_code: string;
     credit_limit?: number;
@@ -30,6 +32,7 @@ export interface Vendor {
     is_active: boolean;
     notes?: string;
     created_at: string;
+    attachments?: PartyAttachment[];
     project_contracts?: Array<{
         id: number;
         type: 'main' | 'subcontractor';
@@ -49,11 +52,13 @@ export interface VendorFormData {
     contact_person_email: string;
     contact_person_mobile?: string;
     tax_number?: string;
+    cr_number?: string;
     payment_terms?: string;
     billing_address: Address;
     shipping_address: Address;
     same_as_billing: boolean;
     notes?: string;
+    attachments: File[];
 }
 
 export interface CreateVendorFormData {
@@ -63,11 +68,13 @@ export interface CreateVendorFormData {
     contact_person_email: string;
     contact_person_mobile: string;
     tax_number: string;
+    cr_number: string;
     payment_terms: string;
     billing_address: Address;
     shipping_address: Address;
     same_as_billing: boolean;
     notes: string;
+    attachments: File[];
     return_to?: string;
 }
 

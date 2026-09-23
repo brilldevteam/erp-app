@@ -71,9 +71,9 @@ export function CountryAddressFields({
 
             {code === 'QA' ? (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    {field('zone_number', t('Zone Number'), t('Enter zone number'), { required: requireAddressDetails, inputMode: 'numeric', pattern: '[0-9]+' })}
-                    {field('street_number', t('Street Number'), t('Enter street number'), { required: requireAddressDetails, inputMode: 'numeric', pattern: '[0-9]+' })}
-                    {field('building_number', t('Building Number'), t('Enter building number'), { required: requireAddressDetails, inputMode: 'numeric', pattern: '[0-9]+' })}
+                    {field('zone_number', t('Zone Number'), t('Enter zone number'), { inputMode: 'numeric', pattern: '[0-9]+' })}
+                    {field('street_number', t('Street Number'), t('Enter street number'), { inputMode: 'numeric', pattern: '[0-9]+' })}
+                    {field('building_number', t('Building Number'), t('Enter building number'), { inputMode: 'numeric', pattern: '[0-9]+' })}
                 </div>
             ) : code === 'SA' ? (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

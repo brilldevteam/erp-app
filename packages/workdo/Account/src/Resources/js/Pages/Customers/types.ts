@@ -1,4 +1,5 @@
 import { Address } from '@/types/address';
+import { PartyAttachment } from '../Parties/SavedPartyDocuments';
 
 export type { Address } from '@/types/address';
 
@@ -11,6 +12,7 @@ export interface Customer {
   contact_person_email?: string | null;
   contact_person_mobile?: string;
   tax_number?: string;
+  cr_number?: string;
   payment_terms?: string;
   billing_address: Address;
   shipping_address: Address;
@@ -20,6 +22,7 @@ export interface Customer {
   created_by: number;
   created_at: string;
   updated_at: string;
+  attachments?: PartyAttachment[];
   user?: {
     id: number;
     name: string;
@@ -45,11 +48,13 @@ export interface CustomerFormData {
   contact_person_email: string;
   contact_person_mobile?: string;
   tax_number?: string;
+  cr_number?: string;
   payment_terms?: string;
   billing_address: Address;
   shipping_address: Address;
   same_as_billing: boolean;
   notes?: string;
+  attachments: File[];
 }
 
 export interface User {

@@ -24,11 +24,18 @@ use Workdo\Account\Http\Controllers\ExpenseController;
 use Workdo\Account\Http\Controllers\JournalEntryController;
 use Workdo\Account\Http\Controllers\ReportsController;
 use Workdo\Account\Models\AccountType;
+use Workdo\Account\Http\Controllers\PartyAttachmentController;
 
 Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Account'])->group(function () {
     Route::get('/account', [DashboardController::class, 'index'])->name('account.index');
     Route::resource('account/vendors', VendorController::class, ['as' => 'account']);
     Route::resource('account/customers', CustomerController::class, ['as' => 'account']);
+    Route::post('account/customers/{customer}/attachments', [PartyAttachmentController::class, 'storeCustomer'])->name('account.customers.attachments.store');
+    Route::get('account/customers/{customer}/attachments/{attachment}', [PartyAttachmentController::class, 'downloadCustomer'])->name('account.customers.attachments.download');
+    Route::delete('account/customers/{customer}/attachments/{attachment}', [PartyAttachmentController::class, 'destroyCustomer'])->name('account.customers.attachments.destroy');
+    Route::post('account/vendors/{vendor}/attachments', [PartyAttachmentController::class, 'storeVendor'])->name('account.vendors.attachments.store');
+    Route::get('account/vendors/{vendor}/attachments/{attachment}', [PartyAttachmentController::class, 'downloadVendor'])->name('account.vendors.attachments.download');
+    Route::delete('account/vendors/{vendor}/attachments/{attachment}', [PartyAttachmentController::class, 'destroyVendor'])->name('account.vendors.attachments.destroy');
 
     Route::prefix('account/bank-accounts')->name('account.bank-accounts.')->group(function () {
         Route::get('/', [BankAccountController::class, 'index'])->name('index');

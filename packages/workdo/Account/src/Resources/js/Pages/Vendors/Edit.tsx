@@ -1,5 +1,6 @@
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useForm } from "@inertiajs/react";
+import { router, useForm } from "@inertiajs/react";
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,20 +12,37 @@ import InputError from "@/components/ui/input-error";
 import { PhoneInputComponent } from "@/components/ui/phone-input";
 import { EditVendorProps, VendorFormData } from './types';
 import { useFormFields } from '@/hooks/useFormFields';
+import PartyDocuments from '../Parties/PartyDocuments';
+import SavedPartyDocuments from '../Parties/SavedPartyDocuments';
 
 export default function Edit({ vendor, onSuccess }: EditVendorProps) {
     const { t } = useTranslation();
-    const { data, setData, put, processing, errors } = useForm<VendorFormData>({
+    const { data, setData, put, transform, processing, errors } = useForm<VendorFormData>({
         ...vendor,
+        attachments: [],
     });
+    const [uploading, setUploading] = useState(false);
 
     const customFields = useFormFields('getCustomFields', { ...data, module: 'Account', sub_module: 'Vendor', id: vendor.id }, setData, errors, 'edit', t);
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+        const files = data.attachments;
+        transform(({ attachments, ...formData }) => formData);
         put(route('account.vendors.update', vendor.id), {
+            preserveScroll: true,
             onSuccess: () => {
-                onSuccess();
+                if (files.length === 0) {
+                    onSuccess();
+                    return;
+                }
+                setUploading(true);
+                router.post(route('account.vendors.attachments.store', vendor.id), { attachments: files }, {
+                    forceFormData: true,
+                    preserveScroll: true,
+                    onSuccess,
+                    onFinish: () => setUploading(false),
+                });
             }
         });
     };
@@ -34,7 +52,7 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
             <DialogHeader>
                 <DialogTitle>{t('Edit Vendor')}</DialogTitle>
             </DialogHeader>
-            <form onSubmit={submit} className="space-y-4">
+            <form onSubmit={submit} className="space-y-4" noValidate>
                 <div>
                     <Label htmlFor="company_name">{t('Company Name')}</Label>
                     <Input
@@ -77,7 +95,7 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                         error={errors.contact_person_mobile}
                     />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div>
                         <Label htmlFor="tax_number">{t('Tax Number')}</Label>
                         <Input
@@ -87,6 +105,11 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                             placeholder={t('Enter tax number')}
                         />
                         <InputError message={errors.tax_number} />
+                    </div>
+                    <div>
+                        <Label htmlFor="cr_number">{t('CR Number')}</Label>
+                        <Input id="cr_number" value={data.cr_number || ''} onChange={(e) => setData('cr_number', e.target.value)} placeholder={t('Enter CR number')} />
+                        <InputError message={errors.cr_number} />
                     </div>
                     <div>
                         <Label htmlFor="payment_terms">{t('Payment Terms')}</Label>
@@ -292,6 +315,11 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                     />
                     <InputError message={errors.notes} />
                 </div>
+                <SavedPartyDocuments partyType="vendors" partyId={vendor.id} attachments={vendor.attachments || []} canRemove />
+                <PartyDocuments files={data.attachments} onChange={(files) => setData('attachments', files)} errors={errors} existingCount={vendor.attachments?.length || 0} disabled={processing || uploading} />
+                {Object.keys(errors).length > 0 && (
+                    <p role="alert" className="text-sm text-destructive">{t('Please correct the highlighted fields before updating.')}</p>
+                )}
 
                 {/* Custom Fields */}
                 {customFields.length > 0 && (
@@ -310,8 +338,8 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                     <Button type="button" variant="outline" onClick={onSuccess}>
                         {t('Cancel')}
                     </Button>
-                    <Button type="submit" disabled={processing}>
-                        {processing ? t('Updating...') : t('Update')}
+                    <Button type="submit" disabled={processing || uploading}>
+                        {processing || uploading ? t('Updating...') : t('Update')}
                     </Button>
                 </div>
             </form>

@@ -5,6 +5,7 @@ namespace Workdo\Account\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 
 class Vendor extends Model
 {
@@ -20,6 +21,7 @@ class Vendor extends Model
         'primary_email',
         'primary_mobile',
         'tax_number',
+        'cr_number',
         'payment_terms',
         'currency_code',
         'credit_limit',
@@ -48,6 +50,11 @@ class Vendor extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function attachments()
+    {
+        return $this->morphMany(PartyAttachment::class, 'attachable');
+    }
+
     public function projectContracts()
     {
         return $this->hasMany(\Workdo\Taskly\Models\ProjectContract::class);
@@ -61,6 +68,12 @@ class Vendor extends Model
             if (empty($vendor->vendor_code)) {
                 $vendor->vendor_code = self::generateVendorCode();
             }
+        });
+
+        static::deleting(function ($vendor) {
+            $attachments = $vendor->attachments()->get();
+            Storage::disk('local')->delete($attachments->pluck('file_path')->all());
+            $attachments->each->forceDelete();
         });
     }
 

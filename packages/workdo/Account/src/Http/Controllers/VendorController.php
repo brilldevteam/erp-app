@@ -13,6 +13,8 @@ use Workdo\Account\Events\CreateVendor;
 use Workdo\Account\Events\UpdateVendor;
 use Workdo\Account\Events\DestroyVendor;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+use Workdo\Account\Services\PartyAttachmentService;
 
 class VendorController extends Controller
 {
@@ -20,7 +22,7 @@ class VendorController extends Controller
     {
         if(Auth::user()->can('manage-vendors')){
             $vendors = Vendor::query()
-                ->with('user:id,name,avatar,is_disable')
+                ->with(['user:id,name,avatar,is_disable', 'attachments.uploader:id,name'])
                 ->when(Schema::hasTable('project_contracts'), function ($query) {
                     $query->with(['projectContracts' => function ($contractQuery) {
                         $contractQuery->where('created_by', creatorId())
@@ -63,11 +65,12 @@ class VendorController extends Controller
 
 
 
-    public function store(StoreVendorRequest $request)
+    public function store(StoreVendorRequest $request, PartyAttachmentService $attachments)
     {
         if(Auth::user()->can('create-vendors')){
             $validated = $request->validated();
 
+            $paths = [];
             $vendor = new Vendor();
             $vendor->user_id = $validated['user_id'] ?? null;
             $vendor->company_name = $validated['company_name'];
@@ -75,6 +78,7 @@ class VendorController extends Controller
             $vendor->contact_person_email = $validated['contact_person_email'] ?? null;
             $vendor->contact_person_mobile = $validated['contact_person_mobile'] ?? null;
             $vendor->tax_number = $validated['tax_number'] ?? null;
+            $vendor->cr_number = $validated['cr_number'] ?? null;
             $vendor->payment_terms = $validated['payment_terms'] ?? null;
             $vendor->billing_address = $validated['billing_address'];
             $vendor->shipping_address = $validated['same_as_billing'] ? $validated['billing_address'] : $validated['shipping_address'];
@@ -82,7 +86,15 @@ class VendorController extends Controller
             $vendor->notes = $validated['notes'] ?? null;
             $vendor->creator_id = Auth::id();
             $vendor->created_by = creatorId();
-            $vendor->save();
+            try {
+                DB::transaction(function () use ($vendor, $request, $attachments, &$paths) {
+                    $vendor->save();
+                    $attachments->store($vendor, $request->file('attachments', []), $paths);
+                });
+            } catch (\Throwable $e) {
+                $attachments->cleanup($paths);
+                throw $e;
+            }
 
             CreateVendor::dispatch($request, $vendor);
 
@@ -95,7 +107,7 @@ class VendorController extends Controller
         return redirect()->route('account.vendors.index')->with('error', __('Permission denied'));
     }
 
-    public function update(UpdateVendorRequest $request, Vendor $vendor)
+    public function update(UpdateVendorRequest $request, Vendor $vendor, PartyAttachmentService $attachments)
     {
         if(Auth::user()->can('edit-vendors')){
             $validated = $request->validated();
@@ -105,12 +117,22 @@ class VendorController extends Controller
             $vendor->contact_person_email = $validated['contact_person_email'] ?? null;
             $vendor->contact_person_mobile = $validated['contact_person_mobile'] ?? null;
             $vendor->tax_number = $validated['tax_number'] ?? null;
+            $vendor->cr_number = $validated['cr_number'] ?? null;
             $vendor->payment_terms = $validated['payment_terms'] ?? null;
             $vendor->billing_address = $validated['billing_address'];
             $vendor->shipping_address = $validated['same_as_billing'] ? $validated['billing_address'] : $validated['shipping_address'];
             $vendor->same_as_billing = $validated['same_as_billing'] ?? false;
             $vendor->notes = $validated['notes'] ?? null;
-            $vendor->save();
+            $paths = [];
+            try {
+                DB::transaction(function () use ($vendor, $request, $attachments, &$paths) {
+                    $vendor->save();
+                    $attachments->store($vendor, $request->file('attachments', []), $paths);
+                });
+            } catch (\Throwable $e) {
+                $attachments->cleanup($paths);
+                throw $e;
+            }
 
             UpdateVendor::dispatch($request, $vendor);
 
