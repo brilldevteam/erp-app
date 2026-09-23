@@ -10,9 +10,11 @@ use Workdo\VideoProduction\Http\Controllers\ClientAccessController;
 Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:VideoProduction'])->group(function () {
     Route::prefix('video-production')->name('video-production.')->group(function () {
         Route::get('/', [DashboardController::class, 'portal'])->name('index');
+        Route::get('/overview', [DashboardController::class, 'overview'])->name('client.overview');
+        Route::get('/shooting-log', [DashboardController::class, 'shootingLog'])->name('client.shooting-log');
+        Route::get('/deliverables', [DashboardController::class, 'deliverables'])->name('client.deliverables');
         Route::get('/project/{project}', [DashboardController::class, 'index'])->name('dashboard');
         Route::post('/project/{project}/client-access', [ClientAccessController::class, 'store'])->name('client-access.store');
-        Route::post('/project/{project}/client-access/{user}/attach', [ClientAccessController::class, 'attach'])->name('client-access.attach');
         Route::put('/project/{project}/client-access/{user}', [ClientAccessController::class, 'update'])->name('client-access.update');
         Route::put('/project/{project}/client-access/{user}/password', [ClientAccessController::class, 'changePassword'])->name('client-access.password');
         Route::post('/project/{project}/client-access/{user}/impersonate', [ClientAccessController::class, 'impersonate'])->name('client-access.impersonate');

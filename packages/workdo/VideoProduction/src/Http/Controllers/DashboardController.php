@@ -17,16 +17,22 @@ class DashboardController extends Controller
             return redirect()->route('project.index');
         }
 
-        $project = Project::query()
-            ->where('created_by', creatorId())
-            ->where('category', 'production')
-            ->whereHas('clients', fn ($query) => $query->where('users.id', Auth::id()))
-            ->orderBy('name')
-            ->first();
+        return redirect()->route('video-production.client.overview');
+    }
 
-        return $project
-            ? redirect()->route('video-production.dashboard', $project)
-            : redirect()->route('profile.edit')->with('error', __('No production project is assigned to this account.'));
+    public function overview()
+    {
+        return $this->clientPortal('overview');
+    }
+
+    public function shootingLog()
+    {
+        return $this->clientPortal('shoot');
+    }
+
+    public function deliverables()
+    {
+        return $this->clientPortal('deliverable');
     }
 
     public function index(Project $project)
@@ -37,6 +43,43 @@ class DashboardController extends Controller
         ) {
             abort(403, __('You do not have access to this production project.'));
         }
+
+        if (Auth::user()->type === 'client' && Auth::user()->hasRole('production-client')) {
+            return redirect()->route('video-production.client.overview');
+        }
+
+        return $this->renderProject($project);
+    }
+
+    private function clientPortal(string $activeSection)
+    {
+        $user = Auth::user();
+        abort_unless($user->type === 'client' && $user->hasRole('production-client'), 403);
+        abort_unless(
+            $activeSection === 'overview'
+                ? $user->can('view-video-production-dashboard')
+                : $user->can('view-video-production'),
+            403
+        );
+
+        $projects = Project::query()
+            ->where('created_by', creatorId())
+            ->where('category', 'production')
+            ->whereHas('clients', fn ($query) => $query->where('users.id', $user->id))
+            ->limit(2)
+            ->get();
+
+        if ($projects->isEmpty()) {
+            return redirect()->route('profile.edit')->with('error', __('No production project is assigned to this account.'));
+        }
+
+        abort_if($projects->count() > 1, 409, __('This production client is assigned to more than one project.'));
+
+        return $this->renderProject($projects->first(), $activeSection);
+    }
+
+    private function renderProject(Project $project, ?string $activeSection = null)
+    {
 
         if ($this->canViewProject($project)) {
             $canEdit = Auth::user()->can('manage-video-production');
@@ -63,15 +106,8 @@ class DashboardController extends Controller
             return Inertia::render('VideoProduction/Dashboard', [
                 'companyName' => company_setting('company_name', creatorId()) ?: Auth::user()->name,
                 'project' => $project->only(['id', 'name']),
-                'availableProjects' => Auth::user()->type === 'client'
-                    ? Project::query()
-                        ->where('created_by', creatorId())
-                        ->where('category', 'production')
-                        ->whereHas('clients', fn ($query) => $query->where('users.id', Auth::id()))
-                        ->orderBy('name')
-                        ->get(['id', 'name'])
-                    : collect(),
-                'isProductionClient' => Auth::user()->type === 'client',
+                'isProductionClient' => Auth::user()->type === 'client' && Auth::user()->hasRole('production-client'),
+                'activeSection' => $activeSection,
                 'canEdit' => $canEdit,
                 'canViewProduction' => $canViewProduction,
                 'canViewDashboard' => $canViewDashboard,
