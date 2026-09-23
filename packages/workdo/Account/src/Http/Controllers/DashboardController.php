@@ -14,10 +14,17 @@ use Workdo\Account\Models\CustomerPayment;
 use Workdo\Account\Models\VendorPayment;
 use Workdo\Account\Models\Revenue;
 use Workdo\Account\Models\Expense;
+use Workdo\Account\Models\BankAccount;
+use Workdo\Account\Models\ChartOfAccount;
+use Workdo\Account\Services\ReportService;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
+    public function __construct(private ReportService $reportService)
+    {
+    }
+
     public function index(Request $request)
     {
         if(Auth::user()->can('manage-account-dashboard')){
@@ -42,6 +49,7 @@ class DashboardController extends Controller
     private function companyDashboard()
     {
         $creatorId = creatorId();
+        $financialStats = $this->financialStats($creatorId);
 
         $totalClients = Customer::where('created_by', $creatorId)->count();
         $totalVendors = Vendor::where('created_by', $creatorId)->count();
@@ -123,7 +131,8 @@ class DashboardController extends Controller
                 'total_expense' => $totalExpense,
                 'total_customer_payment' => $totalCustomerPayments,
                 'total_vendor_payment' => $totalVendorPayments,
-                'net_profit' => $netProfit
+                'net_profit' => $netProfit,
+                ...$financialStats,
             ],
             'monthlyCustomerPayments' => $monthlyCustomerPayments,
             'monthlyVendorPayments' => $monthlyVendorPayments,
@@ -282,6 +291,7 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
         $creatorId = $user->created_by;
+        $financialStats = $this->financialStats($creatorId);
 
         $totalClients = Customer::where('created_by', $creatorId)->count();
         $totalVendors = Vendor::where('created_by', $creatorId)->count();
@@ -308,9 +318,36 @@ class DashboardController extends Controller
                 'total_clients' => $totalClients,
                 'total_vendors' => $totalVendors,
                 'monthly_revenue' => $monthlyRevenue,
-                'monthly_expense' => $monthlyExpense
+                'monthly_expense' => $monthlyExpense,
+                ...$financialStats,
             ],
             'recentActivities' => $recentActivities
         ]);
+    }
+
+    private function financialStats(int $creatorId): array
+    {
+        $receivables = $this->reportService->getInvoiceAging()['aging_summary'];
+        $payables = $this->reportService->getBillAging()['aging_summary'];
+
+        $overdueReceivables = $receivables['total'] - $receivables['current'];
+        $overduePayables = $payables['total'] - $payables['current'];
+
+        $cashBalance = ChartOfAccount::where('created_by', $creatorId)
+            ->whereIn('account_code', ['1000', '1005'])
+            ->sum('current_balance');
+        $bankBalance = BankAccount::where('created_by', $creatorId)
+            ->where('is_active', true)
+            ->whereIn('account_type', ['0', '1'])
+            ->sum('current_balance');
+
+        return [
+            'accounts_receivable' => round((float) $receivables['total'], 2),
+            'receivables_due' => round((float) $overdueReceivables, 2),
+            'accounts_payable' => round((float) $payables['total'], 2),
+            'payables_due' => round((float) $overduePayables, 2),
+            'cash_balance' => round((float) $cashBalance, 2),
+            'bank_balance' => round((float) $bankBalance, 2),
+        ];
     }
 }

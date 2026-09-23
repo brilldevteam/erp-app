@@ -79,6 +79,8 @@ export default function UserDashboard({ stats, recent_schedules = [], calendar_e
         >
             <Head title={t('Appointment Dashboard')} />
 
+            <div className="neumorphic-dashboard">
+
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
                 <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200 cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.get(route('appointment.schedules.index'))}>
@@ -238,7 +240,7 @@ export default function UserDashboard({ stats, recent_schedules = [], calendar_e
                 </Card>
             </div>
 
-
+            </div>
         </AuthenticatedLayout>
     );
 }

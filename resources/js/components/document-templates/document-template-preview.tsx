@@ -208,7 +208,7 @@ function PaymentTemplatePreview({ template, document, compact, logo, signature }
                         </div>
                     </div>
                     <div className="border-l pl-10">
-                        <PaymentDetail label="Payment Date" value={document.date} />
+                        <PaymentDetail label="Received Date" value={document.date} />
                         <PaymentDetail label="Reference Number" value={document.reference_number || '-'} />
                         <PaymentDetail label="Payment Mode" value={document.payment_mode || 'Bank Transfer'} />
                         <PaymentDetail label="Bank Account" value={document.bank_account || '-'} />

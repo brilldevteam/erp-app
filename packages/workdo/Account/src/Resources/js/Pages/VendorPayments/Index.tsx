@@ -167,7 +167,7 @@ export default function Index() {
         },
         {
             key: 'payment_date',
-            header: t('Payment Date'),
+            header: t('Received Date'),
             sortable: true,
             render: (value: string) => formatDate(value)
         },

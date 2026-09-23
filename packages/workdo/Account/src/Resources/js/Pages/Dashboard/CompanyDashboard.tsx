@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import AuthenticatedLayout from "@/layouts/authenticated-layout";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart } from '@/components/charts';
-import { Package, Users, CheckCircle, XCircle, UserCheck, Building2, CreditCard, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { Landmark, ReceiptText, WalletCards, Banknote } from 'lucide-react';
 import { formatDate,formatCurrency} from '@/utils/helpers';
 
 interface AccountProps {
@@ -16,6 +16,12 @@ interface AccountProps {
         total_vendors: number;
         total_customer_payment: number;
         total_vendor_payment: number;
+        accounts_receivable: number;
+        receivables_due: number;
+        accounts_payable: number;
+        payables_due: number;
+        cash_balance: number;
+        bank_balance: number;
     };
     monthlyVendorPayments?: Array<{ month: string; vendor_payments: number }>;
     monthlyCustomerPayments?: Array<{ month: string; customer_payments: number }>;
@@ -41,44 +47,52 @@ export default function AccountIndex({ message, stats, monthlyVendorPayments, mo
 
             {stats && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                        <Card className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200">
+                        <Card className="border-orange-200 bg-orange-50 shadow-[6px_6px_14px_rgba(15,23,42,0.10),-6px_-6px_14px_rgba(255,255,255,0.90)]">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium text-orange-700">{t('Total Clients')}</CardTitle>
-                                <UserCheck className="h-8 w-8 text-orange-700 opacity-80" />
+                                <CardTitle className="text-sm font-medium text-orange-700">{t('Accounts Receivable')}</CardTitle>
+                                <div className="rounded-full bg-orange-100 p-2 shadow-[inset_2px_2px_5px_rgba(194,65,12,0.16),inset_-2px_-2px_5px_rgba(255,255,255,0.80)]">
+                                    <ReceiptText className="h-8 w-8 text-orange-600" />
+                                </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold text-orange-700">{stats.total_clients || 0}</div>
-                                <p className="text-xs text-orange-700 opacity-80 mt-1">{t('Active clients')}</p>
+                                <div className="text-2xl font-bold text-orange-700">{formatCurrency(stats.accounts_receivable || 0)}</div>
+                                <p className="text-xs text-orange-600 mt-1">{formatCurrency(stats.receivables_due || 0)} {t('overdue')}</p>
                             </CardContent>
                         </Card>
-                        <Card className="bg-gradient-to-r from-teal-50 to-teal-100 border-teal-200">
+                        <Card className="border-blue-200 bg-blue-50 shadow-[6px_6px_14px_rgba(15,23,42,0.10),-6px_-6px_14px_rgba(255,255,255,0.90)]">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium text-teal-700">{t('Total Vendors')}</CardTitle>
-                                <Building2 className="h-8 w-8 text-teal-700 opacity-80" />
+                                <CardTitle className="text-sm font-medium text-blue-700">{t('Accounts Payable')}</CardTitle>
+                                <div className="rounded-full bg-blue-100 p-2 shadow-[inset_2px_2px_5px_rgba(37,99,235,0.16),inset_-2px_-2px_5px_rgba(255,255,255,0.80)]">
+                                    <Landmark className="h-8 w-8 text-blue-600" />
+                                </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold text-teal-700">{stats.total_vendors || 0}</div>
-                                <p className="text-xs text-teal-700 opacity-80 mt-1">{t('Active vendors')}</p>
+                                <div className="text-2xl font-bold text-blue-700">{formatCurrency(stats.accounts_payable || 0)}</div>
+                                <p className="text-xs text-blue-600 mt-1">{formatCurrency(stats.payables_due || 0)} {t('overdue')}</p>
                             </CardContent>
                         </Card>
-                        <Card className="bg-gradient-to-r from-emerald-50 to-emerald-100 border-emerald-200">
+                        <Card className="border-emerald-200 bg-emerald-50 shadow-[6px_6px_14px_rgba(15,23,42,0.10),-6px_-6px_14px_rgba(255,255,255,0.90)]">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium text-emerald-700">{t('Total Customer Payment')}</CardTitle>
-                                <ArrowDownCircle className="h-8 w-8 text-emerald-700 opacity-80" />
+                                <CardTitle className="text-sm font-medium text-emerald-700">{t('Cash Balance')}</CardTitle>
+                                <div className="rounded-full bg-emerald-100 p-2 shadow-[inset_2px_2px_5px_rgba(5,150,105,0.16),inset_-2px_-2px_5px_rgba(255,255,255,0.80)]">
+                                    <Banknote className="h-8 w-8 text-emerald-600" />
+                                </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold text-emerald-700">{formatCurrency(stats.total_customer_payment || 0)}</div>
-                                <p className="text-xs text-emerald-700 opacity-80 mt-1">{t('Received payments')}</p>
+                                <div className="text-2xl font-bold text-emerald-700">{formatCurrency(stats.cash_balance || 0)}</div>
+                                <p className="text-xs text-emerald-600 mt-1">{t('Cash and petty cash')}</p>
                             </CardContent>
                         </Card>
-                        <Card className="bg-gradient-to-r from-rose-50 to-rose-100 border-rose-200">
+                        <Card className="border-rose-200 bg-rose-50 shadow-[6px_6px_14px_rgba(15,23,42,0.10),-6px_-6px_14px_rgba(255,255,255,0.90)]">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium text-rose-700">{t('Total Vendor Payment')}</CardTitle>
-                                <ArrowUpCircle className="h-8 w-8 text-rose-700 opacity-80" />
+                                <CardTitle className="text-sm font-medium text-rose-700">{t('Bank Balance')}</CardTitle>
+                                <div className="rounded-full bg-rose-100 p-2 shadow-[inset_2px_2px_5px_rgba(225,29,72,0.16),inset_-2px_-2px_5px_rgba(255,255,255,0.80)]">
+                                    <WalletCards className="h-8 w-8 text-rose-600" />
+                                </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold text-rose-700">{formatCurrency(stats.total_vendor_payment || 0)}</div>
-                                <p className="text-xs text-rose-700 opacity-80 mt-1">{t('Paid to vendors')}</p>
+                                <div className="text-2xl font-bold text-rose-700">{formatCurrency(stats.bank_balance || 0)}</div>
+                                <p className="text-xs text-rose-600 mt-1">{t('Active checking and savings')}</p>
                             </CardContent>
                         </Card>
                 </div>
@@ -86,7 +100,7 @@ export default function AccountIndex({ message, stats, monthlyVendorPayments, mo
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <div className="space-y-6">
-                    <Card className="h-96">
+                    <Card className="h-96 border-gray-200 bg-white shadow-[7px_7px_16px_rgba(15,23,42,0.10),-7px_-7px_16px_rgba(255,255,255,0.95)]">
                         <CardHeader>
                             <CardTitle className="text-base">{t('Monthly Customer Payments')}</CardTitle>
                         </CardHeader>
@@ -106,7 +120,7 @@ export default function AccountIndex({ message, stats, monthlyVendorPayments, mo
                     </Card>
 
                     {recentRevenues && (
-                        <Card>
+                        <Card className="border-gray-200 bg-white shadow-[7px_7px_16px_rgba(15,23,42,0.10),-7px_-7px_16px_rgba(255,255,255,0.95)]">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-base">{t('Recent Revenue')}</CardTitle>
                                 <span className="text-xs text-gray-500">{t('Last 5 days')}</span>
@@ -130,7 +144,7 @@ export default function AccountIndex({ message, stats, monthlyVendorPayments, mo
                 </div>
 
                 <div className="space-y-6">
-                    <Card className="h-96">
+                    <Card className="h-96 border-gray-200 bg-white shadow-[7px_7px_16px_rgba(15,23,42,0.10),-7px_-7px_16px_rgba(255,255,255,0.95)]">
                         <CardHeader>
                             <CardTitle className="text-base">{t('Monthly Vendor Payments')}</CardTitle>
                         </CardHeader>
@@ -150,7 +164,7 @@ export default function AccountIndex({ message, stats, monthlyVendorPayments, mo
                     </Card>
 
                     {recentExpenses && (
-                        <Card>
+                        <Card className="border-gray-200 bg-white shadow-[7px_7px_16px_rgba(15,23,42,0.10),-7px_-7px_16px_rgba(255,255,255,0.95)]">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-base">{t('Recent Expenses')}</CardTitle>
                                 <span className="text-xs text-gray-500">{t('Last 5 days')}</span>

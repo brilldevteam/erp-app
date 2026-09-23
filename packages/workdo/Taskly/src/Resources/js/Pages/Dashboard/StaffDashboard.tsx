@@ -105,7 +105,7 @@ export default function StaffDashboard() {
         >
             <Head title={t('Staff Dashboard')} />
 
-            <div className="space-y-6">
+            <div className="neumorphic-dashboard space-y-6">
                 {/* Staff Stats Cards */}
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <StatCard

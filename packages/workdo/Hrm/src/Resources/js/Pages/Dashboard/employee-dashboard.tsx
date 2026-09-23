@@ -130,7 +130,7 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
         >
             <Head title={t('Employee Dashboard')} />
 
-            <div className="space-y-6">
+            <div className="neumorphic-dashboard space-y-6">
                 {/* Employee Quick Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div onClick={() => window.location.href = route('hrm.attendances.index')} className="cursor-pointer">

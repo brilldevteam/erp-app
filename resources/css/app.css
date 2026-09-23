@@ -211,4 +211,32 @@
     textarea {
         font: inherit;
     }
+
+    .neumorphic-dashboard [data-slot="card"] {
+        box-shadow: 7px 7px 16px rgb(15 23 42 / 10%), -7px -7px 16px rgb(255 255 255 / 95%);
+        transition: box-shadow 180ms ease, transform 180ms ease;
+    }
+
+    .neumorphic-dashboard [data-slot="card"]:hover {
+        box-shadow: 9px 9px 20px rgb(15 23 42 / 13%), -7px -7px 16px rgb(255 255 255 / 95%);
+    }
+
+    .neumorphic-dashboard [data-slot="card-header"] > svg {
+        box-sizing: content-box;
+        width: 2rem;
+        height: 2rem;
+        padding: 0.5rem;
+        flex-shrink: 0;
+        border-radius: 9999px;
+        background-color: color-mix(in srgb, currentColor 9%, transparent);
+        box-shadow: inset 2px 2px 5px rgb(15 23 42 / 12%), inset -2px -2px 5px rgb(255 255 255 / 82%);
+    }
+
+    .dark .neumorphic-dashboard [data-slot="card"] {
+        box-shadow: 7px 7px 16px rgb(0 0 0 / 35%), -5px -5px 14px rgb(255 255 255 / 5%);
+    }
+
+    .dark .neumorphic-dashboard [data-slot="card-header"] > svg {
+        box-shadow: inset 2px 2px 5px rgb(0 0 0 / 30%), inset -2px -2px 5px rgb(255 255 255 / 7%);
+    }
 }

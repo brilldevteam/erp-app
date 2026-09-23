@@ -5,6 +5,7 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Fixed
+- Expanded Invoice Aging to show customer account codes and individual outstanding invoice numbers, with customer subtotals and grand totals in both the report and PDF.
 - Removed the duplicate scrollbar and excess empty space from Video Production record forms.
 - Separated Video Production overview access from read-only production record access and limited production-only roles to production projects within the Project section.
 - Add payment-mode selection and receiving-account labeling when recording customer payments.
@@ -15,6 +16,8 @@ All notable changes to the Wazely ERP application are documented here.
 
 ### Added
 - Added CR Number and private supporting-document uploads to customer and vendor create, edit, and detail views, including validated files and authorized preview, download, and removal actions.
+- Added a live searchable customer filter, invoice-date-range and aging-bucket filters, plus selectable report columns to Invoice Aging, with matching filtered PDF output.
+- Added transaction-date filtering and filtered CSV/Excel downloads to Bank Transactions, with all matching records included in each export.
 - Added SKU generation to the quotation and sales invoice quick product/service creation dialog.
 - Added production-project client login management with a dedicated permission, restricted read-only production portals, password/profile controls, welcome emails, and login-as-client support.
 - Added a tenant-scoped Purchase Order / LPO add-on with draft-to-issued approval workflow, vendor and catalogue/custom lines, taxes and discounts, attachments, billing status, activity history, and partial or full conversion into draft purchase invoices without changing stock or accounting until invoice posting.
@@ -30,6 +33,8 @@ All notable changes to the Wazely ERP application are documented here.
 - New features currently in development will be listed here before release.
 
 ### Changed
+- Replaced customer and vendor count cards on Account dashboards with live Accounts Receivable, Accounts Payable, overdue amounts, Cash Balance, and Bank Balance summaries.
+- Renamed the displayed Payment Date label to Received Date across customer and vendor payment forms, lists, details, and payment template previews.
 - Added a dedicated Production Client portal that opens directly on the assigned production overview, provides sidebar-only Overview, Shooting Log and Deliverables navigation, and enforces one client login per production project.
 - Removed reusable Production Client attachment, project switching, generic Project navigation, breadcrumbs and production tabs from Production Client accounts while preserving the staff management interface.
 - Simplified downloaded quotation and sales invoice PDF filenames to `EST-YYYY-MM-NNN.pdf` and `INV-YYYY-MM-NNN.pdf` while preserving internal document numbers.

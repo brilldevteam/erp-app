@@ -62,7 +62,7 @@ export default function View({ payment }: VendorPaymentViewProps) {
                                 <p className="mt-1 text-gray-500">{payment.payment_number}</p>
                             </div>
                             <div>
-                                <span className="font-semibold">{t('Payment Date')}</span>
+                                <span className="font-semibold">{t('Received Date')}</span>
                                 <p className="mt-1 text-gray-500">{formatDate(payment.payment_date)}</p>
                             </div>
                             <div>

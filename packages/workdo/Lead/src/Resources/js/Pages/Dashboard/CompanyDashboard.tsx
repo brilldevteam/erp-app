@@ -38,7 +38,7 @@ export default function CompanyDashboard({ message, stats, recentDeals, recentLe
         >
             <Head title={t('Lead')} />
 
-            <div className="space-y-6">
+            <div className="neumorphic-dashboard space-y-6">
                 {/* Summary Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => router.visit(route('lead.deals.index'))}>

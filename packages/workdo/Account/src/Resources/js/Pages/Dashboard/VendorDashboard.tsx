@@ -45,7 +45,7 @@ export default function VendorDashboard({ stats, monthlyPayments, recentReturnIn
             <Head title={t('Dashboard')} />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+                <Card className="border-blue-200 bg-blue-50 shadow-[6px_6px_14px_rgba(15,23,42,0.10),-6px_-6px_14px_rgba(255,255,255,0.90)]">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-blue-700">{t('Total Payments Made')}</CardTitle>
                         <DollarSign className="h-8 w-8 text-blue-700 opacity-80" />
@@ -56,7 +56,7 @@ export default function VendorDashboard({ stats, monthlyPayments, recentReturnIn
                     </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-r from-red-50 to-red-100 border-red-200">
+                <Card className="border-red-200 bg-red-50 shadow-[6px_6px_14px_rgba(15,23,42,0.10),-6px_-6px_14px_rgba(255,255,255,0.90)]">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-red-700">{t('Total Expense')}</CardTitle>
                         <TrendingDown className="h-8 w-8 text-red-700 opacity-80" />
@@ -67,7 +67,7 @@ export default function VendorDashboard({ stats, monthlyPayments, recentReturnIn
                     </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200">
+                <Card className="border-purple-200 bg-purple-50 shadow-[6px_6px_14px_rgba(15,23,42,0.10),-6px_-6px_14px_rgba(255,255,255,0.90)]">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-purple-700">{t('Payment Count')}</CardTitle>
                         <CreditCard className="h-8 w-8 text-purple-700 opacity-80" />
@@ -79,7 +79,7 @@ export default function VendorDashboard({ stats, monthlyPayments, recentReturnIn
                 </Card>
             </div>
 
-            <Card className="mb-6">
+            <Card className="mb-6 border-gray-200 bg-white shadow-[7px_7px_16px_rgba(15,23,42,0.10),-7px_-7px_16px_rgba(255,255,255,0.95)]">
                 <CardHeader>
                     <CardTitle className="text-base">{t('Monthly Payment Trend')}</CardTitle>
                 </CardHeader>
@@ -99,7 +99,7 @@ export default function VendorDashboard({ stats, monthlyPayments, recentReturnIn
             </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card>
+                <Card className="border-gray-200 bg-white shadow-[7px_7px_16px_rgba(15,23,42,0.10),-7px_-7px_16px_rgba(255,255,255,0.95)]">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-base">{t('Recent Return Purchase Invoice')}</CardTitle>
                         <Receipt className="h-5 w-5 text-gray-500" />
@@ -134,7 +134,7 @@ export default function VendorDashboard({ stats, monthlyPayments, recentReturnIn
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="border-gray-200 bg-white shadow-[7px_7px_16px_rgba(15,23,42,0.10),-7px_-7px_16px_rgba(255,255,255,0.95)]">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-base">{t('Recent Debit Notes')}</CardTitle>
                         <CreditCard className="h-5 w-5 text-gray-500" />

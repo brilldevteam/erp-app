@@ -37,9 +37,7 @@ class ReportsController extends Controller
 
     public function invoiceAging(Request $request)
     {
-        $filters = [
-            'as_of_date' => $request->as_of_date ?: date('Y-m-d'),
-        ];
+        $filters = $this->invoiceAgingFilters($request);
 
         $data = $this->reportService->getInvoiceAging($filters);
         return response()->json($data);
@@ -92,14 +90,40 @@ class ReportsController extends Controller
     public function printInvoiceAging(Request $request)
     {
         if(Auth::user()->can('print-invoice-aging')){
-            $filters = ['as_of_date' => $request->as_of_date ?: date('Y-m-d')];
+            $filters = $this->invoiceAgingFilters($request);
+            $allowedColumns = ['account_code', 'customer', 'invoice_number', 'current', '1_30_days', '31_60_days', '61_90_days', 'over_90_days', 'total'];
+            $columns = $request->filled('columns')
+                ? array_values(array_intersect(explode(',', (string) $request->get('columns')), $allowedColumns))
+                : $allowedColumns;
+            if (!in_array('customer', $columns, true)) {
+                array_unshift($columns, 'customer');
+            }
             $data = $this->reportService->getInvoiceAging($filters);
-            return Inertia::render('Account/Reports/Print/InvoiceAging', ['data' => $data, 'filters' => $filters]);
+            return Inertia::render('Account/Reports/Print/InvoiceAging', ['data' => $data, 'filters' => $filters, 'columns' => $columns]);
         }
         else
         {
              return back()->with('error', __('Permission denied'));
         }
+    }
+
+    private function invoiceAgingFilters(Request $request): array
+    {
+        $validated = $request->validate([
+            'as_of_date' => ['nullable', 'date_format:Y-m-d'],
+            'customer_id' => ['nullable', 'integer'],
+            'invoice_date_from' => ['nullable', 'date_format:Y-m-d'],
+            'invoice_date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:invoice_date_from'],
+            'aging_bucket' => ['nullable', 'in:current,1_30_days,31_60_days,61_90_days,over_90_days'],
+        ]);
+
+        return array_filter([
+            'as_of_date' => $validated['as_of_date'] ?? date('Y-m-d'),
+            'customer_id' => $validated['customer_id'] ?? null,
+            'invoice_date_from' => $validated['invoice_date_from'] ?? null,
+            'invoice_date_to' => $validated['invoice_date_to'] ?? null,
+            'aging_bucket' => $validated['aging_bucket'] ?? null,
+        ], fn ($value) => $value !== null && $value !== '');
     }
 
     public function printBillAging(Request $request)

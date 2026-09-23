@@ -10,22 +10,45 @@ class ReportService
     public function getInvoiceAging($filters = [])
     {
         $asOfDate = $filters['as_of_date'] ?? date('Y-m-d');
+        $customerId = $filters['customer_id'] ?? null;
+        $invoiceDateFrom = $filters['invoice_date_from'] ?? null;
+        $invoiceDateTo = $filters['invoice_date_to'] ?? null;
+        $agingBucket = $filters['aging_bucket'] ?? null;
 
-        $invoices = DB::table('sales_invoices')
+        $invoiceQuery = DB::table('sales_invoices')
             ->where('sales_invoices.created_by', creatorId())
             ->whereIn('sales_invoices.status', ['posted', 'partial'])
             ->leftJoin('users', 'sales_invoices.customer_id', '=', 'users.id')
+            ->leftJoin('customers', function ($join) {
+                $join->on('sales_invoices.customer_id', '=', 'customers.user_id')
+                    ->on('sales_invoices.created_by', '=', 'customers.created_by');
+            })
             ->where('users.type', 'client')
             ->where('sales_invoices.balance_amount', '>', 0)
+            ->where('sales_invoices.invoice_date', '<=', $asOfDate);
+
+        $invoiceQuery->when($customerId, fn ($query) =>
+            $query->where('sales_invoices.customer_id', $customerId));
+        $invoiceQuery->when($invoiceDateFrom, fn ($query) =>
+            $query->whereDate('sales_invoices.invoice_date', '>=', $invoiceDateFrom));
+        $invoiceQuery->when($invoiceDateTo, fn ($query) =>
+            $query->whereDate('sales_invoices.invoice_date', '<=', $invoiceDateTo));
+
+        $invoices = $invoiceQuery
             ->select(
                 'sales_invoices.id',
                 'sales_invoices.invoice_number',
+                'sales_invoices.invoice_date',
                 'sales_invoices.due_date',
                 'sales_invoices.balance_amount as balance',
-                'users.name as customer_name',
+                DB::raw('COALESCE(customers.company_name, users.name) as customer_name'),
+                'customers.customer_code as account_code',
                 'users.id as customer_id',
                 DB::raw('DATEDIFF("' . $asOfDate . '", sales_invoices.due_date) as days_overdue')
             )
+            ->orderBy('customer_name')
+            ->orderBy('sales_invoices.due_date')
+            ->orderBy('sales_invoices.invoice_number')
             ->get();
 
         $aging = [
@@ -44,27 +67,29 @@ class ReportService
             $days = $invoice->days_overdue;
 
             if ($days <= 0) {
-                $aging['current'] += $balance;
                 $bucket = 'current';
             } elseif ($days <= 30) {
-                $aging['1_30_days'] += $balance;
                 $bucket = '1_30_days';
             } elseif ($days <= 60) {
-                $aging['31_60_days'] += $balance;
                 $bucket = '31_60_days';
             } elseif ($days <= 90) {
-                $aging['61_90_days'] += $balance;
                 $bucket = '61_90_days';
             } else {
-                $aging['over_90_days'] += $balance;
                 $bucket = 'over_90_days';
             }
 
+            if ($agingBucket && $bucket !== $agingBucket) {
+                continue;
+            }
+
+            $aging[$bucket] += $balance;
             $aging['total'] += $balance;
 
             if (!isset($customerData[$invoice->customer_id])) {
                 $customerData[$invoice->customer_id] = [
                     'customer_name' => $invoice->customer_name,
+                    'account_code' => $invoice->account_code,
+                    'invoices' => [],
                     'current' => 0,
                     '1_30_days' => 0,
                     '31_60_days' => 0,
@@ -74,14 +99,41 @@ class ReportService
                 ];
             }
 
+            $invoiceAging = [
+                'id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number,
+                'invoice_date' => $invoice->invoice_date,
+                'due_date' => $invoice->due_date,
+                'current' => 0,
+                '1_30_days' => 0,
+                '31_60_days' => 0,
+                '61_90_days' => 0,
+                'over_90_days' => 0,
+                'total' => $balance,
+            ];
+            $invoiceAging[$bucket] = $balance;
+
             $customerData[$invoice->customer_id][$bucket] += $balance;
             $customerData[$invoice->customer_id]['total'] += $balance;
+            $customerData[$invoice->customer_id]['invoices'][] = $invoiceAging;
         }
 
         return [
             'aging_summary' => $aging,
             'customers' => array_values($customerData),
-            'as_of_date' => $asOfDate
+            'as_of_date' => $asOfDate,
+            'filter_options' => [
+                'customers' => DB::table('users')
+                    ->leftJoin('customers', function ($join) {
+                        $join->on('users.id', '=', 'customers.user_id')
+                            ->on('users.created_by', '=', 'customers.created_by');
+                    })
+                    ->where('users.created_by', creatorId())
+                    ->where('users.type', 'client')
+                    ->select('users.id', DB::raw('COALESCE(customers.company_name, users.name) as name'))
+                    ->orderBy('name')
+                    ->get(),
+            ],
         ];
     }
 
@@ -95,6 +147,7 @@ class ReportService
             ->leftJoin('users', 'purchase_invoices.vendor_id', '=', 'users.id')
             ->where('users.type', 'vendor')
             ->where('purchase_invoices.balance_amount', '>', 0)
+            ->where('purchase_invoices.invoice_date', '<=', $asOfDate)
             ->select(
                 'purchase_invoices.id',
                 'purchase_invoices.invoice_number as bill_number',
@@ -249,22 +302,14 @@ class ReportService
                 ->where('return_date', '<=', $asOfDate)
                 ->sum('total_amount');
 
-            $invoiceBalance = DB::table('sales_invoices')
+            $balance = DB::table('sales_invoices')
                 ->where('customer_id', $customer->id)
                 ->whereIn('status', ['posted', 'partial', 'paid'])
                 ->where('invoice_date', '<=', $asOfDate)
                 ->sum('balance_amount');
 
-            $creditNotes = DB::table('credit_notes')
-                ->where('customer_id', $customer->id)
-                ->whereIn('status', ['approved', 'partial', 'applied'])
-                ->where('credit_note_date', '<=', $asOfDate)
-                ->sum('total_amount');
-
-            $balance = $invoiceBalance - $creditNotes;
-
             $netInvoiced = $invoiced - $returns;
-            $paid = $invoiced - $invoiceBalance;
+            $paid = $invoiced - $balance;
 
             if (!$showZeroBalances && abs($balance) < 0.01) {
                 continue;
@@ -278,7 +323,6 @@ class ReportService
                 'total_returns' => $returns,
                 'net_invoiced' => $netInvoiced,
                 'total_paid' => $paid,
-                'total_credit_notes' => $creditNotes,
                 'balance' => $balance
             ];
 
@@ -321,22 +365,14 @@ class ReportService
                 ->where('return_date', '<=', $asOfDate)
                 ->sum('total_amount');
 
-            $invoiceBalance = DB::table('purchase_invoices')
+            $balance = DB::table('purchase_invoices')
                 ->where('vendor_id', $vendor->id)
                 ->whereIn('status', ['posted', 'partial', 'paid'])
                 ->where('invoice_date', '<=', $asOfDate)
                 ->sum('balance_amount');
 
-            $debitNotes = DB::table('debit_notes')
-                ->where('vendor_id', $vendor->id)
-                ->whereIn('status', ['approved', 'partial', 'applied'])
-                ->where('debit_note_date', '<=', $asOfDate)
-                ->sum('total_amount');
-
-            $balance = $invoiceBalance - $debitNotes;
-
             $netBilled = $billed - $returns;
-            $paid = $billed - $invoiceBalance;
+            $paid = $billed - $balance;
 
             if (!$showZeroBalances && abs($balance) < 0.01) {
                 continue;
@@ -350,7 +386,6 @@ class ReportService
                 'total_returns' => $returns,
                 'net_billed' => $netBilled,
                 'total_paid' => $paid,
-                'total_debit_notes' => $debitNotes,
                 'balance' => $balance
             ];
 
@@ -401,7 +436,7 @@ class ReportService
 
         $creditNotesQuery = DB::table('credit_notes')
             ->where('customer_id', $customerId)
-            ->whereIn('status', ['approved', 'partial', 'applied'])
+            ->whereIn('status', ['approved', 'completed'])
             ->select('credit_note_number', 'credit_note_date as date', 'total_amount', 'applied_amount', 'balance_amount', 'status');
 
         if ($startDate) $creditNotesQuery->where('credit_note_date', '>=', $startDate);
@@ -411,7 +446,7 @@ class ReportService
         $paymentsQuery = DB::table('customer_payments')
             ->leftJoin('bank_accounts', 'customer_payments.bank_account_id', '=', 'bank_accounts.id')
             ->where('customer_payments.customer_id', $customerId)
-            ->select('customer_payments.payment_number', 'customer_payments.payment_date as date', 'customer_payments.payment_amount as amount', 'customer_payments.reference_number', 'customer_payments.status', 'bank_accounts.account_name as bank_account');
+            ->select('customer_payments.payment_number', 'customer_payments.payment_date as date', 'customer_payments.payment_amount as amount', 'customer_payments.reference_number', 'customer_payments.payment_mode', 'customer_payments.status', 'bank_accounts.account_name as bank_account');
 
         if ($startDate) $paymentsQuery->where('payment_date', '>=', $startDate);
         if ($endDate) $paymentsQuery->where('payment_date', '<=', $endDate);
@@ -429,7 +464,7 @@ class ReportService
                 'total_returns' => $returns->sum('total_amount'),
                 'total_credit_notes' => $creditNotes->sum('total_amount'),
                 'total_payments' => $payments->sum('amount'),
-                'balance' => $invoices->sum('balance_amount') - $creditNotes->sum('total_amount')
+                'balance' => $invoices->sum('balance_amount')
             ]
         ];
     }
@@ -469,7 +504,7 @@ class ReportService
 
         $debitNotesQuery = DB::table('debit_notes')
             ->where('vendor_id', $vendorId)
-            ->whereIn('status', ['approved', 'partial', 'applied'])
+            ->whereIn('status', ['approved', 'completed'])
             ->select('debit_note_number', 'debit_note_date as date', 'total_amount', 'applied_amount', 'balance_amount', 'status');
 
         if ($startDate) $debitNotesQuery->where('debit_note_date', '>=', $startDate);
@@ -497,7 +532,7 @@ class ReportService
                 'total_returns' => $returns->sum('total_amount'),
                 'total_debit_notes' => $debitNotes->sum('total_amount'),
                 'total_payments' => $payments->sum('amount'),
-                'balance' => $invoices->sum('balance_amount') - $debitNotes->sum('total_amount')
+                'balance' => $invoices->sum('balance_amount')
             ]
         ];
     }

@@ -116,6 +116,8 @@ export default function AppointmentIndex({ stats, recent_appointments, recent_sc
         >
             <Head title={t('Appointment Dashboard')} />
 
+            <div className="neumorphic-dashboard">
+
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
                 <Card className="bg-gradient-to-r from-pink-50 to-pink-100 border-pink-200 cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.get(route('appointment.appointments.index'))}>
@@ -390,6 +392,7 @@ export default function AppointmentIndex({ stats, recent_appointments, recent_sc
                         )}
                     </CardContent>
                 </Card>
+            </div>
             </div>
         </AuthenticatedLayout>
     );

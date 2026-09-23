@@ -152,7 +152,7 @@ export default function Create({ customers, bankAccounts, onSuccess, defaultCust
             <form onSubmit={submit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <Label htmlFor="payment_date" required>{t('Payment Date')}</Label>
+                        <Label htmlFor="payment_date" required>{t('Received Date')}</Label>
                         <DatePicker
                             id="payment_date"
                             value={data.payment_date}
@@ -160,7 +160,7 @@ export default function Create({ customers, bankAccounts, onSuccess, defaultCust
                                 const formattedDate = value instanceof Date ? value.toISOString().split('T')[0] : value;
                                 setData('payment_date', formattedDate);
                             }}
-                            placeholder={t('Select payment date')}
+                            placeholder={t('Select received date')}
                             required
                         />
                         <InputError message={errors.payment_date} />
