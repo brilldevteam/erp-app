@@ -14,6 +14,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Show the Purchase Orders / LPO navigation entry only for companies whose active plan includes the add-on, preventing dashboard redirects from unavailable module links.
 
 ### Added
+- Added CR Number and private supporting-document uploads to customer and vendor create, edit, and detail views, including validated files and authorized preview, download, and removal actions.
 - Added SKU generation to the quotation and sales invoice quick product/service creation dialog.
 - Added production-project client login management with a dedicated permission, restricted read-only production portals, password/profile controls, welcome emails, and login-as-client support.
 - Added a tenant-scoped Purchase Order / LPO add-on with draft-to-issued approval workflow, vendor and catalogue/custom lines, taxes and discounts, attachments, billing status, activity history, and partial or full conversion into draft purchase invoices without changing stock or accounting until invoice posting.

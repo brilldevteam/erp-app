@@ -10,6 +10,7 @@ import InputError from "@/components/ui/input-error";
 import { PhoneInputComponent } from "@/components/ui/phone-input";
 import { CreateVendorProps, CreateVendorFormData } from './types';
 import { useFormFields } from '@/hooks/useFormFields';
+import PartyDocuments from '../Parties/PartyDocuments';
 
 export default function Create({ onSuccess, returnTo }: CreateVendorProps) {
     const { t } = useTranslation();
@@ -19,6 +20,7 @@ export default function Create({ onSuccess, returnTo }: CreateVendorProps) {
         contact_person_email: '',
         contact_person_mobile: '',
         tax_number: '',
+        cr_number: '',
         payment_terms: '',
         billing_address: {
             name: '',
@@ -40,6 +42,7 @@ export default function Create({ onSuccess, returnTo }: CreateVendorProps) {
         },
         same_as_billing: false,
         notes: '',
+        attachments: [],
         return_to: returnTo || '',
         portal_access_enabled: false,
         password: '',
@@ -51,6 +54,7 @@ export default function Create({ onSuccess, returnTo }: CreateVendorProps) {
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         post(route('account.vendors.store'), {
+            forceFormData: true,
             onSuccess: () => {
                 onSuccess();
             }
@@ -117,7 +121,7 @@ export default function Create({ onSuccess, returnTo }: CreateVendorProps) {
                         error={errors.contact_person_mobile}
                     />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div>
                         <Label htmlFor="tax_number">{t('Tax Number')}</Label>
                         <Input
@@ -127,6 +131,11 @@ export default function Create({ onSuccess, returnTo }: CreateVendorProps) {
                             placeholder={t('Enter tax number')}
                         />
                         <InputError message={errors.tax_number} />
+                    </div>
+                    <div>
+                        <Label htmlFor="cr_number">{t('CR Number')}</Label>
+                        <Input id="cr_number" value={data.cr_number} onChange={(e) => setData('cr_number', e.target.value)} placeholder={t('Enter CR number')} />
+                        <InputError message={errors.cr_number} />
                     </div>
                     <div>
                         <Label htmlFor="payment_terms">{t('Payment Terms')}</Label>
@@ -329,6 +338,7 @@ export default function Create({ onSuccess, returnTo }: CreateVendorProps) {
                     />
                     <InputError message={errors.notes} />
                 </div>
+                <PartyDocuments files={data.attachments} onChange={(files) => setData('attachments', files)} errors={errors} disabled={processing} />
 
                 {/* Custom Fields */}
                 {customFields.length > 0 && (

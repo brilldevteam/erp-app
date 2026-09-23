@@ -11,6 +11,7 @@ import { PhoneInputComponent } from "@/components/ui/phone-input";
 import { CustomerFormData } from './types';
 import { useFormFields } from '@/hooks/useFormFields';
 import { CustomerAddressFields } from '@/components/customer-address-fields';
+import PartyDocuments from '../Parties/PartyDocuments';
 interface CreateCustomerProps {
     onSuccess: (userId?: number) => void;
     returnToCurrentPage?: boolean;
@@ -24,6 +25,7 @@ export default function Create({ onSuccess, returnToCurrentPage = false }: Creat
         contact_person_email: '',
         contact_person_mobile: '',
         tax_number: '',
+        cr_number: '',
         payment_terms: '',
         billing_address: {
             name: '',
@@ -50,6 +52,7 @@ export default function Create({ onSuccess, returnToCurrentPage = false }: Creat
         portal_access_enabled: false,
         password: '',
         password_confirmation: '',
+        attachments: [],
     });
     const setDataWrapper = (key: string, value: any) => {
         setData(key as keyof CustomerFormData, value);
@@ -62,6 +65,7 @@ export default function Create({ onSuccess, returnToCurrentPage = false }: Creat
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         post(route('account.customers.store', returnToCurrentPage ? { return_to: 'quotation' } : undefined), {
+            forceFormData: true,
             onSuccess: (page) => {
                 onSuccess((page.props.flash as any)?.createdCustomerUserId);
             }
@@ -133,7 +137,7 @@ export default function Create({ onSuccess, returnToCurrentPage = false }: Creat
                         error={errors.contact_person_mobile}
                     />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div>
                         <Label htmlFor="tax_number">{t('Tax Number')}</Label>
                         <Input
@@ -143,6 +147,11 @@ export default function Create({ onSuccess, returnToCurrentPage = false }: Creat
                             placeholder={t('Enter tax number')}
                         />
                         <InputError message={errors.tax_number} />
+                    </div>
+                    <div>
+                        <Label htmlFor="cr_number">{t('CR Number')}</Label>
+                        <Input id="cr_number" value={data.cr_number} onChange={(e) => setData('cr_number', e.target.value)} placeholder={t('Enter CR number')} />
+                        <InputError message={errors.cr_number} />
                     </div>
                     <div>
                         <Label htmlFor="payment_terms">{t('Payment Terms')}</Label>
@@ -202,6 +211,7 @@ export default function Create({ onSuccess, returnToCurrentPage = false }: Creat
                     />
                     <InputError message={errors.notes} />
                 </div>
+                <PartyDocuments files={data.attachments} onChange={(files) => setData('attachments', files)} errors={errors} disabled={processing} />
 
                 {/* Custom Fields */}
                 {customFields.length > 0 && (

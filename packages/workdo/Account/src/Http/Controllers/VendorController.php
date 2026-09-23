@@ -2,7 +2,6 @@
 
 namespace Workdo\Account\Http\Controllers;
 
-use Illuminate\Support\Facades\DB;
 use Workdo\Account\Services\PartyPortalAccountService;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -14,6 +13,8 @@ use Workdo\Account\Events\CreateVendor;
 use Workdo\Account\Events\UpdateVendor;
 use Workdo\Account\Events\DestroyVendor;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+use Workdo\Account\Services\PartyAttachmentService;
 
 class VendorController extends Controller
 {
@@ -21,7 +22,7 @@ class VendorController extends Controller
     {
         if(Auth::user()->can('manage-vendors')){
             $vendors = Vendor::query()
-                ->with('user:id,name,email,mobile_no,avatar,is_disable,is_enable_login')
+                ->with(['user:id,name,email,mobile_no,avatar,is_disable,is_enable_login', 'attachments.uploader:id,name'])
                 ->when(Schema::hasTable('project_contracts'), function ($query) {
                     $query->with(['projectContracts' => function ($contractQuery) {
                         $contractQuery->where('created_by', creatorId())
@@ -58,17 +59,19 @@ class VendorController extends Controller
 
 
 
-    public function store(StoreVendorRequest $request, PartyPortalAccountService $portalAccounts)
+    public function store(StoreVendorRequest $request, PartyPortalAccountService $portalAccounts, PartyAttachmentService $attachments)
     {
         if(Auth::user()->can('create-vendors')){
             $validated = $request->validated();
 
+            $paths = [];
             $vendor = new Vendor();
             $vendor->company_name = $validated['company_name'];
             $vendor->contact_person_name = $validated['contact_person_name'];
             $vendor->contact_person_email = $validated['contact_person_email'] ?? null;
             $vendor->contact_person_mobile = $validated['contact_person_mobile'] ?? null;
             $vendor->tax_number = $validated['tax_number'] ?? null;
+            $vendor->cr_number = $validated['cr_number'] ?? null;
             $vendor->payment_terms = $validated['payment_terms'] ?? null;
             $vendor->billing_address = $validated['billing_address'];
             $vendor->shipping_address = $validated['same_as_billing'] ? $validated['billing_address'] : $validated['shipping_address'];
@@ -76,11 +79,17 @@ class VendorController extends Controller
             $vendor->notes = $validated['notes'] ?? null;
             $vendor->creator_id = Auth::id();
             $vendor->created_by = creatorId();
-            $user = DB::transaction(function () use ($vendor, $validated, $portalAccounts) {
-                $user = $portalAccounts->create($vendor, 'vendor', $validated, creatorId(), Auth::id());
-                $vendor->save();
-                return $user;
-            });
+            try {
+                $user = DB::transaction(function () use ($vendor, $validated, $request, $portalAccounts, $attachments, &$paths) {
+                    $user = $portalAccounts->create($vendor, 'vendor', $validated, creatorId(), Auth::id());
+                    $vendor->save();
+                    $attachments->store($vendor, $request->file('attachments', []), $paths);
+                    return $user;
+                });
+            } catch (\Throwable $e) {
+                $attachments->cleanup($paths);
+                throw $e;
+            }
 
             CreateVendor::dispatch($request, $vendor);
             $portalAccounts->sendAccessNotifications($user, $validated['password'] ?? null);
@@ -94,7 +103,7 @@ class VendorController extends Controller
         return redirect()->route('account.vendors.index')->with('error', __('Permission denied'));
     }
 
-    public function update(UpdateVendorRequest $request, Vendor $vendor, PartyPortalAccountService $portalAccounts)
+    public function update(UpdateVendorRequest $request, Vendor $vendor, PartyPortalAccountService $portalAccounts, PartyAttachmentService $attachments)
     {
         if(Auth::user()->can('edit-vendors')){
             $validated = $request->validated();
@@ -104,17 +113,25 @@ class VendorController extends Controller
             $vendor->contact_person_email = $validated['contact_person_email'] ?? null;
             $vendor->contact_person_mobile = $validated['contact_person_mobile'] ?? null;
             $vendor->tax_number = $validated['tax_number'] ?? null;
+            $vendor->cr_number = $validated['cr_number'] ?? null;
             $vendor->payment_terms = $validated['payment_terms'] ?? null;
             $vendor->billing_address = $validated['billing_address'];
             $vendor->shipping_address = $validated['same_as_billing'] ? $validated['billing_address'] : $validated['shipping_address'];
             $vendor->same_as_billing = $validated['same_as_billing'] ?? false;
             $vendor->notes = $validated['notes'] ?? null;
             $wasEnabled = (bool) $vendor->user?->is_enable_login;
-            $user = DB::transaction(function () use ($vendor, $validated, $portalAccounts) {
-                $user = $portalAccounts->sync($vendor, 'vendor', $validated, creatorId(), Auth::id());
-                $vendor->save();
-                return $user;
-            });
+            $paths = [];
+            try {
+                $user = DB::transaction(function () use ($vendor, $validated, $request, $portalAccounts, $attachments, &$paths) {
+                    $user = $portalAccounts->sync($vendor, 'vendor', $validated, creatorId(), Auth::id());
+                    $vendor->save();
+                    $attachments->store($vendor, $request->file('attachments', []), $paths);
+                    return $user;
+                });
+            } catch (\Throwable $e) {
+                $attachments->cleanup($paths);
+                throw $e;
+            }
 
             UpdateVendor::dispatch($request, $vendor);
             $portalAccounts->sendAccessNotifications($user, $validated['password'] ?? null, $wasEnabled);

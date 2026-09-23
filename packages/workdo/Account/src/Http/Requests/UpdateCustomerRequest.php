@@ -25,11 +25,12 @@ class UpdateCustomerRequest extends FormRequest
             'contact_person_email' => ['nullable', 'email', 'max:255', Rule::requiredIf($this->boolean('portal_access_enabled')), Rule::when($this->boolean('portal_access_enabled'), Rule::unique('users', 'email')->ignore($this->route('customer')?->user_id))],
             'contact_person_mobile' => 'nullable|string|max:255',
             'tax_number' => 'nullable|string|max:255',
+            'cr_number' => 'nullable|string|max:255',
             'payment_terms' => 'nullable|string|max:255',
             'billing_address' => 'required|array',
             'shipping_address' => 'required_if:same_as_billing,false|array',
             'same_as_billing' => 'boolean',
             'notes' => 'nullable|string',
-        ] + $this->customerAddressRules();
+        ] + $this->customerAddressRules() + \Workdo\Account\Services\PartyAttachmentService::rules();
     }
 }

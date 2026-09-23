@@ -4,6 +4,7 @@ import { Building2 } from 'lucide-react';
 import { Vendor } from './types';
 import { useFormFields } from '@/hooks/useFormFields';
 import { formatCurrency, formatDate } from '@/utils/helpers';
+import SavedPartyDocuments from '../Parties/SavedPartyDocuments';
 
 interface ViewProps {
     vendor: Vendor;
@@ -67,6 +68,10 @@ export default function View({ vendor }: ViewProps) {
                         <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{vendor.payment_terms || '-'}</p>
                     </div>
                     <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">{t('CR Number')}</label>
+                        <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{vendor.cr_number || '-'}</p>
+                    </div>
+                    <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">{t('Currency Code')}</label>
                         <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{vendor.currency_code || '-'}</p>
                     </div>
@@ -108,6 +113,7 @@ export default function View({ vendor }: ViewProps) {
                         <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{vendor.notes}</p>
                     </div>
                 )}
+                <SavedPartyDocuments partyType="vendors" partyId={vendor.id} attachments={vendor.attachments || []} />
 
                 {vendor.project_contracts && vendor.project_contracts.length > 0 && (
                     <div className="space-y-3">
