@@ -74,6 +74,7 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Account'])->group
 
     Route::prefix('account/bank-transactions')->name('account.bank-transactions.')->group(function () {
         Route::get('/', [BankTransactionController::class, 'index'])->name('index');
+        Route::get('/export', [BankTransactionController::class, 'export'])->name('export');
         Route::post('/{id}/mark-reconciled', [BankTransactionController::class, 'markReconciled'])->name('mark-reconciled');
     });
 

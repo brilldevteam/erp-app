@@ -8,6 +8,7 @@ const Card = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
+    data-slot="card"
     className={cn(
       "rounded-xl border border-slate-200/80 bg-card text-card-foreground shadow-[0_1px_2px_rgba(15,23,42,0.03),0_8px_24px_-18px_rgba(15,23,42,0.28)] transition-shadow dark:border-slate-800",
       className
@@ -23,6 +24,7 @@ const CardHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
+    data-slot="card-header"
     className={cn("flex flex-col space-y-1.5 p-5 sm:p-6", className)}
     {...props}
   />
