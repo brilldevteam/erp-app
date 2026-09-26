@@ -80,57 +80,59 @@ export default function SuperAdminDashboard({ stats, chartData, ticketChartData,
         >
             <Head title={t('Dashboard')} />
 
-            {/* Stats Cards */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card className="relative overflow-hidden bg-gradient-to-r from-green-50 to-green-100 border-green-200">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-green-700">{t('Total Orders')}</CardTitle>
-                        <ShoppingCart className="h-8 w-8 text-green-700 opacity-80" />
+                <Card className="overflow-hidden border-slate-200/80 bg-white">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                        <CardTitle className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-500">{t('Total Orders')}</CardTitle>
+                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-50 text-teal-700"><ShoppingCart className="h-[18px] w-[18px]" /></span>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-700">{stats.total_orders}</div>
-                        <p className="text-xs text-green-700 opacity-80 mt-1">{t('All orders')}</p>
+                        <div className="text-3xl font-semibold tracking-[-0.04em] text-slate-950">{stats.total_orders}</div>
+                        <p className="mt-1 text-xs text-slate-400">{t('All orders')}</p>
                     </CardContent>
                 </Card>
 
-                <Card className="relative overflow-hidden bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-blue-700">{t('Order Payments')}</CardTitle>
-                        <CreditCard className="h-8 w-8 text-blue-700 opacity-80" />
+                <Card className="overflow-hidden border-slate-200/80 bg-white">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                        <CardTitle className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-500">{t('Order Payments')}</CardTitle>
+                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-50 text-teal-700"><CreditCard className="h-[18px] w-[18px]" /></span>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-blue-700">{formatCurrency(stats.order_payments)}</div>
-                        <p className="text-xs text-blue-700 opacity-80 mt-1">{t('Total payments')}</p>
+                        <div className="text-3xl font-semibold tracking-[-0.04em] text-slate-950">{formatCurrency(stats.order_payments)}</div>
+                        <p className="mt-1 text-xs text-slate-400">{t('Total payments')}</p>
                     </CardContent>
                 </Card>
 
-                <Card className="relative overflow-hidden bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-purple-700">{t('Total Plans')}</CardTitle>
-                        <Crown className="h-8 w-8 text-purple-700 opacity-80" />
+                <Card className="overflow-hidden border-slate-200/80 bg-white">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                        <CardTitle className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-500">{t('Total Plans')}</CardTitle>
+                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><Crown className="h-[18px] w-[18px]" /></span>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-purple-700">{stats.total_plans}</div>
-                        <p className="text-xs text-purple-700 opacity-80 mt-1">{t('Available plans')}</p>
+                        <div className="text-3xl font-semibold tracking-[-0.04em] text-slate-950">{stats.total_plans}</div>
+                        <p className="mt-1 text-xs text-slate-400">{t('Available plans')}</p>
                     </CardContent>
                 </Card>
 
-                <Card className="relative overflow-hidden bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-orange-700">{t('Total Companies')}</CardTitle>
-                        <Building2 className="h-8 w-8 text-orange-700 opacity-80" />
+                <Card className="overflow-hidden border-slate-200/80 bg-white">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                        <CardTitle className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-500">{t('Total Companies')}</CardTitle>
+                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-50 text-teal-700"><Building2 className="h-[18px] w-[18px]" /></span>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-orange-700">{stats.total_companies}</div>
-                        <p className="text-xs text-orange-700 opacity-80 mt-1">{t('Registered companies')}</p>
+                        <div className="text-3xl font-semibold tracking-[-0.04em] text-slate-950">{stats.total_companies}</div>
+                        <p className="mt-1 text-xs text-slate-400">{t('Registered companies')}</p>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Recent Orders Chart */}
             <Card className="mt-6">
-                <CardHeader>
-                    <CardTitle className="text-lg">{t('Recent Orders (Monthly)')}</CardTitle>
+                <CardHeader className="flex-row items-start justify-between space-y-0 pb-2">
+                    <div>
+                        <CardTitle className="text-base">{t('Recent Orders (Monthly)')}</CardTitle>
+                        <p className="mt-1 text-xs text-slate-400">{t('Order activity across the current year')}</p>
+                    </div>
+                    <span className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">12 months</span>
                 </CardHeader>
                 <CardContent>
                     <LineChart
@@ -140,7 +142,7 @@ export default function SuperAdminDashboard({ stats, chartData, ticketChartData,
                         showTooltip={true}
                         showGrid={true}
                         lines={[
-                            { dataKey: 'orders', color: '#3b82f6', name: 'Orders' }
+                            { dataKey: 'orders', color: '#0f9f8f', name: 'Orders' }
                         ]}
                         xAxisKey="month"
                         showLegend={true}
@@ -350,8 +352,8 @@ export default function SuperAdminDashboard({ stats, chartData, ticketChartData,
                             showTooltip={true}
                             showGrid={true}
                             lines={[
-                                { dataKey: 'created', color: '#3b82f6', name: 'Created' },
-                                { dataKey: 'resolved', color: '#10b981', name: 'Resolved' }
+                                { dataKey: 'created', color: '#334155', name: 'Created' },
+                                { dataKey: 'resolved', color: '#0f9f8f', name: 'Resolved' }
                             ]}
                             xAxisKey="month"
                             showLegend={true}
