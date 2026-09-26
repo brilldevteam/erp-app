@@ -163,9 +163,6 @@ createInertiaApp({
             </ThemeProvider>
         );
 
-        document.getElementById("app-loader")?.remove();
     },
-    progress: {
-        color: "#4B5563",
-    },
+    progress: false,
 });

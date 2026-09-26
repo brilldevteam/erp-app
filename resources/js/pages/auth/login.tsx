@@ -49,6 +49,7 @@ export default function Login({
         <AuthLayout
             title={t('Log in to your account')}
             description={t('Enter your email and password below to log in')}
+            variant="login"
         >
             <Head title={t('Log in')} />
 
@@ -80,7 +81,7 @@ export default function Login({
                                 tabIndex={1}
                                 autoComplete="email"
                                 placeholder="email@example.com"
-                                className="h-12 pl-10"
+                                className="h-12 rounded-xl pl-10"
                             />
                         </div>
                         <InputError message={errors.email} />
@@ -111,7 +112,7 @@ export default function Login({
                                 tabIndex={2}
                                 autoComplete="current-password"
                                 placeholder={t('Password')}
-                                className="h-12 pl-10"
+                                className="h-12 rounded-xl pl-10"
                             />
                         </div>
                         <InputError message={errors.password} />
@@ -136,7 +137,7 @@ export default function Login({
 
                     <Button
                         type="submit"
-                        className="mt-2 h-12 w-full font-semibold"
+                        className="auth-primary mt-2 h-12 w-full rounded-xl font-semibold shadow-sm transition active:translate-y-px"
                         tabIndex={4}
                         disabled={processing}
                         data-test="login-button"
@@ -168,7 +169,7 @@ export default function Login({
                 {enableRegistration && (
                     <div className="text-center text-sm text-muted-foreground">
                         {t("Don't have an account?")}{' '}
-                        <Link href={route('register')} tabIndex={6} className="text-primary hover:underline">
+                        <Link href={route('register')} tabIndex={6} className="font-semibold text-primary hover:underline">
                             {t('Sign up')}
                         </Link>
                     </div>

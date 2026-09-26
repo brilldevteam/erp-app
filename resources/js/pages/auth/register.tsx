@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { usePageButtons } from '@/hooks/usePageButtons';
 import { useFormFields } from '@/hooks/useFormFields';
 import SocialAuthButtons from '@/components/social-auth-buttons';
+import { LockKeyhole, Mail, UserRound } from 'lucide-react';
 
 export default function Register() {
     const { t } = useTranslation();
@@ -42,6 +43,7 @@ export default function Register() {
         <AuthLayout
             title={t('Create an Account')}
             description={t('Enter your details below to create your account')}
+            variant="register"
         >
             <Head title={t('Register')} />
             {flash?.error && (
@@ -53,7 +55,7 @@ export default function Register() {
                 <div className="grid gap-6">
                     <div className="grid gap-2">
                         <Label htmlFor="name">{t('Name')}</Label>
-                        <Input
+                        <div className="relative"><UserRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" /><Input
                             id="name"
                             type="text"
                             name="name"
@@ -64,7 +66,8 @@ export default function Register() {
                             tabIndex={1}
                             autoComplete="name"
                             placeholder={t('Full name')}
-                        />
+                            className="h-12 rounded-xl pl-10"
+                        /></div>
                         <InputError
                             message={errors.name}
                             className="mt-2"
@@ -73,7 +76,7 @@ export default function Register() {
 
                     <div className="grid gap-2">
                         <Label htmlFor="email">{t('Email Address')}</Label>
-                        <Input
+                        <div className="relative"><Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" /><Input
                             id="email"
                             type="email"
                             name="email"
@@ -83,13 +86,14 @@ export default function Register() {
                             tabIndex={2}
                             autoComplete="email"
                             placeholder="email@example.com"
-                        />
+                            className="h-12 rounded-xl pl-10"
+                        /></div>
                         <InputError message={errors.email} />
                     </div>
 
                     <div className="grid gap-2">
                         <Label htmlFor="password">{t('Password')}</Label>
-                        <Input
+                        <div className="relative"><LockKeyhole className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" /><Input
                             id="password"
                             type="password"
                             name="password"
@@ -99,7 +103,8 @@ export default function Register() {
                             tabIndex={3}
                             autoComplete="new-password"
                             placeholder={t('Password')}
-                        />
+                            className="h-12 rounded-xl pl-10"
+                        /></div>
                         <InputError message={errors.password} />
                     </div>
 
@@ -107,7 +112,7 @@ export default function Register() {
                         <Label htmlFor="password_confirmation">
                             {t('Confirm Password')}
                         </Label>
-                        <Input
+                        <div className="relative"><LockKeyhole className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" /><Input
                             id="password_confirmation"
                             type="password"
                             name="password_confirmation"
@@ -117,7 +122,8 @@ export default function Register() {
                             tabIndex={4}
                             autoComplete="new-password"
                             placeholder={t('Confirm password')}
-                        />
+                            className="h-12 rounded-xl pl-10"
+                        /></div>
                         <InputError
                             message={errors.password_confirmation}
                         />
@@ -161,7 +167,7 @@ export default function Register() {
 
                     <Button
                         type="submit"
-                        className="mt-2 w-full"
+                        className="auth-primary mt-2 h-12 w-full rounded-xl font-semibold shadow-sm transition active:translate-y-px"
                         tabIndex={6}
                         disabled={processing || (adminAllSetting?.termsConditionsUrl && !agreedToTerms)}
                         data-test="register-user-button"
@@ -196,7 +202,7 @@ export default function Register() {
 
                 <div className="text-center text-sm text-muted-foreground">
                     {t('Already have an account?')}{' '}
-                    <Link href={route('login')} tabIndex={7} className="text-primary hover:underline">
+                    <Link href={route('login')} tabIndex={7} className="font-semibold text-primary hover:underline">
                         {t('Log in')}
                     </Link>
                 </div>

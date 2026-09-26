@@ -49,8 +49,11 @@ export function NavMain({ items = [], searchQuery = "" }: { items: NavItem[], se
     };
 
     return (
-        <SidebarGroup>
-            <SidebarMenu>
+        <SidebarGroup className="px-1 py-2">
+            <SidebarGroupLabel className="mb-1 h-7 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                {searchQuery ? 'Search results' : 'Workspace'}
+            </SidebarGroupLabel>
+            <SidebarMenu className="gap-1.5">
                 {filteredItems.map((item) => {
                   const itemPath = item.href ? new URL(item.href, window.location.origin).pathname : '';
                   const isActive = !!(itemPath && isUrlActive(itemPath));
@@ -65,7 +68,7 @@ export function NavMain({ items = [], searchQuery = "" }: { items: NavItem[], se
                                 <Collapsible asChild defaultOpen={shouldBeActive} className="group/collapsible group-data-[collapsible=icon]:hidden">
                                     <div>
                                         <CollapsibleTrigger asChild>
-                                            <SidebarMenuButton tooltip={item.title} isActive={shouldBeActive}>
+                                            <SidebarMenuButton tooltip={item.title} isActive={shouldBeActive} className="h-10 rounded-xl px-3 text-[13px] font-medium text-slate-600 hover:bg-slate-100/80 hover:text-slate-950 data-[active=true]:bg-primary/10 data-[active=true]:text-primary dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white">
                                                 {item.icon && <item.icon />}
                                                 <span>{item.title}</span>
                                                 <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
@@ -84,7 +87,7 @@ export function NavMain({ items = [], searchQuery = "" }: { items: NavItem[], se
                                                                 <Collapsible asChild defaultOpen={subItemShouldBeActive} className="group/subcollapsible">
                                                                     <div>
                                                                         <CollapsibleTrigger asChild>
-                                                                            <SidebarMenuSubButton isActive={subItemShouldBeActive}>
+                                                                            <SidebarMenuSubButton isActive={subItemShouldBeActive} className="h-9 rounded-lg text-[13px]">
                                                                                 {subItem.icon && <subItem.icon className="h-4 w-4" />}
                                                                                 <span>{subItem.title}</span>
                                                                                 <ChevronDown className="ml-auto h-3 w-3 transition-transform group-data-[state=open]/subcollapsible:rotate-180" />
@@ -97,7 +100,7 @@ export function NavMain({ items = [], searchQuery = "" }: { items: NavItem[], se
                                                                                         <SidebarMenuSubButton
                                                                                             asChild
                                                                                             isActive={!!(subSubItem.href && isUrlActive(new URL(subSubItem.href, window.location.origin).pathname))}
-                                                                                            className="text-sm"
+                                                                                            className="h-8 rounded-lg text-[13px]"
                                                                                         >
                                                                                             <Link href={subSubItem.href!}>
                                                                                                 {subSubItem.icon && <subSubItem.icon className="h-3 w-3" />}
@@ -119,6 +122,7 @@ export function NavMain({ items = [], searchQuery = "" }: { items: NavItem[], se
                                                             <SidebarMenuSubButton
                                                                 asChild
                                                                 isActive={subItemActive}
+                                                                className="h-9 rounded-lg text-[13px] text-slate-500 data-[active=true]:bg-primary/10 data-[active=true]:text-primary dark:text-slate-400"
                                                             >
                                                                 <Link href={subItem.href!}>
                                                                     {subItem.icon && <subItem.icon className="h-4 w-4" />}
@@ -140,6 +144,7 @@ export function NavMain({ items = [], searchQuery = "" }: { items: NavItem[], se
                                             <SidebarMenuButton
                                                 tooltip={item.title}
                                                 isActive={shouldBeActive}
+                                                className="h-10 rounded-xl"
                                             >
                                                 {item.icon && <item.icon />}
                                                 <span>{item.title}</span>
@@ -192,7 +197,8 @@ export function NavMain({ items = [], searchQuery = "" }: { items: NavItem[], se
                             <SidebarMenuButton
                                 asChild
                                 isActive={shouldBeActive}
-                tooltip={item.title}
+                                tooltip={item.title}
+                                className="h-10 rounded-xl px-3 text-[13px] font-medium text-slate-600 hover:bg-slate-100/80 hover:text-slate-950 data-[active=true]:bg-primary/10 data-[active=true]:text-primary dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white"
                             >
                                 <Link href={item.href!}>
                                     {item.icon && <item.icon />}

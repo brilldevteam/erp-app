@@ -2,8 +2,8 @@ import { Head } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import AuthenticatedLayout from "@/layouts/authenticated-layout";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LineChart } from '@/components/charts';
-import { Package, Users, CheckCircle, XCircle, UserCheck, Building2, CreditCard, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { BarChart3, Building2, UserCheck, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { formatDate,formatCurrency} from '@/utils/helpers';
 
 interface AccountProps {
@@ -28,6 +28,53 @@ interface AccountProps {
     }>;
 }
 
+const chartTooltipStyle = {
+    border: '1px solid #e2e8f0',
+    borderRadius: '12px',
+    boxShadow: '0 12px 30px -16px rgba(15, 23, 42, 0.35)',
+    fontSize: '12px',
+    padding: '10px 12px',
+};
+
+function EmptyChart({ message }: { message: string }) {
+    return <div className="flex h-[245px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/60 text-center dark:border-slate-800 dark:bg-slate-900/40">
+        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 shadow-sm dark:border-slate-700 dark:bg-slate-900"><BarChart3 className="h-5 w-5" /></div>
+        <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">{message}</p>
+        <p className="mt-1 text-xs text-slate-400">Payment activity will appear here automatically.</p>
+    </div>;
+}
+
+function CustomerPaymentChart({ data = [] }: { data?: Array<{ month: string; customer_payments: number }> }) {
+    const hasData = data.some(item => Number(item.customer_payments) > 0);
+    if (!hasData) return <EmptyChart message="No customer payments in this period" />;
+
+    return <ResponsiveContainer width="100%" height={245}>
+        <AreaChart data={data} margin={{ top: 12, right: 8, left: -12, bottom: 0 }}>
+            <defs><linearGradient id="customerPaymentFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0f9f8f" stopOpacity={0.3} /><stop offset="95%" stopColor="#0f9f8f" stopOpacity={0.02} /></linearGradient></defs>
+            <CartesianGrid vertical={false} stroke="#e8eef1" strokeDasharray="3 5" />
+            <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} tickMargin={10} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} tickFormatter={(value) => Number(value).toLocaleString()} width={58} />
+            <Tooltip contentStyle={chartTooltipStyle} formatter={(value: number) => [formatCurrency(value), 'Customer payments']} cursor={{ stroke: '#cbd5e1', strokeDasharray: '4 4' }} />
+            <Area type="monotone" dataKey="customer_payments" stroke="#0f9f8f" strokeWidth={2.5} fill="url(#customerPaymentFill)" activeDot={{ r: 5, fill: '#0f9f8f', stroke: '#fff', strokeWidth: 3 }} />
+        </AreaChart>
+    </ResponsiveContainer>;
+}
+
+function VendorPaymentChart({ data = [] }: { data?: Array<{ month: string; vendor_payments: number }> }) {
+    const hasData = data.some(item => Number(item.vendor_payments) > 0);
+    if (!hasData) return <EmptyChart message="No vendor payments in this period" />;
+
+    return <ResponsiveContainer width="100%" height={245}>
+        <BarChart data={data} margin={{ top: 12, right: 8, left: -12, bottom: 0 }} barCategoryGap="35%">
+            <CartesianGrid vertical={false} stroke="#e8eef1" strokeDasharray="3 5" />
+            <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} tickMargin={10} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} tickFormatter={(value) => Number(value).toLocaleString()} width={58} />
+            <Tooltip contentStyle={chartTooltipStyle} formatter={(value: number) => [formatCurrency(value), 'Vendor payments']} cursor={{ fill: '#f1f5f9' }} />
+            <Bar dataKey="vendor_payments" fill="#334155" radius={[7, 7, 2, 2]} maxBarSize={46} />
+        </BarChart>
+    </ResponsiveContainer>;
+}
+
 export default function AccountIndex({ message, stats, monthlyVendorPayments, monthlyCustomerPayments, recentRevenues, recentExpenses, recent_items }: AccountProps) {
     const { t } = useTranslation();
 
@@ -40,68 +87,59 @@ export default function AccountIndex({ message, stats, monthlyVendorPayments, mo
             <Head title={t('Account')} />
 
             {stats && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                        <Card className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium text-orange-700">{t('Total Clients')}</CardTitle>
-                                <UserCheck className="h-8 w-8 text-orange-700 opacity-80" />
+                <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <Card className="overflow-hidden border-slate-200/80 bg-white">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                                <CardTitle className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-500">{t('Total Clients')}</CardTitle>
+                                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-50 text-teal-700"><UserCheck className="h-[18px] w-[18px]" /></span>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold text-orange-700">{stats.total_clients || 0}</div>
-                                <p className="text-xs text-orange-700 opacity-80 mt-1">{t('Active clients')}</p>
+                                <div className="text-3xl font-semibold tracking-[-0.04em] text-slate-950">{stats.total_clients || 0}</div>
+                                <p className="mt-1 text-xs text-slate-400">{t('Active clients')}</p>
                             </CardContent>
                         </Card>
-                        <Card className="bg-gradient-to-r from-teal-50 to-teal-100 border-teal-200">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium text-teal-700">{t('Total Vendors')}</CardTitle>
-                                <Building2 className="h-8 w-8 text-teal-700 opacity-80" />
+                        <Card className="overflow-hidden border-slate-200/80 bg-white">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                                <CardTitle className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-500">{t('Total Vendors')}</CardTitle>
+                                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-50 text-teal-700"><Building2 className="h-[18px] w-[18px]" /></span>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold text-teal-700">{stats.total_vendors || 0}</div>
-                                <p className="text-xs text-teal-700 opacity-80 mt-1">{t('Active vendors')}</p>
+                                <div className="text-3xl font-semibold tracking-[-0.04em] text-slate-950">{stats.total_vendors || 0}</div>
+                                <p className="mt-1 text-xs text-slate-400">{t('Active vendors')}</p>
                             </CardContent>
                         </Card>
-                        <Card className="bg-gradient-to-r from-emerald-50 to-emerald-100 border-emerald-200">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium text-emerald-700">{t('Total Customer Payment')}</CardTitle>
-                                <ArrowDownCircle className="h-8 w-8 text-emerald-700 opacity-80" />
+                        <Card className="overflow-hidden border-slate-200/80 bg-white">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                                <CardTitle className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-500">{t('Total Customer Payment')}</CardTitle>
+                                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-50 text-teal-700"><ArrowDownCircle className="h-[18px] w-[18px]" /></span>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold text-emerald-700">{formatCurrency(stats.total_customer_payment || 0)}</div>
-                                <p className="text-xs text-emerald-700 opacity-80 mt-1">{t('Received payments')}</p>
+                                <div className="text-3xl font-semibold tracking-[-0.04em] text-slate-950">{formatCurrency(stats.total_customer_payment || 0)}</div>
+                                <p className="mt-1 text-xs text-slate-400">{t('Received payments')}</p>
                             </CardContent>
                         </Card>
-                        <Card className="bg-gradient-to-r from-rose-50 to-rose-100 border-rose-200">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium text-rose-700">{t('Total Vendor Payment')}</CardTitle>
-                                <ArrowUpCircle className="h-8 w-8 text-rose-700 opacity-80" />
+                        <Card className="overflow-hidden border-slate-200/80 bg-white">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                                <CardTitle className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-500">{t('Total Vendor Payment')}</CardTitle>
+                                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><ArrowUpCircle className="h-[18px] w-[18px]" /></span>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold text-rose-700">{formatCurrency(stats.total_vendor_payment || 0)}</div>
-                                <p className="text-xs text-rose-700 opacity-80 mt-1">{t('Paid to vendors')}</p>
+                                <div className="text-3xl font-semibold tracking-[-0.04em] text-slate-950">{formatCurrency(stats.total_vendor_payment || 0)}</div>
+                                <p className="mt-1 text-xs text-slate-400">{t('Paid to vendors')}</p>
                             </CardContent>
                         </Card>
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <div className="space-y-6">
-                    <Card className="h-96">
-                        <CardHeader>
-                            <CardTitle className="text-base">{t('Monthly Customer Payments')}</CardTitle>
+            <div className="mb-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
+                <div className="space-y-5">
+                    <Card>
+                        <CardHeader className="flex-row items-start justify-between space-y-0 pb-2">
+                            <div><CardTitle className="text-base">{t('Customer payment trend')}</CardTitle><p className="mt-1 text-xs text-slate-400">{t('Received during the last 6 months')}</p></div>
+                            <span className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">6 months</span>
                         </CardHeader>
                         <CardContent>
-                            <LineChart
-                                data={monthlyCustomerPayments}
-                                height={300}
-                                showTooltip={true}
-                                showGrid={true}
-                                lines={[
-                                    { dataKey: 'customer_payments', color: '#10b981', name: 'Customer Payments' }
-                                ]}
-                                xAxisKey="month"
-                                showLegend={true}
-                            />
+                            <CustomerPaymentChart data={monthlyCustomerPayments} />
                         </CardContent>
                     </Card>
 
@@ -129,23 +167,14 @@ export default function AccountIndex({ message, stats, monthlyVendorPayments, mo
                     )}
                 </div>
 
-                <div className="space-y-6">
-                    <Card className="h-96">
-                        <CardHeader>
-                            <CardTitle className="text-base">{t('Monthly Vendor Payments')}</CardTitle>
+                <div className="space-y-5">
+                    <Card>
+                        <CardHeader className="flex-row items-start justify-between space-y-0 pb-2">
+                            <div><CardTitle className="text-base">{t('Vendor payment activity')}</CardTitle><p className="mt-1 text-xs text-slate-400">{t('Paid during the last 6 months')}</p></div>
+                            <span className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">6 months</span>
                         </CardHeader>
                         <CardContent>
-                            <LineChart
-                                data={monthlyVendorPayments}
-                                height={300}
-                                showTooltip={true}
-                                showGrid={true}
-                                lines={[
-                                    { dataKey: 'vendor_payments', color: '#ef4444', name: 'Vendor Payments' }
-                                ]}
-                                xAxisKey="month"
-                                showLegend={true}
-                            />
+                            <VendorPaymentChart data={monthlyVendorPayments} />
                         </CardContent>
                     </Card>
 
