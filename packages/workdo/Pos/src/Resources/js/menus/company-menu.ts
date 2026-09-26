@@ -16,7 +16,7 @@ export const posCompanyMenu = (t: (key: string) => string) => [
         title: t('POS'),
         icon: Store,
         permission: 'manage-pos',
-        order: 475,
+        order: 66,
         children: [
             {
                 title: t('Add POS'),

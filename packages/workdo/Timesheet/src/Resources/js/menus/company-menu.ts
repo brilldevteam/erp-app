@@ -9,7 +9,7 @@ export const timesheetCompanyMenu = (t: (key: string) => string) => [
         title: t('Timesheet'),
         icon: Clock,
         permission: 'manage-timesheet',
-        order: 1450,
+        order: 52,
         href: route('timesheet.index'),
     },
 ];

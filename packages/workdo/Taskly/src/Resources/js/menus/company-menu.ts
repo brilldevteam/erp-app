@@ -20,7 +20,7 @@ export const projectCompanyMenu = (t: (key: string) => string) => [
         permission: 'manage-project',
         anyPermission: ['view-video-production'],
         excludeRoles: ['production-client'],
-        order: 300,
+        order: 60,
         name : 'project',
         children: [
             {

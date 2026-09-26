@@ -16,7 +16,7 @@ export const appointmentCompanyMenu = (t: (key: string) => string) => [
         title: t('Appointment'),
         icon: CalendarClock,
         permission: 'manage-appointment',
-        order: 1000,
+        order: 65,
         children: [
             {
                 title: t('Appointments'),

@@ -10,7 +10,7 @@ export const retainerCompanyMenu = (t: (key: string) => string) => [
         icon: Save,
         permission: 'manage-retainer',
         href:'',
-        order: 170,
+        order: 43,
 
         children: [
             {

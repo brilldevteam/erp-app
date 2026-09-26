@@ -10,7 +10,7 @@ export const productserviceCompanyMenu = (t: (key: string) => string) => [
         icon: Layers,
         permission: 'manage-product-service-item',
         parent: 'settings',
-        order: 100,
+        order: 37,
         children: [
             {
                 title: t('Items'),

@@ -703,7 +703,16 @@ SidebarMenuSub.displayName = "SidebarMenuSub"
 const SidebarMenuSubItem = React.forwardRef<
   HTMLLIElement,
   React.ComponentProps<"li">
->(({ ...props }, ref) => <li ref={ref} {...props} />)
+>(({ className, ...props }, ref) => (
+  <li
+    ref={ref}
+    className={cn(
+      "relative before:absolute before:-left-3 before:top-0 before:h-3.5 before:w-3 before:rounded-bl-md before:border-b before:border-l before:border-sidebar-border/80 before:content-['']",
+      className
+    )}
+    {...props}
+  />
+))
 SidebarMenuSubItem.displayName = "SidebarMenuSubItem"
 
 const SidebarMenuSubButton = React.forwardRef<
