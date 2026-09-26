@@ -69,12 +69,12 @@ function AuthenticatedLayoutContent({
         <SidebarProvider defaultOpen={true}>
             <AppSidebar />
 
-            <SidebarInset className="max-w-full overflow-x-hidden overflow-y-visible"
+            <SidebarInset className="max-w-full overflow-x-hidden overflow-y-visible bg-slate-50/70 dark:bg-slate-950"
                 style={{ direction: settings.layoutDirection === 'rtl' ? 'rtl' : 'ltr' }}
                 dir={settings.layoutDirection === 'rtl' ? 'rtl' : 'ltr'}
             >
                 <header
-                    className="mb-2 flex h-12 w-full min-w-0 shrink-0 items-center justify-between gap-1 border-b bg-background/95 px-2 py-2 shadow-sm backdrop-blur-md sm:h-14 sm:gap-2 sm:px-4 md:px-6"
+                    className="sticky top-0 z-30 mb-2 flex h-12 w-full min-w-0 shrink-0 items-center justify-between gap-1 border-b border-slate-200/80 bg-white/90 px-2 py-2 shadow-[0_1px_8px_rgba(15,23,42,0.035)] backdrop-blur-xl sm:h-14 sm:gap-2 sm:px-4 md:px-6 dark:border-slate-800 dark:bg-slate-950/90"
                     >
                     {/* Sidebar + Breadcrumb */}
                     <div className={`flex min-w-0 flex-1 items-center gap-1 sm:gap-2 ${ settings.layoutDirection === "rtl" ? "order-2 flex-row-reverse" : "order-1" }`} >
@@ -132,10 +132,10 @@ function AuthenticatedLayoutContent({
                     </div>
                 </header>
 
-                <main className="h-full min-w-0 max-w-full overflow-x-hidden p-3 sm:p-4 md:pt-0">
+                <main className="h-full min-w-0 max-w-full overflow-x-hidden p-3 sm:p-5 md:px-6 md:pb-6 md:pt-2">
                     {pageTitle && (
-                        <div className="flex items-center mb-6" dir={settings.layoutDirection}>
-                            <h1 className="text-xl font-semibold text-gray-900 dark:text-white flex-1">{pageTitle}</h1>
+                        <div className="mb-5 flex items-center" dir={settings.layoutDirection}>
+                            <h1 className="flex-1 text-xl font-semibold tracking-[-0.025em] text-slate-950 dark:text-white">{pageTitle}</h1>
                             <div className="flex-shrink-0">{pageActions}</div>
                         </div>
                     )}
