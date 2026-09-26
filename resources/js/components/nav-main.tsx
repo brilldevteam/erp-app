@@ -2,8 +2,68 @@ import { Link, usePage } from '@inertiajs/react';
 import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton } from '@/components/ui/sidebar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ChevronDown } from 'lucide-react';
+import {
+    BarChart3,
+    Bell,
+    Boxes,
+    CalendarDays,
+    ChevronDown,
+    CircleDot,
+    Contact,
+    FileText,
+    FolderKanban,
+    LayoutDashboard,
+    ListChecks,
+    Mail,
+    Package,
+    ReceiptText,
+    Settings,
+    ShieldCheck,
+    Target,
+    UserCog,
+    UserRound,
+    UsersRound,
+    WalletCards,
+} from 'lucide-react';
 import { NavItem } from '@/types';
+
+const fallbackSubmenuIcons = [
+    { pattern: /dashboard|overview|home/i, icon: LayoutDashboard },
+    { pattern: /role|permission/i, icon: ShieldCheck },
+    { pattern: /profile|user setting|user account/i, icon: UserCog },
+    { pattern: /users?|employee|staff|member/i, icon: UserRound },
+    { pattern: /customer|client|vendor|supplier/i, icon: UsersRound },
+    { pattern: /contact|lead/i, icon: Contact },
+    { pattern: /report|analytic|summary/i, icon: BarChart3 },
+    { pattern: /invoice|bill|payment|expense|revenue|transaction|account/i, icon: ReceiptText },
+    { pattern: /bank|wallet|credit|debit/i, icon: WalletCards },
+    { pattern: /project|task|milestone|production/i, icon: FolderKanban },
+    { pattern: /setting|setup|configuration/i, icon: Settings },
+    { pattern: /document|template|proposal|quotation|contract/i, icon: FileText },
+    { pattern: /list|request|order|record/i, icon: ListChecks },
+    { pattern: /product|item|service|stock/i, icon: Package },
+    { pattern: /inventory|warehouse|category|unit/i, icon: Boxes },
+    { pattern: /calendar|event|meeting|schedule/i, icon: CalendarDays },
+    { pattern: /email|mail/i, icon: Mail },
+    { pattern: /notification|announcement/i, icon: Bell },
+    { pattern: /goal|target|objective/i, icon: Target },
+];
+
+function SubmenuIcon({ item, nested = false }: { item: NavItem; nested?: boolean }) {
+    const identifier = `${item.title} ${item.href ?? ''}`;
+    const Icon = item.icon
+        ?? fallbackSubmenuIcons.find(({ pattern }) => pattern.test(identifier))?.icon
+        ?? CircleDot;
+
+    return (
+        <Icon
+            aria-hidden="true"
+            className={nested
+                ? 'h-3.5 w-3.5 shrink-0 text-current opacity-60'
+                : 'h-4 w-4 shrink-0 text-current opacity-70'}
+        />
+    );
+}
 
 export function NavMain({ items = [], searchQuery = "" }: { items: NavItem[], searchQuery?: string }) {
     const page = usePage();
@@ -88,7 +148,7 @@ export function NavMain({ items = [], searchQuery = "" }: { items: NavItem[], se
                                                                     <div>
                                                                         <CollapsibleTrigger asChild>
                                                                             <SidebarMenuSubButton isActive={subItemShouldBeActive} className="h-9 rounded-lg text-[13px]">
-                                                                                {subItem.icon && <subItem.icon className="h-4 w-4" />}
+                                                                                <SubmenuIcon item={subItem} />
                                                                                 <span>{subItem.title}</span>
                                                                                 <ChevronDown className="ml-auto h-3 w-3 transition-transform group-data-[state=open]/subcollapsible:rotate-180" />
                                                                             </SidebarMenuSubButton>
@@ -103,7 +163,7 @@ export function NavMain({ items = [], searchQuery = "" }: { items: NavItem[], se
                                                                                             className="h-8 rounded-lg text-[13px]"
                                                                                         >
                                                                                             <Link href={subSubItem.href!}>
-                                                                                                {subSubItem.icon && <subSubItem.icon className="h-3 w-3" />}
+                                                                                                <SubmenuIcon item={subSubItem} nested />
                                                                                                 <span>{subSubItem.title}</span>
                                                                                             </Link>
                                                                                         </SidebarMenuSubButton>
@@ -125,7 +185,7 @@ export function NavMain({ items = [], searchQuery = "" }: { items: NavItem[], se
                                                                 className="h-9 rounded-lg text-[13px] text-slate-500 data-[active=true]:bg-primary/10 data-[active=true]:text-primary dark:text-slate-400"
                                                             >
                                                                 <Link href={subItem.href!}>
-                                                                    {subItem.icon && <subItem.icon className="h-4 w-4" />}
+                                                                    <SubmenuIcon item={subItem} />
                                                                     <span>{subItem.title}</span>
                                                                 </Link>
                                                             </SidebarMenuSubButton>
@@ -157,7 +217,7 @@ export function NavMain({ items = [], searchQuery = "" }: { items: NavItem[], se
                                                         <DropdownMenu key={subItem.title}>
                                                             <DropdownMenuTrigger asChild>
                                                                 <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
-                                                                    {subItem.icon && <subItem.icon className="h-4 w-4" />}
+                                                                    <SubmenuIcon item={subItem} />
                                                                     <span>{subItem.title}</span>
                                                                     <ChevronDown className="ml-auto h-3 w-3" />
                                                                 </DropdownMenuItem>
@@ -166,7 +226,7 @@ export function NavMain({ items = [], searchQuery = "" }: { items: NavItem[], se
                                                                 {subItem.children.map((subSubItem) => (
                                                                     <DropdownMenuItem key={subSubItem.title} asChild>
                                                                         <Link href={subSubItem.href!} className="flex items-center gap-2">
-                                                                            {subSubItem.icon && <subSubItem.icon className="h-3 w-3" />}
+                                                                            <SubmenuIcon item={subSubItem} nested />
                                                                             <span className="text-sm">{subSubItem.title}</span>
                                                                         </Link>
                                                                     </DropdownMenuItem>
@@ -179,7 +239,7 @@ export function NavMain({ items = [], searchQuery = "" }: { items: NavItem[], se
                                                 return (
                                                     <DropdownMenuItem key={subItem.title} asChild>
                                                         <Link href={subItem.href!} className="flex items-center gap-2">
-                                                            {subItem.icon && <subItem.icon className="h-4 w-4" />}
+                                                            <SubmenuIcon item={subItem} />
                                                             <span>{subItem.title}</span>
                                                         </Link>
                                                     </DropdownMenuItem>
