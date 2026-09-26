@@ -39,7 +39,6 @@ export interface Customer {
 }
 
 export interface CustomerFormData {
-  user_id?: number;
   company_name: string;
   contact_person_name: string;
   contact_person_email: string;
@@ -50,11 +49,7 @@ export interface CustomerFormData {
   shipping_address: Address;
   same_as_billing: boolean;
   notes?: string;
-}
-
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  mobile_no?: string;
+  portal_access_enabled: boolean;
+  password: string;
+  password_confirmation: string;
 }

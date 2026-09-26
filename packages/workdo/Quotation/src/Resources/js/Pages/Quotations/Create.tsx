@@ -24,7 +24,6 @@ import CreateWarehouse from '@/pages/warehouses/create';
 
 interface CreateProps {
     customers: Array<{id: number; name: string; email?: string | null}>;
-    customerUsers: Array<{id: number; name: string; email: string; mobile_no?: string}>;
     warehouses: Array<{id: number; name: string; address: string}>;
     documentTemplates: Array<{ id: number; name: string; is_default: boolean }>;
     productCatalog: {
@@ -42,7 +41,7 @@ interface CreateProps {
 
 export default function Create() {
     const { t } = useTranslation();
-    const { customers, customerUsers, warehouses, documentTemplates = [], productCatalog, auth } = usePage<CreateProps>().props;
+    const { customers, warehouses, documentTemplates = [], productCatalog, auth } = usePage<CreateProps>().props;
     const [availableProducts, setAvailableProducts] = useState<QuotationProduct[]>([]);
     const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
     const [productsLoading, setProductsLoading] = useState(false);
@@ -435,8 +434,6 @@ export default function Create() {
                 {isCustomerModalOpen && (
                     <CreateCustomer
                         onSuccess={handleCustomerCreated}
-                        users={customerUsers}
-                        auth={{ user: { permissions: auth.user.permissions ?? [] } }}
                         returnToCurrentPage
                     />
                 )}

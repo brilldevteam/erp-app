@@ -18,7 +18,10 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Workdo\Account\Models\Customer;
+use Workdo\Account\Models\Vendor;
 
 class UserController extends Controller
 {
@@ -46,16 +49,29 @@ class UserController extends Controller
                 ->paginate(request('per_page', 10))
                 ->withQueryString();
 
-            $users->getCollection()->transform(function ($user) {
+            $customerLinks = Schema::hasTable('customers')
+                ? Customer::where('created_by', creatorId())->whereIn('user_id', $users->getCollection()->pluck('id'))->get(['id', 'user_id'])->keyBy('user_id')
+                : collect();
+            $vendorLinks = Schema::hasTable('vendors')
+                ? Vendor::where('created_by', creatorId())->whereIn('user_id', $users->getCollection()->pluck('id'))->get(['id', 'user_id'])->keyBy('user_id')
+                : collect();
+            $users->getCollection()->transform(function ($user) use ($customerLinks, $vendorLinks) {
                 $user->is_online = Cache::has("user_online_{$user->id}");
+                if ($customerLinks->has($user->id)) {
+                    $user->linked_party = ['type' => 'customer', 'id' => $customerLinks[$user->id]->id];
+                } elseif ($vendorLinks->has($user->id)) {
+                    $user->linked_party = ['type' => 'vendor', 'id' => $vendorLinks[$user->id]->id];
+                }
                 return $user;
             });
 
             $roles = Role::where('created_by', creatorId())->pluck('label', 'id');
+            $createRoles = Role::where('created_by', creatorId())->whereNotIn('name', ['client', 'vendor'])->pluck('label', 'id');
 
             return Inertia::render('users/index', [
                 'users' => $users,
                 'roles' => $roles,
+                'createRoles' => $createRoles,
                 'plans' => Auth::user()->can('manage-any-plans')
                     ? Plan::active()
                         ->latest()
@@ -93,6 +109,9 @@ class UserController extends Controller
             $hasLoginEmail = filter_var($validated['email'] ?? null, FILTER_VALIDATE_EMAIL) !== false;
 
             $role = Role::find($validated['type'] ?? null);
+            if ($role && in_array($role->name, ['client', 'vendor'], true)) {
+                return back()->withErrors(['type' => __('Client and Vendor accounts must be created from their own module.')]);
+            }
             $enableEmailVerification = admin_setting('enableEmailVerification');
 
             $user = new User();
@@ -153,6 +172,9 @@ class UserController extends Controller
     public function update(UpdateUserRequest $request, User $user)
     {
         if(Auth::user()->can('edit-users')){
+            if ($this->linkedParty($user)) {
+                return back()->with('error', __('Customer and vendor accounts must be edited from their own module.'));
+            }
             $validated = $request->validated();
             $validated['is_enable_login'] = $request->boolean('is_enable_login', true);
             $hasLoginEmail = filter_var($validated['email'] ?? null, FILTER_VALIDATE_EMAIL) !== false;
@@ -195,6 +217,9 @@ class UserController extends Controller
     public function changePassword(ChangePasswordRequest $request, User $user)
     {
         if(Auth::user()->can('change-password-users') && $user->created_by == creatorId() ){
+            if ($this->linkedParty($user)) {
+                return back()->with('error', __('Customer and vendor accounts must be edited from their own module.'));
+            }
             $validated = $request->validated();
             $user->password = Hash::make($validated['password']);
             $user->password_changed_at = now();
@@ -210,6 +235,9 @@ class UserController extends Controller
     public function sendPasswordReset(User $user)
     {
         if(Auth::user()->can('change-password-users') && $user->created_by == creatorId() ){
+            if ($this->linkedParty($user)) {
+                return back()->with('error', __('Customer and vendor accounts must be edited from their own module.'));
+            }
             if ($this->isPlaceholderEmail($user->email)) {
                 return back()->with('error', __('This user does not have a valid email address.'));
             }
@@ -235,6 +263,9 @@ class UserController extends Controller
     public function destroy(User $user)
     {
         if(Auth::user()->can('delete-users')){
+            if ($this->linkedParty($user)) {
+                return back()->with('error', __('This account is linked to a customer or vendor and cannot be deleted here.'));
+            }
             $user->delete();
 
             return back()->with('success', __('The user has been deleted.'));
@@ -333,5 +364,15 @@ class UserController extends Controller
         return $email === ''
             || str_ends_with($email, '@import.local')
             || str_starts_with($email, 'zoho.customer.');
+    }
+
+    private function linkedParty(User $user): Customer|Vendor|null
+    {
+        $customer = Schema::hasTable('customers')
+            ? Customer::where('created_by', creatorId())->where('user_id', $user->id)->first()
+            : null;
+        return $customer ?? (Schema::hasTable('vendors')
+            ? Vendor::where('created_by', creatorId())->where('user_id', $user->id)->first()
+            : null);
     }
 }

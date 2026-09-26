@@ -29,7 +29,7 @@ import { User, UsersIndexProps, UserFilters, UserModalState } from './types';
 
 export default function Index() {
     const { t } = useTranslation();
-    const { users, roles, plans, auth } = usePage<UsersIndexProps>().props;
+    const { users, roles, createRoles, plans, auth } = usePage<UsersIndexProps>().props;
     const urlParams = new URLSearchParams(window.location.search);
 
     const [filters, setFilters] = useState<UserFilters>({
@@ -97,6 +97,15 @@ export default function Index() {
             mode: '',
             data: null
         });
+    };
+
+    const editUserOrParty = (user: User) => {
+        if (user.linked_party) {
+            const routeName = user.linked_party.type === 'customer' ? 'account.customers.index' : 'account.vendors.index';
+            router.get(route(routeName), { edit: user.linked_party.id });
+            return;
+        }
+        openModal('edit', user);
     };
 
     const sendPasswordReset = (user: User) => {
@@ -194,7 +203,7 @@ export default function Index() {
                                     </TooltipContent>
                                 </Tooltip>
                             )}
-                            {auth.user?.permissions?.includes('change-password-users') && hasUsableLoginEmail(user) && (
+                            {auth.user?.permissions?.includes('change-password-users') && !user.linked_party && hasUsableLoginEmail(user) && (
                                 <Tooltip delayDuration={0}>
                                     <TooltipTrigger asChild>
                                         <Button variant="ghost" size="sm" onClick={() => openModal('change-password', user)} className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700">
@@ -206,7 +215,7 @@ export default function Index() {
                                     </TooltipContent>
                                 </Tooltip>
                             )}
-                            {auth.user?.permissions?.includes('change-password-users') && hasUsableLoginEmail(user) && (
+                            {auth.user?.permissions?.includes('change-password-users') && !user.linked_party && hasUsableLoginEmail(user) && (
                                 <Tooltip delayDuration={0}>
                                     <TooltipTrigger asChild>
                                         <Button variant="ghost" size="sm" onClick={() => sendPasswordReset(user)} className="h-8 w-8 p-0 text-teal-600 hover:text-teal-700">
@@ -221,7 +230,7 @@ export default function Index() {
                             {auth.user?.permissions?.includes('edit-users') && (
                                 <Tooltip delayDuration={0}>
                                     <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="sm" onClick={() => openModal('edit', user)} className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700">
+                                        <Button variant="ghost" size="sm" onClick={() => editUserOrParty(user)} className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700">
                                             <Edit className="h-4 w-4" />
                                         </Button>
                                     </TooltipTrigger>
@@ -247,7 +256,7 @@ export default function Index() {
                                     </TooltipContent>
                                 </Tooltip>
                             )}
-                            {auth.user?.permissions?.includes('delete-users') && (
+                            {auth.user?.permissions?.includes('delete-users') && !user.linked_party && (
                                 <Tooltip delayDuration={0}>
                                     <TooltipTrigger asChild>
                                         <Button
@@ -510,7 +519,7 @@ export default function Index() {
                                                                 <TooltipContent><p>{t('Login As User')}</p></TooltipContent>
                                                             </Tooltip>
                                                         )}
-                                                        {auth.user?.permissions?.includes('change-password-users') && hasUsableLoginEmail(user) && (
+                                                        {auth.user?.permissions?.includes('change-password-users') && !user.linked_party && hasUsableLoginEmail(user) && (
                                                             <Tooltip delayDuration={0}>
                                                                 <TooltipTrigger asChild>
                                                                     <Button
@@ -525,7 +534,7 @@ export default function Index() {
                                                                 <TooltipContent><p>{t('Change Password')}</p></TooltipContent>
                                                             </Tooltip>
                                                         )}
-                                                        {auth.user?.permissions?.includes('change-password-users') && hasUsableLoginEmail(user) && (
+                                                        {auth.user?.permissions?.includes('change-password-users') && !user.linked_party && hasUsableLoginEmail(user) && (
                                                             <Tooltip delayDuration={0}>
                                                                 <TooltipTrigger asChild>
                                                                     <Button
@@ -546,7 +555,7 @@ export default function Index() {
                                                                     <Button
                                                                         variant="ghost"
                                                                         size="sm"
-                                                                        onClick={() => openModal('edit', user)}
+                                                                        onClick={() => editUserOrParty(user)}
                                                                         className="h-9 w-9 p-0 text-blue-600 hover:text-blue-700 rounded-lg transition-colors"
                                                                     >
                                                                         <Edit className="h-4 w-4" />
@@ -570,7 +579,7 @@ export default function Index() {
                                                                 <TooltipContent><p>{t('Change Plan')}</p></TooltipContent>
                                                             </Tooltip>
                                                         )}
-                                                        {auth.user?.permissions?.includes('delete-users') && (
+                                                        {auth.user?.permissions?.includes('delete-users') && !user.linked_party && (
                                                             <Tooltip delayDuration={0}>
                                                                 <TooltipTrigger asChild>
                                                                     <Button
@@ -619,7 +628,7 @@ export default function Index() {
 
             <Dialog open={modalState.isOpen} onOpenChange={closeModal}>
                 {modalState.mode === 'add' && (
-                    <Create onSuccess={closeModal} roles={roles} />
+                    <Create onSuccess={closeModal} roles={createRoles} />
                 )}
                 {modalState.mode === 'edit' && modalState.data && (
                     <EditUser

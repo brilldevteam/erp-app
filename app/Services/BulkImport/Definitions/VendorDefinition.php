@@ -61,7 +61,7 @@ class VendorDefinition implements EntityDefinition
     public function instructions(): array
     {
         return [
-            'vendor_email is optional. Vendors without an email are imported with login access disabled.',
+            'vendor_email is optional. Imported vendors receive internal accounts with portal login disabled.',
             'When vendor_email is blank, duplicate matching uses company_name/vendor_name.',
             'Only vendor name is required.',
             'Billing and shipping addresses are optional.',
@@ -105,14 +105,6 @@ class VendorDefinition implements EntityDefinition
             $errors[] = 'Vendor email is invalid.';
         }
 
-        $email = strtolower($this->text($row['vendor_email'] ?? ''));
-        if ($email !== '') {
-            $user = User::whereRaw('LOWER(email) = ?', [$email])->first();
-            if ($user && ($user->created_by !== $tenantId || $user->type !== 'vendor')) {
-                $errors[] = 'Vendor email belongs to another account or an incompatible user type.';
-            }
-        }
-
         if (!Role::where('name', 'vendor')->where('guard_name', 'web')->where('created_by', $tenantId)->exists()) {
             $errors[] = 'The vendor role is not configured for this company.';
         }
@@ -125,7 +117,7 @@ class VendorDefinition implements EntityDefinition
         $email = strtolower($this->text($row['vendor_email'] ?? ''));
         if ($email !== '') {
             return Vendor::where('created_by', $tenantId)
-                ->whereHas('user', fn ($query) => $query->whereRaw('LOWER(email) = ?', [$email]))
+                ->whereRaw('LOWER(contact_person_email) = ?', [$email])
                 ->exists();
         }
 
@@ -137,27 +129,31 @@ class VendorDefinition implements EntityDefinition
     public function import(array $row, string $strategy, int $tenantId, int $actorId): string
     {
         $email = strtolower($this->text($row['vendor_email'] ?? ''));
-        $user = $email !== ''
-            ? User::where('created_by', $tenantId)
-                ->where('type', 'vendor')
-                ->whereRaw('LOWER(email) = ?', [$email])
+        $vendor = $email !== ''
+            ? Vendor::where('created_by', $tenantId)
+                ->whereRaw('LOWER(contact_person_email) = ?', [$email])
                 ->first()
             : Vendor::where('created_by', $tenantId)
                 ->whereRaw('LOWER(company_name) = ?', [strtolower($this->text($row['company_name'] ?? $row['vendor_name'] ?? ''))])
-                ->first()?->user;
+                ->first();
+        if ($vendor && $strategy === 'skip') {
+            return 'skipped';
+        }
+
+        $user = $vendor?->user;
 
         if (!$user) {
             $user = app(ImportedClientUserService::class)->createImportContact([
-                'name' => $this->text($row['vendor_name']),
+                'name' => $this->text($row['company_name'] ?? $row['vendor_name']),
                 'email' => $email,
                 'mobile_no' => $this->nullableText($row['mobile_no'] ?? null),
             ], $tenantId, $actorId, 'vendor');
         }
 
-        $vendor = Vendor::where('created_by', $tenantId)->where('user_id', $user->id)->first();
-        if ($vendor && $strategy === 'skip') {
-            return 'skipped';
-        }
+        $user->update([
+            'name' => $this->text($row['company_name']),
+            'mobile_no' => $this->nullableText($row['mobile_no'] ?? null),
+        ]);
 
         $billing = $this->address($row, 'billing');
         $sameAsBilling = $this->boolean($row['same_as_billing'] ?? true);

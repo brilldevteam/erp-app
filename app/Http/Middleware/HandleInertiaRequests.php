@@ -71,6 +71,7 @@ class HandleInertiaRequests extends Middleware
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
                 'createdWarehouse' => $request->session()->get('createdWarehouse'),
+                'createdCustomerUserId' => $request->session()->get('createdCustomerUserId'),
             ],
             'packages' => (new Module())->allModules(),
             'adminAllSetting' => $request->user()

@@ -1,5 +1,5 @@
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useForm, router } from "@inertiajs/react";
+import { useForm } from "@inertiajs/react";
 import { useTranslation } from 'react-i18next';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,14 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import InputError from "@/components/ui/input-error";
 import { PhoneInputComponent } from "@/components/ui/phone-input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CreateVendorProps, CreateVendorFormData } from './types';
 import { useFormFields } from '@/hooks/useFormFields';
 
-export default function Create({ onSuccess, users = [], auth, returnTo }: CreateVendorProps) {
+export default function Create({ onSuccess, returnTo }: CreateVendorProps) {
     const { t } = useTranslation();
     const { data, setData, post, processing, errors } = useForm<CreateVendorFormData>({
-        user_id: '0',
         company_name: '',
         contact_person_name: '',
         contact_person_email: '',
@@ -43,31 +41,12 @@ export default function Create({ onSuccess, users = [], auth, returnTo }: Create
         same_as_billing: false,
         notes: '',
         return_to: returnTo || '',
+        portal_access_enabled: false,
+        password: '',
+        password_confirmation: '',
     });
 
     const customFields = useFormFields('getCustomFields', { ...data, module: 'Account', sub_module: 'Vendor' }, setData, errors, 'create', t);
-
-    const isPlaceholderEmail = (email?: string | null) => {
-        const value = (email ?? '').toLowerCase();
-        return value === '' || value.endsWith('@import.local') || value.startsWith('zoho.customer.');
-    };
-
-    const handleUserSelect = (userId: string) => {
-        const actualUserId = userId === '0' ? '' : userId;
-        setData('user_id', actualUserId);
-        if (userId !== '0') {
-            const selectedUser = users.find(user => user.id.toString() === userId);
-            if (selectedUser) {
-                setData({
-                    ...data,
-                    user_id: actualUserId,
-                    contact_person_name: selectedUser.name,
-                    contact_person_email: isPlaceholderEmail(selectedUser.email) ? '' : selectedUser.email,
-                    contact_person_mobile: selectedUser.mobile_no || '',
-                });
-            }
-        }
-    };
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -84,31 +63,6 @@ export default function Create({ onSuccess, users = [], auth, returnTo }: Create
                 <DialogTitle>{t('Create Vendor')}</DialogTitle>
             </DialogHeader>
             <form onSubmit={submit} className="space-y-4">
-                <div>
-                    <Label htmlFor="user_id" required>{t('User')}</Label>
-                    <Select value={data.user_id} onValueChange={handleUserSelect}>
-                        <SelectTrigger>
-                            <SelectValue placeholder={t('Select a user (optional)')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="0">{t('No User Selected')}</SelectItem>
-                            {users.map((user) => (
-                                <SelectItem key={user.id} value={user.id.toString()}>
-                                    {isPlaceholderEmail(user.email) ? user.name : `${user.name} (${user.email})`}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <InputError message={errors.user_id} />
-                    {users.length === 0 && auth?.user?.permissions?.includes('create-users') && (
-                        <p className="text-xs text-gray-500 mt-1">
-                            {t('Create user here.')} <button onClick={() => router.get(route('users.index'))} className="text-blue-600 hover:underline">{t('Create user')}</button>
-                        </p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-1">
-                        {t('Note: Only users with vendor role who are not already assigned to other vendors will appear in this list.')}
-                    </p>
-                </div>
                 <div>
                     <Label htmlFor="company_name">{t('Company Name')}</Label>
                     <Input
@@ -137,10 +91,22 @@ export default function Create({ onSuccess, users = [], auth, returnTo }: Create
                         id="contact_person_email"
                         type="email"
                         value={data.contact_person_email}
-                        onChange={(e) => setData('contact_person_email', e.target.value)}
+                        onChange={(e) => { const email = e.target.value; setData('contact_person_email', email); if (!/^\S+@\S+\.\S+$/.test(email)) setData('portal_access_enabled', false); }}
                         placeholder={t('Enter email address (optional)')}
                     />
                     <InputError message={errors.contact_person_email} />
+                </div>
+                <div className="space-y-3 rounded-md border p-4">
+                    <div className="flex items-center gap-2">
+                        <Checkbox id="portal_access_enabled" checked={data.portal_access_enabled} disabled={!/^\S+@\S+\.\S+$/.test(data.contact_person_email)} onCheckedChange={(checked) => setData('portal_access_enabled', !!checked)} />
+                        <Label htmlFor="portal_access_enabled">{t('Enable ERP Portal Login')}</Label>
+                    </div>
+                    {data.portal_access_enabled && (
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div><Label htmlFor="password" required>{t('Password')}</Label><Input id="password" type="password" value={data.password} onChange={(e) => setData('password', e.target.value)} /><InputError message={errors.password} /></div>
+                            <div><Label htmlFor="password_confirmation" required>{t('Confirm Password')}</Label><Input id="password_confirmation" type="password" value={data.password_confirmation} onChange={(e) => setData('password_confirmation', e.target.value)} /><InputError message={errors.password_confirmation} /></div>
+                        </div>
+                    )}
                 </div>
                 <div>
                     <PhoneInputComponent

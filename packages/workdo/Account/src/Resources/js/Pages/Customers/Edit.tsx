@@ -21,6 +21,10 @@ export default function Edit({ customer, onSuccess }: EditCustomerProps) {
     const { t } = useTranslation();
     const { data, setData, put, processing, errors } = useForm<CustomerFormData>({
         ...customer,
+        contact_person_email: customer.contact_person_email ?? '',
+        portal_access_enabled: !!customer.user?.is_enable_login,
+        password: '',
+        password_confirmation: '',
         billing_address: { ...customer.billing_address, country_code: addressCountryCode(customer.billing_address) || customer.billing_address.country_code },
         shipping_address: { ...customer.shipping_address, country_code: addressCountryCode(customer.shipping_address) || customer.shipping_address.country_code },
     });
@@ -72,10 +76,22 @@ export default function Edit({ customer, onSuccess }: EditCustomerProps) {
                         id="contact_person_email"
                         type="email"
                         value={data.contact_person_email}
-                        onChange={(e) => setData('contact_person_email', e.target.value)}
+                        onChange={(e) => { const email = e.target.value; setData('contact_person_email', email); if (!/^\S+@\S+\.\S+$/.test(email)) setData('portal_access_enabled', false); }}
                         placeholder={t('Enter email address (optional)')}
                     />
                     <InputError message={errors.contact_person_email} />
+                </div>
+                <div className="space-y-3 rounded-md border p-4">
+                    <div className="flex items-center gap-2">
+                        <Checkbox id="portal_access_enabled" checked={data.portal_access_enabled} disabled={!/^\S+@\S+\.\S+$/.test(data.contact_person_email)} onCheckedChange={(checked) => setData('portal_access_enabled', !!checked)} />
+                        <Label htmlFor="portal_access_enabled">{t('Enable ERP Portal Login')}</Label>
+                    </div>
+                    {data.portal_access_enabled && (
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div><Label htmlFor="password">{t(customer.user?.is_enable_login ? 'New Password (Optional)' : 'Password')}</Label><Input id="password" type="password" value={data.password} onChange={(e) => setData('password', e.target.value)} /><InputError message={errors.password} /></div>
+                            <div><Label htmlFor="password_confirmation">{t('Confirm Password')}</Label><Input id="password_confirmation" type="password" value={data.password_confirmation} onChange={(e) => setData('password_confirmation', e.target.value)} /><InputError message={errors.password_confirmation} /></div>
+                        </div>
+                    )}
                 </div>
                 <div>
                     <PhoneInputComponent

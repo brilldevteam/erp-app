@@ -29,6 +29,7 @@ All notable changes to the Wazely ERP application are documented here.
 - New features currently in development will be listed here before release.
 
 ### Changed
+- Decoupled customer and vendor creation from User Management: party forms automatically maintain linked internal identities with optional ERP portal login, transactional detail/status synchronization, and protected user editing/deletion. Client/vendor roles are excluded from manual user creation and staff-seat limits. Imports create disabled portal accounts, and `accounts:backfill-party-portals --dry-run` previews the idempotent backfill without changing existing user or financial record IDs.
 - Added a dedicated Production Client portal that opens directly on the assigned production overview, provides sidebar-only Overview, Shooting Log and Deliverables navigation, and enforces one client login per production project.
 - Removed reusable Production Client attachment, project switching, generic Project navigation, breadcrumbs and production tabs from Production Client accounts while preserving the staff management interface.
 - Simplified downloaded quotation and sales invoice PDF filenames to `EST-YYYY-MM-NNN.pdf` and `INV-YYYY-MM-NNN.pdf` while preserving internal document numbers.

@@ -2,7 +2,8 @@
 
 namespace Workdo\Account\Http\Controllers;
 
-use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Workdo\Account\Services\PartyPortalAccountService;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -20,7 +21,7 @@ class VendorController extends Controller
     {
         if(Auth::user()->can('manage-vendors')){
             $vendors = Vendor::query()
-                ->with('user:id,name,avatar,is_disable')
+                ->with('user:id,name,email,mobile_no,avatar,is_disable,is_enable_login')
                 ->when(Schema::hasTable('project_contracts'), function ($query) {
                     $query->with(['projectContracts' => function ($contractQuery) {
                         $contractQuery->where('created_by', creatorId())
@@ -45,15 +46,9 @@ class VendorController extends Controller
                 ->paginate(request('per_page', 10))
                 ->withQueryString();
 
-            $users = User::where('type', 'vendor')
-                ->where('created_by', creatorId())
-                ->whereNotIn('id', Vendor::pluck('user_id')->filter())
-                ->select('id', 'name', 'email', 'mobile_no')
-                ->get();
-
             return Inertia::render('Account/Vendors/Index', [
                 'vendors' => $vendors,
-                'users' => $users,
+                'editVendor' => request('edit') ? Vendor::with('user:id,is_enable_login,is_disable')->where('created_by', creatorId())->find(request('edit')) : null,
                 'openCreate' => request()->boolean('create'),
                 'returnTo' => request('return_to') === 'project.contractors.index' ? request('return_to') : null,
             ]);
@@ -63,13 +58,12 @@ class VendorController extends Controller
 
 
 
-    public function store(StoreVendorRequest $request)
+    public function store(StoreVendorRequest $request, PartyPortalAccountService $portalAccounts)
     {
         if(Auth::user()->can('create-vendors')){
             $validated = $request->validated();
 
             $vendor = new Vendor();
-            $vendor->user_id = $validated['user_id'] ?? null;
             $vendor->company_name = $validated['company_name'];
             $vendor->contact_person_name = $validated['contact_person_name'];
             $vendor->contact_person_email = $validated['contact_person_email'] ?? null;
@@ -82,9 +76,14 @@ class VendorController extends Controller
             $vendor->notes = $validated['notes'] ?? null;
             $vendor->creator_id = Auth::id();
             $vendor->created_by = creatorId();
-            $vendor->save();
+            $user = DB::transaction(function () use ($vendor, $validated, $portalAccounts) {
+                $user = $portalAccounts->create($vendor, 'vendor', $validated, creatorId(), Auth::id());
+                $vendor->save();
+                return $user;
+            });
 
             CreateVendor::dispatch($request, $vendor);
+            $portalAccounts->sendAccessNotifications($user, $validated['password'] ?? null);
 
             $redirectRoute = ($validated['return_to'] ?? null) === 'project.contractors.index'
                 ? 'project.contractors.index'
@@ -95,7 +94,7 @@ class VendorController extends Controller
         return redirect()->route('account.vendors.index')->with('error', __('Permission denied'));
     }
 
-    public function update(UpdateVendorRequest $request, Vendor $vendor)
+    public function update(UpdateVendorRequest $request, Vendor $vendor, PartyPortalAccountService $portalAccounts)
     {
         if(Auth::user()->can('edit-vendors')){
             $validated = $request->validated();
@@ -110,23 +109,32 @@ class VendorController extends Controller
             $vendor->shipping_address = $validated['same_as_billing'] ? $validated['billing_address'] : $validated['shipping_address'];
             $vendor->same_as_billing = $validated['same_as_billing'] ?? false;
             $vendor->notes = $validated['notes'] ?? null;
-            $vendor->save();
+            $wasEnabled = (bool) $vendor->user?->is_enable_login;
+            $user = DB::transaction(function () use ($vendor, $validated, $portalAccounts) {
+                $user = $portalAccounts->sync($vendor, 'vendor', $validated, creatorId(), Auth::id());
+                $vendor->save();
+                return $user;
+            });
 
             UpdateVendor::dispatch($request, $vendor);
+            $portalAccounts->sendAccessNotifications($user, $validated['password'] ?? null, $wasEnabled);
 
             return back()->with('success', __('The vendor details are updated successfully.'));
         }
         return back()->with('error', __('Permission denied'));
     }
 
-    public function destroy(Vendor $vendor)
+    public function destroy(Vendor $vendor, PartyPortalAccountService $portalAccounts)
     {
         if(Auth::user()->can('delete-vendors')){
             if (Schema::hasTable('project_contracts') && $vendor->projectContracts()->exists()) {
                 return back()->with('error', __('This vendor cannot be deleted because project contracts are linked to it.'));
             }
-            DestroyVendor::dispatch($vendor);
-            $vendor->delete();
+            DB::transaction(function () use ($vendor, $portalAccounts) {
+                $portalAccounts->disable($vendor);
+                DestroyVendor::dispatch($vendor);
+                $vendor->delete();
+            });
             return back()->with('success', __('The vendor has been deleted.'));
         }
         return back()->with('error', __('Permission denied'));

@@ -3,6 +3,7 @@
 namespace Workdo\Account\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreVendorRequest extends FormRequest
 {
@@ -14,10 +15,11 @@ class StoreVendorRequest extends FormRequest
     public function rules()
     {
         return [
-            'user_id' => 'required|exists:users,id',
             'company_name' => 'required|string|max:255',
             'contact_person_name' => 'required|string|max:255',
-            'contact_person_email' => 'nullable|email|max:255',
+            'portal_access_enabled' => 'boolean',
+            'password' => [Rule::requiredIf($this->boolean('portal_access_enabled')), 'nullable', 'string', 'confirmed', 'min:6'],
+            'contact_person_email' => ['nullable', 'email', 'max:255', Rule::requiredIf($this->boolean('portal_access_enabled')), Rule::when($this->boolean('portal_access_enabled'), Rule::unique('users', 'email'))],
             'contact_person_mobile' => 'nullable|string|max:255',
             'tax_number' => 'nullable|string|max:255',
             'payment_terms' => 'nullable|string|max:255',

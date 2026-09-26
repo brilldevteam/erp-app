@@ -40,10 +40,16 @@ export interface Vendor {
         completion_date: string;
         project?: { id: number; name: string };
     }>;
+    user?: {
+        id: number;
+        name: string;
+        avatar?: string;
+        is_enable_login?: boolean;
+        is_disable?: number;
+    };
 }
 
 export interface VendorFormData {
-    user_id?: number;
     company_name: string;
     contact_person_name: string;
     contact_person_email: string;
@@ -54,10 +60,12 @@ export interface VendorFormData {
     shipping_address: Address;
     same_as_billing: boolean;
     notes?: string;
+    portal_access_enabled: boolean;
+    password: string;
+    password_confirmation: string;
 }
 
 export interface CreateVendorFormData {
-    user_id?: string;
     company_name: string;
     contact_person_name: string;
     contact_person_email: string;
@@ -69,14 +77,11 @@ export interface CreateVendorFormData {
     same_as_billing: boolean;
     notes: string;
     return_to?: string;
+    portal_access_enabled: boolean;
+    password: string;
+    password_confirmation: string;
 }
 
-export interface User {
-    id: number;
-    name: string;
-    email: string;
-    mobile_no?: string;
-}
 
 export interface VendorFilters {
     company_name: string;
@@ -89,17 +94,15 @@ export type VendorModalState = ModalState<Vendor>;
 
 export interface VendorsIndexProps {
     vendors: PaginatedVendors;
-    users: User[];
     auth: AuthContext;
     openCreate?: boolean;
     returnTo?: string | null;
+    editVendor?: Vendor | null;
     [key: string]: unknown;
 }
 
 export interface CreateVendorProps {
     onSuccess: () => void;
-    users?: User[];
-    auth?: any;
     returnTo?: string | null;
 }
 

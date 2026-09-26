@@ -93,16 +93,9 @@ class QuotationController extends Controller
         if (Auth::user()->can('create-quotations')) {
             $customers  = $this->quotationCustomers();
             $warehouses = Warehouse::where('is_active', true)->select('id', 'name', 'address')->where('created_by', creatorId())->get();
-            $customerUsers = User::where('type', 'client')
-                ->where('created_by', creatorId())
-                ->whereNotIn('id', Customer::whereNotNull('user_id')->pluck('user_id'))
-                ->select('id', 'name', 'email', 'mobile_no')
-                ->get();
-
             return Inertia::render('Quotation/Quotations/Create', [
                 'customers'  => $customers,
                 'warehouses' => $warehouses,
-                'customerUsers' => $customerUsers,
                 'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_QUOTATION),
                 'productCatalog' => $this->productCatalog(),
             ]);
