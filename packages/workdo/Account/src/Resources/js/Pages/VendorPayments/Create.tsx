@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useForm } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
-import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,9 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { DatePicker } from '@/components/ui/date-picker';
 import InputError from '@/components/ui/input-error';
-import { Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { CreateVendorPaymentFormData, CreateVendorPaymentProps, PurchaseInvoice, DebitNote } from './types';
 import { formatCurrency } from '@/utils/helpers';
+import TransactionCurrencyFields from '@/components/transaction-currency-fields';
+import CreateVendor from '../Vendors/Create';
 
 export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendorPaymentProps) {
     const { t } = useTranslation();
@@ -21,6 +23,10 @@ export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendo
     const [availableDebitNotes, setAvailableDebitNotes] = useState<DebitNote[]>([]);
     const [selectedAllocations, setSelectedAllocations] = useState<{invoice_id: number; amount: number}[]>([]);
     const [selectedDebitNotes, setSelectedDebitNotes] = useState<{debit_note_id: number; amount: number}[]>([]);
+    const [isVendorDialogOpen, setIsVendorDialogOpen] = useState(false);
+    const [vendorOptions, setVendorOptions] = useState(vendors || []);
+
+    useEffect(() => setVendorOptions(vendors || []), [vendors]);
 
     const { data, setData, post, processing, errors } = useForm<CreateVendorPaymentFormData>({
         payment_date: new Date().toISOString().split('T')[0],
@@ -28,10 +34,25 @@ export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendo
         bank_account_id: '',
         reference_number: '',
         payment_amount: '',
+        currency_code: '',
+        exchange_rate: '1.00000000',
         notes: '',
         allocations: [],
         debit_notes: []
     });
+
+    const vendorCreated = (userId?: number) => {
+        setIsVendorDialogOpen(false);
+        router.reload({
+            only: ['vendors'],
+            preserveState: true,
+            onSuccess: (page) => {
+                const refreshed = ((page.props as any).vendors || []) as typeof vendorOptions;
+                setVendorOptions(refreshed);
+                if (userId) setData('vendor_id', String(userId));
+            },
+        });
+    };
 
     // Update form data when selections change
     useEffect(() => {
@@ -132,6 +153,15 @@ export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendo
             </DialogHeader>
             <form onSubmit={submit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <TransactionCurrencyFields
+                        currencyCode={data.currency_code}
+                        exchangeRate={data.exchange_rate}
+                        amount={data.payment_amount}
+                        transactionDate={data.payment_date}
+                        onCurrencyChange={(value) => setData('currency_code', value)}
+                        onRateChange={(value) => setData('exchange_rate', value)}
+                        errors={errors as Record<string, string>}
+                    />
                     <div>
                         <Label htmlFor="payment_date" required>{t('Received Date')}</Label>
                         <DatePicker
@@ -151,13 +181,15 @@ export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendo
                     <div>
                         <Label htmlFor="vendor_id" required>{t('Vendor')}</Label>
                         <Select value={data.vendor_id} onValueChange={(value) => {
+                            if (value === 'create-vendor') { setIsVendorDialogOpen(true); return; }
                             setData('vendor_id', value);
                         }}>
                             <SelectTrigger>
                                 <SelectValue placeholder={t('Select Vendor')} />
                             </SelectTrigger>
-                            <SelectContent>
-                                {vendors?.map((vendor) => (
+                            <SelectContent searchable>
+                                <SelectItem value="create-vendor"><span className="flex items-center gap-2 font-medium text-primary"><Plus className="h-4 w-4" />{t('Create Vendor')}</span></SelectItem>
+                                {vendorOptions.map((vendor) => (
                                     <SelectItem key={vendor.id} value={vendor.id.toString()}>
                                         {vendor.name}
                                     </SelectItem>
@@ -417,6 +449,9 @@ export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendo
                     </Button>
                 </div>
             </form>
+            <Dialog open={isVendorDialogOpen} onOpenChange={setIsVendorDialogOpen}>
+                {isVendorDialogOpen && <CreateVendor returnTo="current" onSuccess={vendorCreated} />}
+            </Dialog>
         </DialogContent>
     );
 }

@@ -104,6 +104,7 @@ class ExpenseController extends Controller
     {
         if(Auth::user()->can('create-expenses')){
             $validated = $request->validated();
+            $currency = app(\Workdo\Account\Services\CurrencyConversionService::class)->transactionValues($validated, 'amount');
 
             $expense = new Expense();
             $expense->expense_date = $validated['expense_date'];
@@ -111,6 +112,9 @@ class ExpenseController extends Controller
             $expense->bank_account_id = $validated['bank_account_id'];
             $expense->chart_of_account_id = $validated['chart_of_account_id'];
             $expense->amount = $validated['amount'];
+            $expense->currency_code = $currency['currency_code'];
+            $expense->exchange_rate = $currency['exchange_rate'];
+            $expense->base_amount = $currency['base_amount'];
             $expense->description = $validated['description'];
             $expense->reference_number = $validated['reference_number'];
             $expense->status = 'draft';
@@ -135,12 +139,16 @@ class ExpenseController extends Controller
             }
 
             $validated = $request->validated();
+            $currency = app(\Workdo\Account\Services\CurrencyConversionService::class)->transactionValues($validated, 'amount');
 
             $expense->expense_date = $validated['expense_date'];
             $expense->category_id = $validated['category_id'];
             $expense->bank_account_id = $validated['bank_account_id'];
             $expense->chart_of_account_id = $validated['chart_of_account_id'];
             $expense->amount = $validated['amount'];
+            $expense->currency_code = $currency['currency_code'];
+            $expense->exchange_rate = $currency['exchange_rate'];
+            $expense->base_amount = $currency['base_amount'];
             $expense->description = $validated['description'];
             $expense->reference_number = $validated['reference_number'];
             $expense->save();

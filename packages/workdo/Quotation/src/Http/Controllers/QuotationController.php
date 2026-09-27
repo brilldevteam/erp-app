@@ -108,8 +108,9 @@ class QuotationController extends Controller
     {
         if (Auth::user()->can('create-quotations')) {
             $totals = $this->calculateTotals($request->items);
+            $currency = app(\Workdo\Account\Services\CurrencyConversionService::class)->transactionValues([...$request->validated(), 'total_amount' => $totals['total_amount']], 'total_amount');
 
-            $quotation = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $totals) {
+            $quotation = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $totals, $currency) {
             $quotation                  = new SalesQuotation();
             $quotation->quotation_date  = $request->invoice_date;
             $quotation->document_template_id = app(DocumentTemplateService::class)
@@ -121,6 +122,9 @@ class QuotationController extends Controller
             $quotation->payment_terms   = $request->payment_terms;
             $quotation->subject         = $request->subject;
             $quotation->notes           = $request->notes;
+            $quotation->currency_code   = $currency['currency_code'];
+            $quotation->exchange_rate   = $currency['exchange_rate'];
+            $quotation->base_amount     = $currency['base_amount'];
             $quotation->subtotal        = $totals['subtotal'];
             $quotation->tax_amount      = $totals['tax_amount'];
             $quotation->discount_amount = $totals['discount_amount'];
@@ -200,8 +204,9 @@ class QuotationController extends Controller
             }
 
             $totals = $this->calculateTotals($request->items);
+            $currency = app(\Workdo\Account\Services\CurrencyConversionService::class)->transactionValues([...$request->validated(), 'total_amount' => $totals['total_amount']], 'total_amount');
 
-            \Illuminate\Support\Facades\DB::transaction(function () use ($request, $quotation, $totals) {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($request, $quotation, $totals, $currency) {
             $quotation->quotation_date  = $request->invoice_date;
             $quotation->due_date        = $request->due_date;
             $quotation->customer_id     = $request->customer_id;
@@ -212,6 +217,9 @@ class QuotationController extends Controller
             $quotation->payment_terms   = $request->payment_terms;
             $quotation->subject         = $request->subject;
             $quotation->notes           = $request->notes;
+            $quotation->currency_code   = $currency['currency_code'];
+            $quotation->exchange_rate   = $currency['exchange_rate'];
+            $quotation->base_amount     = $currency['base_amount'];
             $quotation->subtotal        = $totals['subtotal'];
             $quotation->tax_amount      = $totals['tax_amount'];
             $quotation->discount_amount = $totals['discount_amount'];

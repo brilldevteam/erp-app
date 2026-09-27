@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useForm } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
-import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,9 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { DatePicker } from '@/components/ui/date-picker';
 import InputError from '@/components/ui/input-error';
-import { Info, Trash2 } from 'lucide-react';
+import { Info, Plus, Trash2 } from 'lucide-react';
 import { CreateCustomerPaymentFormData, CreateCustomerPaymentProps, SalesInvoice, CreditNote } from './types';
 import { formatCurrency } from '@/utils/helpers';
+import TransactionCurrencyFields from '@/components/transaction-currency-fields';
+import CreateCustomer from '../Customers/Create';
 
 export default function Create({ customers, bankAccounts, onSuccess, defaultCustomerId, defaultInvoiceId, defaultInvoiceBalance, returnTo }: CreateCustomerPaymentProps) {
     const { t } = useTranslation();
@@ -22,6 +24,10 @@ export default function Create({ customers, bankAccounts, onSuccess, defaultCust
     const [selectedAllocations, setSelectedAllocations] = useState<{invoice_id: number; amount: number}[]>([]);
     const [selectedCreditNotes, setSelectedCreditNotes] = useState<{credit_note_id: number; amount: number}[]>([]);
     const [hasAppliedDefaultInvoice, setHasAppliedDefaultInvoice] = useState(false);
+    const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
+    const [customerOptions, setCustomerOptions] = useState(customers || []);
+
+    useEffect(() => setCustomerOptions(customers || []), [customers]);
 
     const { data, setData, post, processing, errors } = useForm<CreateCustomerPaymentFormData>({
         payment_date: new Date().toISOString().split('T')[0],
@@ -30,11 +36,26 @@ export default function Create({ customers, bankAccounts, onSuccess, defaultCust
         payment_mode: '',
         reference_number: '',
         payment_amount: defaultInvoiceBalance ? Number(defaultInvoiceBalance).toFixed(2) : '',
+        currency_code: '',
+        exchange_rate: '1.00000000',
         notes: '',
         allocations: [],
         credit_notes: [],
         return_to: returnTo || ''
     });
+
+    const customerCreated = (userId?: number) => {
+        setIsCustomerDialogOpen(false);
+        router.reload({
+            only: ['customers'],
+            preserveState: true,
+            onSuccess: (page) => {
+                const refreshed = ((page.props as any).customers || []) as typeof customerOptions;
+                setCustomerOptions(refreshed);
+                if (userId) setData('customer_id', String(userId));
+            },
+        });
+    };
 
     // Update form data when selections change
     useEffect(() => {
@@ -151,6 +172,15 @@ export default function Create({ customers, bankAccounts, onSuccess, defaultCust
             </DialogHeader>
             <form onSubmit={submit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <TransactionCurrencyFields
+                        currencyCode={data.currency_code}
+                        exchangeRate={data.exchange_rate}
+                        amount={data.payment_amount}
+                        transactionDate={data.payment_date}
+                        onCurrencyChange={(value) => setData('currency_code', value)}
+                        onRateChange={(value) => setData('exchange_rate', value)}
+                        errors={errors as Record<string, string>}
+                    />
                     <div>
                         <Label htmlFor="payment_date" required>{t('Received Date')}</Label>
                         <DatePicker
@@ -169,13 +199,15 @@ export default function Create({ customers, bankAccounts, onSuccess, defaultCust
                     <div>
                         <Label htmlFor="customer_id" required>{t('Customer')}</Label>
                         <Select value={data.customer_id} onValueChange={(value) => {
+                            if (value === 'create-customer') { setIsCustomerDialogOpen(true); return; }
                             setData('customer_id', value);
                         }}>
                             <SelectTrigger>
                                 <SelectValue placeholder={t('Select Customer')} />
                             </SelectTrigger>
-                            <SelectContent>
-                                {customers?.map((customer) => (
+                            <SelectContent searchable>
+                                <SelectItem value="create-customer"><span className="flex items-center gap-2 font-medium text-primary"><Plus className="h-4 w-4" />{t('Create Customer')}</span></SelectItem>
+                                {customerOptions.map((customer) => (
                                     <SelectItem key={customer.id} value={customer.id.toString()}>
                                         {customer.name}
                                     </SelectItem>
@@ -460,6 +492,9 @@ export default function Create({ customers, bankAccounts, onSuccess, defaultCust
                     </Button>
                 </div>
             </form>
+            <Dialog open={isCustomerDialogOpen} onOpenChange={setIsCustomerDialogOpen}>
+                {isCustomerDialogOpen && <CreateCustomer returnTo="current" onSuccess={customerCreated} />}
+            </Dialog>
         </DialogContent>
     );
 }

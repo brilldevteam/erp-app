@@ -81,7 +81,7 @@ class CustomerController extends Controller
             CreateCustomer::dispatch($request, $customer);
             $portalAccounts->sendAccessNotifications($user, $validated['password'] ?? null);
 
-            if ($request->query('return_to') === 'quotation') {
+            if (in_array($request->query('return_to'), ['quotation', 'current'], true)) {
                 return back()->with('success', __('The customer has been created successfully.'))->with('createdCustomerUserId', $customer->user_id);
             }
 

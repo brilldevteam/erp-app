@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import TransactionCurrencyFields from '@/components/transaction-currency-fields';
 
 export const emptyLine = { product_id: '', item_name: '', description: '', unit: '', quantity: '1', unit_price: '0.00', discount_type: 'percentage', discount_value: '0.0', taxes: [] };
 
@@ -72,6 +73,16 @@ export default function Form({ data, setData, errors, vendors, warehouses, produ
             <div><Label>Vendor Quotation No.</Label><Input value={data.vendor_quotation_number || ''} onChange={event => setData('vendor_quotation_number', event.target.value)} /></div>
         </section>
 
+        <TransactionCurrencyFields
+            currencyCode={data.currency_code}
+            exchangeRate={data.exchange_rate}
+            transactionDate={data.order_date}
+            amount={total}
+            errors={errors}
+            onCurrencyChange={value => setData('currency_code', value)}
+            onRateChange={value => setData('exchange_rate', value)}
+        />
+
         <section className="space-y-3">
             <div className="flex items-center justify-between"><h2 className="text-lg font-semibold">Items</h2><Button type="button" variant="outline" onClick={() => setData('items', [...data.items, { ...emptyLine }])}><Plus className="mr-2 h-4 w-4" />Add Line</Button></div>
             {errors.items && <p className="text-sm text-red-600">{errors.items}</p>}
@@ -92,7 +103,7 @@ export default function Form({ data, setData, errors, vendors, warehouses, produ
             <DiscountControl label="Document Discount" value={data.document_discount_value} type={data.document_discount_type} currency={defaultCurrency} onValue={value => setData('document_discount_value', value)} onType={value => setData((current: any) => ({ ...current, document_discount_type: value, document_discount_value: 0 }))} />
             <div><Label>Shipping Charges ({defaultCurrency})</Label><Input type="number" min="0" step="0.01" value={data.shipping_amount} onChange={event => setData('shipping_amount', event.target.value)} /></div>
             <div><Label>Adjustment ({defaultCurrency})</Label><Input type="number" step="0.01" value={data.adjustment_amount} onChange={event => setData('adjustment_amount', event.target.value)} /></div>
-            <div className="self-end text-right text-xl font-semibold">Estimated Total: {total.toFixed(2)} {defaultCurrency}</div>
+            <div className="self-end text-right text-xl font-semibold">Estimated Total: {total.toFixed(2)} {data.currency_code}</div>
         </section>
         <div className="grid gap-4 md:grid-cols-2"><div><Label>Notes</Label><Textarea value={data.notes || ''} onChange={event => setData('notes', event.target.value)} /></div><div><Label>Terms</Label><Textarea value={data.terms || ''} onChange={event => setData('terms', event.target.value)} /></div></div>
         <div><Label>Attachments</Label><Input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.csv,.txt" onChange={event => setData('attachments', Array.from(event.target.files || []))} />{errors.attachments && <p className="mt-1 text-sm text-red-600">{errors.attachments}</p>}<p className="mt-1 text-xs text-muted-foreground">PDF, images, Word, Excel, CSV, or text files. Maximum 10 MB per file.</p></div>

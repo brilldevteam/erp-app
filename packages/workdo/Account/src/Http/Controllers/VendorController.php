@@ -94,6 +94,10 @@ class VendorController extends Controller
             CreateVendor::dispatch($request, $vendor);
             $portalAccounts->sendAccessNotifications($user, $validated['password'] ?? null);
 
+            if (($validated['return_to'] ?? null) === 'current') {
+                return back()->with('success', __('The vendor has been created successfully.'))->with('createdVendorUserId', $vendor->user_id);
+            }
+
             $redirectRoute = ($validated['return_to'] ?? null) === 'project.contractors.index'
                 ? 'project.contractors.index'
                 : 'account.vendors.index';

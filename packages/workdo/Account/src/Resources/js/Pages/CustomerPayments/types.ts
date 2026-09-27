@@ -77,6 +77,8 @@ export interface CreateCustomerPaymentFormData {
     bank_account_id: string;
     reference_number: string;
     payment_amount: string;
+    currency_code: string;
+    exchange_rate: string;
     notes: string;
     allocations: {
         invoice_id: number;

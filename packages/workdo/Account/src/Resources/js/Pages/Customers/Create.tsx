@@ -15,9 +15,10 @@ import PartyDocuments from '../Parties/PartyDocuments';
 interface CreateCustomerProps {
     onSuccess: (userId?: number) => void;
     returnToCurrentPage?: boolean;
+    returnTo?: 'quotation' | 'current';
 }
 
-export default function Create({ onSuccess, returnToCurrentPage = false }: CreateCustomerProps) {
+export default function Create({ onSuccess, returnToCurrentPage = false, returnTo }: CreateCustomerProps) {
     const { t } = useTranslation();
     const { data, setData, post, processing, errors } = useForm<CustomerFormData>({
         company_name: '',
@@ -64,7 +65,7 @@ export default function Create({ onSuccess, returnToCurrentPage = false }: Creat
     const customFields = useFormFields('getCustomFields', { ...data, module: 'Account', sub_module: 'Customer' }, setData, errors, 'create', t);
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('account.customers.store', returnToCurrentPage ? { return_to: 'quotation' } : undefined), {
+        post(route('account.customers.store', (returnToCurrentPage || returnTo) ? { return_to: returnTo || 'quotation' } : undefined), {
             forceFormData: true,
             onSuccess: (page) => {
                 onSuccess((page.props.flash as any)?.createdCustomerUserId);

@@ -13,6 +13,7 @@ class PurchaseInvoice extends Model
         'purchase_order_reference',
         'currency_code',
         'exchange_rate',
+        'base_amount',
         'invoice_date',
         'due_date',
         'vendor_id',
@@ -42,7 +43,8 @@ class PurchaseInvoice extends Model
         'paid_amount' => 'decimal:2',
         'debit_note_applied' => 'decimal:2',
         'balance_amount' => 'decimal:2'
-        ,'exchange_rate' => 'decimal:8'
+        ,'exchange_rate' => 'decimal:8',
+        'base_amount' => 'decimal:2'
     ];
 
     protected $appends = ['display_status'];

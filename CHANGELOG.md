@@ -15,6 +15,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Show the Purchase Orders / LPO navigation entry only for companies whose active plan includes the add-on, preventing dashboard redirects from unavailable module links.
 
 ### Added
+- Added manual multi-currency transaction entry with effective-dated company exchange rates, historical rate snapshots, base-currency journal posting, currency-aware bank accounts, and a dry-run-safe live-data backfill command.
 - Added CR Number and private supporting-document uploads to customer and vendor create, edit, and detail views, including validated files and authorized preview, download, and removal actions.
 - Added a live searchable customer filter, invoice-date-range and aging-bucket filters, plus selectable report columns to Invoice Aging, with matching filtered PDF output.
 - Added transaction-date filtering and filtered CSV/Excel downloads to Bank Transactions, with all matching records included in each export.
@@ -33,6 +34,7 @@ All notable changes to the Wazely ERP application are documented here.
 - New features currently in development will be listed here before release.
 
 ### Changed
+- Added searchable customer/vendor selectors with in-place party creation and automatic selection in sales invoices and customer/vendor payment forms.
 - Grouped related company menu items under Sales and Purchases, kept child items visible for users with limited permissions, and added connector lines between sidebar subitems.
 - Simplified Purchase Order terminology by removing "/ LPO" from the sidebar, page headings, grid column, and search text.
 - Renamed the Sales menu and grid labels to "Invoice Returns" and "Payment Received" for clearer, compact accounting terminology without changing the underlying invoice or payment workflows.

@@ -20,6 +20,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Separator } from '@/components/ui/separator';
 import { CalendarDays, Building2, User, FileText, Package } from 'lucide-react';
+import TransactionCurrencyFields from '@/components/transaction-currency-fields';
+import { Dialog } from '@/components/ui/dialog';
+import CreateCustomer from '../../../../packages/workdo/Account/src/Resources/js/Pages/Customers/Create';
 
 interface CreateProps {
     customers: InvoiceCustomerOption[];
@@ -66,6 +69,10 @@ export default function Create() {
     const [availableProducts, setAvailableProducts] = useState<QuotationProduct[]>(initialProducts);
     const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
     const [productsLoading, setProductsLoading] = useState(false);
+    const [customerOptions, setCustomerOptions] = useState(customers);
+    const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
+
+    useEffect(() => setCustomerOptions(customers), [customers]);
 
     useFlashMessages();
     const { data, setData, post, processing, errors, clearErrors } = useForm({
@@ -79,6 +86,8 @@ export default function Create() {
         payment_terms: initialInvoice?.payment_terms ?? '',
         subject: initialInvoice?.subject ?? '',
         notes: initialInvoice?.notes ?? '',
+        currency_code: (initialInvoice as any)?.currency_code ?? '',
+        exchange_rate: (initialInvoice as any)?.exchange_rate ?? '1.00000000',
         items: initialInvoice?.items ?? [{
             product_id: 0,
             quantity: 1,
@@ -93,6 +102,19 @@ export default function Create() {
             total_amount: 0
         }] as SalesInvoiceItem[]
     });
+
+    const customerCreated = (userId?: number) => {
+        setIsCustomerDialogOpen(false);
+        router.reload({
+            only: ['customers'],
+            preserveState: true,
+            onSuccess: (page) => {
+                const refreshed = ((page.props as any).customers || []) as InvoiceCustomerOption[];
+                setCustomerOptions(refreshed);
+                if (userId) setData('customer_id', String(userId));
+            },
+        });
+    };
 
     // Calendar sync fields
     const calendarFields = useFormFields('getCalendarSyncFields', data, setData, errors, 'create', t, 'Sales');
@@ -303,6 +325,7 @@ export default function Create() {
                                         {t('Customer')}
                                     </Label>
                                     <Select value={data.customer_id} onValueChange={(value) => {
+                                        if (value === 'create-customer') { setIsCustomerDialogOpen(true); return; }
                                         setData('customer_id', value);
                                         if (value) clearErrors('customer_id');
                                     }}>
@@ -310,7 +333,8 @@ export default function Create() {
                                             <SelectValue placeholder={t('Select Customer')} />
                                         </SelectTrigger>
                                         <SelectContent searchable>
-                                            {customers.map((customer) => (
+                                            <SelectItem value="create-customer"><span className="font-medium text-primary">{t('Create Customer')}</span></SelectItem>
+                                            {customerOptions.map((customer) => (
                                                 <SelectItem key={customer.id} value={customer.id.toString()}>
                                                     {customer.company_name || customer.name}
                                                     {customer.contact_person_name && customer.contact_person_name !== customer.company_name ? ` — ${customer.contact_person_name}` : ''}
@@ -367,6 +391,18 @@ export default function Create() {
                                     </Select>
                                     <InputError message={errors.document_template_id} />
                                 </div>
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <TransactionCurrencyFields
+                                    currencyCode={data.currency_code}
+                                    exchangeRate={data.exchange_rate}
+                                    amount={totals.total}
+                                    transactionDate={data.invoice_date}
+                                    onCurrencyChange={(value) => setData('currency_code', value)}
+                                    onRateChange={(value) => setData('exchange_rate', value)}
+                                    errors={errors as Record<string, string>}
+                                />
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
@@ -551,6 +587,9 @@ export default function Create() {
                     </div>
                 </form>
             </div>
+            <Dialog open={isCustomerDialogOpen} onOpenChange={setIsCustomerDialogOpen}>
+                {isCustomerDialogOpen && <CreateCustomer returnTo="current" onSuccess={customerCreated} />}
+            </Dialog>
         </AuthenticatedLayout>
     );
 }

@@ -109,7 +109,7 @@ export interface VendorsIndexProps {
 }
 
 export interface CreateVendorProps {
-    onSuccess: () => void;
+    onSuccess: (userId?: number) => void;
     returnTo?: string | null;
 }
 

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PurchaseReturn extends Model
 {
     protected $fillable = [
+        'currency_code', 'exchange_rate', 'base_amount',
         'return_number',
         'return_date',
         'vendor_id',

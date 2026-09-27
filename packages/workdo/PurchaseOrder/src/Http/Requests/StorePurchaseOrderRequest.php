@@ -7,14 +7,6 @@ use Illuminate\Validation\Rule;
 
 class StorePurchaseOrderRequest extends FormRequest
 {
-    protected function prepareForValidation(): void
-    {
-        $this->merge([
-            'currency_code' => company_setting('defaultCurrency', creatorId()) ?: 'USD',
-            'exchange_rate' => 1,
-        ]);
-    }
-
     public function authorize(): bool
     {
         return true;
@@ -27,7 +19,7 @@ class StorePurchaseOrderRequest extends FormRequest
             'warehouse_id' => ['nullable', Rule::exists('warehouses', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
             'order_date' => 'required|date',
             'expected_delivery_date' => 'nullable|date|after_or_equal:order_date',
-            'currency_code' => 'required|string|max:10',
+            'currency_code' => 'required|string|size:3',
             'exchange_rate' => 'required|numeric|gt:0',
             'vendor_reference' => 'nullable|string|max:255',
             'vendor_quotation_number' => 'nullable|string|max:255',

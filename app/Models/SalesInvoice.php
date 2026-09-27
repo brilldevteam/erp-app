@@ -10,6 +10,9 @@ class SalesInvoice extends Model
 {
     protected $fillable = [
         'quotation_id',
+        'currency_code',
+        'exchange_rate',
+        'base_amount',
         'document_template_id',
         'invoice_number',
         'invoice_date',
@@ -39,7 +42,9 @@ class SalesInvoice extends Model
         'discount_amount' => 'decimal:2',
         'total_amount' => 'decimal:2',
         'paid_amount' => 'decimal:2',
-        'balance_amount' => 'decimal:2'
+        'balance_amount' => 'decimal:2',
+        'exchange_rate' => 'decimal:8',
+        'base_amount' => 'decimal:2'
     ];
 
     protected $appends = ['display_status'];

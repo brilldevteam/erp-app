@@ -21,6 +21,8 @@ class StoreCustomerPaymentRequest extends FormRequest
             'payment_mode' => 'required|in:cash,bank_transfer,cheque',
             'reference_number' => 'required_if:payment_mode,cheque|nullable|string|max:100',
             'payment_amount' => 'required|numeric|min:0',
+            'currency_code' => 'required|string|size:3',
+            'exchange_rate' => 'required|numeric|gt:0',
             'notes' => 'nullable|string',
             'allocations' => 'nullable|array',
             'allocations.*.invoice_id' => 'required|exists:sales_invoices,id',

@@ -25,9 +25,14 @@ use Workdo\Account\Http\Controllers\JournalEntryController;
 use Workdo\Account\Http\Controllers\ReportsController;
 use Workdo\Account\Models\AccountType;
 use Workdo\Account\Http\Controllers\PartyAttachmentController;
+use Workdo\Account\Http\Controllers\CurrencyRateController;
 
 Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Account'])->group(function () {
     Route::get('/account', [DashboardController::class, 'index'])->name('account.index');
+    Route::get('account/currency-rates/latest', [CurrencyRateController::class, 'latest'])->name('account.currency-rates.latest');
+    Route::get('account/currency-rates', [CurrencyRateController::class, 'index'])->name('account.currency-rates.index');
+    Route::post('account/currency-rates', [CurrencyRateController::class, 'store'])->name('account.currency-rates.store');
+    Route::delete('account/currency-rates/{currencyRate}', [CurrencyRateController::class, 'destroy'])->name('account.currency-rates.destroy');
     Route::resource('account/vendors', VendorController::class, ['as' => 'account']);
     Route::resource('account/customers', CustomerController::class, ['as' => 'account']);
     Route::post('account/customers/{customer}/attachments', [PartyAttachmentController::class, 'storeCustomer'])->name('account.customers.attachments.store');

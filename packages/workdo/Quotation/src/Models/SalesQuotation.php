@@ -24,6 +24,9 @@ class SalesQuotation extends Model
         'revision_number',
         'parent_quotation_id',
         'quotation_date',
+        'currency_code',
+        'exchange_rate',
+        'base_amount',
         'customer_id',
         'warehouse_id',
         'due_date',
@@ -51,6 +54,8 @@ class SalesQuotation extends Model
             'tax_amount' => 'decimal:2',
             'discount_amount' => 'decimal:2',
             'total_amount' => 'decimal:2',
+            'exchange_rate' => 'decimal:8',
+            'base_amount' => 'decimal:2',
             'converted_to_invoice' => 'boolean',
         ];
     }

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from '@/lib/utils';
-import { FileText, TrendingUp, TrendingDown } from "lucide-react";
+import { FileText, TrendingUp, TrendingDown, CircleDollarSign } from "lucide-react";
 
 interface SidebarItem {
     key: string;
@@ -24,6 +24,13 @@ export default function SystemSetupSidebar({ activeItem, onSectionChange }: Syst
     const currentRoute = route().current();
 
     const sidebarItems: SidebarItem[] = [
+        {
+            key: 'currency-rates',
+            label: t('Currencies & Exchange Rates'),
+            icon: CircleDollarSign,
+            route: 'account.currency-rates.index',
+            permission: 'manage-account-types'
+        },
         {
             key: 'account-types',
             label: t('Account Types'),

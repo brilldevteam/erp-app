@@ -21,6 +21,7 @@ use Workdo\Account\Events\UpdateVendorPaymentStatus;
 use Workdo\Account\Events\DestroyVendorPayment;
 use App\Models\EmailTemplate;
 use App\Models\DocumentTemplate;
+use Illuminate\Validation\ValidationException;
 
 class VendorPaymentController extends Controller
 {
@@ -113,6 +114,22 @@ class VendorPaymentController extends Controller
             $payment->bank_account_id = $request->bank_account_id;
             $payment->reference_number = $request->reference_number;
             $payment->payment_amount = $request->payment_amount;
+            $currency = app(\Workdo\Account\Services\CurrencyConversionService::class)
+                ->transactionValues($request->validated(), 'payment_amount');
+            $bankCurrency = BankAccount::whereKey($request->bank_account_id)->where('created_by', creatorId())->value('currency_code');
+            if ($bankCurrency && strtoupper($bankCurrency) !== $currency['currency_code']) {
+                throw ValidationException::withMessages(['bank_account_id' => __('Select a bank account in the payment currency.')]);
+            }
+            $invoiceCurrencies = PurchaseInvoice::whereIn('id', collect($request->allocations)->pluck('invoice_id'))
+                ->where('vendor_id', $request->vendor_id)
+                ->where('created_by', creatorId())
+                ->pluck('currency_code')->filter()->map(fn ($code) => strtoupper($code))->unique();
+            if ($invoiceCurrencies->contains(fn ($code) => $code !== $currency['currency_code'])) {
+                throw ValidationException::withMessages(['allocations' => __('Payment currency must match every selected invoice currency.')]);
+            }
+            $payment->currency_code = $currency['currency_code'];
+            $payment->exchange_rate = $currency['exchange_rate'];
+            $payment->base_amount = $currency['base_amount'];
             $payment->notes = $request->notes;
             $payment->creator_id = Auth::id();
             $payment->created_by = creatorId();

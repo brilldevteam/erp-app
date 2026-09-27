@@ -104,6 +104,7 @@ class RevenueController extends Controller
     {
         if(Auth::user()->can('create-revenues')){
             $validated = $request->validated();
+            $currency = app(\Workdo\Account\Services\CurrencyConversionService::class)->transactionValues($validated, 'amount');
 
             $revenue = new Revenue();
             $revenue->revenue_date = $validated['revenue_date'];
@@ -111,6 +112,9 @@ class RevenueController extends Controller
             $revenue->bank_account_id = $validated['bank_account_id'];
             $revenue->chart_of_account_id = $validated['chart_of_account_id'] ?? null;
             $revenue->amount = $validated['amount'];
+            $revenue->currency_code = $currency['currency_code'];
+            $revenue->exchange_rate = $currency['exchange_rate'];
+            $revenue->base_amount = $currency['base_amount'];
             $revenue->description = $validated['description'];
             $revenue->reference_number = $validated['reference_number'];
             $revenue->status = 'draft';
@@ -135,12 +139,16 @@ class RevenueController extends Controller
             }
 
             $validated = $request->validated();
+            $currency = app(\Workdo\Account\Services\CurrencyConversionService::class)->transactionValues($validated, 'amount');
 
             $revenue->revenue_date = $validated['revenue_date'];
             $revenue->category_id = $validated['category_id'];
             $revenue->bank_account_id = $validated['bank_account_id'];
             $revenue->chart_of_account_id = $validated['chart_of_account_id'] ?? null;
             $revenue->amount = $validated['amount'];
+            $revenue->currency_code = $currency['currency_code'];
+            $revenue->exchange_rate = $currency['exchange_rate'];
+            $revenue->base_amount = $currency['base_amount'];
             $revenue->description = $validated['description'];
             $revenue->reference_number = $validated['reference_number'];
             $revenue->save();

@@ -5,16 +5,25 @@ namespace Workdo\PurchaseOrder\Services;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Arr;
 use Workdo\PurchaseOrder\Models\PurchaseOrder;
+use Workdo\Account\Services\CurrencyConversionService;
 
 class PurchaseOrderService
 {
-    public function __construct(private PurchaseOrderCalculator $calculator) {}
+    public function __construct(
+        private PurchaseOrderCalculator $calculator,
+        private CurrencyConversionService $currency,
+    ) {}
 
     public function create(array $data, int $userId, int $companyId): PurchaseOrder
     {
         return DB::transaction(function () use ($data, $userId, $companyId) {
             $totals = $this->calculator->calculate($data);
             $attributes = $this->attributes($data, $totals);
+            $attributes = array_merge($attributes, $this->currency->transactionValues(
+                [...$data, 'total_amount' => $totals['total_amount']],
+                'total_amount',
+                $companyId,
+            ));
             $attributes['purchase_order_number'] = $this->nextNumber($companyId);
             $attributes['creator_id'] = $userId;
             $attributes['created_by'] = $companyId;
@@ -34,7 +43,7 @@ class PurchaseOrderService
     public function update(PurchaseOrder $order,array $data): PurchaseOrder
     {
         abort_unless($order->isEditable(),422,__('Only draft purchase orders can be edited.'));
-        return DB::transaction(function()use($order,$data){$totals=$this->calculator->calculate($data);$order->update($this->attributes($data,$totals));$order->items()->delete();$this->replaceItems($order,$totals['items']);return $order;});
+        return DB::transaction(function()use($order,$data){$totals=$this->calculator->calculate($data);$attributes=$this->attributes($data,$totals);$attributes=array_merge($attributes,$this->currency->transactionValues([...$data,'total_amount'=>$totals['total_amount']],'total_amount',$order->created_by));$order->update($attributes);$order->items()->delete();$this->replaceItems($order,$totals['items']);return $order;});
     }
 
     private function attributes(array $d,array $t): array

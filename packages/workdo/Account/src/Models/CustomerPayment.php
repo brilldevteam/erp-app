@@ -21,6 +21,9 @@ class CustomerPayment extends Model
         'bank_account_id',
         'reference_number',
         'payment_amount',
+        'currency_code',
+        'exchange_rate',
+        'base_amount',
         'status',
         'needs_bank_verification',
         'notes',
@@ -31,6 +34,8 @@ class CustomerPayment extends Model
     protected $casts = [
         'payment_date' => 'date',
         'payment_amount' => 'decimal:2',
+        'exchange_rate' => 'decimal:8',
+        'base_amount' => 'decimal:2',
         'needs_bank_verification' => 'boolean',
     ];
 

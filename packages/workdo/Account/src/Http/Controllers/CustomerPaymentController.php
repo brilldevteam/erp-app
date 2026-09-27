@@ -121,6 +121,15 @@ class CustomerPaymentController extends Controller
                     $payment->bank_account_id = $request->bank_account_id;
                     $payment->reference_number = $request->reference_number;
                     $payment->payment_amount = $request->payment_amount;
+                    $currency = app(\Workdo\Account\Services\CurrencyConversionService::class)
+                        ->transactionValues($request->validated(), 'payment_amount');
+                    $bankCurrency = BankAccount::whereKey($request->bank_account_id)->where('created_by', creatorId())->value('currency_code');
+                    if ($bankCurrency && strtoupper($bankCurrency) !== $currency['currency_code']) {
+                        throw ValidationException::withMessages(['bank_account_id' => __('Select a bank account in the payment currency.')]);
+                    }
+                    $payment->currency_code = $currency['currency_code'];
+                    $payment->exchange_rate = $currency['exchange_rate'];
+                    $payment->base_amount = $currency['base_amount'];
                     $payment->notes = $request->notes;
                     $payment->creator_id = Auth::id();
                     $payment->created_by = creatorId();
@@ -140,6 +149,10 @@ class CustomerPaymentController extends Controller
                             throw ValidationException::withMessages([
                                 'allocations' => __('The selected invoice is not available for this customer payment.'),
                             ]);
+                        }
+
+                        if (strtoupper((string) $invoice->currency_code) !== $currency['currency_code']) {
+                            throw ValidationException::withMessages(['allocations' => __('Payment currency must match every selected invoice currency.')]);
                         }
 
                         if ((float) $allocation['amount'] > (float) $invoice->balance_amount) {

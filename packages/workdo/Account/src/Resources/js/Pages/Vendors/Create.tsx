@@ -55,8 +55,8 @@ export default function Create({ onSuccess, returnTo }: CreateVendorProps) {
         e.preventDefault();
         post(route('account.vendors.store'), {
             forceFormData: true,
-            onSuccess: () => {
-                onSuccess();
+            onSuccess: (page) => {
+                onSuccess((page.props.flash as any)?.createdVendorUserId);
             }
         });
     };

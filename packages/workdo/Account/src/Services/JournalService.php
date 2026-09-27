@@ -16,6 +16,21 @@ use Workdo\Retainer\Models\RetainerPaymentAllocation;
  */
 class JournalService
 {
+    private function baseAmount(object $transaction, mixed $amount): float
+    {
+        return round((float) $amount * (float) ($transaction->exchange_rate ?: 1), 2);
+    }
+
+    private function currencySnapshot(object $transaction, mixed $foreignAmount): array
+    {
+        return [
+            'currency_code' => $transaction->currency_code ?: company_setting('defaultCurrency', creatorId()),
+            'exchange_rate' => $transaction->exchange_rate ?: 1,
+            'foreign_amount' => $foreignAmount,
+            'base_amount' => $this->baseAmount($transaction, $foreignAmount),
+        ];
+    }
+
     private function validateAccounts(array $accountCodes , $userID = null)
     {
         foreach ($accountCodes as $code) {
@@ -65,33 +80,33 @@ class JournalService
         }
         $this->validateAccounts($requiredAccounts);
         // Validate amounts balance
-        $totalDebit = $salesInvoice->total_amount;
-        $totalCredit = $salesInvoice->subtotal - $salesInvoice->discount_amount + ($salesInvoice->tax_amount ?? 0);
+        $totalDebit = $this->baseAmount($salesInvoice, $salesInvoice->total_amount);
+        $totalCredit = $this->baseAmount($salesInvoice, $salesInvoice->subtotal - $salesInvoice->discount_amount + ($salesInvoice->tax_amount ?? 0));
         $this->validateBalance($totalDebit, $totalCredit);
 
         $arAccount = ChartOfAccount::where('account_code', '1100')->where('created_by', creatorId())->first();
         $salesAccount = ChartOfAccount::where('account_code', '4100')->where('created_by', creatorId())->first();
         $taxAccount = ChartOfAccount::where('account_code', '2210')->where('created_by', creatorId())->first();
 
-        $journalEntry = JournalEntry::create([
+        $journalEntry = JournalEntry::create(array_merge([
             'journal_date' => $salesInvoice->invoice_date ?? now(),
             'entry_type' => 'automatic',
             'reference_type' => 'sales_invoice',
             'reference_id' => $salesInvoice->id,
             'description' => 'Sales Invoice #' . $salesInvoice->invoice_number,
-            'total_debit' => $salesInvoice->total_amount,
-            'total_credit' => $salesInvoice->total_amount,
+            'total_debit' => $totalDebit,
+            'total_credit' => $totalDebit,
             'status' => 'posted',
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
-        ]);
+        ], $this->currencySnapshot($salesInvoice, $salesInvoice->total_amount)));
 
         // Debit: Accounts Receivable
         JournalEntryItem::create([
             'journal_entry_id' => $journalEntry->id,
             'account_id' => $arAccount->id,
             'description' => 'Sales to ' . $salesInvoice->customer->name,
-            'debit_amount' => $salesInvoice->total_amount,
+            'debit_amount' => $totalDebit,
             'credit_amount' => 0,
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
@@ -103,7 +118,7 @@ class JournalService
             'account_id' => $salesAccount->id,
             'description' => 'Product sales',
             'debit_amount' => 0,
-            'credit_amount' => $salesInvoice->subtotal - $salesInvoice->discount_amount,
+            'credit_amount' => $this->baseAmount($salesInvoice, $salesInvoice->subtotal - $salesInvoice->discount_amount),
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
         ]);
@@ -115,7 +130,7 @@ class JournalService
                 'account_id' => $taxAccount->id,
                 'description' => 'Sales tax collected',
                 'debit_amount' => 0,
-                'credit_amount' => $salesInvoice->tax_amount,
+                'credit_amount' => $this->baseAmount($salesInvoice, $salesInvoice->tax_amount),
                 'creator_id' => Auth::id(),
                 'created_by' => creatorId()
             ]);
@@ -198,32 +213,32 @@ class JournalService
         }
         $this->validateAccounts($requiredAccounts);
 
-        $totalDebit = $salesInvoice->total_amount;
-        $totalCredit = $salesInvoice->subtotal - $salesInvoice->discount_amount + ($salesInvoice->tax_amount ?? 0);
+        $totalDebit = $this->baseAmount($salesInvoice, $salesInvoice->total_amount);
+        $totalCredit = $this->baseAmount($salesInvoice, $salesInvoice->subtotal - $salesInvoice->discount_amount + ($salesInvoice->tax_amount ?? 0));
         $this->validateBalance($totalDebit, $totalCredit);
 
         $arAccount = ChartOfAccount::where('account_code', '1100')->where('created_by', creatorId())->first();
         $serviceRevenueAccount = ChartOfAccount::where('account_code', '4200')->where('created_by', creatorId())->first();
         $taxAccount = ChartOfAccount::where('account_code', '2210')->where('created_by', creatorId())->first();
 
-        $journalEntry = JournalEntry::create([
+        $journalEntry = JournalEntry::create(array_merge([
             'journal_date' => $salesInvoice->invoice_date ?? now(),
             'entry_type' => 'automatic',
             'reference_type' => 'service_invoice',
             'reference_id' => $salesInvoice->id,
             'description' => 'Service Invoice #' . $salesInvoice->invoice_number,
-            'total_debit' => $salesInvoice->total_amount,
-            'total_credit' => $salesInvoice->total_amount,
+            'total_debit' => $totalDebit,
+            'total_credit' => $totalDebit,
             'status' => 'posted',
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
-        ]);
+        ], $this->currencySnapshot($salesInvoice, $salesInvoice->total_amount)));
 
         JournalEntryItem::create([
             'journal_entry_id' => $journalEntry->id,
             'account_id' => $arAccount->id,
             'description' => 'Service to ' . $salesInvoice->customer->name,
-            'debit_amount' => $salesInvoice->total_amount,
+            'debit_amount' => $totalDebit,
             'credit_amount' => 0,
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
@@ -234,7 +249,7 @@ class JournalService
             'account_id' => $serviceRevenueAccount->id,
             'description' => 'Service revenue',
             'debit_amount' => 0,
-            'credit_amount' => $salesInvoice->subtotal - $salesInvoice->discount_amount,
+            'credit_amount' => $this->baseAmount($salesInvoice, $salesInvoice->subtotal - $salesInvoice->discount_amount),
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
         ]);
@@ -245,7 +260,7 @@ class JournalService
                 'account_id' => $taxAccount->id,
                 'description' => 'Sales tax collected',
                 'debit_amount' => 0,
-                'credit_amount' => $salesInvoice->tax_amount,
+                'credit_amount' => $this->baseAmount($salesInvoice, $salesInvoice->tax_amount),
                 'creator_id' => Auth::id(),
                 'created_by' => creatorId()
             ]);
@@ -268,32 +283,32 @@ class JournalService
 
         $this->validateAccounts($requiredAccounts);
 
-        $totalDebit = $purchaseInvoice->subtotal - $purchaseInvoice->discount_amount + ($purchaseInvoice->tax_amount ?? 0);
-        $totalCredit = $purchaseInvoice->total_amount;
+        $totalDebit = $this->baseAmount($purchaseInvoice, $purchaseInvoice->subtotal - $purchaseInvoice->discount_amount + ($purchaseInvoice->tax_amount ?? 0));
+        $totalCredit = $this->baseAmount($purchaseInvoice, $purchaseInvoice->total_amount);
         $this->validateBalance($totalDebit, $totalCredit);
 
         $apAccount = ChartOfAccount::where('account_code', '2000')->where('created_by', creatorId())->first();
         $inventoryAccount = ChartOfAccount::where('account_code', '1200')->where('created_by', creatorId())->first();
         $taxAccount = ChartOfAccount::where('account_code', '1500')->where('created_by', creatorId())->first();
 
-        $journalEntry = JournalEntry::create([
+        $journalEntry = JournalEntry::create(array_merge([
             'journal_date' => $purchaseInvoice->invoice_date ?? now(),
             'entry_type' => 'automatic',
             'reference_type' => 'purchase_invoice',
             'reference_id' => $purchaseInvoice->id,
             'description' => 'Purchase Invoice #' . $purchaseInvoice->invoice_number,
-            'total_debit' => $purchaseInvoice->total_amount,
-            'total_credit' => $purchaseInvoice->total_amount,
+            'total_debit' => $totalCredit,
+            'total_credit' => $totalCredit,
             'status' => 'posted',
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
-        ]);
+        ], $this->currencySnapshot($purchaseInvoice, $purchaseInvoice->total_amount)));
 
         JournalEntryItem::create([
             'journal_entry_id' => $journalEntry->id,
             'account_id' => $inventoryAccount->id,
             'description' => 'Purchase from ' . $purchaseInvoice->vendor->name,
-            'debit_amount' => $purchaseInvoice->subtotal - $purchaseInvoice->discount_amount,
+            'debit_amount' => $this->baseAmount($purchaseInvoice, $purchaseInvoice->subtotal - $purchaseInvoice->discount_amount),
             'credit_amount' => 0,
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
@@ -304,7 +319,7 @@ class JournalService
                 'journal_entry_id' => $journalEntry->id,
                 'account_id' => $taxAccount->id,
                 'description' => 'Purchase tax paid',
-                'debit_amount' => $purchaseInvoice->tax_amount,
+                'debit_amount' => $this->baseAmount($purchaseInvoice, $purchaseInvoice->tax_amount),
                 'credit_amount' => 0,
                 'creator_id' => Auth::id(),
                 'created_by' => creatorId()
@@ -316,7 +331,7 @@ class JournalService
             'account_id' => $apAccount->id,
             'description' => 'Purchase from vendor',
             'debit_amount' => 0,
-            'credit_amount' => $purchaseInvoice->total_amount,
+            'credit_amount' => $totalCredit,
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
         ]);
@@ -348,6 +363,9 @@ class JournalService
             max(0, $allocatedAmount - $creditNoteAmount)
         );
         $depositAmount = max(0, (float) $customerPayment->payment_amount - $cashAppliedAmount);
+        $basePaymentAmount = $this->baseAmount($customerPayment, $customerPayment->payment_amount);
+        $baseCashAppliedAmount = $this->baseAmount($customerPayment, $cashAppliedAmount);
+        $baseDepositAmount = $this->baseAmount($customerPayment, $depositAmount);
 
         $requiredAccounts = [];
         if ($cashAppliedAmount > 0) {
@@ -362,27 +380,27 @@ class JournalService
         $depositAccount = ChartOfAccount::where('account_code', '2350')->where('created_by', creatorId())->first();
 
         // Validate amounts balance
-        $this->validateBalance($customerPayment->payment_amount, $customerPayment->payment_amount);
+        $this->validateBalance($basePaymentAmount, $basePaymentAmount);
 
-        $journalEntry = JournalEntry::create([
+        $journalEntry = JournalEntry::create(array_merge([
             'journal_date' => $customerPayment->payment_date ?? now(),
             'entry_type' => 'automatic',
             'reference_type' => 'customer_payment',
             'reference_id' => $customerPayment->id,
             'description' => 'Customer Payment #' . $customerPayment->payment_number,
-            'total_debit' => $customerPayment->payment_amount,
-            'total_credit' => $customerPayment->payment_amount,
+            'total_debit' => $basePaymentAmount,
+            'total_credit' => $basePaymentAmount,
             'status' => 'posted',
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
-        ]);
+        ], $this->currencySnapshot($customerPayment, $customerPayment->payment_amount)));
 
         // Debit: Specific Bank Account (from GL Account)
         JournalEntryItem::create([
             'journal_entry_id' => $journalEntry->id,
             'account_id' => $bankGLAccount->id,
             'description' => 'Payment received from ' . $customerPayment->customer->name,
-            'debit_amount' => $customerPayment->payment_amount,
+            'debit_amount' => $basePaymentAmount,
             'credit_amount' => 0,
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
@@ -394,7 +412,7 @@ class JournalService
                 'account_id' => $arAccount->id,
                 'description' => 'Customer payment applied to invoices',
                 'debit_amount' => 0,
-                'credit_amount' => $cashAppliedAmount,
+                'credit_amount' => $baseCashAppliedAmount,
                 'creator_id' => Auth::id(),
                 'created_by' => creatorId()
             ]);
@@ -406,7 +424,7 @@ class JournalService
                 'account_id' => $depositAccount->id,
                 'description' => 'Unallocated customer deposit',
                 'debit_amount' => 0,
-                'credit_amount' => $depositAmount,
+                'credit_amount' => $baseDepositAmount,
                 'creator_id' => Auth::id(),
                 'created_by' => creatorId()
             ]);
@@ -482,30 +500,31 @@ class JournalService
             throw new \Exception("Bank account must have a GL account assigned");
         }
 
+        $basePaymentAmount = $this->baseAmount($vendorPayment, $vendorPayment->payment_amount);
         // Validate A/P account exists
         $this->validateAccounts(['2000']);
         $apAccount = ChartOfAccount::where('account_code', '2000')->where('created_by', creatorId())->first();
         // Validate amounts balance
-        $this->validateBalance($vendorPayment->payment_amount, $vendorPayment->payment_amount);
+        $this->validateBalance($basePaymentAmount, $basePaymentAmount);
 
-        $journalEntry = JournalEntry::create([
+        $journalEntry = JournalEntry::create(array_merge([
             'journal_date' => $vendorPayment->payment_date ?? now(),
             'entry_type' => 'automatic',
             'reference_type' => 'vendor_payment',
             'reference_id' => $vendorPayment->id,
             'description' => 'Vendor Payment #' . $vendorPayment->payment_number,
-            'total_debit' => $vendorPayment->payment_amount,
-            'total_credit' => $vendorPayment->payment_amount,
+            'total_debit' => $basePaymentAmount,
+            'total_credit' => $basePaymentAmount,
             'status' => 'posted',
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
-        ]);
+        ], $this->currencySnapshot($vendorPayment, $vendorPayment->payment_amount)));
         // Debit: Accounts Payable
         JournalEntryItem::create([
             'journal_entry_id' => $journalEntry->id,
             'account_id' => $apAccount->id,
             'description' => 'Payment to ' . $vendorPayment->vendor->name,
-            'debit_amount' => $vendorPayment->payment_amount,
+            'debit_amount' => $basePaymentAmount,
             'credit_amount' => 0,
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
@@ -517,7 +536,7 @@ class JournalService
             'account_id' => $bankGLAccount->id,
             'description' => 'Payment from ' . $vendorPayment->bankAccount->account_name,
             'debit_amount' => 0,
-            'credit_amount' => $vendorPayment->payment_amount,
+            'credit_amount' => $basePaymentAmount,
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
         ]);
@@ -554,28 +573,29 @@ class JournalService
             throw new \Exception("Revenue account not found");
         }
 
+        $baseAmount = $this->baseAmount($revenueEntry, $revenueEntry->amount);
         // Validate amounts balance
-        $this->validateBalance($revenueEntry->amount, $revenueEntry->amount);
+        $this->validateBalance($baseAmount, $baseAmount);
 
-        $journalEntry = JournalEntry::create([
+        $journalEntry = JournalEntry::create(array_merge([
             'journal_date' => $revenueEntry->revenue_date ?? now(),
             'entry_type' => 'automatic',
             'reference_type' => 'revenue',
             'reference_id' => $revenueEntry->id,
             'description' => 'Revenue Entry - #' . $revenueEntry->revenue_number,
-            'total_debit' => $revenueEntry->amount,
-            'total_credit' => $revenueEntry->amount,
+            'total_debit' => $baseAmount,
+            'total_credit' => $baseAmount,
             'status' => 'posted',
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
-        ]);
+        ], $this->currencySnapshot($revenueEntry, $revenueEntry->amount)));
 
         // Debit: Specific Bank Account (from GL Account)
         JournalEntryItem::create([
             'journal_entry_id' => $journalEntry->id,
             'account_id' => $bankGLAccount->id,
             'description' => 'Revenue received',
-            'debit_amount' => $revenueEntry->amount,
+            'debit_amount' => $baseAmount,
             'credit_amount' => 0,
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
@@ -587,7 +607,7 @@ class JournalService
             'account_id' => $revenueAccount->id,
             'description' => 'Revenue earned',
             'debit_amount' => 0,
-            'credit_amount' => $revenueEntry->amount,
+            'credit_amount' => $baseAmount,
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
         ]);
@@ -624,28 +644,29 @@ class JournalService
             throw new \Exception("Expense account not found");
         }
 
+        $baseAmount = $this->baseAmount($expenseEntry, $expenseEntry->amount);
         // Validate amounts balance
-        $this->validateBalance($expenseEntry->amount, $expenseEntry->amount);
+        $this->validateBalance($baseAmount, $baseAmount);
 
-        $journalEntry = JournalEntry::create([
+        $journalEntry = JournalEntry::create(array_merge([
             'journal_date' => $expenseEntry->expense_date ?? now(),
             'entry_type' => 'automatic',
             'reference_type' => 'expense',
             'reference_id' => $expenseEntry->id,
             'description' => 'Expense Entry - #' . $expenseEntry->expense_number,
-            'total_debit' => $expenseEntry->amount,
-            'total_credit' => $expenseEntry->amount,
+            'total_debit' => $baseAmount,
+            'total_credit' => $baseAmount,
             'status' => 'posted',
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
-        ]);
+        ], $this->currencySnapshot($expenseEntry, $expenseEntry->amount)));
 
         // Debit: Selected Expense Account
         JournalEntryItem::create([
             'journal_entry_id' => $journalEntry->id,
             'account_id' => $expenseAccount->id,
             'description' => 'Expense incurred',
-            'debit_amount' => $expenseEntry->amount,
+            'debit_amount' => $baseAmount,
             'credit_amount' => 0,
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
@@ -657,7 +678,7 @@ class JournalService
             'account_id' => $bankGLAccount->id,
             'description' => 'Payment made',
             'debit_amount' => 0,
-            'credit_amount' => $expenseEntry->amount,
+            'credit_amount' => $baseAmount,
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
         ]);
