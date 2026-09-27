@@ -27,8 +27,8 @@ class StoreCustomerRequest extends FormRequest
             'tax_number' => 'nullable|string|max:255',
             'cr_number' => 'nullable|string|max:255',
             'payment_terms' => 'nullable|string|max:255',
-            'billing_address' => 'required|array',
-            'shipping_address' => 'required_if:same_as_billing,false|array',
+            'billing_address' => 'nullable|array',
+            'shipping_address' => 'nullable|array',
             'same_as_billing' => 'boolean',
             'notes' => 'nullable|string',
         ] + $this->customerAddressRules() + \Workdo\Account\Services\PartyAttachmentService::rules();

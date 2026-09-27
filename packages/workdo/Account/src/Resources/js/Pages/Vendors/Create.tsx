@@ -155,7 +155,6 @@ export default function Create({ onSuccess, returnTo }: CreateVendorProps) {
                         value={data.billing_address.name}
                         onChange={(e) => setData('billing_address', {...data.billing_address, name: e.target.value})}
                         placeholder={t('Enter billing name')}
-                        required
                     />
                     <InputError message={errors['billing_address.name']} />
                 </div>
@@ -166,7 +165,6 @@ export default function Create({ onSuccess, returnTo }: CreateVendorProps) {
                         value={data.billing_address.address_line_1}
                         onChange={(e) => setData('billing_address', {...data.billing_address, address_line_1: e.target.value})}
                         placeholder={t('Enter address')}
-                        required
                     />
                     <InputError message={errors['billing_address.address_line_1']} />
                 </div>
@@ -188,7 +186,6 @@ export default function Create({ onSuccess, returnTo }: CreateVendorProps) {
                             value={data.billing_address.city}
                             onChange={(e) => setData('billing_address', {...data.billing_address, city: e.target.value})}
                             placeholder={t('Enter city')}
-                            required
                         />
                         <InputError message={errors['billing_address.city']} />
                     </div>
@@ -199,7 +196,6 @@ export default function Create({ onSuccess, returnTo }: CreateVendorProps) {
                             value={data.billing_address.state}
                             onChange={(e) => setData('billing_address', {...data.billing_address, state: e.target.value})}
                             placeholder={t('Enter state')}
-                            required
                         />
                         <InputError message={errors['billing_address.state']} />
                     </div>
@@ -212,7 +208,6 @@ export default function Create({ onSuccess, returnTo }: CreateVendorProps) {
                             value={data.billing_address.country}
                             onChange={(e) => setData('billing_address', {...data.billing_address, country: e.target.value})}
                             placeholder={t('Enter country')}
-                            required
                         />
                         <InputError message={errors['billing_address.country']} />
                     </div>
@@ -223,7 +218,6 @@ export default function Create({ onSuccess, returnTo }: CreateVendorProps) {
                             value={data.billing_address.zip_code}
                             onChange={(e) => setData('billing_address', {...data.billing_address, zip_code: e.target.value})}
                             placeholder={t('Enter zip code')}
-                            required
                         />
                         <InputError message={errors['billing_address.zip_code']} />
                     </div>
@@ -252,7 +246,6 @@ export default function Create({ onSuccess, returnTo }: CreateVendorProps) {
                                 value={data.shipping_address.name}
                                 onChange={(e) => setData('shipping_address', {...data.shipping_address, name: e.target.value})}
                                 placeholder={t('Enter shipping name')}
-                                required
                             />
                             <InputError message={errors['shipping_address.name']} />
                         </div>
@@ -263,7 +256,6 @@ export default function Create({ onSuccess, returnTo }: CreateVendorProps) {
                                 value={data.shipping_address.address_line_1}
                                 onChange={(e) => setData('shipping_address', {...data.shipping_address, address_line_1: e.target.value})}
                                 placeholder={t('Enter shipping address')}
-                                required
                             />
                             <InputError message={errors['shipping_address.address_line_1']} />
                         </div>
@@ -285,7 +277,6 @@ export default function Create({ onSuccess, returnTo }: CreateVendorProps) {
                                     value={data.shipping_address.city}
                                     onChange={(e) => setData('shipping_address', {...data.shipping_address, city: e.target.value})}
                                     placeholder={t('Enter city')}
-                                    required
                                 />
                                 <InputError message={errors['shipping_address.city']} />
                             </div>
@@ -296,7 +287,6 @@ export default function Create({ onSuccess, returnTo }: CreateVendorProps) {
                                     value={data.shipping_address.state}
                                     onChange={(e) => setData('shipping_address', {...data.shipping_address, state: e.target.value})}
                                     placeholder={t('Enter state')}
-                                    required
                                 />
                                 <InputError message={errors['shipping_address.state']} />
                             </div>
@@ -309,7 +299,6 @@ export default function Create({ onSuccess, returnTo }: CreateVendorProps) {
                                     value={data.shipping_address.country}
                                     onChange={(e) => setData('shipping_address', {...data.shipping_address, country: e.target.value})}
                                     placeholder={t('Enter country')}
-                                    required
                                 />
                                 <InputError message={errors['shipping_address.country']} />
                             </div>
@@ -320,7 +309,6 @@ export default function Create({ onSuccess, returnTo }: CreateVendorProps) {
                                     value={data.shipping_address.zip_code}
                                     onChange={(e) => setData('shipping_address', {...data.shipping_address, zip_code: e.target.value})}
                                     placeholder={t('Enter zip code')}
-                                    required
                                 />
                                 <InputError message={errors['shipping_address.zip_code']} />
                             </div>

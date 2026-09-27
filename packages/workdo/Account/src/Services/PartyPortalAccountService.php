@@ -16,8 +16,8 @@ class PartyPortalAccountService
 {
     public function create(Model $party, string $type, array $attributes, int $tenantId, int $actorId): User
     {
-        $enabled = (bool) ($attributes['portal_access_enabled'] ?? false);
         $email = $this->normalizedEmail($attributes['contact_person_email'] ?? null);
+        $enabled = (bool) ($attributes['portal_access_enabled'] ?? false) && $email !== '';
         $user = User::create([
             'name' => $attributes['company_name'],
             'email' => $enabled ? $email : $this->placeholderEmail($type, $tenantId),
@@ -45,12 +45,13 @@ class PartyPortalAccountService
             return $this->create($party, $type, $attributes, $tenantId, $actorId);
         }
 
-        $enabled = (bool) ($attributes['portal_access_enabled'] ?? false);
+        $email = $this->normalizedEmail($attributes['contact_person_email'] ?? null);
+        $enabled = (bool) ($attributes['portal_access_enabled'] ?? false) && $email !== '';
         $wasEnabled = (bool) $user->is_enable_login;
         $user->name = $attributes['company_name'];
         $user->mobile_no = $attributes['contact_person_mobile'] ?? null;
         $user->email = $enabled
-            ? $this->normalizedEmail($attributes['contact_person_email'] ?? null)
+            ? $email
             : ($wasEnabled || !$this->isPlaceholderEmail($user->email) ? $this->placeholderEmail($type, $tenantId) : $user->email);
         $user->is_enable_login = $enabled;
         $user->is_disable = $enabled ? 0 : 1;

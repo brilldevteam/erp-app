@@ -20,7 +20,7 @@ import { FilterButton } from '@/components/ui/filter-button';
 import { Pagination } from "@/components/ui/pagination";
 import { SearchInput } from "@/components/ui/search-input";
 import { ListGridToggle } from '@/components/ui/list-grid-toggle';
-import { formatCurrency, formatDate } from '@/utils/helpers';
+import { formatCurrency, formatDate, getCurrencySymbolForCode } from '@/utils/helpers';
 import NoRecordsFound from '@/components/no-records-found';
 import Create from './Create';
 import View from './View';
@@ -36,7 +36,11 @@ interface CustomerPaymentFilters {
 
 export default function Index() {
     const { t } = useTranslation();
-    const { payments, customers, bankAccounts, filters: initialFilters, auth } = usePage<CustomerPaymentsIndexProps>().props;
+    const pageProps = usePage<CustomerPaymentsIndexProps>().props as CustomerPaymentsIndexProps & { companyAllSetting?: { defaultCurrency?: string } };
+    const { payments, customers, bankAccounts, filters: initialFilters, auth } = pageProps;
+    const baseCurrency = pageProps.companyAllSetting?.defaultCurrency || 'USD';
+    const formatMoney = (amount: number | string, currency: string) =>
+        `${getCurrencySymbolForCode(currency, pageProps)} ${Number(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const urlParams = new URLSearchParams(window.location.search);
 
     const [filters, setFilters] = useState<CustomerPaymentFilters>({
@@ -156,6 +160,13 @@ export default function Index() {
             render: (value: any) => value?.name || '-'
         },
         {
+            key: 'allocations',
+            header: t('Invoice'),
+            render: (_: any, payment: CustomerPayment) => payment.allocations?.length
+                ? payment.allocations.map((allocation) => allocation.invoice?.invoice_number).filter(Boolean).join(', ')
+                : '-'
+        },
+        {
             key: 'payment_date',
             header: t('Received Date'),
             sortable: true,
@@ -165,12 +176,26 @@ export default function Index() {
             key: 'payment_amount',
             header: t('Amount'),
             sortable: true,
-            render: (value: number) => formatCurrency(parseFloat(value.toString()))
+            render: (value: number, payment: CustomerPayment) => {
+                const currency = payment.currency_code || baseCurrency;
+                return <div className="font-normal text-gray-900">
+                    <div className="whitespace-nowrap" dir="ltr">{formatMoney(value, currency)}</div>
+                    {currency !== baseCurrency && payment.allocations?.length > 0 && (
+                        <div className="mt-0.5 whitespace-nowrap text-xs text-gray-500" dir="ltr">
+                            {t('Invoice')}: {payment.allocations.map((allocation) => formatMoney(allocation.allocated_amount, allocation.invoice?.currency_code || baseCurrency)).join(', ')}
+                        </div>
+                    )}
+                </div>;
+            }
         },
         {
             key: 'available_deposit',
             header: t('Available Deposit'),
-            render: (value: number) => Number(value) > 0 ? formatCurrency(Number(value)) : '-'
+            render: (value: number, payment: CustomerPayment) => {
+                if (Number(value) <= 0) return '-';
+                const currency = payment.currency_code || baseCurrency;
+                return <span className="whitespace-nowrap font-normal text-gray-900" dir="ltr">{formatMoney(value, currency)}</span>;
+            }
         },
         {
             key: 'bank_account',
@@ -442,6 +467,10 @@ export default function Index() {
                                                         <p className="text-xs font-medium text-gray-600 mb-1">{t('Customer')}</p>
                                                         <p className="text-sm text-gray-900 truncate font-medium">{payment.customer?.name}</p>
                                                     </div>
+                                                    <div>
+                                                        <p className="text-xs font-medium text-gray-600 mb-1">{t('Invoice')}</p>
+                                                        <p className="text-sm text-gray-900">{payment.allocations?.length ? payment.allocations.map((allocation) => allocation.invoice?.invoice_number).filter(Boolean).join(', ') : '-'}</p>
+                                                    </div>
                                                     <div className="grid grid-cols-2 gap-3">
                                                         <div>
                                                             <p className="text-xs font-medium text-gray-600 mb-1">{t('Date')}</p>
@@ -455,12 +484,18 @@ export default function Index() {
                                                     <div className="bg-gray-50 rounded-lg p-3">
                                                         <div className="flex justify-between items-center">
                                                             <span className="text-sm font-semibold text-gray-900">{t('Amount')}</span>
-                                                            <span className="text-lg font-bold text-green-600">{formatCurrency(parseFloat(payment.payment_amount.toString()))}</span>
+                                                            <div className="text-end">
+                                                                <div className="text-lg font-bold text-green-600">{formatMoney(payment.payment_amount, payment.currency_code || baseCurrency)}</div>
+                                                                {(payment.currency_code || baseCurrency) !== baseCurrency && <div className="text-xs text-gray-500">{formatMoney(payment.base_amount || 0, baseCurrency)}</div>}
+                                                            </div>
                                                         </div>
                                                         {Number(payment.available_deposit) > 0 && (
                                                             <div className="mt-2 flex justify-between border-t pt-2">
                                                                 <span className="text-xs text-gray-600">{t('Available Deposit')}</span>
-                                                                <span className="text-sm font-semibold text-blue-600">{formatCurrency(Number(payment.available_deposit))}</span>
+                                                                <div className="text-end">
+                                                                    <div className="text-sm font-semibold text-blue-600">{formatMoney(payment.available_deposit, payment.currency_code || baseCurrency)}</div>
+                                                                    {(payment.currency_code || baseCurrency) !== baseCurrency && <div className="text-xs text-gray-500">{formatMoney(payment.available_deposit_base || 0, baseCurrency)}</div>}
+                                                                </div>
                                                             </div>
                                                         )}
                                                     </div>

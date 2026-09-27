@@ -356,22 +356,23 @@ class JournalService
             throw new \Exception("Bank account must have a GL account assigned");
         }
 
-        $allocatedAmount = (float) $customerPayment->allocations()->sum('allocated_amount');
-        $creditNoteAmount = (float) $customerPayment->creditNoteApplications()->sum('applied_amount');
-        $cashAppliedAmount = min(
-            (float) $customerPayment->payment_amount,
-            max(0, $allocatedAmount - $creditNoteAmount)
-        );
-        $depositAmount = max(0, (float) $customerPayment->payment_amount - $cashAppliedAmount);
         $basePaymentAmount = $this->baseAmount($customerPayment, $customerPayment->payment_amount);
-        $baseCashAppliedAmount = $this->baseAmount($customerPayment, $cashAppliedAmount);
-        $baseDepositAmount = $this->baseAmount($customerPayment, $depositAmount);
+        $baseAllocatedAmount = (float) $customerPayment->allocations()
+            ->with('invoice')
+            ->get()
+            ->sum(fn ($allocation) => (float) $allocation->allocated_amount * (float) ($allocation->invoice?->exchange_rate ?: 1));
+        $baseCreditNoteAmount = (float) $customerPayment->creditNoteApplications()
+            ->with('creditNote')
+            ->get()
+            ->sum(fn ($application) => (float) $application->applied_amount * (float) ($application->creditNote?->exchange_rate ?: 1));
+        $baseCashAppliedAmount = min($basePaymentAmount, max(0, $baseAllocatedAmount - $baseCreditNoteAmount));
+        $baseDepositAmount = max(0, $basePaymentAmount - $baseCashAppliedAmount);
 
         $requiredAccounts = [];
-        if ($cashAppliedAmount > 0) {
+        if ($baseCashAppliedAmount > 0) {
             $requiredAccounts[] = '1100';
         }
-        if ($depositAmount > 0) {
+        if ($baseDepositAmount > 0) {
             $requiredAccounts[] = '2350';
         }
         $this->validateAccounts($requiredAccounts);
@@ -406,7 +407,7 @@ class JournalService
             'created_by' => creatorId()
         ]);
 
-        if ($cashAppliedAmount > 0) {
+        if ($baseCashAppliedAmount > 0) {
             JournalEntryItem::create([
                 'journal_entry_id' => $journalEntry->id,
                 'account_id' => $arAccount->id,
@@ -418,7 +419,7 @@ class JournalService
             ]);
         }
 
-        if ($depositAmount > 0) {
+        if ($baseDepositAmount > 0) {
             JournalEntryItem::create([
                 'journal_entry_id' => $journalEntry->id,
                 'account_id' => $depositAccount->id,

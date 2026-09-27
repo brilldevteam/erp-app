@@ -203,7 +203,7 @@
 
     body {
         @apply bg-background font-sans text-foreground;
-        letter-spacing: -0.006em;
+        letter-spacing: 0;
     }
 
     button,

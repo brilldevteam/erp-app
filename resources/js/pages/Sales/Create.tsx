@@ -107,7 +107,6 @@ export default function Create() {
         setIsCustomerDialogOpen(false);
         router.reload({
             only: ['customers'],
-            preserveState: true,
             onSuccess: (page) => {
                 const refreshed = ((page.props as any).customers || []) as InvoiceCustomerOption[];
                 setCustomerOptions(refreshed);
@@ -333,7 +332,7 @@ export default function Create() {
                                             <SelectValue placeholder={t('Select Customer')} />
                                         </SelectTrigger>
                                         <SelectContent searchable>
-                                            <SelectItem value="create-customer"><span className="font-medium text-primary">{t('Create Customer')}</span></SelectItem>
+                                            <SelectItem value="create-customer" data-search-persistent><span className="font-medium text-primary">{t('Create Customer')}</span></SelectItem>
                                             {customerOptions.map((customer) => (
                                                 <SelectItem key={customer.id} value={customer.id.toString()}>
                                                     {customer.company_name || customer.name}

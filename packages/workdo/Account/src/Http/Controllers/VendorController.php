@@ -49,7 +49,7 @@ class VendorController extends Controller
 
             return Inertia::render('Account/Vendors/Index', [
                 'vendors' => $vendors,
-                'editVendor' => request('edit') ? Vendor::with('user:id,is_enable_login,is_disable')->where('created_by', creatorId())->find(request('edit')) : null,
+                'editVendor' => request('edit') ? Vendor::with('user:id,email,is_enable_login,is_disable')->where('created_by', creatorId())->find(request('edit')) : null,
                 'openCreate' => request()->boolean('create'),
                 'returnTo' => request('return_to') === 'project.contractors.index' ? request('return_to') : null,
             ]);

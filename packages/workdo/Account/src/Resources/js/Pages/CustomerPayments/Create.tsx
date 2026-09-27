@@ -48,7 +48,6 @@ export default function Create({ customers, bankAccounts, onSuccess, defaultCust
         setIsCustomerDialogOpen(false);
         router.reload({
             only: ['customers'],
-            preserveState: true,
             onSuccess: (page) => {
                 const refreshed = ((page.props as any).customers || []) as typeof customerOptions;
                 setCustomerOptions(refreshed);
@@ -146,11 +145,26 @@ export default function Create({ customers, bankAccounts, onSuccess, defaultCust
     };
 
     const updateTotalAmount = (allocations: {invoice_id: number; amount: number}[], creditNotes = selectedCreditNotes) => {
-        const allocationsTotal = allocations.reduce((sum, allocation) => sum + Number(allocation.amount || 0), 0);
-        const creditNotesTotal = creditNotes.reduce((sum, creditNote) => sum + Number(creditNote.amount || 0), 0);
-        const total = allocationsTotal - creditNotesTotal; // Credit notes reduce payment amount
-        setData('payment_amount', Number(Math.max(0, total)).toFixed(2));
+        const allocationsBaseTotal = allocations.reduce((sum, allocation) => {
+            const invoice = outstandingInvoices.find(item => item.id === allocation.invoice_id);
+            return sum + Number(allocation.amount || 0) * Number(invoice?.exchange_rate || 1);
+        }, 0);
+        const creditNotesBaseTotal = creditNotes.reduce((sum, creditNote) => {
+            const note = availableCreditNotes.find(item => item.id === creditNote.credit_note_id);
+            return sum + Number(creditNote.amount || 0) * Number(note?.exchange_rate || 1);
+        }, 0);
+        const paymentRate = Number(data.exchange_rate || 1);
+        const paymentCurrencyTotal = paymentRate > 0
+            ? Math.max(0, allocationsBaseTotal - creditNotesBaseTotal) / paymentRate
+            : 0;
+        setData('payment_amount', paymentCurrencyTotal.toFixed(2));
     };
+
+    useEffect(() => {
+        if (selectedAllocations.length > 0) {
+            updateTotalAmount(selectedAllocations, selectedCreditNotes);
+        }
+    }, [data.exchange_rate]);
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -172,15 +186,6 @@ export default function Create({ customers, bankAccounts, onSuccess, defaultCust
             </DialogHeader>
             <form onSubmit={submit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <TransactionCurrencyFields
-                        currencyCode={data.currency_code}
-                        exchangeRate={data.exchange_rate}
-                        amount={data.payment_amount}
-                        transactionDate={data.payment_date}
-                        onCurrencyChange={(value) => setData('currency_code', value)}
-                        onRateChange={(value) => setData('exchange_rate', value)}
-                        errors={errors as Record<string, string>}
-                    />
                     <div>
                         <Label htmlFor="payment_date" required>{t('Received Date')}</Label>
                         <DatePicker
@@ -206,7 +211,7 @@ export default function Create({ customers, bankAccounts, onSuccess, defaultCust
                                 <SelectValue placeholder={t('Select Customer')} />
                             </SelectTrigger>
                             <SelectContent searchable>
-                                <SelectItem value="create-customer"><span className="flex items-center gap-2 font-medium text-primary"><Plus className="h-4 w-4" />{t('Create Customer')}</span></SelectItem>
+                                <SelectItem value="create-customer" data-search-persistent><span className="flex items-center gap-2 font-medium text-primary"><Plus className="h-4 w-4" />{t('Create Customer')}</span></SelectItem>
                                 {customerOptions.map((customer) => (
                                     <SelectItem key={customer.id} value={customer.id.toString()}>
                                         {customer.name}
@@ -449,6 +454,7 @@ export default function Create({ customers, bankAccounts, onSuccess, defaultCust
                     <CurrencyInput
                         label={t('Total Payment Amount')}
                         value={data.payment_amount}
+                        currency={data.currency_code}
                         onChange={(value) => {
                             setData('payment_amount', value);
                             // Clear allocations if total is changed manually
@@ -467,6 +473,16 @@ export default function Create({ customers, bankAccounts, onSuccess, defaultCust
                     )}
                     <InputError message={errors.allocations} />
                 </div>
+
+                <TransactionCurrencyFields
+                    currencyCode={data.currency_code}
+                    exchangeRate={data.exchange_rate}
+                    amount={data.payment_amount}
+                    transactionDate={data.payment_date}
+                    onCurrencyChange={(value) => setData('currency_code', value)}
+                    onRateChange={(value) => setData('exchange_rate', value)}
+                    errors={errors as Record<string, string>}
+                />
 
                 <div>
                     <Label htmlFor="notes">{t('Notes')}</Label>

@@ -22,10 +22,15 @@ interface EditCustomerProps {
 
 export default function Edit({ customer, onSuccess }: EditCustomerProps) {
     const { t } = useTranslation();
+    const contactEmail = (customer.contact_person_email ?? '').trim().toLowerCase();
+    const portalAccessEnabled = contactEmail !== ''
+        && contactEmail === (customer.user?.email ?? '').trim().toLowerCase()
+        && !!customer.user?.is_enable_login
+        && !customer.user?.is_disable;
     const { data, setData, put, transform, processing, errors } = useForm<CustomerFormData>({
         ...customer,
         contact_person_email: customer.contact_person_email ?? '',
-        portal_access_enabled: !!customer.user?.is_enable_login,
+        portal_access_enabled: portalAccessEnabled,
         password: '',
         password_confirmation: '',
         attachments: [],
@@ -65,7 +70,7 @@ export default function Edit({ customer, onSuccess }: EditCustomerProps) {
             <DialogHeader>
                 <DialogTitle>{t('Edit Customer')}</DialogTitle>
             </DialogHeader>
-            <form onSubmit={submit} className="space-y-4" noValidate>
+            <form onSubmit={submit} className="space-y-4" noValidate autoComplete="off">
                 <div>
                     <Label htmlFor="company_name">{t('Company Name')}</Label>
                     <Input
@@ -92,7 +97,9 @@ export default function Edit({ customer, onSuccess }: EditCustomerProps) {
                     <Label htmlFor="contact_person_email">{t('Email')}</Label>
                     <Input
                         id="contact_person_email"
+                        name="customer_contact_email"
                         type="email"
+                        autoComplete="off"
                         value={data.contact_person_email}
                         onChange={(e) => { const email = e.target.value; setData('contact_person_email', email); if (!/^\S+@\S+\.\S+$/.test(email)) setData('portal_access_enabled', false); }}
                         placeholder={t('Enter email address (optional)')}
@@ -106,8 +113,8 @@ export default function Edit({ customer, onSuccess }: EditCustomerProps) {
                     </div>
                     {data.portal_access_enabled && (
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <div><Label htmlFor="password">{t(customer.user?.is_enable_login ? 'New Password (Optional)' : 'Password')}</Label><Input id="password" type="password" value={data.password} onChange={(e) => setData('password', e.target.value)} /><InputError message={errors.password} /></div>
-                            <div><Label htmlFor="password_confirmation">{t('Confirm Password')}</Label><Input id="password_confirmation" type="password" value={data.password_confirmation} onChange={(e) => setData('password_confirmation', e.target.value)} /><InputError message={errors.password_confirmation} /></div>
+                            <div><Label htmlFor="password">{t(portalAccessEnabled ? 'New Password (Optional)' : 'Password')}</Label><Input id="password" name="customer_new_password" type="password" autoComplete="new-password" value={data.password} onChange={(e) => setData('password', e.target.value)} /><InputError message={errors.password} /></div>
+                            <div><Label htmlFor="password_confirmation">{t('Confirm Password')}</Label><Input id="password_confirmation" name="customer_new_password_confirmation" type="password" autoComplete="new-password" value={data.password_confirmation} onChange={(e) => setData('password_confirmation', e.target.value)} /><InputError message={errors.password_confirmation} /></div>
                         </div>
                     )}
                 </div>

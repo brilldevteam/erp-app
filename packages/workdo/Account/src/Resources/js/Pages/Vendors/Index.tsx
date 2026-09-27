@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Plus, Edit as EditIcon, Trash2, Building2, User as UserIcon, Lock, FileText, Eye } from "lucide-react";
+import { Plus, Edit as EditIcon, Trash2, Building2, User as UserIcon, FileText, Eye } from "lucide-react";
 import { getImagePath } from '@/utils/helpers';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DataTable } from "@/components/ui/data-table";
@@ -156,17 +156,7 @@ export default function Index() {
             header: t('Actions'),
             render: (_: any, vendor: Vendor) => (
                 <div className="flex gap-1">
-                    {vendor.user?.is_disable === 1 ? (
-                        <Tooltip delayDuration={0}>
-                            <TooltipTrigger asChild>
-                                <div className="h-8 w-8 p-0 flex items-center justify-center text-gray-400">
-                                    <Lock className="h-4 w-4" />
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent><p>{t('User is disabled')}</p></TooltipContent>
-                        </Tooltip>
-                    ) : (
-                        <TooltipProvider>
+                    <TooltipProvider>
                             {auth.user?.permissions?.includes('view-vendor-detail-report') && (
                                 <Tooltip delayDuration={0}>
                                     <TooltipTrigger asChild>
@@ -212,8 +202,7 @@ export default function Index() {
                                     <TooltipContent><p>{t('Delete')}</p></TooltipContent>
                                 </Tooltip>
                             )}
-                        </TooltipProvider>
-                    )}
+                    </TooltipProvider>
                 </div>
             )
         }] : [])
@@ -428,19 +417,7 @@ export default function Index() {
                                                         </Tooltip>
                                                     )}
                                                     <div className="flex gap-1">
-                                                        {vendor.user?.is_disable === 1 ? (
-                                                            <Tooltip delayDuration={0}>
-                                                                <TooltipTrigger asChild>
-                                                                    <div className="h-8 w-8 p-0 flex items-center justify-center text-gray-400">
-                                                                        <Lock className="h-4 w-4" />
-                                                                    </div>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>{t('User is disabled')}</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        ) : (
-                                                            <TooltipProvider>
+                                                        <TooltipProvider>
                                                                  {auth.user?.permissions?.includes('view-vendor-detail-report') && (
                                                                     <Tooltip delayDuration={0}>
                                                                         <TooltipTrigger asChild>
@@ -494,8 +471,7 @@ export default function Index() {
                                                                         </TooltipContent>
                                                                     </Tooltip>
                                                                 )}
-                                                            </TooltipProvider>
-                                                        )}
+                                                        </TooltipProvider>
                                                     </div>
                                                 </div>
                                             </div>

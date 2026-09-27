@@ -56,7 +56,7 @@ export function CountryAddressFields({
     return (
         <div className="space-y-4">
             <div>
-                <Label htmlFor={`${idPrefix}_country`} required>{t('Country')}</Label>
+                <Label htmlFor={`${idPrefix}_country`} required={requireAddressDetails}>{t('Country')}</Label>
                 <CountrySelect
                     id={`${idPrefix}_country`}
                     value={code}

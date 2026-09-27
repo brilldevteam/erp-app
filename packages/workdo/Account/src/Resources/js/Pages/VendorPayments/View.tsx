@@ -1,14 +1,20 @@
 import { useTranslation } from 'react-i18next';
+import { usePage } from '@inertiajs/react';
 import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Download, Eye } from 'lucide-react';
 import { VendorPaymentViewProps } from './types';
-import { formatDate, formatCurrency } from '@/utils/helpers';
+import { formatDate, formatCurrency, getCurrencySymbolForCode } from '@/utils/helpers';
 
 export default function View({ payment }: VendorPaymentViewProps) {
     const { t } = useTranslation();
+    const page = usePage().props as any;
+    const baseCurrency = page.companyAllSetting?.defaultCurrency || 'USD';
+    const paymentCurrency = payment.currency_code || baseCurrency;
+    const formatMoney = (amount: number | string, currency: string) =>
+        `${getCurrencySymbolForCode(currency, page)} ${Number(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
     const previewVoucher = () => {
         window.open(route('account.vendor-payments.voucher', payment.id), '_blank');
@@ -78,7 +84,10 @@ export default function View({ payment }: VendorPaymentViewProps) {
                             </div>
                             <div>
                                 <span className="font-semibold">{t('Payment Amount')}</span>
-                                <p className="mt-1 text-lg font-bold text-green-600">{formatCurrency(payment.payment_amount)}</p>
+                                <p className="mt-1 text-lg font-bold text-green-600">{formatMoney(payment.payment_amount, paymentCurrency)}</p>
+                                {paymentCurrency !== baseCurrency && (
+                                    <p className="mt-1 text-xs text-gray-500">{t('Base-currency equivalent')}: {formatMoney(payment.base_amount || 0, baseCurrency)}</p>
+                                )}
                             </div>
                             <div>
                                 <span className="font-semibold">{t('Status')}</span>

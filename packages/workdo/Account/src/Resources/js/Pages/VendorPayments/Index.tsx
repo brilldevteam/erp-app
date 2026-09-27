@@ -33,11 +33,15 @@ interface VendorPaymentFilters {
     date_range: string;
     bank_account_id: string;
 }
-import { formatDate, formatCurrency } from '@/utils/helpers';
+import { formatDate, formatCurrency, getCurrencySymbolForCode } from '@/utils/helpers';
 
 export default function Index() {
     const { t } = useTranslation();
-    const { payments, vendors, bankAccounts, filters: initialFilters, auth } = usePage<VendorPaymentsIndexProps>().props;
+    const pageProps = usePage<VendorPaymentsIndexProps>().props as VendorPaymentsIndexProps & { companyAllSetting?: { defaultCurrency?: string } };
+    const { payments, vendors, bankAccounts, filters: initialFilters, auth } = pageProps;
+    const baseCurrency = pageProps.companyAllSetting?.defaultCurrency || 'USD';
+    const formatMoney = (amount: number | string, currency: string) =>
+        `${getCurrencySymbolForCode(currency, pageProps)} ${Number(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const urlParams = new URLSearchParams(window.location.search);
 
     const [filters, setFilters] = useState<VendorPaymentFilters>({
@@ -178,6 +182,14 @@ export default function Index() {
             render: (_: any, payment: VendorPayment) => payment.vendor?.name || '-'
         },
         {
+            key: 'allocations',
+            header: t('Invoice'),
+            sortable: false,
+            render: (_: any, payment: VendorPayment) => payment.allocations?.length
+                ? payment.allocations.map((allocation) => allocation.invoice?.invoice_number).filter(Boolean).join(', ')
+                : '-'
+        },
+        {
             key: 'bankAccount.account_name',
             header: t('Bank Account'),
             sortable: false,
@@ -187,7 +199,17 @@ export default function Index() {
             key: 'payment_amount',
             header: t('Amount'),
             sortable: true,
-            render: (value: number) => formatCurrency(value)
+            render: (value: number, payment: VendorPayment) => {
+                const currency = payment.currency_code || baseCurrency;
+                return <div className="font-normal text-gray-900">
+                    <div className="whitespace-nowrap" dir="ltr">{formatMoney(value, currency)}</div>
+                    {currency !== baseCurrency && payment.allocations?.length > 0 && (
+                        <div className="mt-0.5 whitespace-nowrap text-xs text-gray-500" dir="ltr">
+                            {t('Invoice')}: {payment.allocations.map((allocation) => formatMoney(allocation.allocated_amount, allocation.invoice?.currency_code || baseCurrency)).join(', ')}
+                        </div>
+                    )}
+                </div>;
+            }
         },
         {
             key: 'status',
@@ -477,6 +499,10 @@ export default function Index() {
                                                         <p className="text-xs font-medium text-gray-600 mb-1">{t('Vendor')}</p>
                                                         <p className="text-sm text-gray-900 truncate font-medium">{payment.vendor?.name}</p>
                                                     </div>
+                                                    <div>
+                                                        <p className="text-xs font-medium text-gray-600 mb-1">{t('Invoice')}</p>
+                                                        <p className="text-sm text-gray-900">{payment.allocations?.length ? payment.allocations.map((allocation) => allocation.invoice?.invoice_number).filter(Boolean).join(', ') : '-'}</p>
+                                                    </div>
                                                     <div className="grid grid-cols-2 gap-3">
                                                         <div>
                                                             <p className="text-xs font-medium text-gray-600 mb-1">{t('Date')}</p>
@@ -490,7 +516,10 @@ export default function Index() {
                                                     <div className="bg-gray-50 rounded-lg p-3">
                                                         <div className="flex justify-between items-center">
                                                             <span className="text-sm font-semibold text-gray-900">{t('Amount')}</span>
-                                                            <span className="text-lg font-bold text-green-600">{formatCurrency(payment.payment_amount)}</span>
+                                                            <div className="text-end">
+                                                                <div className="text-lg font-bold text-green-600">{formatMoney(payment.payment_amount, payment.currency_code || baseCurrency)}</div>
+                                                                {(payment.currency_code || baseCurrency) !== baseCurrency && <div className="text-xs text-gray-500">{formatMoney(payment.base_amount || 0, baseCurrency)}</div>}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                     {payment.notes && (

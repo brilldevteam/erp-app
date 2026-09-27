@@ -20,6 +20,8 @@ export interface SalesInvoice {
     total_amount: number;
     balance_amount: number;
     status: string;
+    currency_code?: string;
+    exchange_rate?: number;
 }
 
 export interface CreditNote {
@@ -29,6 +31,8 @@ export interface CreditNote {
     total_amount: number;
     balance_amount: number;
     status: string;
+    currency_code?: string;
+    exchange_rate?: number;
 }
 
 export interface CustomerPaymentAllocation {
@@ -60,6 +64,10 @@ export interface CustomerPayment {
     reference_number?: string;
     payment_amount: number;
     available_deposit: number;
+    available_deposit_base: number;
+    currency_code?: string;
+    exchange_rate?: number;
+    base_amount?: number;
     status: 'pending' | 'cleared' | 'cancelled';
     notes?: string;
     customer: Customer;

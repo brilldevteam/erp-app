@@ -132,7 +132,7 @@ export default function Create({ onSuccess, returnToCurrentPage = false, returnT
                 <div>
                     <PhoneInputComponent
                         label={t('Mobile Number')}
-                        value={data.contact_person_mobile}
+                        value={data.contact_person_mobile || ''}
                         onChange={(value) => setData('contact_person_mobile', value)}
                         placeholder="+1234567890"
                         error={errors.contact_person_mobile}

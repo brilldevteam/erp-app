@@ -20,6 +20,8 @@ export interface PurchaseInvoice {
     total_amount: number;
     balance_amount: number;
     status: string;
+    currency_code?: string;
+    exchange_rate?: number;
 }
 
 export interface DebitNote {
@@ -29,6 +31,8 @@ export interface DebitNote {
     total_amount: number;
     balance_amount: number;
     status: string;
+    currency_code?: string;
+    exchange_rate?: number;
 }
 
 export interface VendorPaymentAllocation {
@@ -59,6 +63,9 @@ export interface VendorPayment {
     bank_account_id: number;
     reference_number?: string;
     payment_amount: number;
+    currency_code?: string;
+    exchange_rate?: number;
+    base_amount?: number;
     status: 'pending' | 'cleared' | 'cancelled';
     notes?: string;
     vendor: Vendor;

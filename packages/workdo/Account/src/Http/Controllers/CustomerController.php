@@ -40,7 +40,7 @@ class CustomerController extends Controller
 
             return Inertia::render('Account/Customers/Index', [
                 'customers' => $customers,
-                'editCustomer' => request('edit') ? Customer::with('user:id,is_enable_login,is_disable')->where('created_by', creatorId())->find(request('edit')) : null,
+                'editCustomer' => request('edit') ? Customer::with('user:id,email,is_enable_login,is_disable')->where('created_by', creatorId())->find(request('edit')) : null,
             ]);
         }
         return back()->with('error', __('Permission denied'));
