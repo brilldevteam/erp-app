@@ -283,13 +283,13 @@ export default function Index() {
         <AuthenticatedLayout
             breadcrumbs={[
                 {label: t('Accounting'), url: route('account.index')},
-                {label: t('Customer Payments')}
+                {label: t('Payment Received')}
             ]}
-            pageTitle={t('Manage Customer Payments')}
+            pageTitle={t('Manage Payment Received')}
             pageActions={
                 <div className="flex items-center gap-2">
                     {auth.user?.permissions?.includes('import-customer-payments') && auth.user?.permissions?.includes('create-customer-payments') && (
-                        <BulkImportButton entity="customer-payments" label={t('Customer Payments')} />
+                        <BulkImportButton entity="customer-payments" label={t('Payment Received')} />
                     )}
                     <TooltipProvider>
                         {auth.user?.permissions?.includes('create-customer-payments') && (
@@ -308,7 +308,7 @@ export default function Index() {
                 </div>
             }
         >
-            <Head title={t('Customer Payments')} />
+            <Head title={t('Payment Received')} />
 
             <Card className="shadow-sm">
                 <CardContent className="p-6 border-b bg-gray-50/50">

@@ -20,7 +20,7 @@ export const accountCompanyMenu = (t: (key: string) => string) => [
         order: 10,
     },
     {
-        title: t('Payments Received'),
+        title: t('Payment Received'),
         href: route('account.customer-payments.index'),
         permission: 'manage-customer-payments',
         parent: 'sales',

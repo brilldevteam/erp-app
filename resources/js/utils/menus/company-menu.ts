@@ -49,7 +49,7 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
                 order: 30,
             },
             {
-                title: t('Sales Invoice Returns'),
+                title: t('Invoice Returns'),
                 href: route('sales-returns.index'),
                 permission: 'manage-sales-return-invoices',
                 order: 35,
