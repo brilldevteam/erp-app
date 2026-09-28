@@ -328,11 +328,11 @@ if (!function_exists('assignPlan')) {
             }
 
             // User count management logic
-            $users = User::where('created_by', $user->id)->where('is_disable', 0)->get();
+            $users = User::where('created_by', $user->id)->whereNotIn('type', ['client', 'vendor'])->where('is_disable', 0)->get();
             $total = $users->count();
 
             if ($plan->number_of_users == -1) {
-                $users = User::where('created_by', $user->id)->get();
+                $users = User::where('created_by', $user->id)->whereNotIn('type', ['client', 'vendor'])->get();
                 foreach ($users as $item) {
                     $item->is_disable = 0;
                     $item->is_enable_login = 1;
@@ -343,6 +343,7 @@ if (!function_exists('assignPlan')) {
                     $count = $total - $plan->number_of_users;
                     $usersToDisable = User::orderBy('created_at', 'desc')
                         ->where('created_by', $user->id)
+                        ->whereNotIn('type', ['client', 'vendor'])
                         ->where('is_disable', 0)
                         ->take($count)
                         ->get();
@@ -354,6 +355,7 @@ if (!function_exists('assignPlan')) {
                 } else {
                     $count = $plan->number_of_users - $total;
                     $usersToEnable = User::where('created_by', $user->id)
+                        ->whereNotIn('type', ['client', 'vendor'])
                         ->where('is_disable', 1)
                         ->take($count)
                         ->get();
@@ -412,7 +414,7 @@ if (!function_exists('canCreateUser')) {
             return ['can_create' => true];
         }
 
-        $currentUserCount = User::where('created_by', $creator->id)->where('is_disable', 0)->count();
+        $currentUserCount = User::where('created_by', $creator->id)->whereNotIn('type', ['client', 'vendor'])->where('is_disable', 0)->count();
 
         if ($currentUserCount >= $creator->total_user) {
             return ['can_create' => false, 'message' => __('You have reached the maximum user limit. Please upgrade your plan.')];

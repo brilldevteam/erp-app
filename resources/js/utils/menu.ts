@@ -98,21 +98,36 @@ const groupMenusByParent = (menuItems: NavItem[], packageMenuItems: NavItem[]): 
 };
 
 // Filter menu items based on permissions
-const filterByPermission = (items: NavItem[], userPermissions: string[]): NavItem[] => {
+const filterByPermission = (items: NavItem[], userPermissions: string[], userRoles: string[]): NavItem[] => {
     return items.filter(item => {
-        if (!item.permission) {
+        if (item.roles?.length && !item.roles.some(role => userRoles.includes(role))) {
+            return false;
+        }
+
+        if (item.excludeRoles?.some(role => userRoles.includes(role))) {
+            return false;
+        }
+
+        if (!item.permission && !item.anyPermission?.length) {
             if (item.children) {
-                item.children = filterByPermission(item.children, userPermissions);
+                item.children = filterByPermission(item.children, userPermissions, userRoles);
             }
             return true;
         }
 
-        if (!userPermissions.includes(item.permission)) {
+        const hasPrimaryPermission = item.permission
+            ? userPermissions.includes(item.permission)
+            : false;
+        const hasAlternativePermission = item.anyPermission?.some(permission =>
+            userPermissions.includes(permission)
+        ) ?? false;
+
+        if (!hasPrimaryPermission && !hasAlternativePermission) {
             return false;
         }
 
         if (item.children) {
-            item.children = filterByPermission(item.children, userPermissions);
+            item.children = filterByPermission(item.children, userPermissions, userRoles);
             return item.children.length > 0;
         }
 
@@ -147,7 +162,7 @@ export const allMenuItems = (): NavItem[] => {
 
     const sortedMenuItems = finalGroupedMenuItems.sort((a, b) => (a.order || 999) - (b.order || 999));
 
-    const finalMenuItems = filterByPermission(sortedMenuItems, userPermissions);
+    const finalMenuItems = filterByPermission(sortedMenuItems, userPermissions, userRoles);
 
     return finalMenuItems;
 };

@@ -1,4 +1,6 @@
 export interface Quotation {
+    currency_code: string;
+    exchange_rate: number;
     id: number;
     quotation_number: string;
     revision_number: number;

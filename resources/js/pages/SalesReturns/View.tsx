@@ -32,12 +32,12 @@ function View() {
     return (
         <AuthenticatedLayout
             breadcrumbs={[
-                {label: t('Sales Returns'), url: route('sales-returns.index')},
-                {label: t('Sales Return Details')}
+                {label: t('Invoice Returns'), url: route('sales-returns.index')},
+                {label: t('Invoice Return Details')}
             ]}
-            pageTitle={`${t('Sales Return')} #${salesReturn.return_number}`}
+            pageTitle={`${t('Invoice Return')} #${salesReturn.return_number}`}
         >
-            <Head title={`${t('Sales Return')} #${salesReturn.return_number}`} />
+            <Head title={`${t('Invoice Return')} #${salesReturn.return_number}`} />
 
             <div className="space-y-6">
                 {/* Return Header */}

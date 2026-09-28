@@ -51,7 +51,6 @@ export default function Edit() {
 
     const validatePricingTab = () => {
         return data.sale_price.trim() !== '' &&
-            data.purchase_price.trim() !== '' &&
             (data.type === 'service' || (data.unit !== '' && Number(data.quantity) >= 0));
     };
 
@@ -277,18 +276,6 @@ export default function Edit() {
                                                 placeholder={t('Enter Sale Price')}
                                             />
                                             <InputError message={errors.sale_price} />
-                                        </div>
-                                        <div>
-                                            <Label htmlFor="purchase_price">{t('Purchase Price')}</Label>
-                                            <Input
-                                                id="purchase_price"
-                                                type="number"
-                                                step="0.01"
-                                                value={data.purchase_price?.toString() || ''}
-                                                onChange={(e) => setData('purchase_price', e.target.value)}
-                                                placeholder={t('Enter Purchase Price')}
-                                            />
-                                            <InputError message={errors.purchase_price} />
                                         </div>
                                     </div>
 

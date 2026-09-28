@@ -16,6 +16,9 @@ class Expense extends Model
         'bank_account_id',
         'chart_of_account_id',
         'amount',
+        'currency_code',
+        'exchange_rate',
+        'base_amount',
         'description',
         'reference_number',
         'status',
@@ -30,6 +33,8 @@ class Expense extends Model
         return [
             'expense_date' => 'date',
             'amount' => 'decimal:2',
+            'exchange_rate' => 'decimal:8',
+            'base_amount' => 'decimal:2',
             'needs_bank_verification' => 'boolean',
         ];
     }

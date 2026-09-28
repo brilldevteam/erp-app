@@ -70,6 +70,7 @@ class BankAccountController extends Controller
             $bankaccount->bank_name = $validated['bank_name'];
             $bankaccount->branch_name = $validated['branch_name'];
             $bankaccount->account_type = $validated['account_type'];
+            $bankaccount->currency_code = strtoupper($validated['currency_code']);
             $bankaccount->payment_gateway = $validated['payment_gateway'];
             $bankaccount->opening_balance = $validated['opening_balance'];
             $bankaccount->current_balance = $validated['current_balance'];
@@ -102,6 +103,7 @@ class BankAccountController extends Controller
             $bankaccount->bank_name = $validated['bank_name'];
             $bankaccount->branch_name = $validated['branch_name'];
             $bankaccount->account_type = $validated['account_type'];
+            $bankaccount->currency_code = strtoupper($validated['currency_code']);
             $bankaccount->payment_gateway = $validated['payment_gateway'];
             $bankaccount->opening_balance = $validated['opening_balance'];
             $bankaccount->current_balance = $validated['current_balance'];

@@ -691,7 +691,7 @@ const SidebarMenuSub = React.forwardRef<
     ref={ref}
     data-sidebar="menu-sub"
     className={cn(
-      "mx-4 my-1 flex min-w-0 translate-x-px flex-col gap-1 border-l border-sidebar-border/80 py-1 pl-3 pr-0",
+      "mx-4 my-1 flex min-w-0 translate-x-px flex-col gap-1 border-l border-slate-400/80 py-1 pl-3 pr-0 dark:border-slate-600",
       "group-data-[collapsible=icon]:hidden",
       className
     )}
@@ -703,7 +703,16 @@ SidebarMenuSub.displayName = "SidebarMenuSub"
 const SidebarMenuSubItem = React.forwardRef<
   HTMLLIElement,
   React.ComponentProps<"li">
->(({ ...props }, ref) => <li ref={ref} {...props} />)
+>(({ className, ...props }, ref) => (
+  <li
+    ref={ref}
+    className={cn(
+      "relative before:absolute before:-left-3 before:top-0 before:h-3.5 before:w-3 before:rounded-bl-md before:border-b before:border-l before:border-slate-400/80 before:content-[''] dark:before:border-slate-600",
+      className
+    )}
+    {...props}
+  />
+))
 SidebarMenuSubItem.displayName = "SidebarMenuSubItem"
 
 const SidebarMenuSubButton = React.forwardRef<

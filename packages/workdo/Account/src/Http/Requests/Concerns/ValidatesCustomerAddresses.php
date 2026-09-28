@@ -49,13 +49,6 @@ trait ValidatesCustomerAddresses
         $address = $this->input($prefix, []);
         if (!is_array($address)) return;
 
-        $required = function (string $field, string $label) use ($validator, $prefix, $address) {
-            if (trim((string) ($address[$field] ?? '')) === '') {
-                $validator->errors()->add("{$prefix}.{$field}", __(":attribute is required.", ['attribute' => __($label)]));
-            }
-        };
-
-        $required('name', $prefix === 'billing_address' ? 'Billing Name' : 'Shipping Name');
         $code = strtoupper(trim((string) ($address['country_code'] ?? '')));
 
         if ($code === 'QA') {
@@ -72,6 +65,13 @@ trait ValidatesCustomerAddresses
             }
         }
 
-        CountryAddressValidation::validate($validator, $prefix, false);
+        if ($code === 'QA') {
+            foreach (['zone_number', 'street_number', 'building_number'] as $field) {
+                $value = trim((string) ($address[$field] ?? ''));
+                if ($value !== '' && !ctype_digit($value)) {
+                    $validator->errors()->add("{$prefix}.{$field}", __('This field must contain only numbers.'));
+                }
+            }
+        }
     }
 }

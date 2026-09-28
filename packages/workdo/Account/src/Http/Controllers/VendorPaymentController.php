@@ -21,6 +21,7 @@ use Workdo\Account\Events\UpdateVendorPaymentStatus;
 use Workdo\Account\Events\DestroyVendorPayment;
 use App\Models\EmailTemplate;
 use App\Models\DocumentTemplate;
+use Illuminate\Validation\ValidationException;
 
 class VendorPaymentController extends Controller
 {
@@ -96,14 +97,36 @@ class VendorPaymentController extends Controller
                 return back()->with('error', __('At least one invoice allocation is required to create a payment.'));
             }
 
+            $currency = app(\Workdo\Account\Services\CurrencyConversionService::class)
+                ->transactionValues($request->validated(), 'payment_amount');
+            $allocationInvoices = PurchaseInvoice::query()
+                ->whereIn('id', collect($request->allocations)->pluck('invoice_id'))
+                ->where('vendor_id', $request->vendor_id)
+                ->where('created_by', creatorId())
+                ->get()->keyBy('id');
+            $allocationDebitNotes = DebitNote::query()
+                ->whereIn('id', collect($request->debit_notes ?? [])->pluck('debit_note_id'))
+                ->where('vendor_id', $request->vendor_id)
+                ->where('created_by', creatorId())
+                ->get()->keyBy('id');
+            $totalInvoiceBaseAmount = collect($request->allocations)->sum(function ($allocation) use ($allocationInvoices) {
+                $invoice = $allocationInvoices->get($allocation['invoice_id']);
+                return (float) $allocation['amount'] * (float) ($invoice?->exchange_rate ?: 1);
+            });
+            $totalDebitNoteBaseAmount = collect($request->debit_notes ?? [])->sum(function ($debitNote) use ($allocationDebitNotes) {
+                $note = $allocationDebitNotes->get($debitNote['debit_note_id']);
+                return (float) $debitNote['amount'] * (float) ($note?->exchange_rate ?: 1);
+            });
+
             // Validate debit note amount doesn't exceed invoice allocation amount
             if ($request->debit_notes) {
-                $totalInvoiceAmount = collect($request->allocations)->sum('amount');
-                $totalDebitNoteAmount = collect($request->debit_notes)->sum('amount');
-
-                if ($totalDebitNoteAmount > $totalInvoiceAmount) {
+                if ($totalDebitNoteBaseAmount > $totalInvoiceBaseAmount + 0.01) {
                     return back()->with('error', __('Debit note amount cannot exceed the total invoice allocation amount.'));
                 }
+            }
+
+            if ($totalInvoiceBaseAmount > (float) $currency['base_amount'] + $totalDebitNoteBaseAmount + 0.01) {
+                return back()->with('error', __('Invoice allocations cannot exceed the payment and debit note total.'));
             }
 
             // Create payment
@@ -113,6 +136,13 @@ class VendorPaymentController extends Controller
             $payment->bank_account_id = $request->bank_account_id;
             $payment->reference_number = $request->reference_number;
             $payment->payment_amount = $request->payment_amount;
+            $bankCurrency = BankAccount::whereKey($request->bank_account_id)->where('created_by', creatorId())->value('currency_code');
+            if ($bankCurrency && strtoupper($bankCurrency) !== $currency['currency_code']) {
+                throw ValidationException::withMessages(['bank_account_id' => __('Select a bank account in the payment currency.')]);
+            }
+            $payment->currency_code = $currency['currency_code'];
+            $payment->exchange_rate = $currency['exchange_rate'];
+            $payment->base_amount = $currency['base_amount'];
             $payment->notes = $request->notes;
             $payment->creator_id = Auth::id();
             $payment->created_by = creatorId();
@@ -169,7 +199,7 @@ class VendorPaymentController extends Controller
             ->where('balance_amount', '>', 0)
             ->whereIn('status', ['approved', 'partial'])
             ->where('created_by', creatorId())
-            ->get(['id', 'debit_note_number', 'balance_amount', 'total_amount', 'status']);
+            ->get(['id', 'debit_note_number', 'balance_amount', 'total_amount', 'status', 'currency_code', 'exchange_rate']);
 
         return response()->json([
             'invoices' => $invoices,

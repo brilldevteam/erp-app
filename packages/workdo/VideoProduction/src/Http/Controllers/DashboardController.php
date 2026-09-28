@@ -11,9 +11,80 @@ use Workdo\Taskly\Models\Project;
 
 class DashboardController extends Controller
 {
+    public function portal()
+    {
+        if (Auth::user()->type !== 'client') {
+            return redirect()->route('project.index');
+        }
+
+        return redirect()->route('video-production.client.overview');
+    }
+
+    public function overview()
+    {
+        return $this->clientPortal('overview');
+    }
+
+    public function shootingLog()
+    {
+        return $this->clientPortal('shoot');
+    }
+
+    public function deliverables()
+    {
+        return $this->clientPortal('deliverable');
+    }
+
     public function index(Project $project)
     {
+        if (
+            Auth::user()->type === 'client'
+            && ! $project->clients()->where('users.id', Auth::id())->exists()
+        ) {
+            abort(403, __('You do not have access to this production project.'));
+        }
+
+        if (Auth::user()->type === 'client' && Auth::user()->hasRole('production-client')) {
+            return redirect()->route('video-production.client.overview');
+        }
+
+        return $this->renderProject($project);
+    }
+
+    private function clientPortal(string $activeSection)
+    {
+        $user = Auth::user();
+        abort_unless($user->type === 'client' && $user->hasRole('production-client'), 403);
+        abort_unless(
+            $activeSection === 'overview'
+                ? $user->can('view-video-production-dashboard')
+                : $user->can('view-video-production'),
+            403
+        );
+
+        $projects = Project::query()
+            ->where('created_by', creatorId())
+            ->where('category', 'production')
+            ->whereHas('clients', fn ($query) => $query->where('users.id', $user->id))
+            ->limit(2)
+            ->get();
+
+        if ($projects->isEmpty()) {
+            return redirect()->route('profile.edit')->with('error', __('No production project is assigned to this account.'));
+        }
+
+        abort_if($projects->count() > 1, 409, __('This production client is assigned to more than one project.'));
+
+        return $this->renderProject($projects->first(), $activeSection);
+    }
+
+    private function renderProject(Project $project, ?string $activeSection = null)
+    {
+
         if ($this->canViewProject($project)) {
+            $canEdit = Auth::user()->can('manage-video-production');
+            $canViewProduction = $canEdit || Auth::user()->can('view-video-production');
+            $canViewDashboard = Auth::user()->can('view-video-production-dashboard');
             $settings = ProductionSetting::forProject(creatorId(), $project->id);
             $range = request('range') === 'monthly' ? 'monthly' : 'all';
             $month = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', (string) request('month'))
@@ -35,19 +106,25 @@ class DashboardController extends Controller
             return Inertia::render('VideoProduction/Dashboard', [
                 'companyName' => company_setting('company_name', creatorId()) ?: Auth::user()->name,
                 'project' => $project->only(['id', 'name']),
-                'canEdit' => Auth::user()->can('manage-video-production'),
-                'canManageSettings' => Auth::user()->can('manage-video-production-settings'),
+                'isProductionClient' => Auth::user()->type === 'client' && Auth::user()->hasRole('production-client'),
+                'activeSection' => $activeSection,
+                'canEdit' => $canEdit,
+                'canViewProduction' => $canViewProduction,
+                'canViewDashboard' => $canViewDashboard,
+                'canManageSettings' => Auth::user()->type !== 'client' && Auth::user()->can('manage-video-production-settings'),
                 'unassignedRecordCount' => Auth::user()->can('manage-video-production')
                     ? ProductionRecord::query()->forCompany()->whereNull('project_id')->count()
                     : 0,
                 'settings' => $settings,
                 'range' => $range,
                 'month' => $month,
-                'records' => collect(self::recordTypes())->mapWithKeys(fn ($type) => [$type => ($records->get($type, collect()))->values()]),
+                'records' => $canViewProduction
+                    ? collect(self::recordTypes())->mapWithKeys(fn ($type) => [$type => ($records->get($type, collect()))->values()])
+                    : collect(),
                 'nextRecordKeys' => collect(self::recordTypes())->mapWithKeys(fn ($type) => [
                     $type => ProductionRecord::nextKey(creatorId(), $type, $project->id, $project->name),
                 ]),
-                'productionMetrics' => [
+                'productionMetrics' => $canViewDashboard ? [
                     'shoots' => $shoots->count(),
                     'planned_shoots' => $shoots->where('data.shoot_type', 'Planned')->count(),
                     'urgent_shoots' => $shoots->filter(fn ($shoot) => in_array(data_get($shoot->data, 'shoot_type'), ['Unplanned', 'Urgent'], true))->count(),
@@ -60,7 +137,7 @@ class DashboardController extends Controller
                     'static_delivered' => $deliverables->where('data.content_type', 'Static')->whereNotNull('data.final_delivery_date')->count(),
                     'waiting_for_client' => $deliverables->where('status', 'Waiting for DOC')->count(),
                     'work_hours' => round($shoots->sum(fn ($item) => (float) data_get($item->data, 'total_hours', 0)), 2),
-                ],
+                ] : [],
             ]);
         }
 
@@ -83,16 +160,23 @@ class DashboardController extends Controller
     private function canViewProject(Project $project): bool
     {
         $user = Auth::user();
-        if (! $user->can('view-project') || $project->created_by !== creatorId()) {
+        if (
+            (
+                ! $user->can('view-video-production-dashboard')
+                && ! $user->can('view-video-production')
+                && ! $user->can('manage-video-production')
+                && ! $user->can('manage-video-production-settings')
+            )
+            || $project->category !== 'production'
+            || $project->created_by !== creatorId()
+        ) {
             return false;
         }
-        if ($user->can('manage-any-project') || $project->creator_id === $user->id) {
-            return true;
+
+        if ($user->type === 'client' && ! $project->clients()->where('users.id', $user->id)->exists()) {
+            return false;
         }
 
-        return $user->can('manage-own-project') && (
-            $project->teamMembers()->where('users.id', $user->id)->exists()
-            || $project->clients()->where('users.id', $user->id)->exists()
-        );
+        return true;
     }
 }

@@ -5,6 +5,7 @@ namespace Workdo\Account\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 
 class Customer extends Model
 {
@@ -18,6 +19,7 @@ class Customer extends Model
         'contact_person_email',
         'contact_person_mobile',
         'tax_number',
+        'cr_number',
         'payment_terms',
         'billing_address',
         'shipping_address',
@@ -41,6 +43,12 @@ class Customer extends Model
             if (empty($customer->customer_code)) {
                 $customer->customer_code = self::generateCustomerCode();
             }
+        });
+
+        static::deleting(function ($customer) {
+            $attachments = $customer->attachments()->get();
+            Storage::disk('local')->delete($attachments->pluck('file_path')->all());
+            $attachments->each->forceDelete();
         });
     }
 
@@ -69,5 +77,10 @@ class Customer extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function attachments()
+    {
+        return $this->morphMany(PartyAttachment::class, 'attachable');
     }
 }

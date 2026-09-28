@@ -17,6 +17,8 @@ class StoreJournalEntryRequest extends FormRequest
         return [
             ...\Workdo\Account\Services\JournalAttachmentService::rules(),
             'journal_date' => 'required|date',
+            'currency_code' => 'required|string|size:3',
+            'exchange_rate' => 'required|numeric|gt:0',
             'reference_type' => 'nullable|string|max:255',
             'description' => 'required|string|max:2000',
             'items' => 'required|array|min:2',

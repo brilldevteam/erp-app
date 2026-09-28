@@ -9,7 +9,7 @@ export const budgetplannerCompanyMenu = (t: (key: string) => string) => [
         title: t('Budget Planner'),
         icon: DollarSign,
         permission: 'manage-budget-planner',
-        order: 420,
+        order: 41,
         children: [
             {
                 title: t('Budget Periods'),

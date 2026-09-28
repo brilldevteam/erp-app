@@ -1,4 +1,6 @@
 export interface PurchaseInvoice {
+    currency_code: string;
+    exchange_rate: number;
     id: number;
     invoice_number: string;
     invoice_date: string;

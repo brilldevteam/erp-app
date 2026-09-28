@@ -11,15 +11,20 @@ class CustomerPayment extends Model
 {
     protected $appends = [
         'available_deposit',
+        'available_deposit_base',
     ];
 
     protected $fillable = [
         'payment_number',
         'payment_date',
+        'payment_mode',
         'customer_id',
         'bank_account_id',
         'reference_number',
         'payment_amount',
+        'currency_code',
+        'exchange_rate',
+        'base_amount',
         'status',
         'needs_bank_verification',
         'notes',
@@ -30,6 +35,8 @@ class CustomerPayment extends Model
     protected $casts = [
         'payment_date' => 'date',
         'payment_amount' => 'decimal:2',
+        'exchange_rate' => 'decimal:8',
+        'base_amount' => 'decimal:2',
         'needs_bank_verification' => 'boolean',
     ];
 
@@ -60,18 +67,26 @@ class CustomerPayment extends Model
 
     public function getAvailableDepositAttribute(): float
     {
-        $allocatedAmount = $this->relationLoaded('allocations')
-            ? (float) $this->allocations->sum('allocated_amount')
-            : (float) $this->allocations()->sum('allocated_amount');
-        $creditNoteAmount = $this->relationLoaded('creditNoteApplications')
-            ? (float) $this->creditNoteApplications->sum('applied_amount')
-            : (float) $this->creditNoteApplications()->sum('applied_amount');
-        $cashAppliedAmount = min(
-            (float) $this->payment_amount,
-            max(0, $allocatedAmount - $creditNoteAmount)
+        $rate = (float) ($this->exchange_rate ?: 1);
+
+        return round($this->available_deposit_base / $rate, 2);
+    }
+
+    public function getAvailableDepositBaseAttribute(): float
+    {
+        $this->loadMissing(['allocations.invoice', 'creditNoteApplications.creditNote']);
+        $allocatedBaseAmount = (float) $this->allocations->sum(
+            fn ($allocation) => (float) $allocation->allocated_amount * (float) ($allocation->invoice?->exchange_rate ?: 1)
+        );
+        $creditNoteBaseAmount = (float) $this->creditNoteApplications->sum(
+            fn ($application) => (float) $application->applied_amount * (float) ($application->creditNote?->exchange_rate ?: 1)
+        );
+        $cashAppliedBaseAmount = min(
+            (float) $this->base_amount,
+            max(0, $allocatedBaseAmount - $creditNoteBaseAmount)
         );
 
-        return max(0, (float) $this->payment_amount - $cashAppliedAmount);
+        return round(max(0, (float) $this->base_amount - $cashAppliedBaseAmount), 2);
     }
 
     protected static function boot()

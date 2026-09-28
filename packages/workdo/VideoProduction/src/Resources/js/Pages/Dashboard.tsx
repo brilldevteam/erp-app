@@ -468,7 +468,7 @@ function Manager({ kind, items, settings, nextRecordKey, companyName, project, s
                 {!items.length && <div className="flex flex-col items-center justify-center gap-2 p-12 text-center text-muted-foreground"><FolderKanban className="h-9 w-9 opacity-40" /><p>{t('No production records found.')}</p></div>}
             </div>
         </CardContent>
-        <Dialog open={open} onOpenChange={setOpen}>{open && <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
+        <Dialog open={open} onOpenChange={setOpen}>{open && <DialogContent className="max-w-5xl">
             <DialogHeader><DialogTitle>{edit ? t('Edit') : t('Add')} {t(titles[kind])}</DialogTitle></DialogHeader>
             <form onSubmit={submit} className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                 <div><Label>{t('Record ID')} *</Label><div className="flex gap-2"><Input required value={form.data.record_key} onChange={event => form.setData('record_key', event.target.value)} /><Button type="button" variant="outline" className="shrink-0" disabled={!nextRecordKey} onClick={() => form.setData('record_key', nextRecordKey)}>{t('Generate ID')}</Button></div><InputError message={form.errors.record_key} /></div>
@@ -520,9 +520,14 @@ function ProgressRow({ label, value, target, suffix = '' }: { label: string; val
 
 export default function Dashboard() {
     const { t } = useTranslation();
-    const { companyName, project, canEdit, canManageSettings, unassignedRecordCount, nextRecordKeys, settings, range, month, records, productionMetrics } = usePage<any>().props;
+    const { companyName, project, activeSection, isProductionClient, canEdit, canViewProduction, canViewDashboard, canManageSettings, unassignedRecordCount, nextRecordKeys, settings, range, month, records, productionMetrics } = usePage<any>().props;
     useFlashMessages();
-    const tabs: any[] = [['overview','Overview',Gauge],['shoot','Shooting Log',Video],['deliverable','Deliverables',FileCheck2],...(canManageSettings ? [['settings','Settings',Settings2]] : [])];
+    const tabs: any[] = [
+        ...(canViewDashboard ? [['overview','Overview',Gauge]] : []),
+        ...(canViewProduction ? [['shoot','Shooting Log',Video],['deliverable','Deliverables',FileCheck2]] : []),
+        ...(canManageSettings ? [['settings','Settings',Settings2]] : []),
+    ];
+    const defaultTab = tabs[0]?.[0] || 'overview';
     const metrics = [['Shooting sessions',productionMetrics.shoots,Video],['Reels delivered',productionMetrics.reels_delivered,CheckCircle2],['Static posts delivered',productionMetrics.static_delivered,FileCheck2],['Work hours',productionMetrics.work_hours,Clock3]];
     const targets = [['Reels / month',settings.monthly_reel_target],['Static posts / month',settings.monthly_static_target],['Shoot sessions',`${settings.minimum_shoots} - ${settings.maximum_shoots}`],['Hours / shoot',settings.included_hours_per_shoot],['Script lead days',settings.required_lead_days],['Included revisions',settings.included_revisions],['Extra shooting hours',productionMetrics.extra_hours],['Waiting for client',productionMetrics.waiting_for_client]];
     const overviewItems = [...(records.shoot || []).map((item: any) => ({ ...item, recordType: 'shoot' })), ...(records.deliverable || []).map((item: any) => ({ ...item, recordType: 'deliverable' }))]
@@ -548,16 +553,18 @@ export default function Dashboard() {
     const includedHours = Number(settings.included_hours_per_shoot || 0) * Number(productionMetrics.shoots || 0);
     const activeMonths = Math.max(1, new Set(overviewItems.map((item: any) => String(item.recorded_at || '').slice(0, 7)).filter(Boolean)).size);
     const monthlyAverage = (value: number) => range === 'monthly' ? value : Number((value / activeMonths).toFixed(1));
-    return <AuthenticatedLayout breadcrumbs={[{label:t('Project'),url:route('project.index')},{label:project.name,url:route('project.show',project.id)},{label:t('Production')}]} pageTitle={`${project.name} - ${t('Production')}`}>
+    const breadcrumbs = [{label:t('Project'),url:route('project.index')},{label:project.name,url:route('project.show',project.id)},{label:t('Production')}];
+    const overviewRoute = isProductionClient ? route('video-production.client.overview') : route('video-production.dashboard', project.id);
+    return <AuthenticatedLayout breadcrumbs={breadcrumbs} hideBreadcrumbs={isProductionClient} pageTitle={`${project.name} - ${t('Production')}`}>
         <Head title={`${project.name} - ${t('Production')}`} />
-        <Tabs defaultValue="overview" className="space-y-5">
-            <div className="overflow-x-auto rounded-xl border bg-card p-2"><TabsList className="h-auto min-w-max bg-transparent">{tabs.map(([value,label,Icon]) => <TabsTrigger value={value} key={value} className="gap-2"><Icon className="h-4 w-4" />{t(label)}</TabsTrigger>)}</TabsList></div>
-            <TabsContent value="overview" className="space-y-5">
+        <Tabs defaultValue={defaultTab} value={isProductionClient ? activeSection : undefined} className="space-y-5">
+            {!isProductionClient && <div className="overflow-x-auto rounded-xl border bg-card p-2"><TabsList className="h-auto min-w-max bg-transparent">{tabs.map(([value,label,Icon]) => <TabsTrigger value={value} key={value} className="gap-2"><Icon className="h-4 w-4" />{t(label)}</TabsTrigger>)}</TabsList></div>}
+            {canViewDashboard && <TabsContent value="overview" className="space-y-5">
                 {unassignedRecordCount > 0 && <Card className="border-amber-300 bg-amber-50"><CardContent className="flex flex-col justify-between gap-4 p-5 text-amber-950 md:flex-row md:items-center"><div><p className="font-semibold">{t('Existing production records need a project')}</p><p className="mt-1 text-sm">{unassignedRecordCount} {t('record(s) are currently unassigned. Move them here only if they belong to this project.')}</p></div><Button type="button" variant="outline" className="border-amber-500 bg-white" onClick={() => confirm(t(`Move all ${unassignedRecordCount} unassigned records to ${project.name}?`)) && router.post(route('video-production.claim-unassigned', project.id), {}, { preserveScroll: true })}>{t('Move Existing Records Here')}</Button></CardContent></Card>}
                 <Card className="overflow-hidden border-slate-200 bg-slate-950 text-white shadow-[0_18px_50px_-30px_rgba(15,23,42,0.8)]">
                     <CardContent className="flex flex-col justify-between gap-6 p-6 lg:flex-row lg:items-end">
                         <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-300">{range === 'monthly' ? t('Monthly production report') : t('Production command centre')}</p><h2 className="mt-2 text-2xl font-semibold tracking-tight">{project.name}</h2><p className="mt-2 max-w-xl text-sm text-slate-300">{t('Live visibility across shoots, delivery progress, workload and client review status.')}</p></div>
-                        <div className="flex flex-wrap items-center gap-2"><Select value={range || 'all'} onValueChange={value => router.get(route('video-production.dashboard', project.id), {range:value,month}, {preserveState:true,replace:true})}><SelectTrigger className="w-36 border-slate-700 bg-slate-900 text-white"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t('All Time')}</SelectItem><SelectItem value="monthly">{t('Monthly')}</SelectItem></SelectContent></Select>{range === 'monthly' && <><CalendarDays className="h-4 w-4 text-slate-400" /><Input type="month" className="w-44 border-slate-700 bg-slate-900 text-white" value={month} onChange={e => router.get(route('video-production.dashboard', project.id), {range:'monthly',month:e.target.value}, {preserveState:true,replace:true})} /></>}</div>
+                        <div className="flex flex-wrap items-center gap-2"><Select value={range || 'all'} onValueChange={value => router.get(overviewRoute, {range:value,month}, {preserveState:true,replace:true})}><SelectTrigger className="w-36 border-slate-700 bg-slate-900 text-white"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t('All Time')}</SelectItem><SelectItem value="monthly">{t('Monthly')}</SelectItem></SelectContent></Select>{range === 'monthly' && <><CalendarDays className="h-4 w-4 text-slate-400" /><Input type="month" className="w-44 border-slate-700 bg-slate-900 text-white" value={month} onChange={e => router.get(overviewRoute, {range:'monthly',month:e.target.value}, {preserveState:true,replace:true})} /></>}</div>
                     </CardContent>
                 </Card>
 
@@ -575,8 +582,8 @@ export default function Dashboard() {
                 </div>
 
                 <Card><CardHeader className="flex-row items-end justify-between space-y-0"><div><CardTitle className="text-base">{t('Recent production activity')}</CardTitle><p className="mt-1 text-xs text-slate-400">{t('Latest shooting log and deliverable updates')}</p></div><span className="text-xs font-medium text-slate-400">{overviewItems.length} {t('total records')}</span></CardHeader><CardContent><div className="divide-y divide-slate-100">{overviewItems.slice(0,6).map((item:any) => <div key={`${item.recordType}-${item.id}`} className="grid gap-3 py-3.5 sm:grid-cols-[auto_1fr_auto] sm:items-center"><span className={`flex h-9 w-9 items-center justify-center rounded-lg ${item.recordType === 'shoot' ? 'bg-teal-50 text-teal-700' : 'bg-slate-100 text-slate-600'}`}>{item.recordType === 'shoot' ? <Video className="h-4 w-4"/> : <FileCheck2 className="h-4 w-4"/>}</span><div className="min-w-0"><p className="truncate text-sm font-semibold text-slate-900">{item.data?.doctor_subject || item.data?.content_name || item.record_key}</p><p className="mt-0.5 truncate text-xs text-slate-400">{item.record_key} · {item.recordType === 'shoot' ? (item.data?.branch_location || t('Shooting session')) : (item.data?.doctor_department || t('Deliverable'))}</p></div><div className="text-left sm:text-right"><p className="text-xs font-medium text-slate-600">{item.recordType === 'shoot' ? (item.data?.shoot_type || t('Shoot')) : (item.data?.current_status || item.status || t('Not specified'))}</p><p className="mt-1 text-[11px] text-slate-400">{formatRecordValue(item.recorded_at, 'date')}</p></div></div>)}{!overviewItems.length && <div className="py-12 text-center text-sm text-slate-400">{t('No production records found for this period.')}</div>}</div></CardContent></Card>
-            </TabsContent>
-            {(['shoot','deliverable'] as Kind[]).map(kind => <TabsContent value={kind} key={kind}><Manager kind={kind} items={records[kind] || []} shoots={records.shoot || []} settings={settings} nextRecordKey={nextRecordKeys?.[kind]} companyName={companyName} project={project} canEdit={canEdit} /></TabsContent>)}
+            </TabsContent>}
+            {canViewProduction && (['shoot','deliverable'] as Kind[]).map(kind => <TabsContent value={kind} key={kind}><Manager kind={kind} items={records[kind] || []} shoots={records.shoot || []} settings={settings} nextRecordKey={nextRecordKeys?.[kind]} companyName={companyName} project={project} canEdit={canEdit} /></TabsContent>)}
             {canManageSettings && <TabsContent value="settings"><SettingsForm settings={settings} projectId={project.id} /></TabsContent>}
         </Tabs>
     </AuthenticatedLayout>;

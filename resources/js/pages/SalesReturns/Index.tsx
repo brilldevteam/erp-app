@@ -61,7 +61,7 @@ export default function Index() {
 
     const { deleteState, openDeleteDialog, closeDeleteDialog, confirmDelete } = useDeleteHandler({
         routeName: 'sales-returns.destroy',
-        defaultMessage: t('Are you sure you want to delete this sales return?')
+        defaultMessage: t('Are you sure you want to delete this invoice return?')
     });
 
     const handleFilter = () => {
@@ -239,8 +239,8 @@ export default function Index() {
 
     return (
         <AuthenticatedLayout
-            breadcrumbs={[{label: t('Sales Returns')}]}
-            pageTitle={t('Manage Sales Returns')}
+            breadcrumbs={[{label: t('Invoice Returns')}]}
+            pageTitle={t('Manage Invoice Returns')}
             pageActions={
                 <div className="flex gap-2">
                     <TooltipProvider>
@@ -263,7 +263,7 @@ export default function Index() {
                 </div>
             }
         >
-            <Head title={t('Sales Returns')} />
+            <Head title={t('Invoice Returns')} />
 
             <Card className="shadow-sm">
                 <CardContent className="p-6 border-b bg-gray-50/50">
@@ -390,7 +390,7 @@ export default function Index() {
                                             onClearFilters={clearFilters}
                                             createPermission="create-sales-return-invoices"
                                             onCreateClick={() => router.visit(route('sales-returns.create'))}
-                                            createButtonText={t('Create Sales Return')}
+                                            createButtonText={t('Create Invoice Return')}
                                             className="h-auto"
                                         />
                                     }
@@ -522,7 +522,7 @@ export default function Index() {
                                     onClearFilters={clearFilters}
                                     createPermission="create-sales-return-invoices"
                                     onCreateClick={() => router.visit(route('sales-returns.create'))}
-                                    createButtonText={t('Create Sales Return')}
+                                    createButtonText={t('Create Invoice Return')}
                                 />
                             )}
                         </div>
@@ -541,7 +541,7 @@ export default function Index() {
             <ConfirmationDialog
                 open={deleteState.isOpen}
                 onOpenChange={closeDeleteDialog}
-                title={t('Delete Sales Return')}
+                title={t('Delete Invoice Return')}
                 message={deleteState.message}
                 confirmText={t('Delete')}
                 onConfirm={confirmDelete}

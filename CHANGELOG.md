@@ -4,7 +4,24 @@ All notable changes to the Wazely ERP application are documented here.
 
 ## [Unreleased]
 
+### Fixed
+- Expanded Invoice Aging to show customer account codes and individual outstanding invoice numbers, with customer subtotals and grand totals in both the report and PDF.
+- Removed the duplicate scrollbar and excess empty space from Video Production record forms.
+- Separated Video Production overview access from read-only production record access and limited production-only roles to production projects within the Project section.
+- Add payment-mode selection and receiving-account labeling when recording customer payments.
+- Populate the customer and receiving-account dropdowns when recording a payment from a sales invoice.
+- Allow complete Purchase Order terms to be preserved when converting to a draft Purchase Invoice instead of failing when the text exceeds 255 characters.
+- Made Purchase Order / LPO activation migrations safely retryable after a partial or interrupted production activation.
+- Show the Purchase Orders / LPO navigation entry only for companies whose active plan includes the add-on, preventing dashboard redirects from unavailable module links.
+
 ### Added
+- Added manual multi-currency transaction entry with effective-dated company exchange rates, historical rate snapshots, base-currency journal posting, currency-aware bank accounts, and a dry-run-safe live-data backfill command.
+- Added CR Number and private supporting-document uploads to customer and vendor create, edit, and detail views, including validated files and authorized preview, download, and removal actions.
+- Added a live searchable customer filter, invoice-date-range and aging-bucket filters, plus selectable report columns to Invoice Aging, with matching filtered PDF output.
+- Added transaction-date filtering and filtered CSV/Excel downloads to Bank Transactions, with all matching records included in each export.
+- Added SKU generation to the quotation and sales invoice quick product/service creation dialog.
+- Added production-project client login management with a dedicated permission, restricted read-only production portals, password/profile controls, welcome emails, and login-as-client support.
+- Added a tenant-scoped Purchase Order / LPO add-on with draft-to-issued approval workflow, vendor and catalogue/custom lines, taxes and discounts, attachments, billing status, activity history, and partial or full conversion into draft purchase invoices without changing stock or accounting until invoice posting.
 - Added per-account PDF/Excel transaction downloads from Chart of Accounts, with date filters, company checks, opening/closing balances, period totals and Dr/Cr labels. Corrected General Ledger opening snapshots to use the current schema.
 - Added private supporting documents to journal creation and viewing: PDF/images, Word, Excel and ZIP files, with authorized downloads, supported previews, removal audit metadata, and rollback cleanup.
 - Added an in-page product picker to quotation and sales invoice create/edit flows with multi-select, name/SKU search, category filtering, stock and service visibility, automatic price/tax population, row-click selection, and permission-controlled quick product creation.
@@ -17,6 +34,17 @@ All notable changes to the Wazely ERP application are documented here.
 - New features currently in development will be listed here before release.
 
 ### Changed
+- Added searchable customer/vendor selectors with in-place party creation and automatic selection in sales invoices and customer/vendor payment forms.
+- Grouped related company menu items under Sales and Purchases, kept child items visible for users with limited permissions, and added connector lines between sidebar subitems.
+- Simplified Purchase Order terminology by removing "/ LPO" from the sidebar, page headings, grid column, and search text.
+- Renamed the Sales menu and grid labels to "Invoice Returns" and "Payment Received" for clearer, compact accounting terminology without changing the underlying invoice or payment workflows.
+- Decoupled customer and vendor creation from User Management: party forms automatically maintain linked internal identities with optional ERP portal login, transactional detail/status synchronization, and protected user editing/deletion. Client/vendor roles are excluded from manual user creation and staff-seat limits. Imports create disabled portal accounts, and `accounts:backfill-party-portals --dry-run` previews the idempotent backfill without changing existing user or financial record IDs.
+- Replaced customer and vendor count cards on Account dashboards with live Accounts Receivable, Accounts Payable, overdue amounts, Cash Balance, and Bank Balance summaries.
+- Renamed the displayed Payment Date label to Received Date across customer and vendor payment forms, lists, details, and payment template previews.
+- Added a dedicated Production Client portal that opens directly on the assigned production overview, provides sidebar-only Overview, Shooting Log and Deliverables navigation, and enforces one client login per production project.
+- Removed reusable Production Client attachment, project switching, generic Project navigation, breadcrumbs and production tabs from Production Client accounts while preserving the staff management interface.
+- Simplified downloaded quotation and sales invoice PDF filenames to `EST-YYYY-MM-NNN.pdf` and `INV-YYYY-MM-NNN.pdf` while preserving internal document numbers.
+- Hidden purchase-price inputs from product and service create/edit interfaces while preserving existing stored costs and purchase/accounting behavior.
 - Added warehouse-aware product stock editing and automatic default stock locations, prevented zero-stock selection, made quick-created products appear immediately in quotation and sales invoice lines, and deduct stock atomically when product invoices are posted.
 - Aligned quotation and sales invoice customer selectors with Accounts customer master data, showing the real contact email only when present and hiding internal `@import.local` placeholder addresses.
 - Changed Product/Service tax assignment to an optional single-select dropdown backed by the company tax master, with `_` representing no tax across create, edit, quick-create, and item details.

@@ -6,6 +6,12 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title inertia>{{ config('app.name', 'Wazely ERP') }}</title>
+        <meta property="og:type" content="website">
+        <meta property="og:site_name" content="{{ config('app.name', 'Wazely ERP') }}">
+        <meta property="og:title" content="{{ config('app.name', 'Wazely ERP') }}">
+        <meta property="og:url" content="{{ url()->current() }}">
+        <meta name="twitter:card" content="summary">
+        <meta name="twitter:title" content="{{ config('app.name', 'Wazely ERP') }}">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">

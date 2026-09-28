@@ -22,7 +22,7 @@ import { Pagination } from "@/components/ui/pagination";
 import Create from './Create';
 import Edit from './Edit';
 import View from './View';
-import { Customer, User } from './types';
+import { Customer } from './types';
 import { usePageButtons } from '@/hooks/usePageButtons';
 import { BulkImportButton } from '@/components/bulk-import-button';
 interface CustomerFilters {
@@ -45,7 +45,7 @@ interface CustomersIndexProps {
         per_page: number;
         total: number;
     };
-    users: User[];
+    editCustomer?: Customer | null;
     auth: {
         user: {
             permissions: string[];
@@ -54,7 +54,7 @@ interface CustomersIndexProps {
 }
 
 export default function Index() {
-    const { customers, users, auth } = usePage<CustomersIndexProps>().props;
+    const { customers, auth, editCustomer } = usePage<CustomersIndexProps>().props;
     const { t } = useTranslation();
     const urlParams = new URLSearchParams(window.location.search);
 
@@ -69,9 +69,9 @@ export default function Index() {
     const [sortDirection, setSortDirection] = useState(urlParams.get('direction') || 'asc');
     const [viewMode, setViewMode] = useState<'list' | 'grid'>(urlParams.get('view') as 'list' | 'grid' || 'list');
     const [modalState, setModalState] = useState<CustomerModalState>({
-        isOpen: false,
-        mode: '',
-        data: null
+        isOpen: !!editCustomer,
+        mode: editCustomer ? 'edit' : '',
+        data: editCustomer || null
     });
     const [viewingItem, setViewingItem] = useState<Customer | null>(null);
     const [showFilters, setShowFilters] = useState(false);
@@ -533,7 +533,7 @@ export default function Index() {
 
             <Dialog open={modalState.isOpen} onOpenChange={closeModal}>
                 {modalState.mode === 'add' && (
-                    <Create onSuccess={closeModal} users={users} auth={auth} />
+                    <Create onSuccess={closeModal} />
                 )}
                 {modalState.mode === 'edit' && modalState.data && (
                     <Edit

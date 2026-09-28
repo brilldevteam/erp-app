@@ -18,6 +18,10 @@ class JournalEntry extends Model
         'description',
         'total_debit',
         'total_credit',
+        'currency_code',
+        'exchange_rate',
+        'foreign_amount',
+        'base_amount',
         'status',
         'creator_id',
         'created_by'
@@ -26,7 +30,10 @@ class JournalEntry extends Model
     protected $casts = [
         'journal_date' => 'date',
         'total_debit' => 'decimal:2',
-        'total_credit' => 'decimal:2'
+        'total_credit' => 'decimal:2',
+        'exchange_rate' => 'decimal:8',
+        'foreign_amount' => 'decimal:2',
+        'base_amount' => 'decimal:2'
     ];
 
     public function items(): HasMany

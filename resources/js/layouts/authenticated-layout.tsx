@@ -27,11 +27,13 @@ function AuthenticatedLayoutContent({
     header,
     children,
     breadcrumbs,
+    hideBreadcrumbs = false,
     pageTitle,
     pageActions
 }: PropsWithChildren<{
     header?: ReactNode;
     breadcrumbs?: Array<{label: string, url?: string}>;
+    hideBreadcrumbs?: boolean;
     pageTitle?: string;
     pageActions?: ReactNode;
     className?: string;
@@ -82,10 +84,10 @@ function AuthenticatedLayoutContent({
                         <SidebarTrigger className={`-ml-1 ${ settings.layoutDirection === "rtl" ? "order-3" : "order-1" }`} />
 
                         {/* Separator */}
-                        <Separator orientation="vertical" className="order-2 hidden h-4 sm:block" />
+                        {!hideBreadcrumbs && <Separator orientation="vertical" className="order-2 hidden h-4 sm:block" />}
 
                         {/* Breadcrumb */}
-                        <Breadcrumb className={`min-w-0 flex-1 overflow-hidden ${ settings.layoutDirection === "rtl" ? "order-1" : "order-3" }`} >
+                        {!hideBreadcrumbs && <Breadcrumb className={`min-w-0 flex-1 overflow-hidden ${ settings.layoutDirection === "rtl" ? "order-1" : "order-3" }`} >
                             <BreadcrumbList className={`flex-nowrap gap-1 overflow-hidden whitespace-nowrap text-xs sm:gap-2 sm:text-sm ${ settings.layoutDirection === "rtl" ? "justify-end" : "justify-start" }`} >
                             <BreadcrumbItem className="shrink-0">
                                 <BreadcrumbLink asChild>
@@ -107,7 +109,7 @@ function AuthenticatedLayoutContent({
                                 </Fragment>
                             ))}
                             </BreadcrumbList>
-                        </Breadcrumb>
+                        </Breadcrumb>}
                     </div>
 
                     {/* NavUser */}
@@ -135,7 +137,7 @@ function AuthenticatedLayoutContent({
                 <main className="h-full min-w-0 max-w-full overflow-x-hidden p-3 sm:p-5 md:px-6 md:pb-6 md:pt-2">
                     {pageTitle && (
                         <div className="mb-5 flex items-center" dir={settings.layoutDirection}>
-                            <h1 className="flex-1 text-xl font-semibold tracking-[-0.025em] text-slate-950 dark:text-white">{pageTitle}</h1>
+                            <h1 className="flex-1 text-xl font-semibold text-slate-950 dark:text-white">{pageTitle}</h1>
                             <div className="flex-shrink-0">{pageActions}</div>
                         </div>
                     )}
@@ -167,6 +169,7 @@ function AuthenticatedLayoutContent({
 export default function AuthenticatedLayout(props: PropsWithChildren<{
     header?: ReactNode;
     breadcrumbs?: Array<{label: string, url?: string}>;
+    hideBreadcrumbs?: boolean;
     pageTitle?: string;
     pageActions?: ReactNode;
     className?: string;

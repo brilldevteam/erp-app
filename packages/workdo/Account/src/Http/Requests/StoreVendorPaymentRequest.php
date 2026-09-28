@@ -20,6 +20,8 @@ class StoreVendorPaymentRequest extends FormRequest
             'bank_account_id' => 'required|exists:bank_accounts,id',
             'reference_number' => 'nullable|string|max:100',
             'payment_amount' => 'required|numeric|min:0',
+            'currency_code' => 'required|string|size:3',
+            'exchange_rate' => 'required|numeric|gt:0',
             'notes' => 'nullable|string',
             'allocations' => 'nullable|array',
             'allocations.*.invoice_id' => 'required|exists:purchase_invoices,id',

@@ -9,7 +9,7 @@ export const doubleentryCompanyMenu = (t: (key: string) => string) => [
         title: t('Double Entry'),
         icon: BookOpen,
         permission: 'manage-double-entry',
-        order: 425,
+        order: 39,
         children: [
             {
                 title: t('Ledger Summary'),

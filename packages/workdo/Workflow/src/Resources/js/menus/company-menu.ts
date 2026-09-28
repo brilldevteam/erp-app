@@ -10,6 +10,6 @@ export const workflowCompanyMenu = (t: (key: string) => string) => [
         icon: Workflow,
         href: route('workflow.index'),
         permission: 'manage-workflow',
-        order: 1050,
+        order: 64,
     },
 ];

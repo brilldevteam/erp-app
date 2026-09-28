@@ -237,6 +237,17 @@ const getCurrencySymbol = (pageProps?: any): string => {
   }
 };
 
+const getCurrencySymbolForCode = (code?: string, pageProps?: any): string => {
+  if (!code) return getCurrencySymbol(pageProps);
+
+  const currency = pageProps?.currencies?.find((item: { code?: string; symbol?: string }) => item.code === code);
+  if (currency?.symbol) return currency.symbol;
+
+  return code === getCompanySetting('defaultCurrency', pageProps)
+    ? getCurrencySymbol(pageProps)
+    : code;
+};
+
 const getAdminCurrencySymbol = (pageProps?: any): string => {
   try {
     return getAdminSetting('currencySymbol', pageProps) || '$';
@@ -463,6 +474,7 @@ export {
     formatCurrency,
     formatAdminCurrency,
     getCurrencySymbol,
+    getCurrencySymbolForCode,
     getAdminCurrencySymbol,
     isPackageActive,
     getCompanySetting,

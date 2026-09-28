@@ -10,10 +10,14 @@ use App\Services\DocumentTemplates\DocumentTemplateService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Workdo\Quotation\Models\SalesQuotation;
+use Workdo\Account\Services\CurrencyConversionService;
 
 class SalesInvoiceService
 {
-    public function __construct(private readonly DocumentTemplateService $templates)
+    public function __construct(
+        private readonly DocumentTemplateService $templates,
+        private readonly CurrencyConversionService $currencies,
+    )
     {
     }
 
@@ -27,6 +31,11 @@ class SalesInvoiceService
                 $data['document_template_id'] ?? null
             );
             $totals = $this->calculateTotals($data['items']);
+            $currency = $this->currencies->transactionValues(
+                [...$data, 'total_amount' => $totals['total_amount']],
+                'total_amount',
+                $creatorId
+            );
 
             $invoice = new SalesInvoice();
             $invoice->quotation_id = $quotation?->id;
@@ -41,6 +50,9 @@ class SalesInvoiceService
             $invoice->payment_terms = $data['payment_terms'] ?? null;
             $invoice->subject = $data['subject'] ?? null;
             $invoice->notes = $data['notes'] ?? null;
+            $invoice->currency_code = $currency['currency_code'];
+            $invoice->exchange_rate = $currency['exchange_rate'];
+            $invoice->base_amount = $currency['base_amount'];
             $invoice->subtotal = $totals['subtotal'];
             $invoice->tax_amount = $totals['tax_amount'];
             $invoice->discount_amount = $totals['discount_amount'];

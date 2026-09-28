@@ -9,7 +9,7 @@ export const goalCompanyMenu = (t: (key: string) => string) => [
         title: t('Goal'),
         icon: Target,
         permission: 'manage-goal',
-        order: 415,
+        order: 63,
         children: [
             {
                 title: t('Goals'),

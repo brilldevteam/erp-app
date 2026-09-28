@@ -16,7 +16,7 @@ class ProductionReportEmailController extends Controller
 {
     public function send(SendProductionReportEmailRequest $request, Project $project)
     {
-        abort_unless($project->created_by === creatorId(), 404);
+        abort_unless(Auth::user()->can('manage-video-production') && $project->created_by === creatorId(), 403);
 
         $validated = $request->validated();
         $settings = ProductionSetting::forProject(creatorId(), $project->id);

@@ -5,6 +5,7 @@ namespace App\Http\Requests\Auth;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -74,9 +75,10 @@ class LoginRequest extends FormRequest
             ]);
         }
 
-        // Check if user account is disabled
+        // Portal users must remain explicitly enabled and linked to a party
+        // whose saved contact email matches the login identity.
         $user = Auth::user();
-        if ($user && !$user->is_enable_login) {
+        if ($user && (!$user->is_enable_login || (bool) $user->is_disable || !$this->hasValidPartyPortalAccess($user))) {
             Auth::logout();
             RateLimiter::hit($this->throttleKey());
 
@@ -86,6 +88,30 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+    }
+
+    private function hasValidPartyPortalAccess(User $user): bool
+    {
+        $table = match ($user->type) {
+            'client' => 'customers',
+            'vendor' => 'vendors',
+            default => null,
+        };
+
+        if (!$table) {
+            return true;
+        }
+
+        $partyEmail = DB::table($table)
+            ->where('user_id', $user->id)
+            ->value('contact_person_email');
+
+        $partyEmail = strtolower(trim((string) $partyEmail));
+        $userEmail = strtolower(trim((string) $user->email));
+
+        return $partyEmail !== ''
+            && $partyEmail === $userEmail
+            && !str_ends_with($userEmail, '@import.local');
     }
 
     /**

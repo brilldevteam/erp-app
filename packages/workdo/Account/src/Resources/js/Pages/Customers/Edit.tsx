@@ -1,5 +1,6 @@
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useForm } from "@inertiajs/react";
+import { router, useForm } from "@inertiajs/react";
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,8 @@ import { Customer, CustomerFormData } from './types';
 import { useFormFields } from '@/hooks/useFormFields';
 import { CustomerAddressFields } from '@/components/customer-address-fields';
 import { addressCountryCode } from '@/types/address';
+import PartyDocuments from '../Parties/PartyDocuments';
+import SavedPartyDocuments from '../Parties/SavedPartyDocuments';
 interface EditCustomerProps {
     customer: Customer;
     onSuccess: () => void;
@@ -19,11 +22,22 @@ interface EditCustomerProps {
 
 export default function Edit({ customer, onSuccess }: EditCustomerProps) {
     const { t } = useTranslation();
-    const { data, setData, put, processing, errors } = useForm<CustomerFormData>({
+    const contactEmail = (customer.contact_person_email ?? '').trim().toLowerCase();
+    const portalAccessEnabled = contactEmail !== ''
+        && contactEmail === (customer.user?.email ?? '').trim().toLowerCase()
+        && !!customer.user?.is_enable_login
+        && !customer.user?.is_disable;
+    const { data, setData, put, transform, processing, errors } = useForm<CustomerFormData>({
         ...customer,
+        contact_person_email: customer.contact_person_email ?? '',
+        portal_access_enabled: portalAccessEnabled,
+        password: '',
+        password_confirmation: '',
+        attachments: [],
         billing_address: { ...customer.billing_address, country_code: addressCountryCode(customer.billing_address) || customer.billing_address.country_code },
         shipping_address: { ...customer.shipping_address, country_code: addressCountryCode(customer.shipping_address) || customer.shipping_address.country_code },
     });
+    const [uploading, setUploading] = useState(false);
 
     const formFields = useFormFields('customerEditFields', data, setData, errors, 'edit');
 
@@ -31,9 +45,22 @@ export default function Edit({ customer, onSuccess }: EditCustomerProps) {
     const customFields = useFormFields('getCustomFields', { ...data, module: 'Account', sub_module: 'Customer', id: customer.id }, setData, errors, 'edit', t);
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+        const files = data.attachments;
+        transform(({ attachments, ...formData }) => formData);
         put(route('account.customers.update', customer.id), {
+            preserveScroll: true,
             onSuccess: () => {
-                onSuccess();
+                if (files.length === 0) {
+                    onSuccess();
+                    return;
+                }
+                setUploading(true);
+                router.post(route('account.customers.attachments.store', customer.id), { attachments: files }, {
+                    forceFormData: true,
+                    preserveScroll: true,
+                    onSuccess,
+                    onFinish: () => setUploading(false),
+                });
             }
         });
     };
@@ -43,7 +70,7 @@ export default function Edit({ customer, onSuccess }: EditCustomerProps) {
             <DialogHeader>
                 <DialogTitle>{t('Edit Customer')}</DialogTitle>
             </DialogHeader>
-            <form onSubmit={submit} className="space-y-4">
+            <form onSubmit={submit} className="space-y-4" noValidate autoComplete="off">
                 <div>
                     <Label htmlFor="company_name">{t('Company Name')}</Label>
                     <Input
@@ -70,12 +97,26 @@ export default function Edit({ customer, onSuccess }: EditCustomerProps) {
                     <Label htmlFor="contact_person_email">{t('Email')}</Label>
                     <Input
                         id="contact_person_email"
+                        name="customer_contact_email"
                         type="email"
+                        autoComplete="off"
                         value={data.contact_person_email}
-                        onChange={(e) => setData('contact_person_email', e.target.value)}
+                        onChange={(e) => { const email = e.target.value; setData('contact_person_email', email); if (!/^\S+@\S+\.\S+$/.test(email)) setData('portal_access_enabled', false); }}
                         placeholder={t('Enter email address (optional)')}
                     />
                     <InputError message={errors.contact_person_email} />
+                </div>
+                <div className="space-y-3 rounded-md border p-4">
+                    <div className="flex items-center gap-2">
+                        <Checkbox id="portal_access_enabled" checked={data.portal_access_enabled} disabled={!/^\S+@\S+\.\S+$/.test(data.contact_person_email)} onCheckedChange={(checked) => setData('portal_access_enabled', !!checked)} />
+                        <Label htmlFor="portal_access_enabled">{t('Enable ERP Portal Login')}</Label>
+                    </div>
+                    {data.portal_access_enabled && (
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div><Label htmlFor="password">{t(portalAccessEnabled ? 'New Password (Optional)' : 'Password')}</Label><Input id="password" name="customer_new_password" type="password" autoComplete="new-password" value={data.password} onChange={(e) => setData('password', e.target.value)} /><InputError message={errors.password} /></div>
+                            <div><Label htmlFor="password_confirmation">{t('Confirm Password')}</Label><Input id="password_confirmation" name="customer_new_password_confirmation" type="password" autoComplete="new-password" value={data.password_confirmation} onChange={(e) => setData('password_confirmation', e.target.value)} /><InputError message={errors.password_confirmation} /></div>
+                        </div>
+                    )}
                 </div>
                 <div>
                     <PhoneInputComponent
@@ -86,7 +127,7 @@ export default function Edit({ customer, onSuccess }: EditCustomerProps) {
                         error={errors.contact_person_mobile}
                     />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div>
                         <Label htmlFor="tax_number">{t('Tax Number')}</Label>
                         <Input
@@ -96,6 +137,11 @@ export default function Edit({ customer, onSuccess }: EditCustomerProps) {
                             placeholder={t('Enter tax number')}
                         />
                         <InputError message={errors.tax_number} />
+                    </div>
+                    <div>
+                        <Label htmlFor="cr_number">{t('CR Number')}</Label>
+                        <Input id="cr_number" value={data.cr_number || ''} onChange={(e) => setData('cr_number', e.target.value)} placeholder={t('Enter CR number')} />
+                        <InputError message={errors.cr_number} />
                     </div>
                     <div>
                         <Label htmlFor="payment_terms">{t('Payment Terms')}</Label>
@@ -156,6 +202,11 @@ export default function Edit({ customer, onSuccess }: EditCustomerProps) {
                     />
                     <InputError message={errors.notes} />
                 </div>
+                <SavedPartyDocuments partyType="customers" partyId={customer.id} attachments={customer.attachments || []} canRemove />
+                <PartyDocuments files={data.attachments} onChange={(files) => setData('attachments', files)} errors={errors} existingCount={customer.attachments?.length || 0} disabled={processing || uploading} />
+                {Object.keys(errors).length > 0 && (
+                    <p role="alert" className="text-sm text-destructive">{t('Please correct the highlighted fields before updating.')}</p>
+                )}
 
                 {/* Custom Fields */}
                 {customFields.length > 0 && (
@@ -174,8 +225,8 @@ export default function Edit({ customer, onSuccess }: EditCustomerProps) {
                     <Button type="button" variant="outline" onClick={onSuccess}>
                         {t('Cancel')}
                     </Button>
-                    <Button type="submit" disabled={processing}>
-                        {processing ? t('Updating...') : t('Update')}
+                    <Button type="submit" disabled={processing || uploading}>
+                        {processing || uploading ? t('Updating...') : t('Update')}
                     </Button>
                 </div>
             </form>

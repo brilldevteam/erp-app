@@ -24,6 +24,7 @@ use App\Events\EditPurchaseInvoice;
 use App\Models\EmailTemplate;
 use Illuminate\Support\Facades\Schema;
 use Workdo\Taskly\Models\ProjectContract;
+use Workdo\Account\Services\CurrencyConversionService;
 
 
 class PurchaseInvoiceController extends Controller
@@ -197,6 +198,10 @@ class PurchaseInvoiceController extends Controller
     {
         if(Auth::user()->can('create-purchase-invoices')){
             $totals = $this->calculateTotals($request->items);
+            $currency = app(CurrencyConversionService::class)->transactionValues(
+                [...$request->validated(), 'total_amount' => $totals['total_amount']],
+                'total_amount'
+            );
 
             $invoice = new PurchaseInvoice();
             $invoice->invoice_date = $request->invoice_date;
@@ -206,6 +211,9 @@ class PurchaseInvoiceController extends Controller
             $invoice->warehouse_id = $request->filled('warehouse_id') ? $request->warehouse_id : null;
             $invoice->payment_terms = $request->payment_terms;
             $invoice->notes = $request->notes;
+            $invoice->currency_code = $currency['currency_code'];
+            $invoice->exchange_rate = $currency['exchange_rate'];
+            $invoice->base_amount = $currency['base_amount'];
             $invoice->subtotal = $totals['subtotal'];
             $invoice->tax_amount = $totals['tax_amount'];
             $invoice->discount_amount = $totals['discount_amount'];
@@ -327,6 +335,10 @@ class PurchaseInvoiceController extends Controller
                 return redirect()->route('purchase-invoices.index')->with('error', __('Cannot update posted invoice.'));
             }
             $totals = $this->calculateTotals($request->items);
+            $currency = app(CurrencyConversionService::class)->transactionValues(
+                [...$request->validated(), 'total_amount' => $totals['total_amount']],
+                'total_amount'
+            );
 
             $purchaseInvoice->invoice_date = $request->invoice_date;
             $purchaseInvoice->due_date = $request->due_date;
@@ -335,6 +347,9 @@ class PurchaseInvoiceController extends Controller
             $purchaseInvoice->warehouse_id = $request->filled('warehouse_id') ? $request->warehouse_id : null;
             $purchaseInvoice->payment_terms = $request->payment_terms;
             $purchaseInvoice->notes = $request->notes;
+            $purchaseInvoice->currency_code = $currency['currency_code'];
+            $purchaseInvoice->exchange_rate = $currency['exchange_rate'];
+            $purchaseInvoice->base_amount = $currency['base_amount'];
             $purchaseInvoice->subtotal = $totals['subtotal'];
             $purchaseInvoice->tax_amount = $totals['tax_amount'];
             $purchaseInvoice->discount_amount = $totals['discount_amount'];
@@ -408,6 +423,8 @@ class PurchaseInvoiceController extends Controller
             $item = new PurchaseInvoiceItem();
             $item->invoice_id = $invoiceId;
             $item->product_id = $itemData['product_id'];
+            $item->description = $itemData['description'] ?? null;
+            $item->unit = $itemData['unit'] ?? null;
             $item->quantity = $itemData['quantity'];
             $item->unit_price = $itemData['unit_price'];
             $item->discount_percentage = $itemData['discount_percentage'] ?? 0;

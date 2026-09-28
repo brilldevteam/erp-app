@@ -13,6 +13,7 @@ export interface User {
     avatar?: string;
     active_plan?: number | null;
     created_at: string;
+    linked_party?: { type: 'customer' | 'vendor'; id: number };
 }
 
 export interface UserPlan {
@@ -93,6 +94,7 @@ export interface UserModalState {
 export interface UsersIndexProps {
     users: PaginatedUsers;
     roles: Record<string, string>;
+    createRoles: Record<string, string>;
     plans: UserPlan[];
     auth: AuthContext;
     [key: string]: unknown;

@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DatePicker } from '@/components/ui/date-picker';
 import { Separator } from '@/components/ui/separator';
 import { CalendarDays, Building2, User, FileText, Package } from 'lucide-react';
+import TransactionCurrencyFields from '@/components/transaction-currency-fields';
 
 interface CreateProps {
     vendors: InvoiceVendorOption[];
@@ -29,12 +30,14 @@ interface CreateProps {
 
 export default function Create() {
     const { t } = useTranslation();
-    const { vendors, products, warehouses, projectContracts } = usePage<CreateProps>().props;
+    const { vendors, products, warehouses, projectContracts, settings } = usePage<CreateProps>().props;
 
     useFlashMessages();
     const { data, setData, post, processing, errors } = useForm({
         invoice_date: new Date().toISOString().split('T')[0],
         due_date: '',
+        currency_code: settings?.defaultCurrency || 'USD',
+        exchange_rate: '1.00000000',
         vendor_id: '',
         project_contract_id: '',
         warehouse_id: '',
@@ -236,6 +239,8 @@ export default function Create() {
                             )}
                         </CardContent>
                     </Card>
+
+                    <TransactionCurrencyFields currencyCode={data.currency_code} exchangeRate={data.exchange_rate} transactionDate={data.invoice_date} amount={totals.total} errors={errors} onCurrencyChange={value => setData('currency_code', value)} onRateChange={value => setData('exchange_rate', value)} />
 
                     {/* Supporting Documents */}
                     <Card>
