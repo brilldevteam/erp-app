@@ -18,6 +18,7 @@ import { CalendarDays, CheckCircle2, ChevronDown, ChevronUp, Clock3, Download, E
 import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import SettingsForm from './Settings/SettingsForm';
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 type Kind = 'shoot'|'deliverable';
 type Field = [string,string,string?,string[]?];
@@ -492,6 +493,31 @@ function Manager({ kind, items, settings, nextRecordKey, companyName, project, s
     </Card>;
 }
 
+const dashboardTooltipStyle = {
+    border: '1px solid #e2e8f0',
+    borderRadius: '12px',
+    boxShadow: '0 14px 34px -18px rgba(15, 23, 42, 0.35)',
+    fontSize: '12px',
+};
+
+const statusTone = (status: string) => {
+    if (['Delivered', 'Approved'].includes(status)) return 'bg-emerald-500';
+    if (['Waiting for DOC', 'Under Review', 'On Hold'].includes(status)) return 'bg-amber-400';
+    if (['Editing', 'Revision in Progress', 'V1 Sent'].includes(status)) return 'bg-teal-500';
+    return 'bg-slate-400';
+};
+
+function ProgressRow({ label, value, target, suffix = '' }: { label: string; value: number; target: number; suffix?: string }) {
+    const progress = target > 0 ? Math.min(100, Math.round((value / target) * 100)) : 0;
+    return <div className="space-y-2">
+        <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="font-medium text-slate-700">{label}</span>
+            <span className="tabular-nums text-slate-500"><strong className="text-slate-950">{value}{suffix}</strong> / {target}{suffix}</span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-teal-500 transition-all" style={{ width: `${progress}%` }} /></div>
+    </div>;
+}
+
 export default function Dashboard() {
     const { t } = useTranslation();
     const { companyName, project, activeSection, isProductionClient, canEdit, canViewProduction, canViewDashboard, canManageSettings, unassignedRecordCount, nextRecordKeys, settings, range, month, records, productionMetrics } = usePage<any>().props;
@@ -504,6 +530,29 @@ export default function Dashboard() {
     const defaultTab = tabs[0]?.[0] || 'overview';
     const metrics = [['Shooting sessions',productionMetrics.shoots,Video],['Reels delivered',productionMetrics.reels_delivered,CheckCircle2],['Static posts delivered',productionMetrics.static_delivered,FileCheck2],['Work hours',productionMetrics.work_hours,Clock3]];
     const targets = [['Reels / month',settings.monthly_reel_target],['Static posts / month',settings.monthly_static_target],['Shoot sessions',`${settings.minimum_shoots} - ${settings.maximum_shoots}`],['Hours / shoot',settings.included_hours_per_shoot],['Script lead days',settings.required_lead_days],['Included revisions',settings.included_revisions],['Extra shooting hours',productionMetrics.extra_hours],['Waiting for client',productionMetrics.waiting_for_client]];
+    const overviewItems = [...(records.shoot || []).map((item: any) => ({ ...item, recordType: 'shoot' })), ...(records.deliverable || []).map((item: any) => ({ ...item, recordType: 'deliverable' }))]
+        .filter((item: any) => range !== 'monthly' || String(item.recorded_at || '').slice(0, 7) === month)
+        .sort((a: any, b: any) => new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime());
+    const timeline = Array.from(overviewItems.reduce((map: Map<string, any>, item: any) => {
+        const date = new Date(item.recorded_at);
+        if (Number.isNaN(date.getTime())) return map;
+        const week = Math.ceil(date.getDate() / 7);
+        const key = range === 'monthly' ? `${month}-W${week}` : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const label = range === 'monthly' ? `Week ${week}` : date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        const current = map.get(key) || { key, month: label, shoots: 0, deliverables: 0 };
+        current[item.recordType === 'shoot' ? 'shoots' : 'deliverables'] += 1;
+        map.set(key, current);
+        return map;
+    }, new Map<string, any>()).values()).sort((a: any, b: any) => a.key.localeCompare(b.key)).slice(-8);
+    const deliverableStatuses = Array.from((overviewItems.filter((item: any) => item.recordType === 'deliverable') as any[]).reduce((map: Map<string, number>, item: any) => {
+        const status = item.data?.current_status || item.status || 'Not specified';
+        map.set(status, (map.get(status) || 0) + 1);
+        return map;
+    }, new Map<string, number>()).entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+    const plannedRate = productionMetrics.shoots > 0 ? Math.round((productionMetrics.planned_shoots / productionMetrics.shoots) * 100) : 0;
+    const includedHours = Number(settings.included_hours_per_shoot || 0) * Number(productionMetrics.shoots || 0);
+    const activeMonths = Math.max(1, new Set(overviewItems.map((item: any) => String(item.recorded_at || '').slice(0, 7)).filter(Boolean)).size);
+    const monthlyAverage = (value: number) => range === 'monthly' ? value : Number((value / activeMonths).toFixed(1));
     const breadcrumbs = [{label:t('Project'),url:route('project.index')},{label:project.name,url:route('project.show',project.id)},{label:t('Production')}];
     const overviewRoute = isProductionClient ? route('video-production.client.overview') : route('video-production.dashboard', project.id);
     return <AuthenticatedLayout breadcrumbs={breadcrumbs} hideBreadcrumbs={isProductionClient} pageTitle={`${project.name} - ${t('Production')}`}>
@@ -512,9 +561,27 @@ export default function Dashboard() {
             {!isProductionClient && <div className="overflow-x-auto rounded-xl border bg-card p-2"><TabsList className="h-auto min-w-max bg-transparent">{tabs.map(([value,label,Icon]) => <TabsTrigger value={value} key={value} className="gap-2"><Icon className="h-4 w-4" />{t(label)}</TabsTrigger>)}</TabsList></div>}
             {canViewDashboard && <TabsContent value="overview" className="space-y-5">
                 {unassignedRecordCount > 0 && <Card className="border-amber-300 bg-amber-50"><CardContent className="flex flex-col justify-between gap-4 p-5 text-amber-950 md:flex-row md:items-center"><div><p className="font-semibold">{t('Existing production records need a project')}</p><p className="mt-1 text-sm">{unassignedRecordCount} {t('record(s) are currently unassigned. Move them here only if they belong to this project.')}</p></div><Button type="button" variant="outline" className="border-amber-500 bg-white" onClick={() => confirm(t(`Move all ${unassignedRecordCount} unassigned records to ${project.name}?`)) && router.post(route('video-production.claim-unassigned', project.id), {}, { preserveScroll: true })}>{t('Move Existing Records Here')}</Button></CardContent></Card>}
-                <Card><CardContent className="flex flex-col justify-between gap-4 p-5 md:flex-row md:items-center"><div><p className="text-sm text-muted-foreground">{range === 'monthly' ? t('Monthly management view') : t('All-time management view')}</p><h2 className="text-xl font-semibold">{project.name} {t('Production')}</h2></div><div className="flex flex-wrap items-center gap-2"><Select value={range || 'all'} onValueChange={value => router.get(overviewRoute, {range:value,month}, {preserveState:true,replace:true})}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t('All Time')}</SelectItem><SelectItem value="monthly">{t('Monthly')}</SelectItem></SelectContent></Select>{range === 'monthly' && <><CalendarDays className="h-4 w-4" /><Input type="month" className="w-44" value={month} onChange={e => router.get(overviewRoute, {range:'monthly',month:e.target.value}, {preserveState:true,replace:true})} /></>}</div></CardContent></Card>
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{metrics.map(([label,value,Icon]:any) => <Card key={label}><CardContent className="flex items-center justify-between p-5"><div><p className="text-sm text-muted-foreground">{t(label)}</p><p className="text-3xl font-semibold">{value}</p></div><Icon className="h-8 w-8 text-primary" /></CardContent></Card>)}</div>
-                <Card><CardHeader><CardTitle>{t('Agreed process and targets')}</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{targets.map(([label,value]) => <div className="flex justify-between rounded-lg bg-muted/50 p-3" key={label}><span>{t(label)}</span><strong>{value}</strong></div>)}</CardContent></Card>
+                <Card className="overflow-hidden border-slate-200 bg-slate-950 text-white shadow-[0_18px_50px_-30px_rgba(15,23,42,0.8)]">
+                    <CardContent className="flex flex-col justify-between gap-6 p-6 lg:flex-row lg:items-end">
+                        <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-300">{range === 'monthly' ? t('Monthly production report') : t('Production command centre')}</p><h2 className="mt-2 text-2xl font-semibold tracking-tight">{project.name}</h2><p className="mt-2 max-w-xl text-sm text-slate-300">{t('Live visibility across shoots, delivery progress, workload and client review status.')}</p></div>
+                        <div className="flex flex-wrap items-center gap-2"><Select value={range || 'all'} onValueChange={value => router.get(overviewRoute, {range:value,month}, {preserveState:true,replace:true})}><SelectTrigger className="w-36 border-slate-700 bg-slate-900 text-white"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t('All Time')}</SelectItem><SelectItem value="monthly">{t('Monthly')}</SelectItem></SelectContent></Select>{range === 'monthly' && <><CalendarDays className="h-4 w-4 text-slate-400" /><Input type="month" className="w-44 border-slate-700 bg-slate-900 text-white" value={month} onChange={e => router.get(overviewRoute, {range:'monthly',month:e.target.value}, {preserveState:true,replace:true})} /></>}</div>
+                    </CardContent>
+                </Card>
+
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{metrics.map(([label,value,Icon]:any, index) => <Card key={label} className="overflow-hidden border-slate-200/80 bg-white"><CardContent className="p-5"><div className="flex items-start justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.07em] text-slate-500">{t(label)}</p><p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-slate-950">{value}</p></div><span className={`flex h-10 w-10 items-center justify-center rounded-xl ${index === 3 ? 'bg-slate-100 text-slate-600' : 'bg-teal-50 text-teal-700'}`}><Icon className="h-5 w-5" /></span></div><p className="mt-3 text-xs text-slate-400">{index === 0 ? `${productionMetrics.planned_shoots} planned / ${productionMetrics.urgent_shoots} unplanned` : index === 1 ? `${deliverableStatuses.reduce((sum, item) => sum + item.value, 0)} deliverable records` : index === 2 ? t('Completed static output') : `${productionMetrics.extra_hours} extra hours`}</p></CardContent></Card>)}</div>
+
+                <div className="grid gap-5 xl:grid-cols-[1.65fr_1fr]">
+                    <Card><CardHeader className="flex-row items-start justify-between space-y-0"><div><CardTitle className="text-base">{t('Production activity')}</CardTitle><p className="mt-1 text-xs text-slate-400">{t('Shoot and deliverable records over time')}</p></div><span className="rounded-lg border bg-slate-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">{range === 'monthly' ? month : t('Latest 8 months')}</span></CardHeader><CardContent>{timeline.length ? <ResponsiveContainer width="100%" height={280}><AreaChart data={timeline} margin={{ top: 12, right: 8, left: -18, bottom: 0 }}><defs><linearGradient id="shootActivity" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0f9f8f" stopOpacity={0.28}/><stop offset="95%" stopColor="#0f9f8f" stopOpacity={0.02}/></linearGradient></defs><CartesianGrid vertical={false} stroke="#e8eef1" strokeDasharray="3 5"/><XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill:'#64748b',fontSize:11 }} tickMargin={10}/><YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill:'#94a3b8',fontSize:11 }}/><Tooltip contentStyle={dashboardTooltipStyle}/><Area type="monotone" dataKey="shoots" name="Shoots" stroke="#0f9f8f" strokeWidth={2.5} fill="url(#shootActivity)"/><Area type="monotone" dataKey="deliverables" name="Deliverables" stroke="#334155" strokeWidth={2.2} fill="transparent"/></AreaChart></ResponsiveContainer> : <div className="flex h-[280px] items-center justify-center rounded-xl border border-dashed text-sm text-slate-400">{t('No production activity in this period')}</div>}</CardContent></Card>
+                    <Card><CardHeader><CardTitle className="text-base">{t('Deliverable pipeline')}</CardTitle><p className="text-xs text-slate-400">{t('Current records by workflow status')}</p></CardHeader><CardContent className="space-y-4">{deliverableStatuses.length ? deliverableStatuses.slice(0, 7).map(item => { const total = deliverableStatuses.reduce((sum, entry) => sum + entry.value, 0); return <div key={item.name}><div className="mb-1.5 flex items-center justify-between text-sm"><span className="flex items-center gap-2 text-slate-700"><span className={`h-2 w-2 rounded-full ${statusTone(item.name)}`}/>{t(item.name)}</span><strong className="tabular-nums text-slate-950">{item.value}</strong></div><div className="h-1.5 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${statusTone(item.name)}`} style={{width:`${Math.max(6,(item.value/total)*100)}%`}}/></div></div> }) : <div className="flex h-52 items-center justify-center rounded-xl border border-dashed text-sm text-slate-400">{t('No deliverables in this period')}</div>}</CardContent></Card>
+                </div>
+
+                <div className="grid gap-5 xl:grid-cols-3">
+                    <Card><CardHeader><CardTitle className="text-base">{t('Target performance')}</CardTitle><p className="text-xs text-slate-400">{range === 'monthly' ? t('Selected month against agreed scope') : t('Monthly average against agreed scope')}</p></CardHeader><CardContent className="space-y-5"><ProgressRow label={t('Reels delivered')} value={monthlyAverage(Number(productionMetrics.reels_delivered || 0))} target={Number(settings.monthly_reel_target || 0)}/><ProgressRow label={t('Static posts delivered')} value={monthlyAverage(Number(productionMetrics.static_delivered || 0))} target={Number(settings.monthly_static_target || 0)}/><ProgressRow label={t('Shoot sessions')} value={monthlyAverage(Number(productionMetrics.shoots || 0))} target={Number(settings.maximum_shoots || 0)}/></CardContent></Card>
+                    <Card><CardHeader><CardTitle className="text-base">{t('Operational health')}</CardTitle><p className="text-xs text-slate-400">{t('Planning and workload indicators')}</p></CardHeader><CardContent className="grid grid-cols-2 gap-3"><div className="rounded-xl bg-slate-50 p-4"><p className="text-2xl font-semibold text-slate-950">{plannedRate}%</p><p className="mt-1 text-xs text-slate-500">{t('Planned shoots')}</p></div><div className="rounded-xl bg-slate-50 p-4"><p className="text-2xl font-semibold text-slate-950">{productionMetrics.waiting_for_client}</p><p className="mt-1 text-xs text-slate-500">{t('Waiting for client')}</p></div><div className={`rounded-xl p-4 ${Number(productionMetrics.extra_hours) > 0 ? 'bg-amber-50' : 'bg-slate-50'}`}><p className="text-2xl font-semibold text-slate-950">{productionMetrics.extra_hours}</p><p className="mt-1 text-xs text-slate-500">{t('Extra hours')}</p></div><div className="rounded-xl bg-slate-50 p-4"><p className="text-2xl font-semibold text-slate-950">{includedHours.toFixed(1)}</p><p className="mt-1 text-xs text-slate-500">{t('Included hours')}</p></div></CardContent></Card>
+                    <Card><CardHeader><CardTitle className="text-base">{t('Agreed workflow')}</CardTitle><p className="text-xs text-slate-400">{t('Key production commitments')}</p></CardHeader><CardContent className="divide-y divide-slate-100">{targets.slice(0,6).map(([label,value]) => <div className="flex items-center justify-between py-2.5 text-sm first:pt-0 last:pb-0" key={label}><span className="text-slate-500">{t(label)}</span><strong className="text-slate-950">{value}</strong></div>)}</CardContent></Card>
+                </div>
+
+                <Card><CardHeader className="flex-row items-end justify-between space-y-0"><div><CardTitle className="text-base">{t('Recent production activity')}</CardTitle><p className="mt-1 text-xs text-slate-400">{t('Latest shooting log and deliverable updates')}</p></div><span className="text-xs font-medium text-slate-400">{overviewItems.length} {t('total records')}</span></CardHeader><CardContent><div className="divide-y divide-slate-100">{overviewItems.slice(0,6).map((item:any) => <div key={`${item.recordType}-${item.id}`} className="grid gap-3 py-3.5 sm:grid-cols-[auto_1fr_auto] sm:items-center"><span className={`flex h-9 w-9 items-center justify-center rounded-lg ${item.recordType === 'shoot' ? 'bg-teal-50 text-teal-700' : 'bg-slate-100 text-slate-600'}`}>{item.recordType === 'shoot' ? <Video className="h-4 w-4"/> : <FileCheck2 className="h-4 w-4"/>}</span><div className="min-w-0"><p className="truncate text-sm font-semibold text-slate-900">{item.data?.doctor_subject || item.data?.content_name || item.record_key}</p><p className="mt-0.5 truncate text-xs text-slate-400">{item.record_key} · {item.recordType === 'shoot' ? (item.data?.branch_location || t('Shooting session')) : (item.data?.doctor_department || t('Deliverable'))}</p></div><div className="text-left sm:text-right"><p className="text-xs font-medium text-slate-600">{item.recordType === 'shoot' ? (item.data?.shoot_type || t('Shoot')) : (item.data?.current_status || item.status || t('Not specified'))}</p><p className="mt-1 text-[11px] text-slate-400">{formatRecordValue(item.recorded_at, 'date')}</p></div></div>)}{!overviewItems.length && <div className="py-12 text-center text-sm text-slate-400">{t('No production records found for this period.')}</div>}</div></CardContent></Card>
             </TabsContent>}
             {canViewProduction && (['shoot','deliverable'] as Kind[]).map(kind => <TabsContent value={kind} key={kind}><Manager kind={kind} items={records[kind] || []} shoots={records.shoot || []} settings={settings} nextRecordKey={nextRecordKeys?.[kind]} companyName={companyName} project={project} canEdit={canEdit} /></TabsContent>)}
             {canManageSettings && <TabsContent value="settings"><SettingsForm settings={settings} projectId={project.id} /></TabsContent>}
