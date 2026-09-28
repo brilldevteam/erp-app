@@ -81,6 +81,8 @@ const SelectContent = React.forwardRef<
     
     return React.Children.toArray(children).filter((child) => {
       if (React.isValidElement(child) && child.props.children) {
+        if (child.props["data-search-persistent"]) return true
+
         const text = typeof child.props.children === 'string' 
           ? child.props.children 
           : child.props.children.toString()

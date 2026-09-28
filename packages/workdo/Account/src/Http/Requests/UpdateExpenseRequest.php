@@ -19,6 +19,8 @@ class UpdateExpenseRequest extends FormRequest
             'bank_account_id' => 'required|exists:bank_accounts,id',
             'chart_of_account_id' => 'required|exists:chart_of_accounts,id',
             'amount' => 'required|numeric|min:0',
+            'currency_code' => 'required|string|size:3',
+            'exchange_rate' => 'required|numeric|gt:0',
             'description' => 'nullable|string',
             'reference_number' => 'nullable|string|max:255',
         ];

@@ -111,7 +111,7 @@ export default function CompanyDashboard() {
         >
             <Head title={t('Project Dashboard')} />
 
-            <div className="space-y-6">
+            <div className="neumorphic-dashboard space-y-6">
                 {/* Company Stats Cards */}
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
                     <div onClick={() => router.get(route('project.index'))} className="cursor-pointer">

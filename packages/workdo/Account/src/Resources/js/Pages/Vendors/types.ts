@@ -1,4 +1,5 @@
 import { PaginatedData, ModalState, AuthContext } from '@/types/common';
+import { PartyAttachment } from '../Parties/SavedPartyDocuments';
 
 export interface Address {
     name: string;
@@ -21,6 +22,7 @@ export interface Vendor {
     primary_email?: string;
     primary_mobile?: string;
     tax_number?: string;
+    cr_number?: string;
     payment_terms?: string;
     currency_code: string;
     credit_limit?: number;
@@ -30,6 +32,7 @@ export interface Vendor {
     is_active: boolean;
     notes?: string;
     created_at: string;
+    attachments?: PartyAttachment[];
     project_contracts?: Array<{
         id: number;
         type: 'main' | 'subcontractor';
@@ -40,43 +43,52 @@ export interface Vendor {
         completion_date: string;
         project?: { id: number; name: string };
     }>;
+    user?: {
+        id: number;
+        name: string;
+        avatar?: string;
+        is_enable_login?: boolean;
+        is_disable?: number;
+    };
 }
 
 export interface VendorFormData {
-    user_id?: number;
     company_name: string;
     contact_person_name: string;
     contact_person_email: string;
     contact_person_mobile?: string;
     tax_number?: string;
+    cr_number?: string;
     payment_terms?: string;
     billing_address: Address;
     shipping_address: Address;
     same_as_billing: boolean;
     notes?: string;
+    portal_access_enabled: boolean;
+    password: string;
+    password_confirmation: string;
+    attachments: File[];
 }
 
 export interface CreateVendorFormData {
-    user_id?: string;
     company_name: string;
     contact_person_name: string;
     contact_person_email: string;
     contact_person_mobile: string;
     tax_number: string;
+    cr_number: string;
     payment_terms: string;
     billing_address: Address;
     shipping_address: Address;
     same_as_billing: boolean;
     notes: string;
+    attachments: File[];
     return_to?: string;
+    portal_access_enabled: boolean;
+    password: string;
+    password_confirmation: string;
 }
 
-export interface User {
-    id: number;
-    name: string;
-    email: string;
-    mobile_no?: string;
-}
 
 export interface VendorFilters {
     company_name: string;
@@ -89,17 +101,15 @@ export type VendorModalState = ModalState<Vendor>;
 
 export interface VendorsIndexProps {
     vendors: PaginatedVendors;
-    users: User[];
     auth: AuthContext;
     openCreate?: boolean;
     returnTo?: string | null;
+    editVendor?: Vendor | null;
     [key: string]: unknown;
 }
 
 export interface CreateVendorProps {
-    onSuccess: () => void;
-    users?: User[];
-    auth?: any;
+    onSuccess: (userId?: number) => void;
     returnTo?: string | null;
 }
 

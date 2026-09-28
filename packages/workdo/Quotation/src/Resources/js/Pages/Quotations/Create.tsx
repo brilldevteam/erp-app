@@ -21,10 +21,10 @@ import { Separator } from '@/components/ui/separator';
 import { CalendarDays, Package } from 'lucide-react';
 import CreateCustomer from '../../../../../../Account/src/Resources/js/Pages/Customers/Create';
 import CreateWarehouse from '@/pages/warehouses/create';
+import TransactionCurrencyFields from '@/components/transaction-currency-fields';
 
 interface CreateProps {
     customers: Array<{id: number; name: string; email?: string | null}>;
-    customerUsers: Array<{id: number; name: string; email: string; mobile_no?: string}>;
     warehouses: Array<{id: number; name: string; address: string}>;
     documentTemplates: Array<{ id: number; name: string; is_default: boolean }>;
     productCatalog: {
@@ -42,7 +42,7 @@ interface CreateProps {
 
 export default function Create() {
     const { t } = useTranslation();
-    const { customers, customerUsers, warehouses, documentTemplates = [], productCatalog, auth } = usePage<CreateProps>().props;
+    const { customers, warehouses, documentTemplates = [], productCatalog, auth, settings } = usePage<CreateProps>().props;
     const [availableProducts, setAvailableProducts] = useState<QuotationProduct[]>([]);
     const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
     const [productsLoading, setProductsLoading] = useState(false);
@@ -56,6 +56,8 @@ export default function Create() {
     const { data, setData, post, processing, errors, clearErrors } = useForm({
         invoice_date: new Date().toISOString().split('T')[0],
         due_date: '',
+        currency_code: settings?.defaultCurrency || 'USD',
+        exchange_rate: '1.00000000',
         customer_id: '',
         warehouse_id: '',
         document_template_id: documentTemplates.find((template) => template.is_default)?.id?.toString() ?? '',
@@ -339,6 +341,8 @@ export default function Create() {
                         </CardContent>
                     </Card>
 
+                    <TransactionCurrencyFields currencyCode={data.currency_code} exchangeRate={data.exchange_rate} transactionDate={data.invoice_date} amount={totals.total} errors={errors} onCurrencyChange={value => setData('currency_code', value)} onRateChange={value => setData('exchange_rate', value)} />
+
                     <Card>
                         <CardHeader>
                             <div className="flex items-center justify-between">
@@ -435,8 +439,6 @@ export default function Create() {
                 {isCustomerModalOpen && (
                     <CreateCustomer
                         onSuccess={handleCustomerCreated}
-                        users={customerUsers}
-                        auth={{ user: { permissions: auth.user.permissions ?? [] } }}
                         returnToCurrentPage
                     />
                 )}

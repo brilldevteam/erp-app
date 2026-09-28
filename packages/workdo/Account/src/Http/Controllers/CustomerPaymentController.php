@@ -95,25 +95,40 @@ class CustomerPaymentController extends Controller
         if(Auth::user()->can('create-customer-payments')){
             $allocations = collect($request->input('allocations', []));
             $creditNotes = collect($request->input('credit_notes', []));
+            $currency = app(\Workdo\Account\Services\CurrencyConversionService::class)
+                ->transactionValues($request->validated(), 'payment_amount');
+            $allocationInvoices = SalesInvoice::query()
+                ->whereIn('id', $allocations->pluck('invoice_id'))
+                ->where('customer_id', $request->customer_id)
+                ->where('created_by', creatorId())
+                ->get()->keyBy('id');
+            $allocationCreditNotes = CreditNote::query()
+                ->whereIn('id', $creditNotes->pluck('credit_note_id'))
+                ->where('customer_id', $request->customer_id)
+                ->where('created_by', creatorId())
+                ->get()->keyBy('id');
+            $totalInvoiceBaseAmount = $allocations->sum(function ($allocation) use ($allocationInvoices) {
+                $invoice = $allocationInvoices->get($allocation['invoice_id']);
+                return (float) $allocation['amount'] * (float) ($invoice?->exchange_rate ?: 1);
+            });
+            $totalCreditNoteBaseAmount = $creditNotes->sum(function ($creditNote) use ($allocationCreditNotes) {
+                $note = $allocationCreditNotes->get($creditNote['credit_note_id']);
+                return (float) $creditNote['amount'] * (float) ($note?->exchange_rate ?: 1);
+            });
 
             // Validate credit note amount doesn't exceed invoice allocation amount
             if ($creditNotes->isNotEmpty()) {
-                $totalInvoiceAmount = $allocations->sum('amount');
-                $totalCreditNoteAmount = $creditNotes->sum('amount');
-
-                if ($totalCreditNoteAmount > $totalInvoiceAmount) {
+                if ($totalCreditNoteBaseAmount > $totalInvoiceBaseAmount + 0.01) {
                     return back()->with('error', __('Credit note amount cannot exceed the total invoice allocation amount.'));
                 }
             }
 
-            $totalInvoiceAmount = $allocations->sum('amount');
-            $totalCreditNoteAmount = $creditNotes->sum('amount');
-            if ($totalInvoiceAmount > (float) $request->payment_amount + $totalCreditNoteAmount) {
+            if ($totalInvoiceBaseAmount > (float) $currency['base_amount'] + $totalCreditNoteBaseAmount + 0.01) {
                 return back()->with('error', __('Invoice allocations cannot exceed the payment and credit note total.'));
             }
 
             try {
-                DB::transaction(function () use ($request, $allocations, $creditNotes, &$payment) {
+                DB::transaction(function () use ($request, $allocations, $creditNotes, $currency, &$payment) {
                     $payment = new CustomerPayment();
                     $payment->payment_date = $request->payment_date;
                     $payment->payment_mode = $request->payment_mode;
@@ -121,6 +136,13 @@ class CustomerPaymentController extends Controller
                     $payment->bank_account_id = $request->bank_account_id;
                     $payment->reference_number = $request->reference_number;
                     $payment->payment_amount = $request->payment_amount;
+                    $bankCurrency = BankAccount::whereKey($request->bank_account_id)->where('created_by', creatorId())->value('currency_code');
+                    if ($bankCurrency && strtoupper($bankCurrency) !== $currency['currency_code']) {
+                        throw ValidationException::withMessages(['bank_account_id' => __('Select a bank account in the payment currency.')]);
+                    }
+                    $payment->currency_code = $currency['currency_code'];
+                    $payment->exchange_rate = $currency['exchange_rate'];
+                    $payment->base_amount = $currency['base_amount'];
                     $payment->notes = $request->notes;
                     $payment->creator_id = Auth::id();
                     $payment->created_by = creatorId();
@@ -223,7 +245,7 @@ class CustomerPaymentController extends Controller
             ->where('balance_amount', '>', 0)
             ->whereIn('status', ['approved', 'partial'])
             ->where('created_by', creatorId())
-            ->get(['id', 'credit_note_number', 'balance_amount', 'total_amount', 'status']);
+            ->get(['id', 'credit_note_number', 'balance_amount', 'total_amount', 'status', 'currency_code', 'exchange_rate']);
 
         return response()->json([
             'invoices' => $invoices,
@@ -338,16 +360,11 @@ class CustomerPaymentController extends Controller
                     ]);
                 }
 
-                $allocatedAmount = (float) $payment->allocations()->sum('allocated_amount');
-                $creditNoteAmount = (float) $payment->creditNoteApplications()->sum('applied_amount');
-                $cashAppliedAmount = min(
-                    (float) $payment->payment_amount,
-                    max(0, $allocatedAmount - $creditNoteAmount)
-                );
-                $availableDeposit = max(0, (float) $payment->payment_amount - $cashAppliedAmount);
+                $availableDepositBase = (float) $payment->available_deposit_base;
                 $amount = (float) $validated['amount'];
+                $amountBase = $amount * (float) ($invoice->exchange_rate ?: 1);
 
-                if ($amount > $availableDeposit || $amount > (float) $invoice->balance_amount) {
+                if ($amountBase > $availableDepositBase + 0.01 || $amount > (float) $invoice->balance_amount) {
                     throw ValidationException::withMessages([
                         'amount' => __('The applied amount cannot exceed the available deposit or invoice balance.'),
                     ]);
@@ -366,7 +383,7 @@ class CustomerPaymentController extends Controller
                 $invoice->status = $invoice->balance_amount <= 0 ? 'paid' : 'partial';
                 $invoice->save();
 
-                $this->journalService->createCustomerDepositApplicationJournal($payment, $invoice, $amount);
+                $this->journalService->createCustomerDepositApplicationJournal($payment, $invoice, $amountBase);
             });
 
             return back()->with('success', __('The customer deposit has been applied successfully.'));

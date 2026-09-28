@@ -61,13 +61,18 @@ class JournalEntryController extends Controller
         }
 
         $validated = $request->validated();
+        $currency = app(\Workdo\Account\Services\CurrencyConversionService::class)->transactionValues(
+            [...$validated, 'foreign_amount' => collect($validated['items'])->sum(fn ($item) => (float) ($item['debit_amount'] ?? 0))],
+            'foreign_amount'
+        );
+        $rate = (float) $currency['exchange_rate'];
         $items = collect($validated['items'])
-            ->map(function ($item) use ($validated) {
+            ->map(function ($item) use ($validated, $rate) {
                 return [
                     'account_id' => $item['account_id'],
                     'description' => $item['description'] ?: $validated['description'],
-                    'debit_amount' => round((float) ($item['debit_amount'] ?? 0), 2),
-                    'credit_amount' => round((float) ($item['credit_amount'] ?? 0), 2),
+                    'debit_amount' => round((float) ($item['debit_amount'] ?? 0) * $rate, 2),
+                    'credit_amount' => round((float) ($item['credit_amount'] ?? 0) * $rate, 2),
                     'creator_id' => Auth::id(),
                     'created_by' => creatorId(),
                 ];
@@ -79,7 +84,7 @@ class JournalEntryController extends Controller
         $paths = [];
         $documents = new \Workdo\Account\Services\JournalAttachmentService();
         try {
-            DB::transaction(function () use ($validated, $items, $totalDebit, $totalCredit, $request, $documents, &$paths) {
+            DB::transaction(function () use ($validated, $currency, $items, $totalDebit, $totalCredit, $request, $documents, &$paths) {
                 $journalEntry = JournalEntry::create([
                     'journal_date' => $validated['journal_date'],
                     'entry_type' => 'manual',
@@ -88,6 +93,10 @@ class JournalEntryController extends Controller
                     'description' => $validated['description'],
                     'total_debit' => $totalDebit,
                     'total_credit' => $totalCredit,
+                    'currency_code' => $currency['currency_code'],
+                    'exchange_rate' => $currency['exchange_rate'],
+                    'foreign_amount' => collect($validated['items'])->sum(fn ($item) => (float) ($item['debit_amount'] ?? 0)),
+                    'base_amount' => $currency['base_amount'],
                     'status' => 'posted',
                     'creator_id' => Auth::id(),
                     'created_by' => creatorId(),

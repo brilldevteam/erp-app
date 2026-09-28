@@ -10,7 +10,7 @@ export const assetsCompanyMenu = (t: (key: string) => string) => [
         icon: Building2,
         permission: 'manage-asset',
         name: 'Assets',
-        order: 515,
+        order: 42,
         children: [
             {
                 title: t('Assets'),

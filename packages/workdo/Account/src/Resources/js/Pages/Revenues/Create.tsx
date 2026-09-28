@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { useFormFields } from '@/hooks/useFormFields';
+import TransactionCurrencyFields from '@/components/transaction-currency-fields';
 
 interface Category {
     id: number;
@@ -42,6 +43,8 @@ interface CreateRevenueFormData {
     amount: string;
     description: string;
     reference_number: string;
+    currency_code: string;
+    exchange_rate: string;
 }
 
 export default function Create({ categories, bankAccounts, chartOfAccounts, onSuccess }: CreateRevenueProps) {
@@ -55,6 +58,8 @@ export default function Create({ categories, bankAccounts, chartOfAccounts, onSu
         amount: '',
         description: '',
         reference_number: '',
+        currency_code: '',
+        exchange_rate: '1.00000000',
     });
 
     // AI hooks for description field
@@ -151,6 +156,16 @@ export default function Create({ categories, bankAccounts, chartOfAccounts, onSu
                                     required
                                 />
                             </div>
+
+                            <TransactionCurrencyFields
+                                currencyCode={data.currency_code}
+                                exchangeRate={data.exchange_rate}
+                                amount={data.amount}
+                                transactionDate={data.revenue_date}
+                                onCurrencyChange={(value) => setData('currency_code', value)}
+                                onRateChange={(value) => setData('exchange_rate', value)}
+                                errors={errors as Record<string, string>}
+                            />
 
                             <div>
                                 <Label htmlFor="reference_number">{t('Reference Number')}</Label>

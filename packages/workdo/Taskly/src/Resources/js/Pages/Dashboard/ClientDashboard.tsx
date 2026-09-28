@@ -106,7 +106,7 @@ export default function ClientDashboard() {
         >
             <Head title={t('Client Dashboard')} />
 
-            <div className="space-y-6">
+            <div className="neumorphic-dashboard space-y-6">
                 {/* Client Stats Cards */}
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <StatCard

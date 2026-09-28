@@ -80,7 +80,7 @@ class CustomerDefinition implements EntityDefinition
     public function instructions(): array
     {
         return [
-            'user_email is optional. Customers without an email are imported with login access disabled.',
+            'user_email is optional. Imported customers receive internal accounts with portal login disabled.',
             'When user_email is blank, duplicate matching uses company_name/user_name.',
             'Only customer name is required; contact and company values default from it.',
             'Billing and shipping addresses are optional for imports.',
@@ -150,14 +150,6 @@ class CustomerDefinition implements EntityDefinition
             }
         }
 
-        $email = strtolower($this->text($row['user_email'] ?? ''));
-        if ($email !== '') {
-            $user = User::whereRaw('LOWER(email) = ?', [$email])->first();
-            if ($user && ($user->created_by !== $tenantId || $user->type !== 'client')) {
-                $errors[] = 'User email belongs to another account or an incompatible user type.';
-            }
-        }
-
         if (!Role::where('name', 'client')
             ->where('guard_name', 'web')
             ->where('created_by', $tenantId)
@@ -173,7 +165,7 @@ class CustomerDefinition implements EntityDefinition
         $email = strtolower($this->text($row['user_email'] ?? ''));
         if ($email !== '') {
             return Customer::where('created_by', $tenantId)
-                ->whereHas('user', fn ($query) => $query->whereRaw('LOWER(email) = ?', [$email]))
+                ->whereRaw('LOWER(contact_person_email) = ?', [$email])
                 ->exists();
         }
 
@@ -185,29 +177,28 @@ class CustomerDefinition implements EntityDefinition
     public function import(array $row, string $strategy, int $tenantId, int $actorId): string
     {
         $email = strtolower($this->text($row['user_email'] ?? ''));
-        $user = $email !== ''
-            ? User::where('created_by', $tenantId)
-                ->where('type', 'client')
-                ->whereRaw('LOWER(email) = ?', [$email])
+        $customer = $email !== ''
+            ? Customer::where('created_by', $tenantId)
+                ->whereRaw('LOWER(contact_person_email) = ?', [$email])
                 ->first()
             : Customer::where('created_by', $tenantId)
                 ->whereRaw('LOWER(company_name) = ?', [strtolower($this->text($row['company_name'] ?? $row['user_name'] ?? ''))])
-                ->first()?->user;
+                ->first();
+        if ($customer && $strategy === 'skip') {
+            return 'skipped';
+        }
+
+        $user = $customer?->user;
 
         if (!$user) {
             $user = app(ImportedClientUserService::class)->createImportContact([
-                'name' => $this->text($row['user_name']),
+                'name' => $this->text($row['company_name'] ?? $row['user_name']),
                 'email' => $email,
                 'mobile_no' => $this->nullableText($row['mobile_no'] ?? null),
             ], $tenantId, $actorId);
         }
 
-        $customer = Customer::where('created_by', $tenantId)->where('user_id', $user->id)->first();
-        if ($customer && $strategy === 'skip') {
-            return 'skipped';
-        }
-
-        $userValues = ['name' => $this->text($row['user_name'])];
+        $userValues = ['name' => $this->text($row['company_name'] ?? $row['user_name'])];
         if ($this->isMapped($row, 'mobile_no')) {
             $userValues['mobile_no'] = $this->nullableText($row['mobile_no'] ?? null);
         }

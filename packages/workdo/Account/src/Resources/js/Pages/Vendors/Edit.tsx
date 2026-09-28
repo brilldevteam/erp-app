@@ -1,5 +1,6 @@
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useForm } from "@inertiajs/react";
+import { router, useForm } from "@inertiajs/react";
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,20 +12,45 @@ import InputError from "@/components/ui/input-error";
 import { PhoneInputComponent } from "@/components/ui/phone-input";
 import { EditVendorProps, VendorFormData } from './types';
 import { useFormFields } from '@/hooks/useFormFields';
+import PartyDocuments from '../Parties/PartyDocuments';
+import SavedPartyDocuments from '../Parties/SavedPartyDocuments';
 
 export default function Edit({ vendor, onSuccess }: EditVendorProps) {
     const { t } = useTranslation();
-    const { data, setData, put, processing, errors } = useForm<VendorFormData>({
+    const contactEmail = (vendor.contact_person_email ?? '').trim().toLowerCase();
+    const portalAccessEnabled = contactEmail !== ''
+        && contactEmail === (vendor.user?.email ?? '').trim().toLowerCase()
+        && !!vendor.user?.is_enable_login
+        && !vendor.user?.is_disable;
+    const { data, setData, put, transform, processing, errors } = useForm<VendorFormData>({
         ...vendor,
+        portal_access_enabled: portalAccessEnabled,
+        password: '',
+        password_confirmation: '',
+        attachments: [],
     });
+    const [uploading, setUploading] = useState(false);
 
     const customFields = useFormFields('getCustomFields', { ...data, module: 'Account', sub_module: 'Vendor', id: vendor.id }, setData, errors, 'edit', t);
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+        const files = data.attachments;
+        transform(({ attachments, ...formData }) => formData);
         put(route('account.vendors.update', vendor.id), {
+            preserveScroll: true,
             onSuccess: () => {
-                onSuccess();
+                if (files.length === 0) {
+                    onSuccess();
+                    return;
+                }
+                setUploading(true);
+                router.post(route('account.vendors.attachments.store', vendor.id), { attachments: files }, {
+                    forceFormData: true,
+                    preserveScroll: true,
+                    onSuccess,
+                    onFinish: () => setUploading(false),
+                });
             }
         });
     };
@@ -34,7 +60,7 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
             <DialogHeader>
                 <DialogTitle>{t('Edit Vendor')}</DialogTitle>
             </DialogHeader>
-            <form onSubmit={submit} className="space-y-4">
+            <form onSubmit={submit} className="space-y-4" noValidate autoComplete="off">
                 <div>
                     <Label htmlFor="company_name">{t('Company Name')}</Label>
                     <Input
@@ -61,12 +87,26 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                     <Label htmlFor="contact_person_email">{t('Email')}</Label>
                     <Input
                         id="contact_person_email"
+                        name="vendor_contact_email"
                         type="email"
+                        autoComplete="off"
                         value={data.contact_person_email}
-                        onChange={(e) => setData('contact_person_email', e.target.value)}
+                        onChange={(e) => { const email = e.target.value; setData('contact_person_email', email); if (!/^\S+@\S+\.\S+$/.test(email)) setData('portal_access_enabled', false); }}
                         placeholder={t('Enter email address (optional)')}
                     />
                     <InputError message={errors.contact_person_email} />
+                </div>
+                <div className="space-y-3 rounded-md border p-4">
+                    <div className="flex items-center gap-2">
+                        <Checkbox id="portal_access_enabled" checked={data.portal_access_enabled} disabled={!/^\S+@\S+\.\S+$/.test(data.contact_person_email)} onCheckedChange={(checked) => setData('portal_access_enabled', !!checked)} />
+                        <Label htmlFor="portal_access_enabled">{t('Enable ERP Portal Login')}</Label>
+                    </div>
+                    {data.portal_access_enabled && (
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div><Label htmlFor="password">{t(portalAccessEnabled ? 'New Password (Optional)' : 'Password')}</Label><Input id="password" name="vendor_new_password" type="password" autoComplete="new-password" value={data.password} onChange={(e) => setData('password', e.target.value)} /><InputError message={errors.password} /></div>
+                            <div><Label htmlFor="password_confirmation">{t('Confirm Password')}</Label><Input id="password_confirmation" name="vendor_new_password_confirmation" type="password" autoComplete="new-password" value={data.password_confirmation} onChange={(e) => setData('password_confirmation', e.target.value)} /><InputError message={errors.password_confirmation} /></div>
+                        </div>
+                    )}
                 </div>
                 <div>
                     <PhoneInputComponent
@@ -77,7 +117,7 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                         error={errors.contact_person_mobile}
                     />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div>
                         <Label htmlFor="tax_number">{t('Tax Number')}</Label>
                         <Input
@@ -87,6 +127,11 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                             placeholder={t('Enter tax number')}
                         />
                         <InputError message={errors.tax_number} />
+                    </div>
+                    <div>
+                        <Label htmlFor="cr_number">{t('CR Number')}</Label>
+                        <Input id="cr_number" value={data.cr_number || ''} onChange={(e) => setData('cr_number', e.target.value)} placeholder={t('Enter CR number')} />
+                        <InputError message={errors.cr_number} />
                     </div>
                     <div>
                         <Label htmlFor="payment_terms">{t('Payment Terms')}</Label>
@@ -106,7 +151,6 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                         value={data.billing_address.name}
                         onChange={(e) => setData('billing_address', {...data.billing_address, name: e.target.value})}
                         placeholder={t('Enter billing name')}
-                        required
                     />
                     <InputError message={errors['billing_address.name']} />
                 </div>
@@ -117,7 +161,6 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                         value={data.billing_address.address_line_1}
                         onChange={(e) => setData('billing_address', {...data.billing_address, address_line_1: e.target.value})}
                         placeholder={t('Enter address')}
-                        required
                     />
                     <InputError message={errors['billing_address.address_line_1']} />
                 </div>
@@ -139,7 +182,6 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                             value={data.billing_address.city}
                             onChange={(e) => setData('billing_address', {...data.billing_address, city: e.target.value})}
                             placeholder={t('Enter city')}
-                            required
                         />
                         <InputError message={errors['billing_address.city']} />
                     </div>
@@ -150,7 +192,6 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                             value={data.billing_address.state}
                             onChange={(e) => setData('billing_address', {...data.billing_address, state: e.target.value})}
                             placeholder={t('Enter state')}
-                            required
                         />
                         <InputError message={errors['billing_address.state']} />
                     </div>
@@ -164,7 +205,6 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                             value={data.billing_address.country}
                             onChange={(e) => setData('billing_address', {...data.billing_address, country: e.target.value})}
                             placeholder={t('Enter country')}
-                            required
                         />
                         <InputError message={errors['billing_address.country']} />
                     </div>
@@ -175,7 +215,6 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                             value={data.billing_address.zip_code}
                             onChange={(e) => setData('billing_address', {...data.billing_address, zip_code: e.target.value})}
                             placeholder={t('Enter zip code')}
-                            required
                         />
                         <InputError message={errors['billing_address.zip_code']} />
                     </div>
@@ -204,7 +243,6 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                                 value={data.shipping_address.name}
                                 onChange={(e) => setData('shipping_address', {...data.shipping_address, name: e.target.value})}
                                 placeholder={t('Enter shipping name')}
-                                required
                             />
                             <InputError message={errors['shipping_address.name']} />
                         </div>
@@ -215,7 +253,6 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                                 value={data.shipping_address.address_line_1}
                                 onChange={(e) => setData('shipping_address', {...data.shipping_address, address_line_1: e.target.value})}
                                 placeholder={t('Enter shipping address')}
-                                required
                             />
                             <InputError message={errors['shipping_address.address_line_1']} />
                         </div>
@@ -237,7 +274,6 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                                     value={data.shipping_address.city}
                                     onChange={(e) => setData('shipping_address', {...data.shipping_address, city: e.target.value})}
                                     placeholder={t('Enter city')}
-                                    required
                                 />
                                 <InputError message={errors['shipping_address.city']} />
                             </div>
@@ -248,7 +284,6 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                                     value={data.shipping_address.state}
                                     onChange={(e) => setData('shipping_address', {...data.shipping_address, state: e.target.value})}
                                     placeholder={t('Enter state')}
-                                    required
                                 />
                                 <InputError message={errors['shipping_address.state']} />
                             </div>
@@ -261,7 +296,6 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                                     value={data.shipping_address.country}
                                     onChange={(e) => setData('shipping_address', {...data.shipping_address, country: e.target.value})}
                                     placeholder={t('Enter country')}
-                                    required
                                 />
                                 <InputError message={errors['shipping_address.country']} />
                             </div>
@@ -272,7 +306,6 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                                     value={data.shipping_address.zip_code}
                                     onChange={(e) => setData('shipping_address', {...data.shipping_address, zip_code: e.target.value})}
                                     placeholder={t('Enter zip code')}
-                                    required
                                 />
                                 <InputError message={errors['shipping_address.zip_code']} />
                             </div>
@@ -292,6 +325,11 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                     />
                     <InputError message={errors.notes} />
                 </div>
+                <SavedPartyDocuments partyType="vendors" partyId={vendor.id} attachments={vendor.attachments || []} canRemove />
+                <PartyDocuments files={data.attachments} onChange={(files) => setData('attachments', files)} errors={errors} existingCount={vendor.attachments?.length || 0} disabled={processing || uploading} />
+                {Object.keys(errors).length > 0 && (
+                    <p role="alert" className="text-sm text-destructive">{t('Please correct the highlighted fields before updating.')}</p>
+                )}
 
                 {/* Custom Fields */}
                 {customFields.length > 0 && (
@@ -310,8 +348,8 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                     <Button type="button" variant="outline" onClick={onSuccess}>
                         {t('Cancel')}
                     </Button>
-                    <Button type="submit" disabled={processing}>
-                        {processing ? t('Updating...') : t('Update')}
+                    <Button type="submit" disabled={processing || uploading}>
+                        {processing || uploading ? t('Updating...') : t('Update')}
                     </Button>
                 </div>
             </form>

@@ -25,7 +25,7 @@ class ImportedClientUserService
             $tenantId,
             $actorId,
             false,
-            filter_var($attributes['email'] ?? null, FILTER_VALIDATE_EMAIL) !== false,
+            false,
             $roleName
         );
     }

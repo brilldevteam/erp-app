@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useForm } from '@inertiajs/react';
+import { useForm, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { Download, Eye } from 'lucide-react';
 import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -10,10 +10,15 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import InputError from '@/components/ui/input-error';
 import { CustomerPaymentViewProps, SalesInvoice } from './types';
-import { formatDate, formatCurrency } from '@/utils/helpers';
+import { formatDate, formatCurrency, getCurrencySymbolForCode } from '@/utils/helpers';
 
 export default function View({ payment, canApplyDeposit = false, onApplied }: CustomerPaymentViewProps) {
     const { t } = useTranslation();
+    const page = usePage().props as any;
+    const baseCurrency = page.companyAllSetting?.defaultCurrency || 'USD';
+    const paymentCurrency = payment.currency_code || baseCurrency;
+    const formatMoney = (amount: number | string, currency: string) =>
+        `${getCurrencySymbolForCode(currency, page)} ${Number(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const [outstandingInvoices, setOutstandingInvoices] = useState<SalesInvoice[]>([]);
     const { data, setData, post, processing, errors } = useForm({
         invoice_id: '',
@@ -102,7 +107,7 @@ export default function View({ payment, canApplyDeposit = false, onApplied }: Cu
                                 <p className="mt-1 text-gray-500">{payment.payment_number || `#${payment.id}`}</p>
                             </div>
                             <div>
-                                <span className="font-semibold">{t('Payment Date')}</span>
+                                <span className="font-semibold">{t('Received Date')}</span>
                                 <p className="mt-1 text-gray-500">{formatDate(payment.payment_date)}</p>
                             </div>
                             <div>
@@ -122,13 +127,19 @@ export default function View({ payment, canApplyDeposit = false, onApplied }: Cu
                             </div>
                             <div>
                                 <span className="font-semibold">{t('Payment Amount')}</span>
-                                <p className="mt-1 text-lg font-bold text-green-600">{formatCurrency(payment.payment_amount)}</p>
+                                <p className="mt-1 text-lg font-bold text-green-600">{formatMoney(payment.payment_amount, paymentCurrency)}</p>
+                                {paymentCurrency !== baseCurrency && (
+                                    <p className="mt-1 text-xs text-gray-500">{t('Base-currency equivalent')}: {formatMoney(payment.base_amount || 0, baseCurrency)}</p>
+                                )}
                             </div>
                             <div>
                                 <span className="font-semibold">{t('Available Deposit')}</span>
                                 <p className="mt-1 text-lg font-bold text-blue-600">
-                                    {Number(payment.available_deposit) > 0 ? formatCurrency(payment.available_deposit) : '-'}
+                                    {Number(payment.available_deposit) > 0 ? formatMoney(payment.available_deposit, paymentCurrency) : '-'}
                                 </p>
+                                {Number(payment.available_deposit) > 0 && paymentCurrency !== baseCurrency && (
+                                    <p className="mt-1 text-xs text-gray-500">{t('Base-currency equivalent')}: {formatMoney(payment.available_deposit_base || 0, baseCurrency)}</p>
+                                )}
                             </div>
                             <div>
                                 <span className="font-semibold">{t('Status')}</span>
@@ -171,8 +182,11 @@ export default function View({ payment, canApplyDeposit = false, onApplied }: Cu
                             <form onSubmit={applyDeposit} className="space-y-4">
                                 <div>
                                     <span className="text-sm text-gray-600">
-                                        {t('Available Deposit')}: {formatCurrency(payment.available_deposit)}
+                                        {t('Available Deposit')}: {formatMoney(payment.available_deposit, paymentCurrency)}
                                     </span>
+                                    {paymentCurrency !== baseCurrency && (
+                                        <p className="mt-1 text-xs text-gray-500">{t('Base-currency equivalent')}: {formatMoney(payment.available_deposit_base || 0, baseCurrency)}</p>
+                                    )}
                                 </div>
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <div>

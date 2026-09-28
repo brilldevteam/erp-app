@@ -108,7 +108,7 @@ export default function PosIndex({ stats, topProducts, recentSales, salesByStatu
         >
             <Head title={t('POS Dashboard')} />
             
-            <div className="space-y-6">
+            <div className="neumorphic-dashboard space-y-6">
 
 
                 {/* Enhanced Stats Cards */}

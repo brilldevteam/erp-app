@@ -145,6 +145,7 @@ class SalesReturnController extends Controller
         if(Auth::user()->can('create-sales-return-invoices')){
 
         $totals = $this->calculateReturnTotals($request->items, $request->original_invoice_id);
+        $sourceInvoice = \App\Models\SalesInvoice::whereKey($request->original_invoice_id)->where('created_by', creatorId())->firstOrFail();
         $return = new SalesInvoiceReturn();
         $return->return_date = $request->return_date;
         $return->customer_id = $request->customer_id;
@@ -156,6 +157,9 @@ class SalesReturnController extends Controller
         $return->tax_amount = $totals['tax_amount'];
         $return->discount_amount = $totals['discount_amount'];
         $return->total_amount = $totals['total_amount'];
+        $return->currency_code = $sourceInvoice->currency_code;
+        $return->exchange_rate = $sourceInvoice->exchange_rate;
+        $return->base_amount = app(\Workdo\Account\Services\CurrencyConversionService::class)->toBase($totals['total_amount'], $sourceInvoice->exchange_rate ?: 1);
         $return->status = 'draft';
         $return->creator_id = Auth::id();
         $return->created_by = creatorId();

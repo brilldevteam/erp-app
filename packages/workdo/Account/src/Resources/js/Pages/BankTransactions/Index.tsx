@@ -10,13 +10,15 @@ import { SearchInput } from "@/components/ui/search-input";
 import { ListGridToggle } from '@/components/ui/list-grid-toggle';
 import { Input } from '@/components/ui/input';
 import { PerPageSelector } from '@/components/ui/per-page-selector';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Pagination } from "@/components/ui/pagination";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import NoRecordsFound from '@/components/no-records-found';
-import { CreditCard as CreditCardIcon, CheckCircle, Circle } from "lucide-react";
+import { CreditCard as CreditCardIcon, CheckCircle, Circle, Download, FileSpreadsheet } from "lucide-react";
 import { formatDate, formatCurrency } from '@/utils/helpers';
 import { usePageButtons } from '@/hooks/usePageButtons';
 interface BankTransaction {
@@ -54,6 +56,8 @@ interface BankTransactionsIndexProps {
         bank_account_id?: string;
         transaction_type?: string;
         search?: string;
+        date_from?: string;
+        date_to?: string;
     };
     auth: any;
 }
@@ -67,6 +71,9 @@ export default function Index() {
         bank_account_id: urlParams.get('bank_account_id') || '',
         transaction_type: urlParams.get('transaction_type') || '',
         search: urlParams.get('search') || '',
+        date_range: urlParams.get('date_from') && urlParams.get('date_to')
+            ? `${urlParams.get('date_from')} - ${urlParams.get('date_to')}`
+            : '',
     });
 
     const [perPage] = useState(urlParams.get('per_page') || '10');
@@ -80,8 +87,18 @@ export default function Index() {
     const oneDriveButtons = usePageButtons('oneDriveBtn', { module: 'Transaction', settingKey: 'OneDrive Transaction' });
     const dropboxBtn = usePageButtons('dropboxBtn', { module: 'Transaction', settingKey: 'Dropbox Transaction' });
     const boxBtn = usePageButtons('boxBtn', { module: 'Transaction', settingKey: 'Box Transaction' });
+    const buildFilterParams = () => {
+        const { date_range, ...filterParams } = filters;
+        const [dateFrom, dateTo] = date_range ? date_range.split(' - ') : [];
+
+        return {
+            ...filterParams,
+            ...(dateFrom && dateTo ? { date_from: dateFrom, date_to: dateTo } : {}),
+        };
+    };
+
     const handleFilter = () => {
-        router.get(route('account.bank-transactions.index'), {...filters, per_page: perPage, sort: sortField, direction: sortDirection, view: viewMode}, {
+        router.get(route('account.bank-transactions.index'), {...buildFilterParams(), per_page: perPage, sort: sortField, direction: sortDirection, view: viewMode}, {
             preserveState: true,
             replace: true
         });
@@ -91,7 +108,7 @@ export default function Index() {
         const direction = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
         setSortField(field);
         setSortDirection(direction);
-        router.get(route('account.bank-transactions.index'), {...filters, per_page: perPage, sort: field, direction, view: viewMode}, {
+        router.get(route('account.bank-transactions.index'), {...buildFilterParams(), per_page: perPage, sort: field, direction, view: viewMode}, {
             preserveState: true,
             replace: true
         });
@@ -102,8 +119,16 @@ export default function Index() {
             bank_account_id: '',
             transaction_type: '',
             search: '',
+            date_range: '',
         });
         router.get(route('account.bank-transactions.index'), {per_page: perPage, sort: sortField, direction: sortDirection, view: viewMode});
+    };
+
+    const exportTransactions = (format: 'csv' | 'excel') => {
+        const params = new URLSearchParams();
+        Object.entries({...buildFilterParams(), sort: sortField, direction: sortDirection, format})
+            .forEach(([key, value]) => value && params.set(key, value));
+        window.location.assign(`${route('account.bank-transactions.export')}?${params.toString()}`);
     };
 
     const markReconciled = (id: number) => {
@@ -229,6 +254,24 @@ export default function Index() {
             pageTitle={t('Manage Bank Transactions')}
             pageActions={
                 <div className="flex items-center gap-2">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm">
+                                <Download className="h-4 w-4" />
+                                {t('Export')}
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => exportTransactions('csv')}>
+                                <Download className="mr-2 h-4 w-4" />
+                                {t('Download CSV')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => exportTransactions('excel')}>
+                                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                {t('Download Excel')}
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                     <TooltipProvider>
                         {googleDriveButtons.map((button) => (
                             <span key={button.id}>{button.component}</span>
@@ -262,11 +305,11 @@ export default function Index() {
                             <ListGridToggle
                                 currentView={viewMode}
                                 routeName="account.bank-transactions.index"
-                                filters={{...filters, per_page: perPage}}
+                                filters={{...buildFilterParams(), per_page: perPage}}
                             />
                             <PerPageSelector
                                 routeName="account.bank-transactions.index"
-                                filters={{...filters, view: viewMode}}
+                                filters={{...buildFilterParams(), view: viewMode}}
                             />
                             <div className="relative">
                                 <FilterButton
@@ -274,7 +317,7 @@ export default function Index() {
                                     onToggle={() => setShowFilters(!showFilters)}
                                 />
                                 {(() => {
-                                    const activeFilters = [filters.bank_account_id, filters.transaction_type].filter(f => f !== '' && f !== null && f !== undefined).length;
+                                    const activeFilters = [filters.bank_account_id, filters.transaction_type, filters.date_range].filter(f => f !== '' && f !== null && f !== undefined).length;
                                     return activeFilters > 0 && (
                                         <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
                                             {activeFilters}
@@ -288,7 +331,7 @@ export default function Index() {
 
                 {showFilters && (
                     <CardContent className="p-6 bg-blue-50/30 border-b">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('Bank Account')}</label>
                                 <Select value={filters.bank_account_id} onValueChange={(value) => setFilters({...filters, bank_account_id: value})}>
@@ -316,6 +359,14 @@ export default function Index() {
                                     </SelectContent>
                                 </Select>
                             </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('Date Range')}</label>
+                                <DateRangePicker
+                                    value={filters.date_range}
+                                    onChange={(value) => setFilters({...filters, date_range: value})}
+                                    placeholder={t('Select date range')}
+                                />
+                            </div>
                             <div className="flex items-end gap-2">
                                 <Button onClick={handleFilter} size="sm">{t('Apply')}</Button>
                                 <Button variant="outline" onClick={clearFilters} size="sm">{t('Clear')}</Button>
@@ -340,7 +391,7 @@ export default function Index() {
                                             icon={CreditCardIcon}
                                             title={t('No transactions found')}
                                             description={t('Bank transactions will appear here once created.')}
-                                            hasFilters={!!(filters.search || filters.bank_account_id || filters.transaction_type)}
+                                            hasFilters={!!(filters.search || filters.bank_account_id || filters.transaction_type || filters.date_range)}
                                             onClearFilters={clearFilters}
                                             className="h-auto"
                                         />
@@ -451,7 +502,7 @@ export default function Index() {
                                     icon={CreditCardIcon}
                                     title={t('No transactions found')}
                                     description={t('Bank transactions will appear here once created.')}
-                                    hasFilters={!!(filters.search || filters.bank_account_id || filters.transaction_type)}
+                                    hasFilters={!!(filters.search || filters.bank_account_id || filters.transaction_type || filters.date_range)}
                                     onClearFilters={clearFilters}
                                 />
                             )}
@@ -463,7 +514,7 @@ export default function Index() {
                     <Pagination
                         data={transactions || { data: [], links: [], meta: {} }}
                         routeName="account.bank-transactions.index"
-                        filters={{...filters, per_page: perPage, view: viewMode}}
+                        filters={{...buildFilterParams(), per_page: perPage, view: viewMode}}
                     />
                 </CardContent>
             </Card>

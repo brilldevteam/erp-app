@@ -24,11 +24,23 @@ use Workdo\Account\Http\Controllers\ExpenseController;
 use Workdo\Account\Http\Controllers\JournalEntryController;
 use Workdo\Account\Http\Controllers\ReportsController;
 use Workdo\Account\Models\AccountType;
+use Workdo\Account\Http\Controllers\PartyAttachmentController;
+use Workdo\Account\Http\Controllers\CurrencyRateController;
 
 Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Account'])->group(function () {
     Route::get('/account', [DashboardController::class, 'index'])->name('account.index');
+    Route::get('account/currency-rates/latest', [CurrencyRateController::class, 'latest'])->name('account.currency-rates.latest');
+    Route::get('account/currency-rates', [CurrencyRateController::class, 'index'])->name('account.currency-rates.index');
+    Route::post('account/currency-rates', [CurrencyRateController::class, 'store'])->name('account.currency-rates.store');
+    Route::delete('account/currency-rates/{currencyRate}', [CurrencyRateController::class, 'destroy'])->name('account.currency-rates.destroy');
     Route::resource('account/vendors', VendorController::class, ['as' => 'account']);
     Route::resource('account/customers', CustomerController::class, ['as' => 'account']);
+    Route::post('account/customers/{customer}/attachments', [PartyAttachmentController::class, 'storeCustomer'])->name('account.customers.attachments.store');
+    Route::get('account/customers/{customer}/attachments/{attachment}', [PartyAttachmentController::class, 'downloadCustomer'])->name('account.customers.attachments.download');
+    Route::delete('account/customers/{customer}/attachments/{attachment}', [PartyAttachmentController::class, 'destroyCustomer'])->name('account.customers.attachments.destroy');
+    Route::post('account/vendors/{vendor}/attachments', [PartyAttachmentController::class, 'storeVendor'])->name('account.vendors.attachments.store');
+    Route::get('account/vendors/{vendor}/attachments/{attachment}', [PartyAttachmentController::class, 'downloadVendor'])->name('account.vendors.attachments.download');
+    Route::delete('account/vendors/{vendor}/attachments/{attachment}', [PartyAttachmentController::class, 'destroyVendor'])->name('account.vendors.attachments.destroy');
 
     Route::prefix('account/bank-accounts')->name('account.bank-accounts.')->group(function () {
         Route::get('/', [BankAccountController::class, 'index'])->name('index');
@@ -67,6 +79,7 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Account'])->group
 
     Route::prefix('account/bank-transactions')->name('account.bank-transactions.')->group(function () {
         Route::get('/', [BankTransactionController::class, 'index'])->name('index');
+        Route::get('/export', [BankTransactionController::class, 'export'])->name('export');
         Route::post('/{id}/mark-reconciled', [BankTransactionController::class, 'markReconciled'])->name('mark-reconciled');
     });
 

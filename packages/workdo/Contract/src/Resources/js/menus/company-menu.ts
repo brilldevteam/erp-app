@@ -9,7 +9,7 @@ export const contractCompanyMenu = (t: (key: string) => string) => [
         title: t('Contract'),
         icon: FileSignature,
         permission: 'manage-contracts',
-        order: 725,
+        order: 62,
         name: 'contract',
         children: [
             {

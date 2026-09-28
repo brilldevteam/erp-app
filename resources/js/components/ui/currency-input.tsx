@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import { usePage } from '@inertiajs/react';
 import { Input } from './input';
 import { Label } from './label';
 import InputError from './input-error';
-import { getCurrencySymbol } from '@/utils/helpers';
+import { getCurrencySymbolForCode } from '@/utils/helpers';
 
 interface CurrencyInputProps {
     label?: string;
@@ -30,7 +31,8 @@ export function CurrencyInput({
     disabled
 }: CurrencyInputProps) {
     const [displayValue, setDisplayValue] = useState('');
-    const currencySymbol = getCurrencySymbol() || currency;
+    const pageProps = usePage().props as any;
+    const currencySymbol = getCurrencySymbolForCode(currency, pageProps);
 
     const formatCurrency = (val: string) => {
         const numericValue = val.replace(/[^\d.]/g, '');
@@ -67,7 +69,7 @@ export function CurrencyInput({
                     value={displayValue}
                     onChange={handleChange}
                     placeholder={placeholder}
-                    className={`pl-8 ${className}`}
+                    className={`${currencySymbol && currencySymbol.length > 1 ? 'pl-14' : 'pl-8'} ${className || ''}`}
                     required={required}
                     disabled={disabled}
                 />

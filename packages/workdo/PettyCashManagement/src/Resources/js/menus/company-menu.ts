@@ -9,7 +9,7 @@ export const pettycashmanagementCompanyMenu = (t: (key: string) => string) => [
         title: t('Petty Cash'),
         icon: DollarSign,
         permission: 'manage-petty-cash-management',
-        order: 1365,
+        order: 40,
         children: [
             {
                 title: t('Petty Cash'),

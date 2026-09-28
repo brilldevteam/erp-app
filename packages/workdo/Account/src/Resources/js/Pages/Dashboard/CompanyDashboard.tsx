@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import AuthenticatedLayout from "@/layouts/authenticated-layout";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { BarChart3, Building2, UserCheck, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { BarChart3, Landmark, ReceiptText, WalletCards, Banknote } from 'lucide-react';
 import { formatDate,formatCurrency} from '@/utils/helpers';
 
 interface AccountProps {
@@ -16,6 +16,12 @@ interface AccountProps {
         total_vendors: number;
         total_customer_payment: number;
         total_vendor_payment: number;
+        accounts_receivable: number;
+        receivables_due: number;
+        accounts_payable: number;
+        payables_due: number;
+        cash_balance: number;
+        bank_balance: number;
     };
     monthlyVendorPayments?: Array<{ month: string; vendor_payments: number }>;
     monthlyCustomerPayments?: Array<{ month: string; customer_payments: number }>;
@@ -45,8 +51,7 @@ function EmptyChart({ message }: { message: string }) {
 }
 
 function CustomerPaymentChart({ data = [] }: { data?: Array<{ month: string; customer_payments: number }> }) {
-    const hasData = data.some(item => Number(item.customer_payments) > 0);
-    if (!hasData) return <EmptyChart message="No customer payments in this period" />;
+    if (!data.some(item => Number(item.customer_payments) > 0)) return <EmptyChart message="No customer payments in this period" />;
 
     return <ResponsiveContainer width="100%" height={245}>
         <AreaChart data={data} margin={{ top: 12, right: 8, left: -12, bottom: 0 }}>
@@ -61,8 +66,7 @@ function CustomerPaymentChart({ data = [] }: { data?: Array<{ month: string; cus
 }
 
 function VendorPaymentChart({ data = [] }: { data?: Array<{ month: string; vendor_payments: number }> }) {
-    const hasData = data.some(item => Number(item.vendor_payments) > 0);
-    if (!hasData) return <EmptyChart message="No vendor payments in this period" />;
+    if (!data.some(item => Number(item.vendor_payments) > 0)) return <EmptyChart message="No vendor payments in this period" />;
 
     return <ResponsiveContainer width="100%" height={245}>
         <BarChart data={data} margin={{ top: 12, right: 8, left: -12, bottom: 0 }} barCategoryGap="35%">
@@ -90,42 +94,42 @@ export default function AccountIndex({ message, stats, monthlyVendorPayments, mo
                 <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                         <Card className="overflow-hidden border-slate-200/80 bg-white">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                                <CardTitle className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-500">{t('Total Clients')}</CardTitle>
-                                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-50 text-teal-700"><UserCheck className="h-[18px] w-[18px]" /></span>
+                                <CardTitle className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-500">{t('Accounts Receivable')}</CardTitle>
+                                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-50 text-orange-700"><ReceiptText className="h-[18px] w-[18px]" /></span>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-3xl font-semibold tracking-[-0.04em] text-slate-950">{stats.total_clients || 0}</div>
-                                <p className="mt-1 text-xs text-slate-400">{t('Active clients')}</p>
+                                <div className="text-3xl font-semibold text-slate-950">{formatCurrency(stats.accounts_receivable || 0)}</div>
+                                <p className="mt-1 text-xs text-slate-400">{formatCurrency(stats.receivables_due || 0)} {t('overdue')}</p>
                             </CardContent>
                         </Card>
                         <Card className="overflow-hidden border-slate-200/80 bg-white">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                                <CardTitle className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-500">{t('Total Vendors')}</CardTitle>
-                                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-50 text-teal-700"><Building2 className="h-[18px] w-[18px]" /></span>
+                                <CardTitle className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-500">{t('Accounts Payable')}</CardTitle>
+                                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-700"><Landmark className="h-[18px] w-[18px]" /></span>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-3xl font-semibold tracking-[-0.04em] text-slate-950">{stats.total_vendors || 0}</div>
-                                <p className="mt-1 text-xs text-slate-400">{t('Active vendors')}</p>
+                                <div className="text-3xl font-semibold text-slate-950">{formatCurrency(stats.accounts_payable || 0)}</div>
+                                <p className="mt-1 text-xs text-slate-400">{formatCurrency(stats.payables_due || 0)} {t('overdue')}</p>
                             </CardContent>
                         </Card>
                         <Card className="overflow-hidden border-slate-200/80 bg-white">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                                <CardTitle className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-500">{t('Total Customer Payment')}</CardTitle>
-                                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-50 text-teal-700"><ArrowDownCircle className="h-[18px] w-[18px]" /></span>
+                                <CardTitle className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-500">{t('Cash Balance')}</CardTitle>
+                                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-50 text-teal-700"><Banknote className="h-[18px] w-[18px]" /></span>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-3xl font-semibold tracking-[-0.04em] text-slate-950">{formatCurrency(stats.total_customer_payment || 0)}</div>
-                                <p className="mt-1 text-xs text-slate-400">{t('Received payments')}</p>
+                                <div className="text-3xl font-semibold text-slate-950">{formatCurrency(stats.cash_balance || 0)}</div>
+                                <p className="mt-1 text-xs text-slate-400">{t('Cash and petty cash')}</p>
                             </CardContent>
                         </Card>
                         <Card className="overflow-hidden border-slate-200/80 bg-white">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                                <CardTitle className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-500">{t('Total Vendor Payment')}</CardTitle>
-                                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><ArrowUpCircle className="h-[18px] w-[18px]" /></span>
+                                <CardTitle className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-500">{t('Bank Balance')}</CardTitle>
+                                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><WalletCards className="h-[18px] w-[18px]" /></span>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-3xl font-semibold tracking-[-0.04em] text-slate-950">{formatCurrency(stats.total_vendor_payment || 0)}</div>
-                                <p className="mt-1 text-xs text-slate-400">{t('Paid to vendors')}</p>
+                                <div className="text-3xl font-semibold text-slate-950">{formatCurrency(stats.bank_balance || 0)}</div>
+                                <p className="mt-1 text-xs text-slate-400">{t('Active checking and savings')}</p>
                             </CardContent>
                         </Card>
                 </div>

@@ -10,7 +10,7 @@ export const hrmCompanyMenu = (t: (key: string) => string) => [
         href: route('hrm.attendances.index'),
         icon: Clock,
         permission: 'use-staff-time-clock',
-        order: 31,
+        order: 50,
     },
     {
         title: t('HRM Dashboard'),
@@ -23,7 +23,7 @@ export const hrmCompanyMenu = (t: (key: string) => string) => [
         title: t('HRM'),
         icon: UserCog,
         permission: 'manage-hrm',
-        order: 450,
+        order: 51,
         children: [
             {
                 title: t('Employees'),

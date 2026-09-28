@@ -16,7 +16,7 @@ import axios from 'axios';
 import { useFormFields } from '@/hooks/useFormFields';
 
 export default function EditBankAccount({ bankaccount, onSuccess }: EditBankAccountProps) {
-    const { chartofaccounts } = usePage<any>().props;
+    const { chartofaccounts, currencies = [], settings } = usePage<any>().props;
 
     const { t } = useTranslation();
     const { data, setData, put, processing, errors } = useForm<EditBankAccountFormData>({
@@ -25,6 +25,7 @@ export default function EditBankAccount({ bankaccount, onSuccess }: EditBankAcco
         bank_name: bankaccount.bank_name ?? '',
         branch_name: bankaccount.branch_name ?? '',
         account_type: bankaccount.account_type?.toString() || '0',
+        currency_code: bankaccount.currency_code || settings?.defaultCurrency || 'USD',
         payment_gateway: bankaccount.payment_gateway ?? '',
         opening_balance: bankaccount.opening_balance ?? '',
         current_balance: bankaccount.current_balance ?? '',
@@ -127,6 +128,12 @@ export default function EditBankAccount({ bankaccount, onSuccess }: EditBankAcco
                         </div>
                     </RadioGroup>
                     <InputError message={errors.account_type} />
+                </div>
+
+                <div>
+                    <Label htmlFor="currency_code" required>{t('Account Currency')}</Label>
+                    <Select value={data.currency_code} onValueChange={(value) => setData('currency_code', value)}><SelectTrigger id="currency_code"><SelectValue /></SelectTrigger><SelectContent searchable>{currencies.map((currency: any) => <SelectItem key={currency.code} value={currency.code}>{currency.code} - {currency.name}</SelectItem>)}</SelectContent></Select>
+                    <InputError message={errors.currency_code} />
                 </div>
 
                 <div>

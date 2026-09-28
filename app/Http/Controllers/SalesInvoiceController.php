@@ -283,8 +283,12 @@ class SalesInvoiceController extends Controller
                 return redirect()->route('sales-invoices.index')->with('error', __('Cannot update posted invoice.'));
             }
             $totals = $this->calculateTotals($request->items);
+            $currency = app(\Workdo\Account\Services\CurrencyConversionService::class)->transactionValues(
+                [...$request->validated(), 'total_amount' => $totals['total_amount']],
+                'total_amount'
+            );
 
-            \Illuminate\Support\Facades\DB::transaction(function () use ($request, $salesInvoice, $totals) {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($request, $salesInvoice, $totals, $currency) {
             $salesInvoice->invoice_date = $request->invoice_date;
             $salesInvoice->due_date = $request->due_date;
             $salesInvoice->customer_id = $request->customer_id;
@@ -297,6 +301,9 @@ class SalesInvoiceController extends Controller
             $salesInvoice->payment_terms = $request->payment_terms;
             $salesInvoice->subject = $request->subject;
             $salesInvoice->notes = $request->notes;
+            $salesInvoice->currency_code = $currency['currency_code'];
+            $salesInvoice->exchange_rate = $currency['exchange_rate'];
+            $salesInvoice->base_amount = $currency['base_amount'];
             $salesInvoice->subtotal = $totals['subtotal'];
             $salesInvoice->tax_amount = $totals['tax_amount'];
             $salesInvoice->discount_amount = $totals['discount_amount'];

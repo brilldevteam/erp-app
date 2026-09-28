@@ -174,12 +174,12 @@ export default function Create() {
     return (
         <AuthenticatedLayout
             breadcrumbs={[
-                {label: t('Sales Returns'), url: route('sales-returns.index')},
-                {label: t('Create Sales Return')}
+                {label: t('Invoice Returns'), url: route('sales-returns.index')},
+                {label: t('Create Invoice Return')}
             ]}
-            pageTitle={t('Create Sales Return')}
+            pageTitle={t('Create Invoice Return')}
         >
-            <Head title={t('Create Sales Return')} />
+            <Head title={t('Create Invoice Return')} />
 
             <div>
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -188,7 +188,7 @@ export default function Create() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-lg">
                                 <CalendarDays className="h-5 w-5" />
-                                {t('Sales Return Details')}
+                                {t('Invoice Return Details')}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>

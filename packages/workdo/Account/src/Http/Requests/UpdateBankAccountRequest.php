@@ -19,6 +19,7 @@ class UpdateBankAccountRequest extends FormRequest
             'bank_name' => 'required|string|max:100',
             'branch_name' => 'nullable|string|max:100',
             'account_type' => 'required',
+            'currency_code' => 'required|string|size:3',
             'payment_gateway' => 'nullable|string|max:100',
             'opening_balance' => 'required|numeric',
             'current_balance' => 'required|numeric',

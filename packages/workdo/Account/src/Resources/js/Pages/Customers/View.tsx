@@ -4,6 +4,7 @@ import { Building2 } from 'lucide-react';
 import { Customer } from './types';
 import { useFormFields } from '@/hooks/useFormFields';
 import { AddressDisplay } from '@/components/address-display';
+import SavedPartyDocuments from '../Parties/SavedPartyDocuments';
 
 interface ViewProps {
     customer: Customer;
@@ -15,7 +16,7 @@ export default function View({ customer }: ViewProps) {
     const customFields = useFormFields('getCustomFields', { ...customer, module: 'Account', sub_module: 'Customer', id: customer.id }, () => { }, {}, 'view', t);
 
     return (
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
             <DialogHeader className="pb-4 border-b">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary/10 rounded-lg">
@@ -59,6 +60,10 @@ export default function View({ customer }: ViewProps) {
                         <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{customer.payment_terms || '-'}</p>
                     </div>
                     <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">{t('CR Number')}</label>
+                        <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{customer.cr_number || '-'}</p>
+                    </div>
+                    <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">{t('User')}</label>
                         <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{customer.user?.name || '-'}</p>
                     </div>
@@ -84,6 +89,7 @@ export default function View({ customer }: ViewProps) {
                         <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{customer.notes}</p>
                     </div>
                 )}
+                <SavedPartyDocuments partyType="customers" partyId={customer.id} attachments={customer.attachments || []} />
 
                 {/* Custom Fields */}
                 {customFields && customFields.length > 0 && (

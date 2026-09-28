@@ -13,9 +13,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatCurrency } from '@/utils/helpers';
 import { Plus, Trash2 } from 'lucide-react';
 import { AccountOption, JournalEntryItem } from './types';
+import TransactionCurrencyFields from '@/components/transaction-currency-fields';
 
 interface CreateProps {
     accounts: AccountOption[];
+    settings?: { defaultCurrency?: string };
 }
 
 const emptyLine = (): JournalEntryItem => ({
@@ -29,10 +31,12 @@ const amount = (value: number | string) => Number(value || 0);
 
 export default function Create() {
     const { t } = useTranslation();
-    const { accounts } = usePage<CreateProps>().props;
+    const { accounts, settings } = usePage<CreateProps>().props;
 
     const { data, setData, post, processing, errors } = useForm({
         journal_date: new Date().toISOString().split('T')[0],
+        currency_code: settings?.defaultCurrency || 'USD',
+        exchange_rate: '1.00000000',
         reference_type: '',
         description: '',
         items: [emptyLine(), emptyLine()] as JournalEntryItem[],
@@ -126,6 +130,8 @@ export default function Create() {
                         </div>
                     </CardContent>
                 </Card>
+
+                <TransactionCurrencyFields currencyCode={data.currency_code} exchangeRate={data.exchange_rate} transactionDate={data.journal_date} amount={totalDebit} errors={errors} onCurrencyChange={value => setData('currency_code', value)} onRateChange={value => setData('exchange_rate', value)} />
 
                 <Card>
                     <CardHeader>

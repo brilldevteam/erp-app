@@ -41,7 +41,7 @@ export function CustomerAddressFields({ kind, address, onChange, errors }: Custo
 
     return (
         <div className="space-y-4">
-            {customerField('name', kind === 'billing' ? t('Billing Name') : t('Shipping Name'), kind === 'billing' ? t('Enter billing name') : t('Enter shipping name'), { required: true })}
+            {customerField('name', kind === 'billing' ? t('Billing Name') : t('Shipping Name'), kind === 'billing' ? t('Enter billing name') : t('Enter shipping name'))}
             <CountryAddressFields
                 prefix={prefix}
                 address={address}

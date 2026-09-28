@@ -137,7 +137,7 @@ function AuthenticatedLayoutContent({
                 <main className="h-full min-w-0 max-w-full overflow-x-hidden p-3 sm:p-5 md:px-6 md:pb-6 md:pt-2">
                     {pageTitle && (
                         <div className="mb-5 flex items-center" dir={settings.layoutDirection}>
-                            <h1 className="flex-1 text-xl font-semibold tracking-[-0.025em] text-slate-950 dark:text-white">{pageTitle}</h1>
+                            <h1 className="flex-1 text-xl font-semibold text-slate-950 dark:text-white">{pageTitle}</h1>
                             <div className="flex-shrink-0">{pageActions}</div>
                         </div>
                     )}

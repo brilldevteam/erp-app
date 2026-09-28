@@ -25,6 +25,8 @@ class StoreSalesInvoiceRequest extends FormRequest
             'payment_terms' => 'nullable|string|max:255',
             'subject' => 'nullable|string|max:500',
             'notes' => 'nullable|string',
+            'currency_code' => 'required|string|size:3',
+            'exchange_rate' => 'required|numeric|gt:0',
             'items' => 'required|array|min:1',
             'items.*.product_id' => ['required', 'integer', 'min:1', Rule::exists('product_service_items', 'id')->where(fn ($query) => $query->where('created_by', creatorId())->where('is_active', true))],
             'items.*.quantity' => 'required|integer|min:1',

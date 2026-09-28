@@ -1,4 +1,6 @@
 export interface SalesInvoice {
+    currency_code: string;
+    exchange_rate: number;
     id: number;
     quotation_id?: number;
     document_template_id?: number;

@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DatePicker } from '@/components/ui/date-picker';
 import { Separator } from '@/components/ui/separator';
 import { CalendarDays, Package } from 'lucide-react';
+import TransactionCurrencyFields from '@/components/transaction-currency-fields';
 
 interface EditProps {
     invoice: SalesInvoice;
@@ -46,6 +47,7 @@ export default function Edit() {
 
     const { data, setData, put, processing, errors, clearErrors } = useForm({
         ...invoice,
+        exchange_rate: String(invoice.exchange_rate),
         customer_id: invoice.customer_id.toString(),
         warehouse_id: invoice.warehouse_id?.toString() || '',
         document_template_id: invoice.document_template_id?.toString() || '',
@@ -348,6 +350,8 @@ export default function Edit() {
                             )}
                         </CardContent>
                     </Card>
+
+                    <TransactionCurrencyFields currencyCode={data.currency_code} exchangeRate={data.exchange_rate} transactionDate={data.invoice_date} amount={totals.total} errors={errors} onCurrencyChange={value => setData('currency_code', value)} onRateChange={value => setData('exchange_rate', value)} />
 
                     <Card>
                         <CardHeader>

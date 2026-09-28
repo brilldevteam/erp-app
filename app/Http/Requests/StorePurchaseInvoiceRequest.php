@@ -17,6 +17,8 @@ class StorePurchaseInvoiceRequest extends FormRequest
         return [
             'invoice_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:invoice_date',
+            'currency_code' => 'required|string|size:3',
+            'exchange_rate' => 'required|numeric|gt:0',
             'vendor_id' => 'required|exists:users,id',
             'project_contract_id' => ['nullable', 'integer', new ValidProjectContractForVendor($this->input('vendor_id'))],
             'warehouse_id' => 'nullable|exists:warehouses,id',

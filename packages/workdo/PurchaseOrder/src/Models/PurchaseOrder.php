@@ -16,7 +16,7 @@ class PurchaseOrder extends Model
         'order_date' => 'date', 'expected_delivery_date' => 'date',
         'billing_address' => 'array', 'delivery_address' => 'array',
         'approved_at' => 'datetime', 'issued_at' => 'datetime', 'closed_at' => 'datetime',
-        'exchange_rate' => 'decimal:8', 'subtotal' => 'decimal:2',
+        'exchange_rate' => 'decimal:8', 'base_amount' => 'decimal:2', 'subtotal' => 'decimal:2',
         'line_discount_amount' => 'decimal:2', 'document_discount_amount' => 'decimal:2',
         'tax_amount' => 'decimal:2', 'shipping_amount' => 'decimal:2',
         'adjustment_amount' => 'decimal:2', 'total_amount' => 'decimal:2',
