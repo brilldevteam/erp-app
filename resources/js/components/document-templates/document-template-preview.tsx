@@ -15,6 +15,9 @@ const labels: Record<string, string> = {
     total: 'Total',
 };
 
+// Slightly under a full A4 page: html2pdf rounds 297mm up past its own page height and emits a blank trailing page.
+const A4_PAGE_MIN_HEIGHT = 'calc(297mm - 4px)';
+
 const money = (value: number) => formatCurrency(value);
 const hasTax = (item: Record<string, any>) => Boolean(item.has_tax ?? Number(item.tax) > 0);
 
@@ -252,7 +255,7 @@ function ReferenceQuotationTemplate({
         document.company.country,
     ].filter(Boolean).join(', ');
     const visibleColumns = documentColumns(config.itemsTable.columns);
-    const pageStyle = compact ? { aspectRatio: '210 / 297' } : { minHeight: '297mm' };
+    const pageStyle = compact ? { aspectRatio: '210 / 297' } : { minHeight: A4_PAGE_MIN_HEIGHT };
 
     return (
         <div className={`bg-white font-['Noto_Sans'] font-normal text-[#303030] shadow-sm ${compact ? 'text-[9px]' : 'text-[9pt]'}`}>
@@ -367,7 +370,7 @@ function ReferenceInvoiceTemplate({
         document.company.country,
     ].filter(Boolean).join(', ');
     const visibleColumns = documentColumns(config.itemsTable.columns);
-    const pageStyle = compact ? { aspectRatio: '210 / 297' } : { minHeight: '297mm' };
+    const pageStyle = compact ? { aspectRatio: '210 / 297' } : { minHeight: A4_PAGE_MIN_HEIGHT };
 
     return (
         <div className={`bg-white font-['Noto_Sans'] font-normal text-[#303030] shadow-sm ${compact ? 'text-[9px]' : 'text-[9pt]'}`}>
@@ -493,8 +496,8 @@ function FooterContact({
                 {address && <FooterDetail icon={MapPin} text={address} />}
             </div>
             <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-                <span className="inline-flex h-[18px] items-center rounded bg-[#e9e9e7] px-2">
-                    <span className="block h-[14px] whitespace-nowrap leading-[14px]">C.R. No. 156793</span>
+                <span className="inline-flex items-center rounded bg-[#e9e9e7] px-2 py-[3px]">
+                    <span className="whitespace-nowrap leading-none">C.R. No. 156793</span>
                 </span>
                 {email && <FooterDetail icon={Mail} text={email} />}
                 {website && <FooterDetail icon={Globe2} text={website} />}
@@ -504,10 +507,11 @@ function FooterContact({
 }
 
 function FooterDetail({ icon: Icon, text }: { icon: typeof Phone; text: string }) {
+    // Fixed-height text boxes drift below their icon in html2canvas PDF output; leading-none keeps both centred.
     return (
-        <span className="inline-grid h-[18px] grid-cols-[14px_auto] items-center gap-1.5 align-middle">
-            <Icon className="block h-[14px] w-[14px] -translate-y-px overflow-visible" strokeWidth={1.5} />
-            <span className="block h-[14px] whitespace-nowrap leading-[14px]">{text}</span>
+        <span className="inline-flex items-center gap-1.5">
+            <Icon className="block h-3 w-3 shrink-0" strokeWidth={1.5} />
+            <span className="whitespace-nowrap leading-none">{text}</span>
         </span>
     );
 }

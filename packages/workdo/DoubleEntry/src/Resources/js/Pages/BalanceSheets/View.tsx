@@ -22,6 +22,7 @@ import Note from './Note';
 import Compare from './Compare';
 import Generate from './Generate';
 import YearEndClose from './YearEndClose';
+import { balanceSheetLineName, formatBalanceSheetPeriod } from './period';
 
 export default function View() {
     const { t } = useTranslation();
@@ -97,7 +98,7 @@ export default function View() {
                                     {items.map((item) => (
                                         <TableRow key={item.id}>
                                             <TableCell className="font-medium text-green-600">
-                                                {item.account?.account_name}
+                                                {balanceSheetLineName(item, t)}
                                             </TableCell>
                                             <TableCell className="text-center text-green-600">
                                                 {item.account?.account_code}
@@ -139,9 +140,9 @@ export default function View() {
             breadcrumbs={[
                 {label: t('Double Entry')},
                 {label: t('Balance Sheets'), url: route('double-entry.balance-sheets.list')},
-                {label: `${t('Balance Sheet')} - ${formatDate(balanceSheet.balance_sheet_date)}`}
+                {label: `${t('Balance Sheet')} - ${formatBalanceSheetPeriod(balanceSheet)}`}
             ]}
-            pageTitle={`${t('Balance Sheet')} - ${formatDate(balanceSheet.balance_sheet_date)}`}
+            pageTitle={`${t('Balance Sheet')} - ${formatBalanceSheetPeriod(balanceSheet)}`}
             pageActions={
                 <div className="flex items-center gap-2">
                     <TooltipProvider>
@@ -229,7 +230,7 @@ export default function View() {
                 </div>
             }
         >
-            <Head title={`${t('Balance Sheet')} - ${formatDate(balanceSheet.balance_sheet_date)}`} />
+            <Head title={`${t('Balance Sheet')} - ${formatBalanceSheetPeriod(balanceSheet)}`} />
 
             <div className="max-w-7xl mx-auto space-y-6">
                 <Note
@@ -257,8 +258,8 @@ export default function View() {
                 {/* Header Card */}
                 <Card className="shadow-lg border-0 bg-gradient-to-r from-white to-gray-50">
                     <CardHeader className="pb-4">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="flex shrink-0 items-center gap-3">
                                 <div className="w-10 h-10 bg-blue-50 rounded-lg border flex items-center justify-center">
                                     <FileText className="w-5 h-5 text-blue-600" />
                                 </div>
@@ -266,24 +267,24 @@ export default function View() {
                                     <CardTitle className="text-xl">
                                         {t('Balance Sheet')}
                                     </CardTitle>
-                                    <p className="text-sm text-gray-600">
-                                        {t('As of')} {formatDate(balanceSheet.balance_sheet_date)} | {t('Financial Year')}: {balanceSheet.financial_year}
+                                    <p className="whitespace-nowrap text-sm text-gray-600">
+                                        {t('Financial Year')}: {balanceSheet.financial_year}
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-end gap-2">
                                 {allBalanceSheets && allBalanceSheets.length > 0 && (
                                     <Select
                                         value={balanceSheet.id.toString()}
                                         onValueChange={(value) => router.visit(route('double-entry.balance-sheets.show', value))}
                                     >
-                                        <SelectTrigger className="w-[200px]">
+                                        <SelectTrigger className="w-[230px]">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {allBalanceSheets.map((sheet) => (
                                                 <SelectItem key={sheet.id} value={sheet.id.toString()}>
-                                                    {formatDate(sheet.balance_sheet_date)}
+                                                    {formatBalanceSheetPeriod(sheet)}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
@@ -381,7 +382,7 @@ export default function View() {
                     <CardContent className="p-8">
                         <div className="mb-8">
                             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                                {t('Balance Sheet of')} {formatDate(balanceSheet.balance_sheet_date)}
+                                {balanceSheet.period_start_date ? `${t('Balance Sheet')}: ${formatBalanceSheetPeriod(balanceSheet)}` : `${t('Balance Sheet of')} ${formatDate(balanceSheet.balance_sheet_date)}`}
                             </h2>
                         </div>
 
@@ -407,7 +408,7 @@ export default function View() {
                                                 <div key={subSection} className="mb-4">
                                                     {items.map((item) => (
                                                         <div key={item.id} className="flex justify-between py-1 text-sm">
-                                                            <span className="text-green-600">{item.account?.account_name}</span>
+                                                            <span className="text-green-600">{balanceSheetLineName(item, t)}</span>
                                                             <span className="text-green-600 tabular-nums">{formatCurrency(item.amount)}</span>
                                                         </div>
                                                     ))}
@@ -432,7 +433,7 @@ export default function View() {
                                                         {items.map((item) => (
                                                             <div key={item.id} className="flex justify-between items-center py-1 text-sm ml-4">
                                                                 <div className="flex justify-between w-full">
-                                                                    <span className="text-green-600">{item.account?.account_name}</span>
+                                                                    <span className="text-green-600">{balanceSheetLineName(item, t)}</span>
                                                                     <div className="flex gap-8">
                                                                         <span className="text-gray-600">{item.account?.account_code}</span>
                                                                         <span className="text-green-600 tabular-nums">{formatCurrency(item.amount)}</span>
@@ -472,7 +473,7 @@ export default function View() {
                                                         {items.map((item) => (
                                                             <div key={item.id} className="flex justify-between items-center py-1 text-sm ml-4">
                                                                 <div className="flex justify-between w-full">
-                                                                    <span className="text-green-600">{item.account?.account_name}</span>
+                                                                    <span className="text-green-600">{balanceSheetLineName(item, t)}</span>
                                                                     <div className="flex gap-8">
                                                                         <span className="text-gray-600">{item.account?.account_code}</span>
                                                                         <span className="text-green-600 tabular-nums">{formatCurrency(item.amount)}</span>

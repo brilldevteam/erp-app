@@ -24,6 +24,7 @@ import Generate from './Generate';
 import YearEndClose from './YearEndClose';
 import { BalanceSheet, BalanceSheetsIndexProps, BalanceSheetFilters } from './types';
 import { formatDate, formatCurrency } from '@/utils/helpers';
+import { formatBalanceSheetPeriod } from './period';
 
 export default function Index() {
     const { t } = useTranslation();
@@ -92,7 +93,7 @@ export default function Index() {
             key: 'balance_sheet_date',
             header: t('Date'),
             sortable: true,
-            render: (value: string) => formatDate(value)
+            render: (_: string, row: BalanceSheet) => formatBalanceSheetPeriod(row)
         },
         {
             key: 'financial_year',

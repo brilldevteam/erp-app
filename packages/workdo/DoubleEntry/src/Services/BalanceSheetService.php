@@ -76,11 +76,12 @@ class BalanceSheetService
         return ['section_type' => 'other', 'sub_section' => 'other'];
     }
 
-    public function generateBalanceSheet($date, $financialYear)
+    public function generateBalanceSheet($date, $financialYear, $periodStartDate = null)
     {
         // 1. Create main balance sheet record
         $balanceSheet = BalanceSheet::create([
             'balance_sheet_date' => $date,
+            'period_start_date' => $periodStartDate,
             'financial_year' => $financialYear,
             'status' => 'draft',
             'creator_id' => Auth::id(),
@@ -94,8 +95,15 @@ class BalanceSheetService
         $totalLiabilities = 0;
         $totalEquity = 0;
 
-        // 3. Calculate net income from revenue/expense accounts as of date
+        // 3. Calculate net income from revenue/expense accounts as of date. With a reporting period,
+        // income earned inside the period is shown on its own line and only earlier income rolls into Retained Earnings.
         $netIncome = $this->calculateNetIncome($date);
+        $periodNetIncome = 0;
+        if ($periodStartDate) {
+            $netIncomeBeforePeriod = $this->calculateNetIncome(date('Y-m-d', strtotime($periodStartDate . ' -1 day')));
+            $periodNetIncome = $netIncome - $netIncomeBeforePeriod;
+            $netIncome = $netIncomeBeforePeriod;
+        }
 
         // 4. Get Retained Earnings account
         $retainedEarningsAccount = $this->getOrCreateRetainedEarningsAccount();
@@ -103,7 +111,7 @@ class BalanceSheetService
 
         // 5. Create balance sheet items for each account
         foreach($accounts as $account) {
-            if (abs($account->current_balance) > 0.01) {
+            if (abs($account->current_balance) >= 0.005) {
                 $sectionInfo = $this->getAccountSection($account->account_code);
 
                 // Skip revenue/expense accounts and Retained Earnings (will add separately)
@@ -144,7 +152,7 @@ class BalanceSheetService
 
             $retainedEarningsBalance = $retainedEarningsCalculatedBalance + $netIncome;
 
-            if (abs($retainedEarningsBalance) > 0.01) {
+            if (abs($retainedEarningsBalance) >= 0.005) {
                 BalanceSheetItem::create([
                     'balance_sheet_id' => $balanceSheet->id,
                     'account_id' => $retainedEarningsAccount->id,
@@ -157,6 +165,21 @@ class BalanceSheetService
 
                 $totalEquity += $retainedEarningsBalance;
             }
+        }
+
+        if (abs($periodNetIncome) >= 0.005) {
+            BalanceSheetItem::create([
+                'balance_sheet_id' => $balanceSheet->id,
+                'account_id' => null,
+                'label' => 'Net Income for the Period',
+                'section_type' => 'equity',
+                'sub_section' => 'equity',
+                'amount' => $periodNetIncome,
+                'creator_id' => Auth::id(),
+                'created_by' => creatorId()
+            ]);
+
+            $totalEquity += $periodNetIncome;
         }
 
         // 7. Update balance sheet totals

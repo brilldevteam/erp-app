@@ -17,9 +17,18 @@ export default function Generate({ open, onOpenChange }: GenerateProps) {
     const currentDate = new Date().toISOString().split('T')[0];
 
     const { data, setData, post, processing, errors, reset } = useForm({
+        period_start_date: `${currentYear}-01-01`,
         balance_sheet_date: currentDate,
         financial_year: currentYear.toString(),
     });
+
+    const handleClosingDateChange = (value: string) => {
+        setData((current) => ({
+            ...current,
+            balance_sheet_date: value,
+            financial_year: value ? value.slice(0, 4) : current.financial_year,
+        }));
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -44,21 +53,40 @@ export default function Generate({ open, onOpenChange }: GenerateProps) {
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="balance_sheet_date">
-                            {t('Balance Sheet Date')}
-                        </Label>
-                        <DatePicker
-                            id="balance_sheet_date"
-                            value={data.balance_sheet_date}
-                            onChange={(value) => setData('balance_sheet_date', value)}
-                            className={errors.balance_sheet_date ? 'border-red-500' : ''}
-                            required
-                        />
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label htmlFor="period_start_date">
+                                    {t('Opening Date')}
+                                </Label>
+                                <DatePicker
+                                    id="period_start_date"
+                                    value={data.period_start_date}
+                                    onChange={(value) => setData('period_start_date', value)}
+                                    className={errors.period_start_date ? 'border-red-500' : ''}
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="balance_sheet_date">
+                                    {t('Closing Date')}
+                                </Label>
+                                <DatePicker
+                                    id="balance_sheet_date"
+                                    value={data.balance_sheet_date}
+                                    onChange={handleClosingDateChange}
+                                    className={errors.balance_sheet_date ? 'border-red-500' : ''}
+                                    required
+                                />
+                            </div>
+                        </div>
+                        {errors.period_start_date && (
+                            <p className="text-sm text-red-600">{errors.period_start_date}</p>
+                        )}
                         {errors.balance_sheet_date && (
                             <p className="text-sm text-red-600">{errors.balance_sheet_date}</p>
                         )}
                         <p className="text-xs text-gray-500">
-                            {t('Select the date for which you want to generate the balance sheet')}
+                            {t('Select the reporting period for the balance sheet')}
                         </p>
                     </div>
 
@@ -87,7 +115,8 @@ export default function Generate({ open, onOpenChange }: GenerateProps) {
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <h4 className="font-medium text-blue-900 mb-2">{t('How it works')}</h4>
                         <ul className="text-sm text-blue-800 space-y-1">
-                            <li>• {t('System will calculate balances for all accounts up to the selected date')}</li>
+                            <li>• {t('Account balances are calculated as of the closing date')}</li>
+                            <li>• {t('Net income between the opening and closing dates is shown as Net Income for the Period under Equity')}</li>
                             <li>• {t('Accounts will be automatically categorized into Assets, Liabilities, and Equity')}</li>
                             <li>• {t('Balance sheet will be validated to ensure Assets = Liabilities + Equity')}</li>
                             <li>• {t('You can review and finalize the balance sheet after generation')}</li>

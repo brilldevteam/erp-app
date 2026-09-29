@@ -298,6 +298,11 @@ export default function Print() {
                     font-family: Arial, sans-serif;
                 }
 
+                /* html2canvas measures text baselines with an <img> it appends to <body>; Tailwind's img { display: block } breaks that and draws all PDF text too low. */
+                body > div > img {
+                    display: inline-block;
+                }
+
                 @page {
                     margin: 0.5in;
                     size: A4;

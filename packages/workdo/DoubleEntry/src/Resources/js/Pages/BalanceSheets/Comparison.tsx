@@ -6,6 +6,7 @@ import { FileText } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { AccountingReportDownloadMenu } from '@/components/accounting-report-download-menu';
 import { formatDate, formatCurrency } from '@/utils/helpers';
+import { balanceSheetLineName, formatBalanceSheetPeriod } from './period';
 
 interface ComparisonProps {
     comparison: {
@@ -13,6 +14,7 @@ interface ComparisonProps {
         currentPeriod: {
             id: number;
             balance_sheet_date: string;
+            period_start_date?: string | null;
             financial_year: string;
             total_assets: number;
             total_liabilities: number;
@@ -22,15 +24,17 @@ interface ComparisonProps {
                 section_type: string;
                 sub_section: string;
                 amount: number;
+                label?: string | null;
                 account: {
                     account_code: string;
                     account_name: string;
-                };
+                } | null;
             }>;
         };
         previousPeriod: {
             id: number;
             balance_sheet_date: string;
+            period_start_date?: string | null;
             financial_year: string;
             total_assets: number;
             total_liabilities: number;
@@ -40,10 +44,11 @@ interface ComparisonProps {
                 section_type: string;
                 sub_section: string;
                 amount: number;
+                label?: string | null;
                 account: {
                     account_code: string;
                     account_name: string;
-                };
+                } | null;
             }>;
         };
     };
@@ -79,15 +84,17 @@ export default function Comparison() {
 
     // Group items by account for comparison
     const currentItems = (currentPeriod?.items || []).reduce((acc, item) => {
-        if (item?.account?.account_code) {
-            acc[item.account.account_code] = item;
+        const key = item?.account?.account_code ?? (item?.label ? `~${item.label}` : null);
+        if (key) {
+            acc[key] = item;
         }
         return acc;
     }, {} as Record<string, any>);
 
     const previousItems = (previousPeriod?.items || []).reduce((acc, item) => {
-        if (item?.account?.account_code) {
-            acc[item.account.account_code] = item;
+        const key = item?.account?.account_code ?? (item?.label ? `~${item.label}` : null);
+        if (key) {
+            acc[key] = item;
         }
         return acc;
     }, {} as Record<string, any>);
@@ -137,7 +144,7 @@ export default function Comparison() {
                             <div key={accountCode} className="grid grid-cols-5 gap-4 py-2 px-4 bg-gray-50 rounded">
                                 <div className="col-span-2">
                                     <span className="font-medium">
-                                        {currentItem?.account.account_name || previousItem?.account.account_name}
+                                        {balanceSheetLineName(currentItem ?? previousItem, t)}
                                     </span>
                                     <span className="text-sm text-gray-500 ml-2">({accountCode})</span>
                                 </div>
@@ -185,7 +192,7 @@ export default function Comparison() {
                             <div className="flex-1">
                                 <CardTitle className="text-xl">{t('Balance Sheet Comparison')}</CardTitle>
                                 <p className="text-sm text-gray-600">
-                                    {formatDate(currentPeriod?.balance_sheet_date)} vs {formatDate(previousPeriod?.balance_sheet_date)}
+                                    {(currentPeriod ? formatBalanceSheetPeriod(currentPeriod) : '')} vs {(previousPeriod ? formatBalanceSheetPeriod(previousPeriod) : '')}
                                 </p>
                             </div>
                             {auth?.user?.permissions?.includes('print-balance-sheets') && (
@@ -219,8 +226,8 @@ export default function Comparison() {
                         {/* Column Headers */}
                         <div className="grid grid-cols-5 gap-4 py-3 px-4 bg-gray-100 rounded font-semibold border-b-2 border-gray-300 mb-4">
                             <div className="col-span-2">{t('Account')}</div>
-                            <div className="text-right">{formatDate(currentPeriod?.balance_sheet_date)}</div>
-                            <div className="text-right">{formatDate(previousPeriod?.balance_sheet_date)}</div>
+                            <div className="text-right">{(currentPeriod ? formatBalanceSheetPeriod(currentPeriod) : '')}</div>
+                            <div className="text-right">{(previousPeriod ? formatBalanceSheetPeriod(previousPeriod) : '')}</div>
                             <div className="text-right">{t('Change')}</div>
                         </div>
 

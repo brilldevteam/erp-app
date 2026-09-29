@@ -7,6 +7,7 @@ import { GitCompare, Eye, Calendar } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
 import NoRecordsFound from '@/components/no-records-found';
 import { formatDate } from '@/utils/helpers';
+import { formatBalanceSheetPeriod } from './period';
 
 interface ComparisonsProps {
     comparisons: {
@@ -16,11 +17,13 @@ interface ComparisonsProps {
             current_period: {
                 id: number;
                 balance_sheet_date: string;
+                period_start_date?: string | null;
                 financial_year: string;
             };
             previous_period: {
                 id: number;
                 balance_sheet_date: string;
+                period_start_date?: string | null;
                 financial_year: string;
             };
         }>;
@@ -56,7 +59,7 @@ export default function Comparisons() {
                                         </div>
                                         <div>
                                             <h3 className="font-medium">
-                                                {formatDate(comparison.current_period.balance_sheet_date)} vs {formatDate(comparison.previous_period.balance_sheet_date)}
+                                                {formatBalanceSheetPeriod(comparison.current_period)} vs {formatBalanceSheetPeriod(comparison.previous_period)}
                                             </h3>
                                             <p className="text-sm text-gray-600 flex items-center gap-1">
                                                 <Calendar className="h-3 w-3" />

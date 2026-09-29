@@ -1,6 +1,7 @@
 export interface BalanceSheet {
     id: number;
     balance_sheet_date: string;
+    period_start_date?: string | null;
     financial_year: string;
     total_assets: number;
     total_liabilities: number;
@@ -17,7 +18,8 @@ export interface BalanceSheet {
 export interface BalanceSheetItem {
     id: number;
     balance_sheet_id: number;
-    account_id: number;
+    account_id: number | null;
+    label?: string | null;
     section_type: 'assets' | 'liabilities' | 'equity';
     sub_section: 'current_assets' | 'fixed_assets' | 'other_assets' | 'current_liabilities' | 'long_term_liabilities' | 'equity';
     amount: number;
@@ -88,11 +90,13 @@ export interface BalanceSheetViewProps {
     allBalanceSheets?: {
         id: number;
         balance_sheet_date: string;
+        period_start_date?: string | null;
         financial_year: string;
     }[];
     otherBalanceSheets?: {
         id: number;
         balance_sheet_date: string;
+        period_start_date?: string | null;
         financial_year: string;
     }[];
     diagnostics?: {
