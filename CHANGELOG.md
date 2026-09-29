@@ -21,6 +21,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Show the Purchase Orders / LPO navigation entry only for companies whose active plan includes the add-on, preventing dashboard redirects from unavailable module links.
 
 ### Added
+- Added payment-mode selection (Cash, Bank Transfer, Cheque) to vendor payments, with a required cheque number for cheques, shown on payment details, vouchers, bank transaction descriptions and reports; customer receipts now print the selected payment mode as well.
 - Added opening and closing dates to Balance Sheet generation: balances are calculated as of the closing date, profit earned within the period is shown as Net Income for the Period under Equity, and the period appears in the balance sheet selector, lists, comparisons, PDF and Excel exports.
 - Added manual multi-currency transaction entry with effective-dated company exchange rates, historical rate snapshots, base-currency journal posting, currency-aware bank accounts, and a dry-run-safe live-data backfill command.
 - Added CR Number and private supporting-document uploads to customer and vendor create, edit, and detail views, including validated files and authorized preview, download, and removal actions.

@@ -132,6 +132,7 @@ class VendorPaymentController extends Controller
             // Create payment
             $payment = new VendorPayment();
             $payment->payment_date = $request->payment_date;
+            $payment->payment_mode = $request->payment_mode;
             $payment->vendor_id = $request->vendor_id;
             $payment->bank_account_id = $request->bank_account_id;
             $payment->reference_number = $request->reference_number;

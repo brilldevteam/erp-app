@@ -59,6 +59,7 @@ export interface VendorPayment {
     id: number;
     payment_number: string;
     payment_date: string;
+    payment_mode?: 'cash' | 'bank_transfer' | 'cheque' | null;
     vendor_id: number;
     bank_account_id: number;
     reference_number?: string;
@@ -78,6 +79,7 @@ export interface VendorPayment {
 
 export interface CreateVendorPaymentFormData {
     payment_date: string;
+    payment_mode: string;
     vendor_id: string;
     bank_account_id: string;
     reference_number: string;

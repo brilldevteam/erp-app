@@ -76,6 +76,10 @@ export default function View({ payment }: VendorPaymentViewProps) {
                                 <p className="mt-1 text-gray-500">{payment.vendor?.name || '-'}</p>
                             </div>
                             <div>
+                                <span className="font-semibold">{t('Payment Mode')}</span>
+                                <p className="mt-1 text-gray-500">{payment.payment_mode ? t({cash: 'Cash', bank_transfer: 'Bank Transfer', cheque: 'Cheque'}[payment.payment_mode]) : '-'}</p>
+                            </div>
+                            <div>
                                 <span className="font-semibold">{t('Bank Account')}</span>
                                 <p className="mt-1 text-gray-500">
                                     {payment.bank_account?.account_name || '-'}
