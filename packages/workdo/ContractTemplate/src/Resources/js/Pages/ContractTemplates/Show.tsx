@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { sanitizeHtml } from '@/utils/sanitize-html';
 import { Head, usePage, router, Link, useForm } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import AuthenticatedLayout from "@/layouts/authenticated-layout";
@@ -478,7 +479,7 @@ export default function Show({ template, contractTypes, users, auth }: Props) {
                                             ) : (
                                                 <div className="bg-gray-50 rounded-lg p-4 min-h-[100px]">
                                                     {template.description ? (
-                                                        <div className="text-sm text-gray-700 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: template.description }} />
+                                                        <div className="text-sm text-gray-700 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeHtml(template.description) }} />
                                                     ) : (
                                                         <p className="text-sm text-gray-500 italic">{t('No description provided')}</p>
                                                     )}

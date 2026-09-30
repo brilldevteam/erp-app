@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { sanitizeHtml } from '@/utils/sanitize-html';
 import { useTranslation } from 'react-i18next';
 import { router, usePage } from '@inertiajs/react';
 import { usePageButtons } from '@/hooks/usePageButtons';
@@ -695,7 +696,7 @@ function SubscriptionLayout({ plan, allModules, pricingPeriod, onSubscribe, bank
                                     <CardContent className="space-y-4">
                                         {bankTransferInstructions && (
                                             <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                                                <div className="text-sm text-blue-800 dark:text-blue-200" dangerouslySetInnerHTML={{ __html: bankTransferInstructions.replace(/\n/g, '<br/>') }} />
+                                                <div className="text-sm text-blue-800 dark:text-blue-200" dangerouslySetInnerHTML={{ __html: sanitizeHtml(bankTransferInstructions.replace(/\n/g, '<br/>')) }} />
                                             </div>
                                         )}
 

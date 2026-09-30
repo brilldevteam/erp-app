@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { sanitizeHtml } from '@/utils/sanitize-html';
 import { useTranslation } from 'react-i18next';
 import { Button } from "@/components/ui/button";
 import { Trash2, Paperclip, Download } from 'lucide-react';
@@ -74,7 +75,7 @@ export default function ChatMessage({ reply, isOwnMessage, onDelete, canDelete }
 
                     <div
                         className="text-sm whitespace-pre-wrap"
-                        dangerouslySetInnerHTML={{ __html: reply.message }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(reply.message) }}
                     />
 
                     {(() => {

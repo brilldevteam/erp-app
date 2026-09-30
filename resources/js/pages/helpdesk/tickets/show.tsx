@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { sanitizeHtml } from '@/utils/sanitize-html';
 import { Head, usePage, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
@@ -112,7 +113,7 @@ export default function Show() {
                                     {getPriorityBadge(ticket.priority)}
                                 </div>
                             </div>
-                            <div className="prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: ticket.description }} />
+                            <div className="prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: sanitizeHtml(ticket.description) }} />
                         </div>
 
                         <div className="lg:w-80 space-y-4">

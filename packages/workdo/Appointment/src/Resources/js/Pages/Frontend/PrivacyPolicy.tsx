@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { sanitizeHtml } from '@/utils/sanitize-html';
 import PublicLayout from './components/PublicLayout';
 
 interface PrivacyPolicyProps {
@@ -43,7 +44,7 @@ export default function PrivacyPolicy({ privacySettings }: PrivacyPolicyProps) {
                             <div
                                 className="prose max-w-none [&_h1]:text-3xl [&_h1]:font-bold [&_h1]:text-gray-900 [&_h1]:mb-6 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:text-gray-900 [&_h2]:mb-4 [&_h2]:mt-8 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-gray-800 [&_h3]:mb-3 [&_h3]:mt-6 [&_p]:text-gray-700 [&_p]:mb-4 [&_p]:leading-relaxed [&_ul]:text-gray-700 [&_ul]:mb-4 [&_li]:mb-2 [&_strong]:text-gray-900 [&_strong]:font-semibold"
                                 dangerouslySetInnerHTML={{
-                                    __html: privacySettings?.content || '<p class="text-gray-500 italic">No privacy policy content available.</p>'
+                                    __html: sanitizeHtml(privacySettings?.content) || '<p class="text-gray-500 italic">No privacy policy content available.</p>'
                                 }}
                             />
                         </div>

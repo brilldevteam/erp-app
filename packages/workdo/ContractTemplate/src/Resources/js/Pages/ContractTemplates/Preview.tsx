@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { sanitizeHtml } from '@/utils/sanitize-html';
 import { Head, Link, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -118,7 +119,7 @@ export default function Preview({ auth, template }: Props) {
                             <div>
                                 <h3 className="text-lg font-semibold mb-4">{t('Description')}</h3>
                                 <div className="prose max-w-none">
-                                    <div dangerouslySetInnerHTML={{ __html: template.description }} />
+                                    <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(template.description) }} />
                                 </div>
                             </div>
                         )}
