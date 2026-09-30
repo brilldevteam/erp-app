@@ -268,7 +268,7 @@ class TaskApiController extends Controller
                     return $this->validationErrorResponse($validator->errors());
                 }
 
-                $task = ProjectTask::findOrFail($request->task_id);
+                $task = ProjectTask::where('created_by', creatorId())->findOrFail($request->task_id);
 
                 TaskComment::where('task_id', $task->id)->delete();
                 TaskSubtask::where('task_id', $task->id)->delete();
@@ -297,7 +297,7 @@ class TaskApiController extends Controller
                 }
 
                 $task = ProjectTask::with(['project:id,name', 'milestone:id,title'])
-                    ->findOrFail($request->task_id);
+                    ->where('created_by', creatorId())->findOrFail($request->task_id);
 
                 $assignedUsers = [];
                 if ($task->assigned_to) {
@@ -360,7 +360,7 @@ class TaskApiController extends Controller
                 return $this->validationErrorResponse($validator->errors());
             }
 
-            $task = ProjectTask::findOrFail($request->task_id);
+            $task = ProjectTask::where('created_by', creatorId())->findOrFail($request->task_id);
 
             $assignedUserIds = $task->assigned_to ? (is_array($task->assigned_to) ? $task->assigned_to : json_decode($task->assigned_to, true)) : [];
             $canMove         = Auth::user()->can('edit-project-task') ||
@@ -370,7 +370,7 @@ class TaskApiController extends Controller
             if ($canMove) {
                 if ($request->stage_id != $task->stage_id) {
                     $oldStage = TaskStage::find($task->stage_id);
-                    $newStage = TaskStage::find($request->stage_id);
+                    $newStage = TaskStage::where('created_by', creatorId())->find($request->stage_id);
 
                     $task->update(['stage_id' => $request->stage_id]);
 

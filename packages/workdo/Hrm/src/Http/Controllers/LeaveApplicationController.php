@@ -77,7 +77,7 @@ class LeaveApplicationController extends Controller
             $totalDays = $startDate->diff($endDate)->days + 1;
 
             // Get leave type details
-            $leaveType = LeaveType::find($validated['leave_type_id']);
+            $leaveType = LeaveType::where('created_by', creatorId())->find($validated['leave_type_id']);
             if (!$leaveType) {
                 return redirect()
                     ->back()
@@ -181,7 +181,7 @@ class LeaveApplicationController extends Controller
             $totalDays = $startDate->diff($endDate)->days + 1;
 
             // Get leave type details
-            $leaveType = LeaveType::find($validated['leave_type_id']);
+            $leaveType = LeaveType::where('created_by', creatorId())->find($validated['leave_type_id']);
             if (!$leaveType) {
                 return redirect()
                     ->back()
@@ -333,7 +333,7 @@ class LeaveApplicationController extends Controller
     public function getLeaveBalance($employeeId, $leaveTypeId)
     {
         if (Auth::user()->can('view-leave-applications')) {
-            $leaveType = LeaveType::find($leaveTypeId);
+            $leaveType = LeaveType::where('created_by', creatorId())->find($leaveTypeId);
             if (!$leaveType) {
                 return response()->json(['error' => 'Invalid leave type'], 404);
             }

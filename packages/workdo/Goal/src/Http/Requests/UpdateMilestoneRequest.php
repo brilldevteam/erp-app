@@ -3,6 +3,7 @@
 namespace Workdo\Goal\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Workdo\Goal\Models\Goal;
 use Workdo\Goal\Models\GoalMilestone;
 
@@ -16,7 +17,7 @@ class UpdateMilestoneRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'goal_id' => 'required|exists:goals,id',
+            'goal_id' => ['required', Rule::exists('goals', 'id')->where('created_by', creatorId())],
             'milestone_name' => 'required|max:255',
             'milestone_description' => 'nullable',
             'target_amount' => [

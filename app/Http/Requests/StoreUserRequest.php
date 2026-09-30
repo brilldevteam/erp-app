@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreUserRequest extends FormRequest
 {
@@ -13,7 +14,10 @@ class StoreUserRequest extends FormRequest
 
     public function rules(): array
     {
-        $typeRule = auth()->user()->type === 'superadmin' ? 'nullable' : 'required|exists:roles,id';
+        // Companies may only assign their own roles; the platform-wide superadmin and company roles are never assignable here.
+        $typeRule = auth()->user()->type === 'superadmin' ? 'nullable' : ['required', Rule::exists('roles', 'id')
+            ->where('created_by', creatorId())
+            ->whereNotIn('name', ['superadmin', 'company'])];
         
         return [
             'name' => 'required|string|max:255',

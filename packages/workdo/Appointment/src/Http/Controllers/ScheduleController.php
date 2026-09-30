@@ -72,7 +72,7 @@ class ScheduleController extends Controller
                     $questionNames = [];
 
                     foreach ($questionsData as $questionId => $answer) {
-                        $question = Question::find($questionId);
+                        $question = Question::where('created_by', creatorId())->find($questionId);
                         if ($question) {
                             $questionNames[$question->question_name] = $answer;
                         } else {

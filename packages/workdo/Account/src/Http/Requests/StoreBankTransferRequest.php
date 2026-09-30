@@ -3,6 +3,7 @@
 namespace Workdo\Account\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreBankTransferRequest extends FormRequest
 {
@@ -15,8 +16,9 @@ class StoreBankTransferRequest extends FormRequest
     {
         return [
             'transfer_date' => 'required|date',
-            'from_account_id' => 'required|exists:bank_accounts,id',
-            'to_account_id' => 'required|exists:bank_accounts,id|different:from_account_id',
+            // Both accounts must belong to the current company.
+            'from_account_id' => ['required', Rule::exists('bank_accounts', 'id')->where('created_by', creatorId())],
+            'to_account_id' => ['required', Rule::exists('bank_accounts', 'id')->where('created_by', creatorId()), 'different:from_account_id'],
             'transfer_amount' => 'required|numeric|min:0.01',
             'transfer_charges' => 'nullable|numeric|min:0',
             'reference_number' => 'nullable|string|max:255',

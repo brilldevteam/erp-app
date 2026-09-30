@@ -3,6 +3,7 @@
 namespace Workdo\Goal\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreTrackingRequest extends FormRequest
 {
@@ -14,7 +15,7 @@ class StoreTrackingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'goal_id' => 'required|exists:goals,id',
+            'goal_id' => ['required', Rule::exists('goals', 'id')->where('created_by', creatorId())],
             'tracking_date' => 'required|date',
             'previous_amount' => 'required|numeric|min:0',
             'contribution_amount' => 'required|numeric|min:0',

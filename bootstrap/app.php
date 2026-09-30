@@ -19,6 +19,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\UpdateUserActiveStatus::class,
             \App\Http\Middleware\EnsureAuthSessionIsCurrent::class,
             \App\Http\Middleware\PreventAuthenticatedResponseCaching::class,
+            \App\Http\Middleware\EnsureRouteModelsBelongToCompany::class,
+        ]);
+        $middleware->api(append: [
+            \App\Http\Middleware\EnsureRouteModelsBelongToCompany::class,
         ]);
         $middleware->alias([
             'PlanModuleCheck' => \App\Http\Middleware\PlanModuleCheck::class,

@@ -3,6 +3,7 @@
 namespace Workdo\Goal\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateTrackingRequest extends FormRequest
 {
@@ -14,7 +15,7 @@ class UpdateTrackingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'goal_id' => 'sometimes|exists:goals,id',
+            'goal_id' => ['sometimes', Rule::exists('goals', 'id')->where('created_by', creatorId())],
             'tracking_date' => 'sometimes|date',
             'previous_amount' => 'sometimes|numeric|min:0',
             'contribution_amount' => 'sometimes|numeric|min:0',

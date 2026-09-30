@@ -92,7 +92,7 @@ class GoalContributionController extends Controller
             $contribution->save();
 
             // Update goal current amount
-            $goal = Goal::find($validated['goal_id']);
+            $goal = Goal::where('created_by', creatorId())->find($validated['goal_id']);
             $goal->current_amount = $goal->current_amount - $oldAmount + $validated['contribution_amount'];
             $goal->save();
 

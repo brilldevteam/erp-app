@@ -108,7 +108,7 @@ class UserController extends Controller
             $validated['is_enable_login'] = $request->boolean('is_enable_login', true);
             $hasLoginEmail = filter_var($validated['email'] ?? null, FILTER_VALIDATE_EMAIL) !== false;
 
-            $role = Role::find($validated['type'] ?? null);
+            $role = Role::where('created_by', creatorId())->whereNotIn('name', ['superadmin', 'company'])->find($validated['type'] ?? null);
             if ($role && in_array($role->name, ['client', 'vendor'], true)) {
                 return back()->withErrors(['type' => __('Client and Vendor accounts must be created from their own module.')]);
             }

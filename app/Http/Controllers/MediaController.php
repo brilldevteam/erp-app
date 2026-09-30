@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\StorageConfigService;
 use App\Services\DynamicStorageService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Illuminate\Support\Facades\Storage;
@@ -453,13 +454,15 @@ class MediaController extends Controller
 
     public function updateMediaDirectory(Request $request, $mediaId)
     {
+        // Companies can only move their own files into their own folders; the super admin manages all media.
+        $ownOnly = Auth::user()->type !== 'superadmin';
         $request->validate([
-            'directory_id' => 'nullable|exists:media_directories,id',
+            'directory_id' => ['nullable', Rule::exists('media_directories', 'id')->when($ownOnly, fn ($rule) => $rule->where('created_by', creatorId()))],
         ], [
             'directory_id.exists' => __('Selected directory does not exist.'),
         ]);
 
-        $media = Media::findOrFail($mediaId);
+        $media = Media::query()->when($ownOnly, fn ($query) => $query->where('created_by', creatorId()))->findOrFail($mediaId);
         $media->update(['directory_id' => $request->directory_id]);
 
         return response()->json([
