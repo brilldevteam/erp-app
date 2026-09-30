@@ -142,22 +142,14 @@ class AuthApiController extends Controller
     public function editProfile(Request $request)
     {
         try {
-            if ($request->user_id) {
-                $user = User::find($request->user_id);
-            } elseif ($request->user()) {
-                $user = $request->user();
-            }
+            // Only the authenticated user can edit their own profile; a client-supplied user_id is ignored.
+            $user = $request->user();
             if ($user) {
                 $validator = Validator::make($request->all(), [
-                    'name'      => 'required|string',
+                    'name'      => 'required|string|max:255',
                     'mobile_no' => 'nullable|string|max:20',
-                    'email'     => [
-                        'required',
-                        Rule::unique('users')->where(function ($query) use ($user) {
-                            return $query->whereNotIn('id', [$user->id])
-                                ->where('created_by', creatorId());
-                        }),
-                    ],
+                    // Emails identify accounts at login across every company, so they must be unique system-wide.
+                    'email'     => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)->ignore($user->id)],
                 ]);
 
                 if ($validator->fails()) {

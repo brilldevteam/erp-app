@@ -616,7 +616,7 @@ class DealController extends Controller
     {
         if (Auth::user()->can('create-deal-calls')) {
             $usr = Auth::user();
-            $deal = Deal::find($request->deal_id);
+            $deal = Deal::where('created_by', creatorId())->find($request->deal_id);
 
             $call              = new DealCall();
             $call->deal_id     = $request->deal_id;
@@ -645,7 +645,7 @@ class DealController extends Controller
     public function callUpdate(UpdateDealCallRequest $request, $callId)
     {
         if (Auth::user()->can('edit-deal-calls')) {
-            $call = DealCall::find($callId);
+            $call = DealCall::whereHas('deal', fn ($q) => $q->where('created_by', creatorId()))->find($callId);
             $call->subject     = $request->subject;
             $call->call_type   = $request->call_type;
             $call->duration    = $request->duration;
@@ -664,7 +664,7 @@ class DealController extends Controller
     public function callDestroy($callId)
     {
         if (Auth::user()->can('delete-deal-calls')) {
-            $call = DealCall::find($callId);
+            $call = DealCall::whereHas('deal', fn ($q) => $q->where('created_by', creatorId()))->find($callId);
             DestroyDealCall::dispatch($call);
             $call->delete();
 
@@ -727,13 +727,13 @@ class DealController extends Controller
             if (Auth::user()->can('deal-move')) {
                 $usr = Auth::user();
                 $post = $request->all();
-                $deal = Deal::find($post['deal_id']);
+                $deal = Deal::where('created_by', creatorId())->find($post['deal_id']);
                 $clients    = ClientDeal::select('client_id')->where('deal_id', '=', $deal->id)->get()->pluck('client_id')->toArray();
                 $deal_users = $deal->users->pluck('id')->toArray();
                 $usrs       = User::whereIN('id', array_merge($deal_users, $clients))->get()->pluck('email', 'id')->toArray();
 
                 if ($deal->stage_id != $post['stage_id']) {
-                    $newStage     = DealStage::find($post['stage_id']);
+                    $newStage     = DealStage::where('created_by', creatorId())->find($post['stage_id']);
                     $oldStage     = $deal->stage;
 
                     DealActivityLog::create([
@@ -765,7 +765,7 @@ class DealController extends Controller
                     }
                 }
                 foreach ($post['order'] as $key => $item) {
-                    $deal           = Deal::find($item);
+                    $deal           = Deal::where('created_by', creatorId())->find($item);
                     $deal->order    = $key;
                     $deal->stage_id = $post['stage_id'];
                     $deal->save();

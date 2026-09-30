@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { sanitizeHtml } from '@/utils/sanitize-html';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -133,7 +134,7 @@ export default function BankTransferSettings({ userSettings = {}, auth }: BankTr
                                     {bankSettings.instructions ? (
                                         <div
                                             className="whitespace-pre-wrap"
-                                            dangerouslySetInnerHTML={{ __html: bankSettings.instructions.replace(/<br\/>/g, '<br/>') }}
+                                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(bankSettings.instructions.replace(/<br\/>/g, '<br/>')) }}
                                         />
                                     ) : (
                                         <p className="text-muted-foreground italic">{t('No instructions provided')}</p>

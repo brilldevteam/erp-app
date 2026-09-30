@@ -116,7 +116,7 @@ class LeaveApiController extends Controller
                 $totalDays = $startDate->diff($endDate)->days + 1;
 
                     // Get leave type details
-                $leaveType = LeaveType::find($validated['leave_type_id']);
+                $leaveType = LeaveType::where('created_by', creatorId())->find($validated['leave_type_id']);
                 if (!$leaveType) {
                     return $this->errorResponse('Invalid leave type selected.');
                 }

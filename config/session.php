@@ -199,8 +199,9 @@ return [
     |
     */
 
-    // 'same_site' => env('SESSION_SAME_SITE', 'lax'),
-    'same_site' => env('SESSION_SAME_SITE', null),
+    // "lax" stops other sites from sending the session cookie with background (cross-site) requests, while normal
+    // links and Stripe/PayPal return redirects keep the user signed in.
+    'same_site' => env('SESSION_SAME_SITE', 'lax'),
 
     /*
     |--------------------------------------------------------------------------

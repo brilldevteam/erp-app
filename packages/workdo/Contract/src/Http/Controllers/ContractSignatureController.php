@@ -15,7 +15,7 @@ class ContractSignatureController extends Controller
     public function store(StoreContractSignatureRequest $request, $contractId)
     {
         if (Auth::user()->can('signatures-contracts')) {
-            $contract = Contract::findOrFail($contractId);
+            $contract = Contract::where('created_by', creatorId())->findOrFail($contractId);
 
             try {
                 DB::transaction(function () use ($request, $contract) {

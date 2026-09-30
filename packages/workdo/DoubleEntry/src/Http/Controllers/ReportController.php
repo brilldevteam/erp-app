@@ -153,7 +153,7 @@ class ReportController extends Controller
 
         $selectedAccount = null;
         if ($accountId) {
-            $selectedAccount = ChartOfAccount::find($accountId);
+            $selectedAccount = ChartOfAccount::where('created_by', creatorId())->find($accountId);
         }
 
         return response()->json([
@@ -176,7 +176,7 @@ class ReportController extends Controller
 
         $selectedAccount = null;
         if ($request->account_id) {
-            $selectedAccount = ChartOfAccount::find($request->account_id);
+            $selectedAccount = ChartOfAccount::where('created_by', creatorId())->find($request->account_id);
         }
 
         return Inertia::render('DoubleEntry/Reports/Print/AccountStatement', [

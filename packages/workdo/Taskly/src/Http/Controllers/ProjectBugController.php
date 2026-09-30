@@ -45,7 +45,7 @@ class ProjectBugController extends Controller
 
             if ($request->has('project_id') && $request->project_id) {
                 $query->where('project_id', $request->project_id);
-                $project = Project::findOrFail($request->project_id);
+                $project = Project::where('created_by', creatorId())->findOrFail($request->project_id);
             } else {
                 $project = null;
             }
@@ -97,7 +97,7 @@ class ProjectBugController extends Controller
     public function kanban($projectId)
     {
         if (Auth::user()->can('manage-project-bug')) {
-            $project = Project::with(['teamMembers:id,name,avatar'])->findOrFail($projectId);
+            $project = Project::with(['teamMembers:id,name,avatar'])->where('created_by', creatorId())->findOrFail($projectId);
             $stages = BugStage::where('created_by', creatorId())->orderBy('order')->get();
             $teamMembers = $project->teamMembers()->select('users.id', 'users.name', 'users.avatar')->get();
 
@@ -279,7 +279,7 @@ class ProjectBugController extends Controller
             ]);
 
             $oldStage = BugStage::find($bug->stage_id);
-            $newStage = BugStage::find($request->stage_id);
+            $newStage = BugStage::where('created_by', creatorId())->find($request->stage_id);
 
             $bug->update(['stage_id' => $request->stage_id]);
 

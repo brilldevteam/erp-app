@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { sanitizeHtml } from '@/utils/sanitize-html';
 import { Head, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import AuthenticatedLayout from "@/layouts/authenticated-layout";
@@ -199,7 +200,7 @@ export default function Preview() {
                             <div>
                                 <h3 className="text-lg font-semibold mb-4">{t('Description')}</h3>
                                 <div className="prose max-w-none">
-                                    <div dangerouslySetInnerHTML={{ __html: contract.description }} />
+                                    <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(contract.description) }} />
                                 </div>
                             </div>
                         )}

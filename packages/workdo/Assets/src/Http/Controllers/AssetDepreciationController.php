@@ -54,7 +54,7 @@ class AssetDepreciationController extends Controller
     {
         if(Auth::user()->can('create-asset-depreciation')){
             $validated = $request->validated();
-            $asset = Asset::findOrFail($validated['asset_id']);
+            $asset = Asset::where('created_by', creatorId())->findOrFail($validated['asset_id']);
 
             $depreciation = new AssetDepreciation();
             $depreciation->asset_id = $validated['asset_id'];
@@ -117,7 +117,7 @@ class AssetDepreciationController extends Controller
     {
         if(Auth::user()->can('edit-asset-depreciation')){
             $validated = $request->validated();
-            $asset = Asset::findOrFail($validated['asset_id']);
+            $asset = Asset::where('created_by', creatorId())->findOrFail($validated['asset_id']);
 
             $assetDepreciation->asset_id = $validated['asset_id'];
             $assetDepreciation->depreciation_method = $validated['depreciation_method'];

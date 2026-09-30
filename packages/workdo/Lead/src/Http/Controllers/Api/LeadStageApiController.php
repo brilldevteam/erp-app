@@ -93,7 +93,7 @@ class LeadStageApiController extends Controller
                 return $this->validationErrorResponse($validator->errors());
             }
 
-            $leadstage = LeadStage::findOrFail($request->lead_stage_id);
+            $leadstage = LeadStage::where('created_by', creatorId())->findOrFail($request->lead_stage_id);
 
             $oldPipelineId = $leadstage->pipeline_id;
             $newPipelineId = $request->pipeline_id;

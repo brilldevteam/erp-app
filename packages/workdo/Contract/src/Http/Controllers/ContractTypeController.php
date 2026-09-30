@@ -82,7 +82,7 @@ class ContractTypeController extends Controller
 
     public function update(UpdateContractTypeRequest $request, $id)
     {
-        $type = ContractType::find($id);
+        $type = ContractType::where('created_by', creatorId())->find($id);
         
         if (!$type) {
             return redirect()->route('contract-types.index')->with('error', __('Contract type not found.'));
@@ -109,7 +109,7 @@ class ContractTypeController extends Controller
     public function destroy($id)
     {
         if (Auth::user()->can('delete-contract-types')) {
-            $type = ContractType::find($id);
+            $type = ContractType::where('created_by', creatorId())->find($id);
 
             if (!$type) {
                 return redirect()->route('contract-types.index')->with('error', __('Contract type not found.'));

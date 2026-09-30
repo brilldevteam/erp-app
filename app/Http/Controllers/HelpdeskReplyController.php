@@ -87,6 +87,12 @@ class HelpdeskReplyController extends Controller
     {
         if(Auth::user()->can('delete-helpdesk-replies')){
             $helpdeskReply = HelpdeskReply::find($id);
+            // The super admin manages every ticket; companies only replies on their own tickets.
+            $ownsTicket = $helpdeskReply && (Auth::user()->type === 'superadmin'
+                || HelpdeskTicket::whereKey($helpdeskReply->ticket_id)->where('created_by', creatorId())->exists());
+            if (!$ownsTicket) {
+                return response()->json(['error' => __('Reply not found')], 404);
+            }
             DestroyHelpdeskReply::dispatch($helpdeskReply);
             $helpdeskReply->delete();
 

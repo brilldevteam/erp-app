@@ -363,7 +363,7 @@ class ProjectApiController extends Controller
                 return $this->validationErrorResponse($validator->errors());
             }
 
-            $project         = Project::find($request->project_id);
+            $project         = Project::where('created_by', creatorId())->find($request->project_id);
             $project->status = $request->status;
             $project->save();
 

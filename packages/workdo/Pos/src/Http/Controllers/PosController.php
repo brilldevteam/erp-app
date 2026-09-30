@@ -182,7 +182,7 @@ class PosController extends Controller
 
             $finalAmount = 0;
             foreach ($validated['items'] as $item) {
-                $product = ProductServiceItem::find($item['id']);
+                $product = ProductServiceItem::where('created_by', creatorId())->find($item['id']);
 
                 $subtotal = $item['quantity'] * $item['price'];
 

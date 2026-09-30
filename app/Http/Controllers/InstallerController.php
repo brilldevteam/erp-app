@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AddOn;
+use App\Support\InitialAccountCredentials;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -164,14 +165,17 @@ class InstallerController extends Controller
     {
         $this->createInstalledFile();
 
+        // Passwords generated during seeding are shown on this page once, then deleted.
+        $issued = InitialAccountCredentials::pull();
+        $notShownAgain = __('Already shown once; use "Forgot password" if it was not saved');
         $credentials = [
             'admin' => [
                 'email' => 'superadmin@example.com',
-                'password' => '1234'
+                'password' => $issued['superadmin@example.com'] ?? $notShownAgain,
             ],
             'company' => [
                 'email' => 'company@example.com',
-                'password' => '1234'
+                'password' => $issued['company@example.com'] ?? $notShownAgain,
             ]
         ];
 

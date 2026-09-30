@@ -278,10 +278,10 @@ class LeadApiController extends Controller
                 return $this->validationErrorResponse($validator->errors());
             }
 
-            $lead = Lead::find($request->lead_id);
+            $lead = Lead::where('created_by', creatorId())->find($request->lead_id);
 
             if ($lead->stage_id != $request->stage_id) {
-                $newStage = LeadStage::find($request->stage_id);
+                $newStage = LeadStage::where('created_by', creatorId())->find($request->stage_id);
 
                 LeadActivityLog::create([
                     'user_id'  => Auth::user()->id,

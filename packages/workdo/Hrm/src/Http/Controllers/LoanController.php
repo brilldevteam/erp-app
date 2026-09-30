@@ -20,7 +20,7 @@ class LoanController extends Controller
         if (Auth::user()->can('create-loans')) {
             $validated = $request->validated();
 
-            $employee = Employee::find($validated['employee_id']);
+            $employee = Employee::where('created_by', creatorId())->find($validated['employee_id']);
 
             if ($employee) {
                 // Check if employee already has a loan

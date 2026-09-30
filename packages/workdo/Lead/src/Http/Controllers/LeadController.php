@@ -725,7 +725,7 @@ class LeadController extends Controller
         if (Auth::user()->can('create-lead-calls')) {
             $validated = $request->validated();
             $usr  = Auth::user();
-            $lead = Lead::find($request->lead_id);
+            $lead = Lead::where('created_by', creatorId())->find($request->lead_id);
             $call              = new LeadCall();
             $call->lead_id     = $request->lead_id;
             $call->subject     = $request->subject;
@@ -756,7 +756,7 @@ class LeadController extends Controller
         if (Auth::user()->can('edit-lead-calls')) {
             $validated = $request->validated();
 
-            $call = LeadCall::find($callId);
+            $call = LeadCall::whereHas('lead', fn ($q) => $q->where('created_by', creatorId()))->find($callId);
             $call->subject     = $request->subject;
             $call->call_type   = $request->call_type;
             $call->duration    = $request->duration;
@@ -775,7 +775,7 @@ class LeadController extends Controller
     public function callDestroy($callId)
     {
         if (Auth::user()->can('delete-lead-calls')) {
-            $call = LeadCall::find($callId);
+            $call = LeadCall::whereHas('lead', fn ($q) => $q->where('created_by', creatorId()))->find($callId);
             $lead_id = $call->lead_id;
             DestroyLeadCall::dispatch($call);
             $call->delete();
@@ -791,12 +791,12 @@ class LeadController extends Controller
 
         if (Auth::user()->can('lead-move')) {
             $post       = $request->all();
-            $lead       = Lead::find($post['lead_id']);
+            $lead       = Lead::where('created_by', creatorId())->find($post['lead_id']);
             $lead_users = $lead->userLeads()->with('user')->get()->pluck('user.email', 'user.id')->toArray();
 
             if ($lead->stage_id != $post['stage_id']) {
 
-                $newStage     = LeadStage::find($post['stage_id']);
+                $newStage     = LeadStage::where('created_by', creatorId())->find($post['stage_id']);
                 $oldStage     = $lead->stage;
 
                 LeadActivityLog::create([

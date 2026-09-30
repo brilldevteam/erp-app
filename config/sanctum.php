@@ -47,7 +47,8 @@ return [
     |
     */
 
-    'expiration' => null,
+    // API tokens expire after 30 days by default; the app's /api/refresh endpoint issues a new one.
+    'expiration' => env('SANCTUM_TOKEN_EXPIRATION', 60 * 24 * 30),
 
     /*
     |--------------------------------------------------------------------------

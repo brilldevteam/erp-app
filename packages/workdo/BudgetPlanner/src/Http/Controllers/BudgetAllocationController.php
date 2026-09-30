@@ -78,7 +78,7 @@ class BudgetAllocationController extends Controller
             $budgetAllocation->save();
 
             // Update budget total amount and status
-            $budget = Budget::find($validated['budget_id']);
+            $budget = Budget::where('created_by', creatorId())->find($validated['budget_id']);
             $budget->total_budget_amount = $budget->allocations()->sum('allocated_amount');
 
             // Auto-approve budget if it has allocations and is still draft

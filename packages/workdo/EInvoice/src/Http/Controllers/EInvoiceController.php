@@ -12,7 +12,15 @@ class EInvoiceController extends Controller
 {
     public function download($id)
     {
-        $invoice = SalesInvoice::with(['items.product', 'customerDetails'])->find($id);
+        if (!Auth::user()->can('view-sales-invoices')) {
+            return response()->json(['error' => __('Permission denied')], 403);
+        }
+
+        // Only the current company's invoices; another company's invoice is reported as not found.
+        $invoice = SalesInvoice::with(['items.product', 'customerDetails'])
+            ->whereKey($id)
+            ->where('created_by', creatorId())
+            ->first();
         if (!$invoice) {
             return response()->json(['error' => 'Invoice not found'], 404);
         }

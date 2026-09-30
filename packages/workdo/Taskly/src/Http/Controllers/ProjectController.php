@@ -557,7 +557,7 @@ class ProjectController extends Controller
 
             // Log activity
             foreach ($validated['client_ids'] as $clientId) {
-                $client = User::find($clientId);
+                $client = User::where('created_by', creatorId())->find($clientId);
                 if ($client) {
                     ActivityLog::create([
                         'user_id' => Auth::user()->id,

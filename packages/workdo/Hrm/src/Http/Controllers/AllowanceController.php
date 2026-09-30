@@ -20,7 +20,7 @@ class AllowanceController extends Controller
     {
         if (Auth::user()->can('create-allowances')) {
             $validated = $request->validated();
-            $employee = Employee::find($validated['employee_id']);
+            $employee = Employee::where('created_by', creatorId())->find($validated['employee_id']);
 
             if ($employee) {
                 $existingAllowance = Allowance::where('employee_id', $employee->user_id)

@@ -34,7 +34,7 @@ class ProjectTaskController extends Controller
             $project = null;
 
             if ($projectId) {
-                $project = Project::with(['teamMembers:id,name'])->findOrFail($projectId);
+                $project = Project::with(['teamMembers:id,name'])->where('created_by', creatorId())->findOrFail($projectId);
             }
 
             $query = ProjectTask::select('project_tasks.id', 'project_id', 'milestone_id', 'title', 'priority', 'assigned_to', 'duration', 'description', 'stage_id', 'created_at')
@@ -168,7 +168,7 @@ class ProjectTaskController extends Controller
     public function kanban($projectId)
     {
         if (Auth::user()->can('manage-project-task')) {
-            $project = Project::with(['teamMembers:id,name,avatar'])->findOrFail($projectId);
+            $project = Project::with(['teamMembers:id,name,avatar'])->where('created_by', creatorId())->findOrFail($projectId);
             $stages = TaskStage::where('created_by', creatorId())->orderBy('order')->get();
             $milestones = $project->milestones()->select('id', 'title')->get();
             $teamMembers = $project->teamMembers()->select('users.id', 'users.name', 'users.avatar')->get();
@@ -230,7 +230,7 @@ class ProjectTaskController extends Controller
     public function calendar($projectId)
     {
         if (Auth::user()->can('manage-project-task')) {
-            $project = Project::with(['teamMembers:id,name'])->findOrFail($projectId);
+            $project = Project::with(['teamMembers:id,name'])->where('created_by', creatorId())->findOrFail($projectId);
 
             $query = ProjectTask::where('project_id', $projectId)
                 ->where(function($q) {
@@ -308,7 +308,7 @@ class ProjectTaskController extends Controller
             ]);
 
             $oldStage = TaskStage::find($task->stage_id);
-            $newStage = TaskStage::find($request->stage_id);
+            $newStage = TaskStage::where('created_by', creatorId())->find($request->stage_id);
 
             $request['old_stage_id'] = $task->stage_id;
             $request['new_stage_id'] = $request->stage_id;

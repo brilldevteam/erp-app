@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Support\InitialAccountCredentials;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Artisan;
@@ -49,6 +50,13 @@ class DatabaseSeeder extends Seeder
 
             // in this seeder product
             (new DemoTransferSeeder())->run($userId);
+        }
+
+        // Hand the generated login passwords to the installer (shown once), and to the console when seeding directly.
+        InitialAccountCredentials::persist();
+        if ($this->command && InitialAccountCredentials::issued()) {
+            $this->command->warn('Initial login credentials (store them safely; they are not shown again):');
+            $this->command->table(['Email', 'Password'], collect(InitialAccountCredentials::issued())->map(fn ($password, $email) => [$email, $password])->values()->all());
         }
     }
 }

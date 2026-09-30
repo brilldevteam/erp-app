@@ -19,7 +19,7 @@ class OvertimeController extends Controller
         if (Auth::user()->can('create-overtimes')) {
             $validated = $request->validated();
             
-            $employee = Employee::find($validated['employee_id']);
+            $employee = Employee::where('created_by', creatorId())->find($validated['employee_id']);
 
             if ($employee) {
                 $overtime = new Overtime();

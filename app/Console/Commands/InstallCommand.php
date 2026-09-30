@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use App\Models\AddOn;
+use App\Support\InitialAccountCredentials;
 use Illuminate\Support\Facades\DB;
 
 class InstallCommand extends Command
@@ -52,6 +53,12 @@ class InstallCommand extends Command
         $this->createInstalledFile();
 
         $this->info('Application installed successfully!');
+
+        $credentials = InitialAccountCredentials::pull();
+        if ($credentials) {
+            $this->warn('Initial login credentials (store them safely; they are not shown again):');
+            $this->table(['Email', 'Password'], collect($credentials)->map(fn ($password, $email) => [$email, $password])->values()->all());
+        }
         return 0;
     }
 

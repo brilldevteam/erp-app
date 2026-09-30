@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { sanitizeHtml } from '@/utils/sanitize-html';
 import { FileText } from 'lucide-react';
 import PublicLayout from './components/PublicLayout';
 
@@ -44,7 +45,7 @@ export default function TermsConditions({ termsSettings }: TermsConditionsProps)
                                 <div
                                     className="prose max-w-none [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-gray-900 [&_h2]:mb-4 [&_p]:text-gray-700 [&_p]:mb-6 [&_ul]:text-gray-700 [&_li]:mb-2"
                                     dangerouslySetInnerHTML={{
-                                        __html: termsSettings.content
+                                        __html: sanitizeHtml(termsSettings.content)
                                     }}
                                 />
                             ) : (

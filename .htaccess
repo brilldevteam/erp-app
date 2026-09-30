@@ -10,6 +10,22 @@
 
     RewriteEngine On
 
+    # Deny web access to project files outside public/. The document root should point at public/;
+    # these rules protect deployments where the project folder itself is served.
+    # Hidden files and folders (.git, .env, ...), except ACME/SSL validation under .well-known.
+    RewriteRule (^|/)\.(?!well-known/) - [F,L]
+    # Real files and folders in application directories; public assets under these URL prefixes
+    # live in public/ and are rewritten there further down.
+    # Module icons and marketplace images under packages/ stay public.
+    RewriteCond %{REQUEST_URI} !^/packages/.+\.(png|jpe?g|gif|svg|webp|ico)$ [NC]
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^(app|bootstrap|config|database|lang|resources|routes|storage|stubs|tests|vendor|node_modules|packages|backups|tmp|outputs|knowledge-base|production-client-portal-clean)(/|$) - [F,L,NC]
+    # Configuration, dependency manifests, logs, dumps and tooling in the project root.
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^[^/]+\.(env|log|sql|gz|bak|md|lock|json|xml|yml|yaml|sh|py|stackdump|dist|example)$ - [F,L,NC]
+    RewriteRule ^(artisan|extract-translations\.php|vite\.config\.js|tailwind\.config\.js|postcss\.config\.js)$ - [F,L,NC]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
