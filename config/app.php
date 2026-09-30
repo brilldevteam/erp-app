@@ -4,6 +4,9 @@ return [
 
     'run_demo_seeder' => false,
 
+    // Password for the super admin and company accounts created at installation; a random one is generated when empty.
+    'admin_default_password' => env('ADMIN_DEFAULT_PASSWORD'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Name

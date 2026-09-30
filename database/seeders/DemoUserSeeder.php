@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use Illuminate\Support\Str;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -33,7 +34,7 @@ class DemoUserSeeder extends Seeder
                 'email' => $userData['email'],
                 'avatar' => $userData['avatar'],
                 'mobile_no' => '+' . $faker->numberBetween(1, 999) . $faker->numerify('##########'),
-                'password' => Hash::make('1234'),
+                'password' => Hash::make(Str::password(16, symbols: false)),
                 'type' => 'company',
                 'lang' => 'en',
                 'email_verified_at' => now(),

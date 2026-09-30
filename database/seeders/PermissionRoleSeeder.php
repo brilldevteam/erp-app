@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Support\InitialAccountCredentials;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Database\Seeder;
@@ -18,12 +19,13 @@ class PermissionRoleSeeder extends Seeder
         Artisan::call('cache:clear');
 
         // Create Super Admin User
+        $superAdminPassword = InitialAccountCredentials::password();
         $superAdmin = User::firstOrCreate(
             ['email' => 'superadmin@example.com'],
             [
                 'name' => 'Super Admin',
                 'email_verified_at' => now(),
-                'password' => Hash::make('1234'),
+                'password' => Hash::make($superAdminPassword),
                 'type' => 'superadmin',
                 'lang' => 'en',
                 'mobile_no' => '+133344455566',
@@ -35,12 +37,13 @@ class PermissionRoleSeeder extends Seeder
 
 
         // Create Company User
+        $companyPassword = InitialAccountCredentials::password();
         $company = User::firstOrCreate(
             ['email' => 'company@example.com'],
             [
                 'name' => 'Company',
                 'email_verified_at' => now(),
-                'password' => Hash::make('1234'),
+                'password' => Hash::make($companyPassword),
                 'mobile_no' => '+122233344455',
                 'type' => 'company',
                 'lang' => 'en',
@@ -48,6 +51,14 @@ class PermissionRoleSeeder extends Seeder
                 'created_by' => $superAdmin->id
             ]
         );
+
+        // Existing accounts keep their password; only newly created ones get the issued password.
+        if ($superAdmin->wasRecentlyCreated) {
+            InitialAccountCredentials::issue($superAdmin->email, $superAdminPassword);
+        }
+        if ($company->wasRecentlyCreated) {
+            InitialAccountCredentials::issue($company->email, $companyPassword);
+        }
 
         $permissions = [
             // Dashboard permissions
