@@ -118,6 +118,11 @@ class VendorPaymentController extends Controller
                 return (float) $debitNote['amount'] * (float) ($note?->exchange_rate ?: 1);
             });
 
+            // Every applied debit note must belong to this company and vendor.
+            if (collect($request->debit_notes ?? [])->pluck('debit_note_id')->unique()->count() !== $allocationDebitNotes->count()) {
+                return back()->with('error', __('Select valid debit notes for this vendor.'));
+            }
+
             // Validate debit note amount doesn't exceed invoice allocation amount
             if ($request->debit_notes) {
                 if ($totalDebitNoteBaseAmount > $totalInvoiceBaseAmount + 0.01) {
@@ -162,7 +167,7 @@ class VendorPaymentController extends Controller
             // Handle debit notes if provided
             if ($request->debit_notes) {
                 foreach ($request->debit_notes as $debitNote) {
-                    $debitNoteModel = DebitNote::find($debitNote['debit_note_id']);
+                    $debitNoteModel = $allocationDebitNotes->get($debitNote['debit_note_id']);
                     if (!$debitNoteModel) continue;
 
                     // Create debit note application entry
@@ -236,7 +241,8 @@ class VendorPaymentController extends Controller
                 $debitNoteApplication = DebitNoteApplication::where('payment_id', $vendorPayment->id)->get();
 
                 foreach ($debitNoteApplication as $debitNote) {
-                    $debitNoteModel = DebitNote::find($debitNote['debit_note_id']);
+                    $debitNoteModel = DebitNote::where('created_by', creatorId())->find($debitNote['debit_note_id']);
+                    if (!$debitNoteModel) continue;
                     $debitNoteModel->applied_amount += $debitNote['applied_amount'];
                     $debitNoteModel->balance_amount = $debitNoteModel->total_amount - $debitNoteModel->applied_amount;
                     $debitNoteModel->status = $debitNoteModel->balance_amount <= 0 ? 'applied' : 'partial';

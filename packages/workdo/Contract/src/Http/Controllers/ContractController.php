@@ -110,7 +110,7 @@ class ContractController extends Controller
     public function update(UpdateContractRequest $request, $id)
     {
         if (Auth::user()->can('edit-contracts')) {
-            $contract = Contract::find($id);
+            $contract = Contract::where('created_by', creatorId())->find($id);
 
             if (!$contract) {
                 return redirect()->route('contract.index')->with('error', __('Contract not found.'));
@@ -132,7 +132,7 @@ class ContractController extends Controller
     public function updateStatus(Request $request, $id)
     {
         if (Auth::user()->can('edit-contracts')) {
-            $contract = Contract::find($id);
+            $contract = Contract::where('created_by', creatorId())->find($id);
 
             if (!$contract) {
                 return redirect()->route('contract.index')->with('error', __('Contract not found.'));
@@ -156,7 +156,7 @@ class ContractController extends Controller
     public function destroy($id)
     {
         if (Auth::user()->can('delete-contracts')) {
-            $contract = Contract::find($id);
+            $contract = Contract::where('created_by', creatorId())->find($id);
 
             if (!$contract) {
                 return redirect()->route('contract.index')->with('error', __('Contract not found.'));

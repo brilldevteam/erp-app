@@ -266,7 +266,7 @@ class BalanceSheetController extends Controller
             $comparison = ComparativeBalanceSheet::with([
                 'currentPeriod.items.account',
                 'previousPeriod.items.account'
-            ])->findOrFail($id);
+            ])->where('created_by', creatorId())->findOrFail($id);
 
             return Inertia::render('DoubleEntry/BalanceSheets/Comparison', [
                 'comparison' => $comparison
