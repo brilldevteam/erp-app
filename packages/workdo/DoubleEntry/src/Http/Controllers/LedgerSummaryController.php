@@ -92,6 +92,6 @@ class LedgerSummaryController extends Controller
             $entry->reference_type, $entry->description ?: $entry->journal_description, (float) $entry->debit_amount, (float) $entry->credit_amount])->all();
         $path = $exporter->create(__('Ledger Summary'), [__('Period') => ($filters['from_date'] ?? __('All')).' to '.($filters['to_date'] ?? __('All'))],
             [__('Date'), __('Account Code'), __('Account Name'), __('Reference'), __('Description'), __('Debit'), __('Credit')], $rows, ['F', 'G']);
-        return response()->download($path, 'ledger-summary.xlsx')->deleteFileAfterSend(true);
+        return response()->download($path, 'LS-'.now()->format('Y-m-d').'.xlsx')->deleteFileAfterSend(true);
     }
 }

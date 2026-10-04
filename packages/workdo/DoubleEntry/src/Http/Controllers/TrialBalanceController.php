@@ -64,6 +64,6 @@ class TrialBalanceController extends Controller
         $rows[] = ['', __('Totals'), '', '', '', $report['total_debit'], $report['total_credit']];
         $path = $exporter->create(__('Trial Balance'), [__('Period') => $filters['from_date'].' to '.$filters['to_date'], __('Status') => $report['is_balanced'] ? __('Balanced') : __('Unbalanced')],
             [__('Account Code'), __('Account Name'), __('Opening Balance'), __('Period Debit'), __('Period Credit'), __('Debit'), __('Credit')], $rows, ['C', 'D', 'E', 'F', 'G']);
-        return response()->download($path, 'trial-balance-'.$filters['from_date'].'-to-'.$filters['to_date'].'.xlsx')->deleteFileAfterSend(true);
+        return response()->download($path, 'TB-'.$filters['from_date'].'-to-'.$filters['to_date'].'.xlsx')->deleteFileAfterSend(true);
     }
 }

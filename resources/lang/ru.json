@@ -1706,5 +1706,9 @@
     "Your plan has expired. Please renew your subscription": "Ваш план истек.",
     "Your trial has expired. Please subscribe to a plan": "Процесс закончился, пожалуйста, подпишитесь на план",
     "add-ons": "Дополнительные",
-    "record(s)": "Запись"
+    "record(s)": "Запись",
+    "Duplicate": "Дублировать",
+    "Duplicate Sales Invoice": "Дублировать счет продажи",
+    "This creates a new draft invoice dated today with the same customer and items. Continue?": "Будет создан новый черновик счета с сегодняшней датой, тем же клиентом и позициями. Продолжить?",
+    "Invoice duplicated as draft :number.": "Счет продублирован как черновик :number."
 }

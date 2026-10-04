@@ -73,7 +73,7 @@ export default function Payslip() {
         if (printContent) {
             const opt = {
                 margin: 0.25,
-                filename: `payslip-${payrollEntry.employee?.user?.name || payrollEntry.employee?.name}-${formatDate(payrollEntry.payroll.pay_period_start)}.pdf`,
+                filename: `PS-${String(payrollEntry.employee?.user?.name || payrollEntry.employee?.name || '').trim().replace(/[^\w-]+/g, '-')}-${String(payrollEntry.payroll.pay_period_start || '').slice(0, 7)}.pdf`,
                 image: { type: 'jpeg' as const, quality: 0.98 },
                 html2canvas: { scale: 2 },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' as const }

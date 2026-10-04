@@ -67,6 +67,6 @@ class ProfitLossController extends Controller
         $rows[] = [__('Net Profit'), '', '', (float) $report['net_profit']];
         $path = $exporter->create(__('Profit & Loss'), [__('Period') => $filters['from_date'].' to '.$filters['to_date']],
             [__('Section'), __('Account Code'), __('Account Name'), __('Amount')], $rows, ['D']);
-        return response()->download($path, 'profit-loss-'.$filters['from_date'].'-to-'.$filters['to_date'].'.xlsx')->deleteFileAfterSend(true);
+        return response()->download($path, 'PL-'.$filters['from_date'].'-to-'.$filters['to_date'].'.xlsx')->deleteFileAfterSend(true);
     }
 }

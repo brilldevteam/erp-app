@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Plus, Edit as EditIcon, Trash2, Eye, FileText, Receipt, Download, FileSearch } from "lucide-react";
+import { Plus, Edit as EditIcon, Trash2, Eye, FileText, Receipt, Download, FileSearch, Copy } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FilterButton } from '@/components/ui/filter-button';
 import { Pagination } from "@/components/ui/pagination";
@@ -109,6 +109,15 @@ export default function Index() {
         routeName: 'sales-invoices.destroy',
         defaultMessage: t('Are you sure you want to delete this sales invoice?')
     });
+
+    const [duplicateInvoiceId, setDuplicateInvoiceId] = useState<number | null>(null);
+    const confirmDuplicate = () => {
+        if (duplicateInvoiceId) {
+            router.post(route('sales-invoices.duplicate', duplicateInvoiceId), {}, { preserveScroll: true });
+        }
+        setDuplicateInvoiceId(null);
+    };
+    const canDuplicate = auth.user?.permissions?.includes('create-sales-invoices');
 
     const handleFilter = () => {
         router.get(route('sales-invoices.index'), {...filters, per_page: perPage, sort: sortField, direction: sortDirection, view: viewMode}, {
@@ -277,6 +286,23 @@ export default function Index() {
                                 </TooltipTrigger>
                                 <TooltipContent>
                                     <p>{t('View')}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
+                        {canDuplicate && (
+                            <Tooltip delayDuration={0}>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setDuplicateInvoiceId(invoice.id)}
+                                        className="h-8 w-8 p-0 text-gray-700 hover:text-gray-900"
+                                    >
+                                        <Copy className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{t('Duplicate')}</p>
                                 </TooltipContent>
                             </Tooltip>
                         )}
@@ -623,6 +649,16 @@ export default function Index() {
                                                                 <TooltipContent><p>{t('View')}</p></TooltipContent>
                                                             </Tooltip>
                                                         )}
+                                                        {canDuplicate && (
+                                                            <Tooltip delayDuration={0}>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button variant="ghost" size="sm" onClick={() => setDuplicateInvoiceId(invoice.id)} className="h-8 w-8 p-0 text-gray-700 hover:text-gray-900">
+                                                                        <Copy className="h-4 w-4" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent><p>{t('Duplicate')}</p></TooltipContent>
+                                                            </Tooltip>
+                                                        )}
                                                     </TooltipProvider>
                                                 </div>
                                                 <div className="flex gap-1">
@@ -694,6 +730,14 @@ export default function Index() {
                 </CardContent>
             </Card>
 
+            <ConfirmationDialog
+                open={duplicateInvoiceId !== null}
+                onOpenChange={() => setDuplicateInvoiceId(null)}
+                title={t('Duplicate Sales Invoice')}
+                message={t('This creates a new draft invoice dated today with the same customer and items. Continue?')}
+                confirmText={t('Duplicate')}
+                onConfirm={confirmDuplicate}
+            />
             <ConfirmationDialog
                 open={deleteState.isOpen}
                 onOpenChange={closeDeleteDialog}

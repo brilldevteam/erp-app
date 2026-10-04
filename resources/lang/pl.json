@@ -1706,5 +1706,9 @@
     "Your plan has expired. Please renew your subscription": "Proszę odnowić abonament.",
     "Your trial has expired. Please subscribe to a plan": "Proszę zapisać się na plan",
     "add-ons": "dodatki",
-    "record(s)": "Zapisy"
+    "record(s)": "Zapisy",
+    "Duplicate": "Duplikuj",
+    "Duplicate Sales Invoice": "Duplikuj fakturę sprzedaży",
+    "This creates a new draft invoice dated today with the same customer and items. Continue?": "Zostanie utworzona nowa faktura robocza z dzisiejszą datą, tym samym klientem i pozycjami. Kontynuować?",
+    "Invoice duplicated as draft :number.": "Faktura zduplikowana jako wersja robocza :number."
 }

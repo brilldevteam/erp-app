@@ -38,7 +38,7 @@ class AccountTransactionExportController extends Controller
             __('Period') => $filters['from_date'].' to '.$filters['to_date'],
             __('Currency') => $settings['defaultCurrency'] ?? ''];
         $headers = [__('Date'), __('Journal Number'), __('Reference'), __('Description'), __('Debit'), __('Credit'), __('Balance'), __('Dr/Cr')];
-        $filename = 'account-transactions-'.preg_replace('/[^a-zA-Z0-9_-]/','_', $account->account_code).'-'.$filters['from_date'].'-'.$filters['to_date'];
+        $filename = 'TX-'.preg_replace('/[^a-zA-Z0-9_-]/','_', $account->account_code).'-'.$filters['from_date'].'-to-'.$filters['to_date'];
         if ($filters['format'] === 'pdf') {
             return Inertia::render('Account/ChartOfAccounts/TransactionsPrint', compact('rows','metadata','headers','filename'));
         }

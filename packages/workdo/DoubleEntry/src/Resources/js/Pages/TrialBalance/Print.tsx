@@ -44,7 +44,7 @@ export default function Print() {
         if (printContent) {
             const opt = {
                 margin: 0.25,
-                filename: `trial-balance-${formatDate(trialBalance.from_date)}-to-${formatDate(trialBalance.to_date)}.pdf`,
+                filename: `TB-${String(trialBalance.from_date || '').slice(0, 10)}-to-${String(trialBalance.to_date || '').slice(0, 10)}.pdf`,
                 image: { type: 'jpeg' as const, quality: 0.98 },
                 html2canvas: { scale: 2 },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' as const }

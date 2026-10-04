@@ -42,7 +42,7 @@ export default function Preview() {
         const element = printRef.current;
         const opt = {
             margin: 0.5,
-            filename: `contract-${contract.contract_number || contract.id}.pdf`,
+            filename: `${contract.contract_number || `CON-${contract.id}`}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2 },
             jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }

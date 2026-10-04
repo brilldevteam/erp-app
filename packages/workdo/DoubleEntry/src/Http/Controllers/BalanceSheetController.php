@@ -334,7 +334,7 @@ class BalanceSheetController extends Controller
             : [__('As of') => $balanceSheet->balance_sheet_date->format('Y-m-d')];
         $path = $exporter->create(__('Balance Sheet'), $period + [__('Financial Year') => $balanceSheet->financial_year],
             [__('Section'), __('Subsection'), __('Account Code'), __('Account Name'), __('Amount')], $rows, ['E']);
-        return response()->download($path, 'balance-sheet-'.$balanceSheet->balance_sheet_date->format('Y-m-d').'.xlsx')->deleteFileAfterSend(true);
+        return response()->download($path, 'BS-'.($balanceSheet->period_start_date ? $balanceSheet->period_start_date->format('Y-m-d').'-to-' : '').$balanceSheet->balance_sheet_date->format('Y-m-d').'.xlsx')->deleteFileAfterSend(true);
     }
 
     public function comparisonPrint(Request $request)
@@ -382,6 +382,6 @@ class BalanceSheetController extends Controller
         })->all();
         $path = $exporter->create(__('Balance Sheet Comparison'), [__('Previous Period') => $previous->balance_sheet_date->format('Y-m-d'), __('Current Period') => $current->balance_sheet_date->format('Y-m-d')],
             [__('Section'), __('Account Code'), __('Account Name'), __('Previous'), __('Current'), __('Change')], $rows, ['D', 'E', 'F']);
-        return response()->download($path, 'balance-sheet-comparison.xlsx')->deleteFileAfterSend(true);
+        return response()->download($path, 'BSC-'.now()->format('Y-m-d').'.xlsx')->deleteFileAfterSend(true);
     }
 }

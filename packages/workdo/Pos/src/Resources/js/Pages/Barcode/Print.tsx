@@ -24,7 +24,7 @@ export default function Print() {
             setTimeout(async () => {
                 const opt = {
                     margin: 0.5,
-                    filename: 'product-barcodes.pdf',
+                    filename: `BARCODES-${new Date().toISOString().slice(0, 10)}.pdf`,
                     image: { type: 'jpeg', quality: 1.0 },
                     html2canvas: { scale: 3, useCORS: true, letterRendering: true },
                     jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }

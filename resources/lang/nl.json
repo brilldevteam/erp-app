@@ -1706,5 +1706,9 @@
     "Your plan has expired. Please renew your subscription": "Uw abonnement is verlopen.",
     "Your trial has expired. Please subscribe to a plan": "Uw proefperiode is verstreken.",
     "add-ons": "add-ons",
-    "record(s)": "Registratie"
+    "record(s)": "Registratie",
+    "Duplicate": "Dupliceren",
+    "Duplicate Sales Invoice": "Verkoopfactuur dupliceren",
+    "This creates a new draft invoice dated today with the same customer and items. Continue?": "Er wordt een nieuwe conceptfactuur met de datum van vandaag aangemaakt met dezelfde klant en artikelen. Doorgaan?",
+    "Invoice duplicated as draft :number.": "Factuur gedupliceerd als concept :number."
 }

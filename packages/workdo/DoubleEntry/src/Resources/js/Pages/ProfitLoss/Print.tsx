@@ -44,7 +44,7 @@ export default function Print() {
         if (printContent) {
             const opt = {
                 margin: 0.25,
-                filename: `profit-loss-${formatDate(profitLoss.from_date)}-to-${formatDate(profitLoss.to_date)}.pdf`,
+                filename: `PL-${String(profitLoss.from_date || '').slice(0, 10)}-to-${String(profitLoss.to_date || '').slice(0, 10)}.pdf`,
                 image: { type: 'jpeg' as const, quality: 0.98 },
                 html2canvas: { scale: 2 },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' as const }

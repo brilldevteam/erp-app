@@ -1706,5 +1706,9 @@
     "Your plan has expired. Please renew your subscription": "התוכנית שלך פגשה, אנא תחדשי את המנוי שלך.",
     "Your trial has expired. Please subscribe to a plan": "תקופת הניסוי שלך הסתיימה.",
     "add-ons": "תוספות",
-    "record(s)": "שיא"
+    "record(s)": "שיא",
+    "Duplicate": "שכפל",
+    "Duplicate Sales Invoice": "שכפול חשבונית מכירה",
+    "This creates a new draft invoice dated today with the same customer and items. Continue?": "תיווצר טיוטת חשבונית חדשה בתאריך היום עם אותו לקוח ואותם פריטים. להמשיך?",
+    "Invoice duplicated as draft :number.": "החשבונית שוכפלה כטיוטה :number."
 }

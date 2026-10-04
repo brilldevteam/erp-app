@@ -53,7 +53,7 @@ export default function Print() {
         if (printContent) {
             const opt = {
                 margin: 0.25,
-                filename: `general-ledger-${selectedAccount?.account_code || 'report'}.pdf`,
+                filename: `GL-${selectedAccount?.account_code || 'ALL'}-${String(filters.from_date || '').slice(0, 10)}-to-${String(filters.to_date || '').slice(0, 10)}.pdf`,
                 image: { type: 'jpeg' as const, quality: 0.98 },
                 html2canvas: { scale: 2 },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' as const }

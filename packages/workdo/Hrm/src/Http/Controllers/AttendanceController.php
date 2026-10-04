@@ -43,7 +43,7 @@ class AttendanceController extends Controller
                 }
             });
             fclose($stream);
-        }, 'attendance-'.now()->format('Y-m-d-His').'.csv', ['Content-Type' => 'text/csv']);
+        }, 'ATT-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv']);
     }
 
     public function index()

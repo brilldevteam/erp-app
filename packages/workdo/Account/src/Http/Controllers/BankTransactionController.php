@@ -74,7 +74,7 @@ class BankTransactionController extends Controller
             ]);
         })->all();
 
-        $filename = 'bank-transactions-'.now()->format('Y-m-d-His');
+        $filename = 'BT-'.now()->format('Y-m-d');
         if ($filters['format'] === 'csv') {
             return response()->streamDownload(function () use ($headers, $rows) {
                 $output = fopen('php://output', 'w');

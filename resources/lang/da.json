@@ -1706,5 +1706,9 @@
     "Your plan has expired. Please renew your subscription": "Deres abonnement er udløbet.",
     "Your trial has expired. Please subscribe to a plan": "Deres prøveperiode er udløbet.",
     "add-ons": "Tilbehør",
-    "record(s)": "Optegnelser"
+    "record(s)": "Optegnelser",
+    "Duplicate": "Dupliker",
+    "Duplicate Sales Invoice": "Dupliker salgsfaktura",
+    "This creates a new draft invoice dated today with the same customer and items. Continue?": "Dette opretter en ny kladdefaktura dateret i dag med samme kunde og varer. Fortsæt?",
+    "Invoice duplicated as draft :number.": "Faktura duplikeret som kladde :number."
 }

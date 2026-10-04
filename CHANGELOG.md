@@ -40,6 +40,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Added editable per-item descriptions that update the selected product/service catalogue record, plus percentage or fixed-currency discounts for quotations and sales invoices, including document conversion, printing, templates, imports, and sales returns.
 - Added bulk import support for Bank Transfers and Journal Entries, including import permissions and page-level Import actions.
 - New features currently in development will be listed here before release.
+- Added a Duplicate action to sales invoices (list and grid views) that copies an invoice into a new draft dated today with the same customer, lines, discounts and taxes; payments, posting and the quotation link are not copied.
 
 ### Changed
 - Shortened the Banking submenu labels to Accounts, Transactions and Transfers, and gave third-level sidebar items more room so labels are no longer cut off.
@@ -90,6 +91,7 @@ manual-journal-entries
 - Added bulk import support for Petty Cash records, including templates, validation, duplicate handling, and the Petty Cash page import action.
 - Added bulk import support for quotations, including templates, validation, duplicate handling, and the Quotations page import action.
 main
+- Shortened PDF, Excel and CSV download names: documents are named by their number (e.g. CP-2026-10-002.pdf) and reports by a short code and ISO dates (e.g. GL-1010-2026-10-01-to-2026-10-31.xlsx).
 
 ### Improved
 - Enhancements to existing workflows will be listed here before release.

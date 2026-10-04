@@ -1713,5 +1713,9 @@
     "d trial": "d trial",
     "modules": "modules",
     "add-ons": "add-ons",
-    "record(s)": "record(s)"
+    "record(s)": "record(s)",
+    "Duplicate": "Duplicate",
+    "Duplicate Sales Invoice": "Duplicate Sales Invoice",
+    "This creates a new draft invoice dated today with the same customer and items. Continue?": "This creates a new draft invoice dated today with the same customer and items. Continue?",
+    "Invoice duplicated as draft :number.": "Invoice duplicated as draft :number."
 }
