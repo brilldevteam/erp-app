@@ -15,7 +15,6 @@ All notable changes to the Wazely ERP application are documented here.
 - Show the Purchase Orders / LPO navigation entry only for companies whose active plan includes the add-on, preventing dashboard redirects from unavailable module links.
 
 ### Added
-- Added a Duplicate action to sales invoices (list and grid views) that copies an invoice into a new draft dated today with the same customer, lines, discounts and taxes; payments, posting and the quotation link are not copied.
 - Added manual multi-currency transaction entry with effective-dated company exchange rates, historical rate snapshots, base-currency journal posting, currency-aware bank accounts, and a dry-run-safe live-data backfill command.
 - Added CR Number and private supporting-document uploads to customer and vendor create, edit, and detail views, including validated files and authorized preview, download, and removal actions.
 - Added a live searchable customer filter, invoice-date-range and aging-bucket filters, plus selectable report columns to Invoice Aging, with matching filtered PDF output.
@@ -33,6 +32,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Added editable per-item descriptions that update the selected product/service catalogue record, plus percentage or fixed-currency discounts for quotations and sales invoices, including document conversion, printing, templates, imports, and sales returns.
 - Added bulk import support for Bank Transfers and Journal Entries, including import permissions and page-level Import actions.
 - New features currently in development will be listed here before release.
+- Added a Duplicate action to sales invoices (list and grid views) that copies an invoice into a new draft dated today with the same customer, lines, discounts and taxes; payments, posting and the quotation link are not copied.
 
 ### Changed
 - Added searchable customer/vendor selectors with in-place party creation and automatic selection in sales invoices and customer/vendor payment forms.
