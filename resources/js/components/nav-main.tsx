@@ -154,9 +154,9 @@ export function NavMain({ items = [], searchQuery = "" }: { items: NavItem[], se
                                                                             </SidebarMenuSubButton>
                                                                         </CollapsibleTrigger>
                                                                         <CollapsibleContent>
-                                                                            <SidebarMenuSub>
+                                                                            <SidebarMenuSub className="ml-3 mr-0">
                                                                                 {subItem.children.map((subSubItem) => (
-                                                                                    <SidebarMenuSubItem key={subSubItem.title}>
+                                                                                    <SidebarMenuSubItem key={subSubItem.title} className="before:h-[20px]">
                                                                                         <SidebarMenuSubButton
                                                                                             asChild
                                                                                             isActive={!!(subSubItem.href && isUrlActive(new URL(subSubItem.href, window.location.origin).pathname))}

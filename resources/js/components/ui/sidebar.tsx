@@ -691,7 +691,7 @@ const SidebarMenuSub = React.forwardRef<
     ref={ref}
     data-sidebar="menu-sub"
     className={cn(
-      "mx-4 my-1 flex min-w-0 translate-x-px flex-col gap-1 border-l border-slate-400/80 py-1 pl-3 pr-0 dark:border-slate-600",
+      "mx-4 my-1 flex min-w-0 translate-x-px flex-col gap-1 py-1 pl-3 pr-0",
       "group-data-[collapsible=icon]:hidden",
       className
     )}
@@ -707,7 +707,10 @@ const SidebarMenuSubItem = React.forwardRef<
   <li
     ref={ref}
     className={cn(
-      "relative before:absolute before:-left-3 before:top-0 before:h-3.5 before:w-3 before:rounded-bl-md before:border-b before:border-l before:border-slate-400/80 before:content-[''] dark:before:border-slate-600",
+      // Tree lines are drawn per item so the vertical line ends at the last item's branch instead of running past it.
+      // The branch starts 4px above the item and meets the middle of a 36px (h-9) row; shorter rows override its height.
+      "relative before:absolute before:-left-3 before:-top-1 before:h-[22px] before:w-3 before:rounded-bl-md before:border-b before:border-l before:border-slate-400/80 before:content-[''] dark:before:border-slate-600",
+      "after:absolute after:-left-3 after:top-0 after:-bottom-1 after:border-l after:border-slate-400/80 after:content-[''] last:after:hidden dark:after:border-slate-600",
       className
     )}
     {...props}
