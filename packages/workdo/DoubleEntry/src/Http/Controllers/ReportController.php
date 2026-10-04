@@ -107,7 +107,7 @@ class ReportController extends Controller
         $account = ChartOfAccount::where('created_by', creatorId())
             ->findOrFail($filters['account_id']);
         $path = $exporter->create($this->reportService->getGeneralLedger($filters), $account, $filters);
-        $filename = 'general-ledger-'.$account->account_code.'-'.$filters['from_date'].'-to-'.$filters['to_date'].'.xlsx';
+        $filename = 'GL-'.$account->account_code.'-'.$filters['from_date'].'-to-'.$filters['to_date'].'.xlsx';
 
         return response()->download($path, $filename, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -200,7 +200,7 @@ class ReportController extends Controller
         $rows[] = [__('Closing Balance'), '', '', '', '', (float) $data['closing_balance']];
         $path = $exporter->create(__('Account Statement'), [__('Account') => $account->account_code.' - '.$account->account_name, __('Period') => $filters['from_date'].' to '.$filters['to_date']],
             [__('Date'), __('Description'), __('Reference'), __('Debit'), __('Credit'), __('Balance')], $rows, ['D', 'E', 'F']);
-        return response()->download($path, 'account-statement-'.$account->account_code.'.xlsx')->deleteFileAfterSend(true);
+        return response()->download($path, 'AS-'.$account->account_code.'-'.now()->format('Y-m-d').'.xlsx')->deleteFileAfterSend(true);
     }
 
     public function journalEntry(Request $request)
@@ -253,7 +253,7 @@ class ReportController extends Controller
         }
         $path = $exporter->create(__('Journal Entry Report'), [__('Period') => $filters['from_date'].' to '.$filters['to_date']],
             [__('Date'), __('Journal Number'), __('Reference'), __('Account Code'), __('Account Name'), __('Description'), __('Debit'), __('Credit'), __('Status')], $rows, ['G', 'H']);
-        return response()->download($path, 'journal-entry-report.xlsx')->deleteFileAfterSend(true);
+        return response()->download($path, 'JE-'.now()->format('Y-m-d').'.xlsx')->deleteFileAfterSend(true);
     }
 
     public function accountBalance(Request $request)
@@ -307,7 +307,7 @@ class ReportController extends Controller
         $rows[] = [__('Totals'), '', '', $data['totals']['debit'], $data['totals']['credit'], $data['totals']['net']];
         $path = $exporter->create(__('Account Balance'), [__('As of') => $filters['as_of_date']],
             [__('Account Type'), __('Account Code'), __('Account Name'), __('Debit'), __('Credit'), __('Net Balance')], $rows, ['D', 'E', 'F']);
-        return response()->download($path, 'account-balance-'.$filters['as_of_date'].'.xlsx')->deleteFileAfterSend(true);
+        return response()->download($path, 'AB-'.$filters['as_of_date'].'.xlsx')->deleteFileAfterSend(true);
     }
 
     public function cashFlow(Request $request)
@@ -353,7 +353,7 @@ class ReportController extends Controller
             [__('Investing Activities'), $data['investing']], [__('Financing Activities'), $data['financing']],
             [__('Net Cash Flow'), $data['net_cash_flow']], [__('Ending Cash'), $data['ending_cash']]];
         $path = $exporter->create(__('Cash Flow'), [__('Period') => $filters['from_date'].' to '.$filters['to_date']], [__('Section'), __('Amount')], $rows, ['B']);
-        return response()->download($path, 'cash-flow-'.$filters['from_date'].'-to-'.$filters['to_date'].'.xlsx')->deleteFileAfterSend(true);
+        return response()->download($path, 'CF-'.$filters['from_date'].'-to-'.$filters['to_date'].'.xlsx')->deleteFileAfterSend(true);
     }
 
     public function expenseReport(Request $request)
@@ -398,6 +398,6 @@ class ReportController extends Controller
         $rows = array_map(fn ($expense) => [$expense['account_code'], $expense['account_name'], $expense['amount']], $data['expenses']);
         $rows[] = ['', __('Total Expenses'), $data['total_expenses']];
         $path = $exporter->create(__('Expense Report'), [__('Period') => $filters['from_date'].' to '.$filters['to_date']], [__('Account Code'), __('Account Name'), __('Amount')], $rows, ['C']);
-        return response()->download($path, 'expense-report-'.$filters['from_date'].'-to-'.$filters['to_date'].'.xlsx')->deleteFileAfterSend(true);
+        return response()->download($path, 'ER-'.$filters['from_date'].'-to-'.$filters['to_date'].'.xlsx')->deleteFileAfterSend(true);
     }
 }

@@ -115,7 +115,7 @@ export const downloadReceiptPDF = async (completedSale: any, globalSettings: any
     
     const opt = {
         margin: 0.1,
-        filename: `receipt-${completedSale.pos_number}.pdf`,
+        filename: `${completedSale.pos_number}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2 },
         jsPDF: { unit: 'mm', format: [80, 297], orientation: 'portrait' }

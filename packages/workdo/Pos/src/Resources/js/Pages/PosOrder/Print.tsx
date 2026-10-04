@@ -59,7 +59,7 @@ export default function Print() {
         if (printContent) {
             const opt = {
                 margin: 0.25,
-                filename: `pos-sale-${sale.sale_number}.pdf`,
+                filename: `${sale.sale_number}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2 },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }

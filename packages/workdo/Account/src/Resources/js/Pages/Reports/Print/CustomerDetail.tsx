@@ -22,7 +22,7 @@ export default function Print() {
         if (printContent) {
             const opt = {
                 margin: 0.25,
-                filename: `customer-detail-${data.customer.name}-${filters.start_date || 'all'}.pdf`,
+                filename: `CD-${String(data.customer.name || '').trim().replace(/[^\w-]+/g, '-')}-${filters.start_date ? String(filters.start_date).slice(0, 10) : 'all'}.pdf`,
                 image: { type: 'jpeg' as const, quality: 0.98 },
                 html2canvas: { scale: 2 },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' as const }

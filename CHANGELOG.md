@@ -82,6 +82,7 @@ manual-journal-entries
 - Added bulk import support for Petty Cash records, including templates, validation, duplicate handling, and the Petty Cash page import action.
 - Added bulk import support for quotations, including templates, validation, duplicate handling, and the Quotations page import action.
 main
+- Shortened PDF, Excel and CSV download names: documents are named by their number (e.g. CP-2026-10-002.pdf) and reports by a short code and ISO dates (e.g. GL-1010-2026-10-01-to-2026-10-31.xlsx).
 
 ### Improved
 - Enhancements to existing workflows will be listed here before release.

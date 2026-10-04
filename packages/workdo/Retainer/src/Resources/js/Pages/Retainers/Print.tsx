@@ -30,7 +30,7 @@ export default function Print() {
         if (printContent) {
             const opt = {
                 margin: 0.25,
-                filename: `retainer-${retainer.retainer_number}.pdf`,
+                filename: `${retainer.retainer_number}.pdf`,
                 image: { type: 'jpeg' as const, quality: 0.98 },
                 html2canvas: { scale: 2 },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' as const }

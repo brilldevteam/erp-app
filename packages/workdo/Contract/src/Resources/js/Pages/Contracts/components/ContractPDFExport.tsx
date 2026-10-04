@@ -96,7 +96,7 @@ export default function ContractPDFExport({ contract, variant = "outline", size 
         
         const opt = {
             margin: 0.5,
-            filename: `contract-${contract.contract_number}.pdf`,
+            filename: `${contract.contract_number}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2 },
             jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }

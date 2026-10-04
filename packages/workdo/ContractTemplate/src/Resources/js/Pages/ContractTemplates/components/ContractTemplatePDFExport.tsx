@@ -103,7 +103,7 @@ export default function ContractTemplatePDFExport({ template, variant = "outline
         
         const opt = {
             margin: 0.5,
-            filename: `contract-template-${template.template_number}.pdf`,
+            filename: `${template.template_number}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2 },
             jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
