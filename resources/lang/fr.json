@@ -1706,5 +1706,9 @@
     "Your plan has expired. Please renew your subscription": "Votre abonnement est expiré.",
     "Your trial has expired. Please subscribe to a plan": "Votre période de probation est terminée.",
     "add-ons": "autres additifs",
-    "record(s)": "enregistrement"
+    "record(s)": "enregistrement",
+    "Duplicate": "Dupliquer",
+    "Duplicate Sales Invoice": "Dupliquer la facture de vente",
+    "This creates a new draft invoice dated today with the same customer and items. Continue?": "Une nouvelle facture brouillon datée d'aujourd'hui sera créée avec le même client et les mêmes articles. Continuer ?",
+    "Invoice duplicated as draft :number.": "Facture dupliquée en brouillon :number."
 }

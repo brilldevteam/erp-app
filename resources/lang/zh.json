@@ -1706,5 +1706,9 @@
     "Your plan has expired. Please renew your subscription": "您的计划已经过期. 请更新您的订阅",
     "Your trial has expired. Please subscribe to a plan": "您的试验期已过期. 请订阅一个计划",
     "add-ons": "附加品",
-    "record(s)": "记录"
+    "record(s)": "记录",
+    "Duplicate": "复制",
+    "Duplicate Sales Invoice": "复制销售发票",
+    "This creates a new draft invoice dated today with the same customer and items. Continue?": "将创建一张今天日期的新草稿发票，客户和项目相同。是否继续？",
+    "Invoice duplicated as draft :number.": "发票已复制为草稿 :number。"
 }

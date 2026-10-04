@@ -1706,5 +1706,9 @@
     "Your plan has expired. Please renew your subscription": "Ihr Plan ist abgelaufen.",
     "Your trial has expired. Please subscribe to a plan": "Ihre Probezeit ist abgelaufen.",
     "add-ons": "Zusatzstoffe",
-    "record(s)": "Aufzeichnungen"
+    "record(s)": "Aufzeichnungen",
+    "Duplicate": "Duplizieren",
+    "Duplicate Sales Invoice": "Verkaufsrechnung duplizieren",
+    "This creates a new draft invoice dated today with the same customer and items. Continue?": "Dadurch wird eine neue Rechnung im Entwurf mit heutigem Datum, gleichem Kunden und gleichen Positionen erstellt. Fortfahren?",
+    "Invoice duplicated as draft :number.": "Rechnung als Entwurf :number dupliziert."
 }

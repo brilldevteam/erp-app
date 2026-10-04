@@ -1706,5 +1706,9 @@
     "Your plan has expired. Please renew your subscription": "Planınızın süresi doldu.",
     "Your trial has expired. Please subscribe to a plan": "Duruşman sona erdi.",
     "add-ons": "eklentiler",
-    "record(s)": "Kayıtlar"
+    "record(s)": "Kayıtlar",
+    "Duplicate": "Çoğalt",
+    "Duplicate Sales Invoice": "Satış faturasını çoğalt",
+    "This creates a new draft invoice dated today with the same customer and items. Continue?": "Bugünün tarihli, aynı müşteri ve kalemlerle yeni bir taslak fatura oluşturulacak. Devam edilsin mi?",
+    "Invoice duplicated as draft :number.": "Fatura :number taslağı olarak çoğaltıldı."
 }

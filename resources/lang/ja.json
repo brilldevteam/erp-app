@@ -1706,5 +1706,9 @@
     "Your plan has expired. Please renew your subscription": "契約期限が切れてしまいました",
     "Your trial has expired. Please subscribe to a plan": "試験期間が終了しました 契約してください",
     "add-ons": "追加品",
-    "record(s)": "記録する"
+    "record(s)": "記録する",
+    "Duplicate": "複製",
+    "Duplicate Sales Invoice": "売上請求書を複製",
+    "This creates a new draft invoice dated today with the same customer and items. Continue?": "本日付で同じ顧客と明細の新しい下書き請求書を作成します。続行しますか？",
+    "Invoice duplicated as draft :number.": "請求書を下書き :number として複製しました。"
 }

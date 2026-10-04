@@ -531,6 +531,53 @@ class SalesInvoiceController extends Controller
         }
     }
 
+    /**
+     * Copy an invoice into a new draft dated today, keeping the customer, lines, discounts and taxes.
+     * Payments, posting and the quotation link are not copied; stock and accounting change only when it is posted.
+     */
+    public function duplicate(SalesInvoice $salesInvoice)
+    {
+        if (!Auth::user()->can('create-sales-invoices') || $salesInvoice->created_by != creatorId()) {
+            return back()->with('error', __('Permission denied'));
+        }
+
+        $duplicate = DB::transaction(function () use ($salesInvoice) {
+            // Copy from a freshly loaded record so only real columns are replicated.
+            $salesInvoice = SalesInvoice::with('items.taxes')->findOrFail($salesInvoice->id);
+            $paymentDays = $salesInvoice->invoice_date && $salesInvoice->due_date
+                ? $salesInvoice->invoice_date->diffInDays($salesInvoice->due_date, false)
+                : 0;
+
+            $duplicate = $salesInvoice->replicate();
+            $duplicate->invoice_number = null;
+            $duplicate->quotation_id = null;
+            $duplicate->invoice_date = now()->startOfDay();
+            $duplicate->due_date = now()->startOfDay()->addDays(max(0, (int) $paymentDays));
+            $duplicate->status = 'draft';
+            $duplicate->paid_amount = 0;
+            $duplicate->balance_amount = $salesInvoice->total_amount;
+            $duplicate->creator_id = Auth::id();
+            $duplicate->save();
+
+            foreach ($salesInvoice->items as $item) {
+                $newItem = $item->replicate();
+                $newItem->invoice_id = $duplicate->id;
+                $newItem->creator_id = Auth::id();
+                $newItem->save();
+
+                foreach ($item->taxes as $tax) {
+                    $newTax = $tax->replicate();
+                    $newTax->item_id = $newItem->id;
+                    $newTax->save();
+                }
+            }
+
+            return $duplicate;
+        });
+
+        return back()->with('success', __('Invoice duplicated as draft :number.', ['number' => $duplicate->invoice_number]));
+    }
+
     public function print(SalesInvoice $salesInvoice)
     {
         if(Auth::user()->can('print-sales-invoices')){

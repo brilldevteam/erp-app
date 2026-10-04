@@ -1706,5 +1706,9 @@
     "Your plan has expired. Please renew your subscription": "لقد انتهت مدة الخطة من فضلك قم بتجديد اشتراكك",
     "Your trial has expired. Please subscribe to a plan": "لقد انتهت فترة المحاكمة، رجاءً اشترك في خطة",
     "add-ons": "إضافات",
-    "record(s)": "سجلات"
+    "record(s)": "سجلات",
+    "Duplicate": "تكرار",
+    "Duplicate Sales Invoice": "تكرار فاتورة المبيعات",
+    "This creates a new draft invoice dated today with the same customer and items. Continue?": "سيتم إنشاء فاتورة مسودة جديدة بتاريخ اليوم بنفس العميل والبنود. هل تريد المتابعة؟",
+    "Invoice duplicated as draft :number.": "تم تكرار الفاتورة كمسودة :number."
 }
