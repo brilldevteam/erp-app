@@ -30,7 +30,7 @@ export default function Print() {
         if (printContent) {
             const opt = {
                 margin: 0.25,
-                filename: `BS-${String(balanceSheet.balance_sheet_date || '').slice(0, 10)}.pdf`,
+                filename: `BS-${balanceSheet.period_start_date ? `${String(balanceSheet.period_start_date).slice(0, 10)}-to-` : ''}${String(balanceSheet.balance_sheet_date || '').slice(0, 10)}.pdf`,
                 image: { type: 'jpeg' as const, quality: 0.98 },
                 html2canvas: { scale: 2 },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' as const }
