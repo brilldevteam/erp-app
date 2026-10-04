@@ -11,6 +11,7 @@ class BalanceSheet extends Model
 
     protected $fillable = [
         'balance_sheet_date',
+        'period_start_date',
         'financial_year',
         'total_assets',
         'total_liabilities',
@@ -23,6 +24,7 @@ class BalanceSheet extends Model
 
     protected $casts = [
         'balance_sheet_date' => 'date',
+        'period_start_date' => 'date',
         'total_assets' => 'decimal:2',
         'total_liabilities' => 'decimal:2',
         'total_equity' => 'decimal:2',

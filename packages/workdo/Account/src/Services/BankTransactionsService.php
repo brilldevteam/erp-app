@@ -42,6 +42,10 @@ class BankTransactionsService
         $bankTransaction->transaction_type = 'debit';
         $bankTransaction->reference_number = $vendorPayment->payment_number;
         $bankTransaction->description = 'Vendor Payment #' . $vendorPayment->payment_number . ' - ' . $vendorPayment->vendor->name;
+        $mode = ['cash' => 'Cash', 'bank_transfer' => 'Bank Transfer', 'cheque' => 'Cheque'][$vendorPayment->payment_mode] ?? null;
+        if ($mode) {
+            $bankTransaction->description .= ' (' . $mode . ')';
+        }
         $bankTransaction->amount = $vendorPayment->payment_amount;
         $bankTransaction->running_balance = $runningBalance;
         $bankTransaction->transaction_status = 'cleared';

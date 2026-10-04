@@ -5,6 +5,12 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Fixed
+- Removed the extra blank trailing page from quotation and invoice PDF downloads that use document templates.
+- Aligned footer contact icons with their text and corrected the vertical position of all text in quotation and invoice PDFs, which html2canvas was drawing too low under Tailwind's image styles.
+- Restored card padding so page toolbars (search, view toggle, per-page and filters) are vertically centred and data tables run edge to edge without side or bottom gaps.
+- Kept the accounting report Download button at full width with even icon spacing, and kept Generate, Clear and Download on one line across Double Entry reports.
+- Included accounts with a one-cent balance on generated balance sheets so totals balance exactly.
+- Ended sidebar tree lines at the last submenu item and centred each branch on its menu icon.
 - Expanded Invoice Aging to show customer account codes and individual outstanding invoice numbers, with customer subtotals and grand totals in both the report and PDF.
 - Removed the duplicate scrollbar and excess empty space from Video Production record forms.
 - Separated Video Production overview access from read-only production record access and limited production-only roles to production projects within the Project section.
@@ -15,6 +21,8 @@ All notable changes to the Wazely ERP application are documented here.
 - Show the Purchase Orders / LPO navigation entry only for companies whose active plan includes the add-on, preventing dashboard redirects from unavailable module links.
 
 ### Added
+- Added payment-mode selection (Cash, Bank Transfer, Cheque) to vendor payments, with a required cheque number for cheques, shown on payment details, vouchers, bank transaction descriptions and reports; customer receipts now print the selected payment mode as well.
+- Added opening and closing dates to Balance Sheet generation: balances are calculated as of the closing date, profit earned within the period is shown as Net Income for the Period under Equity, and the period appears in the balance sheet selector, lists, comparisons, PDF and Excel exports.
 - Added manual multi-currency transaction entry with effective-dated company exchange rates, historical rate snapshots, base-currency journal posting, currency-aware bank accounts, and a dry-run-safe live-data backfill command.
 - Added CR Number and private supporting-document uploads to customer and vendor create, edit, and detail views, including validated files and authorized preview, download, and removal actions.
 - Added a live searchable customer filter, invoice-date-range and aging-bucket filters, plus selectable report columns to Invoice Aging, with matching filtered PDF output.
@@ -35,6 +43,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Added a Duplicate action to sales invoices (list and grid views) that copies an invoice into a new draft dated today with the same customer, lines, discounts and taxes; payments, posting and the quotation link are not copied.
 
 ### Changed
+- Shortened the Banking submenu labels to Accounts, Transactions and Transfers, and gave third-level sidebar items more room so labels are no longer cut off.
 - Added searchable customer/vendor selectors with in-place party creation and automatic selection in sales invoices and customer/vendor payment forms.
 - Grouped related company menu items under Sales and Purchases, kept child items visible for users with limited permissions, and added connector lines between sidebar subitems.
 - Simplified Purchase Order terminology by removing "/ LPO" from the sidebar, page headings, grid column, and search text.

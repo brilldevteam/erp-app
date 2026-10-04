@@ -205,5 +205,11 @@
     "Year-End Close": "Afsluiting aan het einde van het jaar",
     "Year-end closing completed successfully.": "De afsluiting van het jaar is met succes voltooid.",
     "You can review and finalize the balance sheet after generation": "U kunt de balans na generatie te herzien en af te ronden",
-    "e.g., 2024": "Bijvoorbeeld 2024"
+    "e.g., 2024": "Bijvoorbeeld 2024",
+    "Opening Date": "Openingsdatum",
+    "For the period": "Voor de periode",
+    "Net Income for the Period": "Nettoresultaat over de periode",
+    "Select the reporting period for the balance sheet": "Selecteer de rapportageperiode voor de balans",
+    "Account balances are calculated as of the closing date": "Rekeningsaldi worden berekend per de afsluitdatum",
+    "Net income between the opening and closing dates is shown as Net Income for the Period under Equity": "Het nettoresultaat tussen de openings- en afsluitdatum wordt weergegeven als Nettoresultaat over de periode onder Eigen vermogen"
 }

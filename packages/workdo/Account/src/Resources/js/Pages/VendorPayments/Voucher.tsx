@@ -70,7 +70,9 @@ export default function Voucher() {
         || getCompanySetting('company_logo', pageProps)
         || getCompanySetting('logo', pageProps);
     const companyName = getCompanySetting('company_name', pageProps) || 'Company';
-    const paymentMode = payment.bank_account?.account_name || payment.bank_account?.bank_name || '-';
+    const modeLabels: Record<string, string> = { cash: 'Cash', bank_transfer: 'Bank Transfer', cheque: 'Cheque' };
+    // Payments recorded before payment modes existed fall back to the account they were paid through.
+    const paymentMode = payment.payment_mode ? t(modeLabels[payment.payment_mode]) : (payment.bank_account?.account_name || payment.bank_account?.bank_name || '-');
     const vendorEmail = displayEmail(payment.vendor_details?.primary_email, payment.vendor_details?.contact_person_email, payment.vendor?.email);
 
     return (

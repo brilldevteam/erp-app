@@ -514,7 +514,7 @@ class ReportService
         $paymentsQuery = DB::table('vendor_payments')
             ->leftJoin('bank_accounts', 'vendor_payments.bank_account_id', '=', 'bank_accounts.id')
             ->where('vendor_payments.vendor_id', $vendorId)
-            ->select('vendor_payments.payment_number', 'vendor_payments.payment_date as date', 'vendor_payments.payment_amount as amount', 'vendor_payments.reference_number', 'vendor_payments.status', 'bank_accounts.account_name as bank_account');
+            ->select('vendor_payments.payment_number', 'vendor_payments.payment_date as date', 'vendor_payments.payment_amount as amount', 'vendor_payments.reference_number', 'vendor_payments.payment_mode', 'vendor_payments.status', 'bank_accounts.account_name as bank_account');
 
         if ($startDate) $paymentsQuery->where('payment_date', '>=', $startDate);
         if ($endDate) $paymentsQuery->where('payment_date', '<=', $endDate);

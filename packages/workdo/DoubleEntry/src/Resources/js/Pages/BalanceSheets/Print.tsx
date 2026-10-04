@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import html2pdf from 'html2pdf.js';
 import { formatCurrency, formatDate, getCompanySetting } from '@/utils/helpers';
 import { BalanceSheetViewProps } from './types';
+import { balanceSheetLineName, formatBalanceSheetPeriod } from './period';
 
 export default function Print() {
     const { t } = useTranslation();
@@ -81,7 +82,7 @@ export default function Print() {
                     <div className="text-right">
                         <h2 className="text-2xl font-bold mb-2">{t('BALANCE SHEET')}</h2>
                         <div className="text-sm space-y-1">
-                            <p>{t('As of')}: {formatDate(balanceSheet.balance_sheet_date)}</p>
+                            <p>{balanceSheet.period_start_date ? t('For the period') : t('As of')}: {formatBalanceSheetPeriod(balanceSheet)}</p>
                             <p>{t('Financial Year')}: {balanceSheet.financial_year}</p>
                         </div>
                     </div>
@@ -101,7 +102,7 @@ export default function Print() {
                                     <div key={subSection}>
                                         {items.map((item) => (
                                             <div key={item.id} className="flex justify-between py-1.5 text-sm">
-                                                <span>{item.account?.account_name}</span>
+                                                <span>{balanceSheetLineName(item, t)}</span>
                                                 <span className="tabular-nums">{formatCurrency(item.amount)}</span>
                                             </div>
                                         ))}
@@ -123,7 +124,7 @@ export default function Print() {
                                         <h5 className="font-medium text-xs capitalize mb-1">{subSection.replace('_', ' ')}</h5>
                                         {items.map((item) => (
                                             <div key={item.id} className="flex justify-between py-1.5 text-sm ml-3">
-                                                <span>{item.account?.account_name}</span>
+                                                <span>{balanceSheetLineName(item, t)}</span>
                                                 <span className="tabular-nums">{formatCurrency(item.amount)}</span>
                                             </div>
                                         ))}
@@ -148,7 +149,7 @@ export default function Print() {
                                         <h4 className="font-medium text-xs capitalize mb-1">{subSection.replace('_', ' ')}</h4>
                                         {items.map((item) => (
                                             <div key={item.id} className="flex justify-between py-1.5 text-sm ml-3">
-                                                <span>{item.account?.account_name}</span>
+                                                <span>{balanceSheetLineName(item, t)}</span>
                                                 <span className="tabular-nums">{formatCurrency(item.amount)}</span>
                                             </div>
                                         ))}

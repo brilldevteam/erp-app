@@ -205,5 +205,11 @@
     "Year-End Close": "Afslutning af regnskabsåret",
     "Year-end closing completed successfully.": "Årsendens afslutning er afsluttet med succes.",
     "You can review and finalize the balance sheet after generation": "Du kan gennemgå og færdiggøre balancen efter generation",
-    "e.g., 2024": "f.eks. 2024"
+    "e.g., 2024": "f.eks. 2024",
+    "Opening Date": "Åbningsdato",
+    "For the period": "For perioden",
+    "Net Income for the Period": "Nettoindkomst for perioden",
+    "Select the reporting period for the balance sheet": "Vælg rapporteringsperioden for balancen",
+    "Account balances are calculated as of the closing date": "Kontosaldi beregnes pr. lukkedatoen",
+    "Net income between the opening and closing dates is shown as Net Income for the Period under Equity": "Nettoindkomst mellem åbnings- og lukkedatoen vises som Nettoindkomst for perioden under Egenkapital"
 }

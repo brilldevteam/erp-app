@@ -205,5 +205,11 @@
     "Year-End Close": "إغلاق نهاية العام",
     "Year-end closing completed successfully.": "إغلاق نهاية العام تم بنجاح",
     "You can review and finalize the balance sheet after generation": "يمكنك مراجعة وتحديد الميزانية العمومية بعد الجيل",
-    "e.g., 2024": "على سبيل المثال، 2024"
+    "e.g., 2024": "على سبيل المثال، 2024",
+    "Opening Date": "تاريخ الافتتاح",
+    "For the period": "للفترة",
+    "Net Income for the Period": "صافي الدخل للفترة",
+    "Select the reporting period for the balance sheet": "حدد الفترة المحاسبية للميزانية العمومية",
+    "Account balances are calculated as of the closing date": "يتم احتساب أرصدة الحسابات حتى تاريخ الإغلاق",
+    "Net income between the opening and closing dates is shown as Net Income for the Period under Equity": "يظهر صافي الدخل بين تاريخي الافتتاح والإغلاق كصافي الدخل للفترة ضمن حقوق الملكية"
 }

@@ -205,5 +205,11 @@
     "Year-End Close": "Chiusura di fine anno",
     "Year-end closing completed successfully.": "La chiusura di fine anno è stata completata con successo.",
     "You can review and finalize the balance sheet after generation": "È possibile rivedere e finalizzare il bilancio dopo la generazione",
-    "e.g., 2024": "Ad esempio, 2024"
+    "e.g., 2024": "Ad esempio, 2024",
+    "Opening Date": "Data di apertura",
+    "For the period": "Per il periodo",
+    "Net Income for the Period": "Utile netto del periodo",
+    "Select the reporting period for the balance sheet": "Seleziona il periodo di riferimento per lo stato patrimoniale",
+    "Account balances are calculated as of the closing date": "I saldi dei conti sono calcolati alla data di chiusura",
+    "Net income between the opening and closing dates is shown as Net Income for the Period under Equity": "L'utile netto tra le date di apertura e chiusura è mostrato come Utile netto del periodo nel Patrimonio netto"
 }

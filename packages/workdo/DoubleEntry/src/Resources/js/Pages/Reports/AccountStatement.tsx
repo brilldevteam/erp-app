@@ -113,7 +113,7 @@ export default function AccountStatement({ financialYear }: AccountStatementProp
     return (
         <Card className="shadow-sm">
             <CardContent className="p-6 border-b bg-gray-50/50">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">{t('Account')}</label>
                         <Select value={accountId} onValueChange={setAccountId}>

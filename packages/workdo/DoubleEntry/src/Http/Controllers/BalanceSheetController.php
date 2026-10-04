@@ -79,7 +79,8 @@ class BalanceSheetController extends Controller
                 $validated = $request->validated();
                 $balanceSheetId = $this->balanceSheetService->generateBalanceSheet(
                     $validated['balance_sheet_date'],
-                    $validated['financial_year']
+                    $validated['financial_year'],
+                    $validated['period_start_date']
                 );
 
                 $balanceSheet = BalanceSheet::find($balanceSheetId);
@@ -111,7 +112,7 @@ class BalanceSheetController extends Controller
 
                 // Get all balance sheets including current
                 $allBalanceSheets = BalanceSheet::where('created_by', creatorId())
-                    ->select('id', 'balance_sheet_date', 'financial_year')
+                    ->select('id', 'balance_sheet_date', 'period_start_date', 'financial_year')
                     ->orderBy('balance_sheet_date', 'desc')
                     ->get();
 
@@ -119,7 +120,7 @@ class BalanceSheetController extends Controller
                 $otherBalanceSheets = BalanceSheet::where('created_by', creatorId())
                     ->where('id', '!=', $id)
                     ->where('status', 'finalized')
-                    ->select('id', 'balance_sheet_date', 'financial_year')
+                    ->select('id', 'balance_sheet_date', 'period_start_date', 'financial_year')
                     ->get();
 
                 return Inertia::render('DoubleEntry/BalanceSheets/View', [
@@ -243,8 +244,8 @@ class BalanceSheetController extends Controller
         if(Auth::user()->can('view-balance-sheet-comparisons')){
             $comparisons = ComparativeBalanceSheet::query()
                 ->with([
-                    'currentPeriod:id,balance_sheet_date,financial_year',
-                    'previousPeriod:id,balance_sheet_date,financial_year'
+                    'currentPeriod:id,balance_sheet_date,period_start_date,financial_year',
+                    'previousPeriod:id,balance_sheet_date,period_start_date,financial_year'
                 ])
                 ->where('created_by', creatorId())
                 ->when(request('sort'), fn($q) => $q->orderBy(request('sort'), request('direction', 'desc')), fn($q) => $q->orderBy('created_at', 'desc'))
@@ -324,11 +325,14 @@ class BalanceSheetController extends Controller
         abort_unless(Auth::user()->can('print-balance-sheets'), 403);
         $balanceSheet = BalanceSheet::with(['items.account'])->where('created_by', creatorId())->findOrFail($id);
         $rows = $balanceSheet->items->map(fn ($item) => [$item->section_type, $item->sub_section,
-            $item->account?->account_code, $item->account?->account_name, (float) $item->amount])->all();
+            $item->account?->account_code, $item->account?->account_name ?? __($item->label), (float) $item->amount])->all();
         $rows[] = [__('Total Assets'), '', '', '', (float) $balanceSheet->total_assets];
         $rows[] = [__('Total Liabilities'), '', '', '', (float) $balanceSheet->total_liabilities];
         $rows[] = [__('Total Equity'), '', '', '', (float) $balanceSheet->total_equity];
-        $path = $exporter->create(__('Balance Sheet'), [__('As of') => $balanceSheet->balance_sheet_date->format('Y-m-d'), __('Financial Year') => $balanceSheet->financial_year],
+        $period = $balanceSheet->period_start_date
+            ? [__('From Date') => $balanceSheet->period_start_date->format('Y-m-d'), __('To Date') => $balanceSheet->balance_sheet_date->format('Y-m-d')]
+            : [__('As of') => $balanceSheet->balance_sheet_date->format('Y-m-d')];
+        $path = $exporter->create(__('Balance Sheet'), $period + [__('Financial Year') => $balanceSheet->financial_year],
             [__('Section'), __('Subsection'), __('Account Code'), __('Account Name'), __('Amount')], $rows, ['E']);
         return response()->download($path, 'BS-'.$balanceSheet->balance_sheet_date->format('Y-m-d').'.xlsx')->deleteFileAfterSend(true);
     }
@@ -369,11 +373,12 @@ class BalanceSheetController extends Controller
         abort_unless($periods->has($ids['current_id']) && $periods->has($ids['previous_id']), 404);
         $current = $periods[$ids['current_id']];
         $previous = $periods[$ids['previous_id']];
-        $previousAmounts = $previous->items->keyBy('account_id');
-        $rows = $current->items->map(function ($item) use ($previousAmounts) {
-            $previous = (float) ($previousAmounts->get($item->account_id)?->amount ?? 0);
+        $lineKey = fn ($item) => $item->account_id ?? 'label:'.$item->label;
+        $previousAmounts = $previous->items->keyBy($lineKey);
+        $rows = $current->items->map(function ($item) use ($previousAmounts, $lineKey) {
+            $previous = (float) ($previousAmounts->get($lineKey($item))?->amount ?? 0);
             $current = (float) $item->amount;
-            return [$item->section_type, $item->account?->account_code, $item->account?->account_name, $previous, $current, $current - $previous];
+            return [$item->section_type, $item->account?->account_code, $item->account?->account_name ?? __($item->label), $previous, $current, $current - $previous];
         })->all();
         $path = $exporter->create(__('Balance Sheet Comparison'), [__('Previous Period') => $previous->balance_sheet_date->format('Y-m-d'), __('Current Period') => $current->balance_sheet_date->format('Y-m-d')],
             [__('Section'), __('Account Code'), __('Account Name'), __('Previous'), __('Current'), __('Change')], $rows, ['D', 'E', 'F']);

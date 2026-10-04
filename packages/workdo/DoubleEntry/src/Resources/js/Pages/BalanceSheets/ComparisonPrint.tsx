@@ -3,6 +3,7 @@ import { Head, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import html2pdf from 'html2pdf.js';
 import { formatCurrency, formatDate, getCompanySetting } from '@/utils/helpers';
+import { balanceSheetLineName, formatBalanceSheetPeriod } from './period';
 
 interface ComparisonPrintProps {
     comparison: {
@@ -51,15 +52,17 @@ export default function ComparisonPrint() {
     };
 
     const currentItems = (currentPeriod?.items || []).reduce((acc: any, item: any) => {
-        if (item?.account?.account_code) {
-            acc[item.account.account_code] = item;
+        const key = item?.account?.account_code ?? (item?.label ? `~${item.label}` : null);
+        if (key) {
+            acc[key] = item;
         }
         return acc;
     }, {});
 
     const previousItems = (previousPeriod?.items || []).reduce((acc: any, item: any) => {
-        if (item?.account?.account_code) {
-            acc[item.account.account_code] = item;
+        const key = item?.account?.account_code ?? (item?.label ? `~${item.label}` : null);
+        if (key) {
+            acc[key] = item;
         }
         return acc;
     }, {});
@@ -103,7 +106,7 @@ export default function ComparisonPrint() {
                             return (
                                 <tr key={accountCode} className="border-b border-gray-200 page-break-inside-avoid">
                                     <td className="py-2 px-2 text-sm" style={{ width: '40%' }}>
-                                        {currentItem?.account.account_name || previousItem?.account.account_name}
+                                        {balanceSheetLineName(currentItem ?? previousItem, t)}
                                         <span className="text-xs text-gray-600 ml-1">({accountCode})</span>
                                     </td>
                                     <td className="py-2 px-2 text-sm text-right tabular-nums" style={{ width: '20%' }}>
@@ -165,7 +168,7 @@ export default function ComparisonPrint() {
                         <div className="text-right">
                             <h2 className="text-2xl font-bold text-gray-900 mb-3">{t('COMPARATIVE BALANCE SHEET')}</h2>
                             <p className="text-sm text-gray-600">
-                                {formatDate(currentPeriod?.balance_sheet_date)} vs {formatDate(previousPeriod?.balance_sheet_date)}
+                                {(currentPeriod ? formatBalanceSheetPeriod(currentPeriod) : '')} vs {(previousPeriod ? formatBalanceSheetPeriod(previousPeriod) : '')}
                             </p>
                         </div>
                     </div>
@@ -176,10 +179,10 @@ export default function ComparisonPrint() {
                         <tr className="border-b-2 border-black">
                             <th className="text-left py-2 px-2 text-sm font-semibold" style={{ width: '40%' }}>{t('Account')}</th>
                             <th className="text-right py-2 px-2 text-sm font-semibold" style={{ width: '20%' }}>
-                                {formatDate(currentPeriod?.balance_sheet_date)}
+                                {(currentPeriod ? formatBalanceSheetPeriod(currentPeriod) : '')}
                             </th>
                             <th className="text-right py-2 px-2 text-sm font-semibold" style={{ width: '20%' }}>
-                                {formatDate(previousPeriod?.balance_sheet_date)}
+                                {(previousPeriod ? formatBalanceSheetPeriod(previousPeriod) : '')}
                             </th>
                             <th className="text-right py-2 px-2 text-sm font-semibold" style={{ width: '20%' }}>{t('Change')}</th>
                         </tr>

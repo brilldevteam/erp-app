@@ -30,6 +30,7 @@ export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendo
 
     const { data, setData, post, processing, errors } = useForm<CreateVendorPaymentFormData>({
         payment_date: new Date().toISOString().split('T')[0],
+        payment_mode: '',
         vendor_id: '',
         bank_account_id: '',
         reference_number: '',
@@ -205,6 +206,21 @@ export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendo
                     </div>
 
                     <div>
+                        <Label htmlFor="payment_mode" required>{t('Payment Mode')}</Label>
+                        <Select value={data.payment_mode} onValueChange={(value) => setData('payment_mode', value)}>
+                            <SelectTrigger id="payment_mode">
+                                <SelectValue placeholder={t('Select Payment Mode')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="cash">{t('Cash')}</SelectItem>
+                                <SelectItem value="bank_transfer">{t('Bank Transfer')}</SelectItem>
+                                <SelectItem value="cheque">{t('Cheque')}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <InputError message={errors.payment_mode} />
+                    </div>
+
+                    <div>
                         <Label htmlFor="bank_account_id" required>{t('Bank Account')}</Label>
                         <Select value={data.bank_account_id} onValueChange={(value) => setData('bank_account_id', value)}>
                             <SelectTrigger>
@@ -222,12 +238,12 @@ export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendo
                     </div>
 
                     <div>
-                        <Label htmlFor="reference_number">{t('Reference Number')}</Label>
+                        <Label htmlFor="reference_number" required={data.payment_mode === 'cheque'}>{t(data.payment_mode === 'cheque' ? 'Cheque Number' : 'Reference Number')}</Label>
                         <Input
                             id="reference_number"
                             value={data.reference_number}
                             onChange={(e) => setData('reference_number', e.target.value)}
-                            placeholder={t('Check number, etc.')}
+                            placeholder={t(data.payment_mode === 'cheque' ? 'Cheque Number' : 'Transaction reference')}
                         />
                         <InputError message={errors.reference_number} />
                     </div>

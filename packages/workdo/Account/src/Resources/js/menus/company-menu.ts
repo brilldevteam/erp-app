@@ -74,17 +74,17 @@ export const accountCompanyMenu = (t: (key: string) => string) => [
                 order: 30,
                 children: [
                     {
-                        title: t('Bank Accounts'),
+                        title: t('Accounts'),
                         href: route('account.bank-accounts.index'),
                         permission: 'manage-bank-accounts',
                     },
                     {
-                        title: t('Bank Transactions'),
+                        title: t('Transactions'),
                         href: route('account.bank-transactions.index'),
                         permission: 'manage-bank-transactions',
                     },
                     {
-                        title: t('Bank Transfers'),
+                        title: t('Transfers'),
                         href: route('account.bank-transfers.index'),
                         permission: 'manage-bank-transfers',
                     },

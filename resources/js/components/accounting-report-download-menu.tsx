@@ -14,7 +14,7 @@ export function AccountingReportDownloadMenu({ onPdf, onExcel }: AccountingRepor
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="min-w-[118px] gap-2">
+                <Button variant="outline" size="sm" className="min-w-[118px] shrink-0 gap-2">
                     <Download className="h-4 w-4" />
                     {t('Download')}
                     <ChevronDown className="ml-auto h-4 w-4" />

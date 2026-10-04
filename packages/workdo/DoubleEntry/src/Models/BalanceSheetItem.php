@@ -13,6 +13,7 @@ class BalanceSheetItem extends Model
     protected $fillable = [
         'balance_sheet_id',
         'account_id',
+        'label',
         'section_type',
         'sub_section',
         'amount',

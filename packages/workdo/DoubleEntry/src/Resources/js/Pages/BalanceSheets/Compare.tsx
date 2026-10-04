@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { formatDate } from '@/utils/helpers';
+import { formatBalanceSheetPeriod } from './period';
 
 interface CompareProps {
     open: boolean;
@@ -58,7 +58,7 @@ export default function Compare({ open, onOpenChange, balanceSheetId, otherBalan
                             <SelectContent>
                                 {otherBalanceSheets?.map((bs: any) => (
                                     <SelectItem key={bs.id} value={bs.id.toString()}>
-                                        {formatDate(bs.balance_sheet_date)} - {bs.financial_year}
+                                        {formatBalanceSheetPeriod(bs)} - {bs.financial_year}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
