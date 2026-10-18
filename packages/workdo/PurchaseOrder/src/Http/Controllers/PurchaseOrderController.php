@@ -26,7 +26,17 @@ class PurchaseOrderController extends Controller
         abort_unless(Auth::user()->can('manage-purchase-orders'),403);
         $query=PurchaseOrder::with(['vendor:id,name','warehouse:id,name','creator:id,name'])->where('created_by',creatorId());
         if(!Auth::user()->can('manage-any-purchase-orders'))$query->where('creator_id',Auth::id());
-        $query->when($request->search,fn($q,$v)=>$q->where('purchase_order_number','like',"%{$v}%"))
+        $query->when($request->search, function ($q, $value) {
+            $search = trim($value);
+            $q->where(function ($searchQuery) use ($search) {
+                $searchQuery->where('purchase_order_number', 'like', "%{$search}%")
+                    ->orWhereHas('vendor', fn ($vendor) => $vendor->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('vendorDetails', function ($vendor) use ($search) {
+                        $vendor->where('company_name', 'like', "%{$search}%")
+                            ->orWhere('contact_person_name', 'like', "%{$search}%");
+                    });
+            });
+        })
             ->when($request->vendor_id,fn($q,$v)=>$q->where('vendor_id',$v))->when($request->warehouse_id,fn($q,$v)=>$q->where('warehouse_id',$v))
             ->when($request->order_status,fn($q,$v)=>$q->where('order_status',$v))->when($request->billing_status,fn($q,$v)=>$q->where('billing_status',$v));
         if ($request->date_range) {

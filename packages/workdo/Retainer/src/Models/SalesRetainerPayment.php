@@ -70,6 +70,11 @@ class SalesRetainerPayment extends Model
         return $this->belongsTo(User::class, 'customer_id');
     }
 
+    public function customerDetails(): BelongsTo
+    {
+        return $this->belongsTo(\Workdo\Account\Models\Customer::class, 'customer_id', 'user_id');
+    }
+
     public function bankAccount(): BelongsTo
     {
         return $this->belongsTo(BankAccount::class, 'bank_account_id');

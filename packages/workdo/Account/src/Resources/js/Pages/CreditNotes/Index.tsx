@@ -306,7 +306,7 @@ export default function Index() {
                                 value={filters.search || ''}
                                 onChange={(value) => setFilters({...filters, search: value})}
                                 onSearch={handleFilter}
-                                placeholder={t('Search by credit note number...')}
+                                placeholder={t('Search by credit note number or customer...')}
                             />
                         </div>
                         <div className="flex items-center gap-3">

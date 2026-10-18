@@ -117,7 +117,15 @@ class PurchaseInvoiceController extends Controller
                 }
             }
             if ($request->search) {
-                $query->where('invoice_number', 'like', '%' . $request->search . '%');
+                $search = trim($request->search);
+                $query->where(function ($q) use ($search) {
+                    $q->where('invoice_number', 'like', "%{$search}%")
+                        ->orWhereHas('vendor', fn ($vendor) => $vendor->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('vendorDetails', function ($vendor) use ($search) {
+                            $vendor->where('company_name', 'like', "%{$search}%")
+                                ->orWhere('contact_person_name', 'like', "%{$search}%");
+                        });
+                });
             }
             if ($request->date_range) {
                 $dates = explode(' - ', $request->date_range);

@@ -306,7 +306,7 @@ export default function Index() {
                                 value={filters.request_number}
                                 onChange={(value) => setFilters({...filters, request_number: value})}
                                 onSearch={handleFilter}
-                                placeholder={t('Search by Request Number...')}
+                                placeholder={t('Search by request number or employee...')}
                             />
                         </div>
                         <div className="flex items-center gap-3">

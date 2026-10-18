@@ -48,7 +48,7 @@ class DebitNoteController extends Controller
     public function index(Request $request)
     {
         if(Auth::user()->can('manage-debit-notes')){
-            $query = DebitNote::with(['vendor', 'purchaseReturn', 'approvedBy'])
+            $query = DebitNote::with(['vendor', 'vendorDetails', 'purchaseReturn', 'approvedBy'])
                 ->where(function($q) {
                     if(Auth::user()->can('manage-any-debit-notes')) {
                         $q->where('created_by', creatorId());
@@ -71,7 +71,16 @@ class DebitNoteController extends Controller
             }
 
             if ($request->search) {
-                $query->where('debit_note_number', 'like', '%' . $request->search . '%');
+                $search = trim($request->search);
+                $query->where(function ($q) use ($search) {
+                    $q->where('debit_note_number', 'like', "%{$search}%")
+                        ->orWhere('reason', 'like', "%{$search}%")
+                        ->orWhereHas('vendor', fn ($vendor) => $vendor->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('vendorDetails', function ($vendor) use ($search) {
+                            $vendor->where('company_name', 'like', "%{$search}%")
+                                ->orWhere('contact_person_name', 'like', "%{$search}%");
+                        });
+                });
             }
 
             if ($request->purchase_return_id) {
@@ -91,7 +100,7 @@ class DebitNoteController extends Controller
                 'debitNotes' => $debitNotes,
                 'vendors' => $vendors,
                 'purchaseReturns' => $purchaseReturns,
-                'filters' => $request->only(['vendor_id', 'status', 'purchase_return_id'])
+                'filters' => $request->only(['vendor_id', 'status', 'purchase_return_id', 'search'])
             ]);
         }
         else{

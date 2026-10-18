@@ -275,7 +275,7 @@ pageActions={
                                 value={filters.pettycash_number}
                                 onChange={(value) => setFilters({...filters, pettycash_number: value})}
                                 onSearch={handleFilter}
-                                placeholder={t('Search by Petty Cash Number...')}
+                                placeholder={t('Search by petty cash number or remarks...')}
                             />
                         </div>
                         <div className="flex items-center gap-3">

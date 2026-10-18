@@ -11,6 +11,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Kept the accounting report Download button at full width with even icon spacing, and kept Generate, Clear and Download on one line across Double Entry reports.
 - Included accounts with a one-cent balance on generated balance sheets so totals balance exactly.
 - Ended sidebar tree lines at the last submenu item and centred each branch on its menu icon.
+- Expanded transaction-list searches to match customer, vendor, company, contact, employee, reference, category, and account names in addition to document and payment numbers.
 - Expanded Invoice Aging to show customer account codes and individual outstanding invoice numbers, with customer subtotals and grand totals in both the report and PDF.
 - Removed the duplicate scrollbar and excess empty space from Video Production record forms.
 - Separated Video Production overview access from read-only production record access and limited production-only roles to production projects within the Project section.

@@ -30,7 +30,11 @@ class PettyCashController extends Controller
                     }
                 })
                 ->when(request('pettycash_number'), function($q) {
-                    $q->where('pettycash_number', 'like', '%' . request('pettycash_number') . '%');
+                    $search = trim(request('pettycash_number'));
+                    $q->where(function ($searchQuery) use ($search) {
+                        $searchQuery->where('pettycash_number', 'like', "%{$search}%")
+                            ->orWhere('remarks', 'like', "%{$search}%");
+                    });
                 })
                 ->when(request('status') !== null && request('status') !== '', fn($q) => $q->where('status', request('status')))
 

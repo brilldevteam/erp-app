@@ -70,7 +70,16 @@ class CreditNoteController extends Controller
             }
 
             if ($request->search) {
-                $query->where('credit_note_number', 'like', '%' . $request->search . '%');
+                $search = trim($request->search);
+                $query->where(function ($q) use ($search) {
+                    $q->where('credit_note_number', 'like', "%{$search}%")
+                        ->orWhere('reason', 'like', "%{$search}%")
+                        ->orWhereHas('customer', fn ($customer) => $customer->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('customerDetails', function ($customer) use ($search) {
+                            $customer->where('company_name', 'like', "%{$search}%")
+                                ->orWhere('contact_person_name', 'like', "%{$search}%");
+                        });
+                });
             }
 
             if ($request->sales_return_id) {
@@ -90,7 +99,7 @@ class CreditNoteController extends Controller
                 'creditNotes' => $creditNotes,
                 'customers' => $customers,
                 'salesReturns' => $salesReturns,
-                'filters' => $request->only(['customer_id', 'status', 'sales_return_id'])
+                'filters' => $request->only(['customer_id', 'status', 'sales_return_id', 'search'])
             ]);
         }
         else{

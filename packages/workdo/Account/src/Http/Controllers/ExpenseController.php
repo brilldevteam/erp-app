@@ -47,7 +47,14 @@ class ExpenseController extends Controller
                 });
 
             if ($request->search) {
-                $query->where('expense_number', 'like', '%' . $request->search . '%');
+                $search = trim($request->search);
+                $query->where(function ($q) use ($search) {
+                    $q->where('expense_number', 'like', "%{$search}%")
+                        ->orWhere('reference_number', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhereHas('category', fn ($category) => $category->where('category_name', 'like', "%{$search}%"))
+                        ->orWhereHas('bankAccount', fn ($account) => $account->where('account_name', 'like', "%{$search}%"));
+                });
             }
             if ($request->category_id) {
                 $query->where('category_id', $request->category_id);

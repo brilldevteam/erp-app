@@ -56,7 +56,16 @@ class VendorPaymentController extends Controller
                 $query->where('status', $request->status);
             }
             if ($request->search) {
-                $query->where('payment_number', 'like', '%' . $request->search . '%');
+                $search = trim($request->search);
+                $query->where(function ($q) use ($search) {
+                    $q->where('payment_number', 'like', "%{$search}%")
+                        ->orWhere('reference_number', 'like', "%{$search}%")
+                        ->orWhereHas('vendor', fn ($vendor) => $vendor->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('vendorDetails', function ($vendor) use ($search) {
+                            $vendor->where('company_name', 'like', "%{$search}%")
+                                ->orWhere('contact_person_name', 'like', "%{$search}%");
+                        });
+                });
             }
             if ($request->date_from) {
                 $query->whereDate('payment_date', '>=', $request->date_from);

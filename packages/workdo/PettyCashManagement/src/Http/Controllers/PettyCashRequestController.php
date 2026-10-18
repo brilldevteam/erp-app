@@ -37,7 +37,13 @@ class PettyCashRequestController extends Controller
                     }
                 })
                 ->when(request('request_number'), function($q) {
-                    $q->where('request_number', 'like', '%' . request('request_number') . '%');
+                    $search = trim(request('request_number'));
+                    $q->where(function ($searchQuery) use ($search) {
+                        $searchQuery->where('request_number', 'like', "%{$search}%")
+                            ->orWhere('remarks', 'like', "%{$search}%")
+                            ->orWhereHas('user', fn ($user) => $user->where('name', 'like', "%{$search}%"))
+                            ->orWhereHas('category', fn ($category) => $category->where('name', 'like', "%{$search}%"));
+                    });
                 })
                 ->when(request('user_id') && request('user_id') !== '', fn($q) => $q->where('user_id', request('user_id')))
                 ->when(request('categorie_id') && request('categorie_id') !== '', fn($q) => $q->where('categorie_id', request('categorie_id')))

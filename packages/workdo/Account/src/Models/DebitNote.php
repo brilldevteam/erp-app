@@ -51,6 +51,11 @@ class DebitNote extends Model
         return $this->belongsTo(User::class, 'vendor_id');
     }
 
+    public function vendorDetails(): BelongsTo
+    {
+        return $this->belongsTo(Vendor::class, 'vendor_id', 'user_id');
+    }
+
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(PurchaseInvoice::class, 'invoice_id');

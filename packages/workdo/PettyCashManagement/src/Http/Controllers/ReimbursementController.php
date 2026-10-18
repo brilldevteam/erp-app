@@ -37,7 +37,13 @@ class ReimbursementController extends Controller
                     }
                 })
                 ->when(request('reimbursement_number'), function($q) {
-                    $q->where('reimbursement_number', 'like', '%' . request('reimbursement_number') . '%');
+                    $search = trim(request('reimbursement_number'));
+                    $q->where(function ($searchQuery) use ($search) {
+                        $searchQuery->where('reimbursement_number', 'like', "%{$search}%")
+                            ->orWhere('description', 'like', "%{$search}%")
+                            ->orWhereHas('user', fn ($user) => $user->where('name', 'like', "%{$search}%"))
+                            ->orWhereHas('category', fn ($category) => $category->where('name', 'like', "%{$search}%"));
+                    });
                 })
                 ->when(request('user_id') && request('user_id') !== '', fn($q) => $q->where('user_id', request('user_id')))
                 ->when(request('category_id') && request('category_id') !== '', fn($q) => $q->where('category_id', request('category_id')))

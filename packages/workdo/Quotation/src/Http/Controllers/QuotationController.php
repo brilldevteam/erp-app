@@ -54,7 +54,15 @@ class QuotationController extends Controller
                 $query->where('status', $request->status);
             }
             if ($request->search) {
-                $query->where('quotation_number', 'like', '%' . $request->search . '%');
+                $search = trim($request->search);
+                $query->where(function ($q) use ($search) {
+                    $q->where('quotation_number', 'like', "%{$search}%")
+                        ->orWhereHas('customer', fn ($customer) => $customer->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('customerDetails', function ($customer) use ($search) {
+                            $customer->where('company_name', 'like', "%{$search}%")
+                                ->orWhere('contact_person_name', 'like', "%{$search}%");
+                        });
+                });
             }
             if ($request->date_range) {
                 $dates = explode(' - ', $request->date_range);
