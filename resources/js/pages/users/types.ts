@@ -7,6 +7,7 @@ export interface User {
     mobile_no: string;
     role: string;
     type: string;
+    display_role: string;
     is_enable_login: boolean;
     is_disable?: number;
     is_online?: number;
