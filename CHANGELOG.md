@@ -16,6 +16,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Removed the duplicate scrollbar and excess empty space from Video Production record forms.
 - Counted Video Production deliverables by their Episodes / Reels Count: the pipeline headline now shows reels delivered and each workflow status shows its number of reels instead of list rows; date columns in production lists show the date without a midnight time.
 - Opened the customer edit form for customers saved without billing or shipping addresses (such as production client logins) instead of showing a blank page.
+- Allowed enabled production clients assigned to production projects to sign in with the credentials created from Video Production, without requiring a separate accounting customer record or User Management edit.
 - Separated Video Production overview access from read-only production record access and limited production-only roles to production projects within the Project section.
 - Add payment-mode selection and receiving-account labeling when recording customer payments.
 - Populate the customer and receiving-account dropdowns when recording a payment from a sales invoice.
