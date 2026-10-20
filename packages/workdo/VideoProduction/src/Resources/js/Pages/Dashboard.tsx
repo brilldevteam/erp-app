@@ -572,7 +572,9 @@ export default function Dashboard() {
     // Pipeline values count Reel episodes (a record with 2 reels counts as 2), not list rows.
     const reelItems = overviewItems.filter((item: any) => item.recordType === 'deliverable' && item.data?.content_type === 'Reel');
     const deliverableStatuses = Array.from((reelItems as any[]).reduce((map: Map<string, number>, item: any) => {
-        const status = item.data?.final_delivery_date ? 'Delivered' : (item.data?.current_status || item.status || 'Not specified');
+        const status = item.data?.final_delivery_date || item.data?.current_status === 'Delivered' || item.status === 'Delivered'
+            ? 'Delivered'
+            : (item.data?.current_status || item.status || 'Not specified');
         const reels = Math.max(1, parseInt(String(item.data?.episodes_reels_count ?? 1), 10) || 1);
         map.set(status, (map.get(status) || 0) + reels);
         return map;
