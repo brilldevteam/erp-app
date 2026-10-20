@@ -132,9 +132,20 @@ class DashboardController extends Controller
                     'extra_hours' => round($shoots->sum(fn ($item) => (float) data_get($item->data, 'extra_hours', 0)), 2),
                     'reels_delivered' => $deliverables
                         ->where('data.content_type', 'Reel')
-                        ->whereNotNull('data.final_delivery_date')
+                        ->filter(fn ($item) =>
+                            data_get($item->data, 'current_status') === 'Delivered'
+                            || $item->status === 'Delivered'
+                            || filled(data_get($item->data, 'final_delivery_date'))
+                        )
                         ->sum(fn ($item) => max(1, (int) data_get($item->data, 'episodes_reels_count', 1))),
-                    'static_delivered' => $deliverables->where('data.content_type', 'Static')->whereNotNull('data.final_delivery_date')->count(),
+                    'static_delivered' => $deliverables
+                        ->where('data.content_type', 'Static')
+                        ->filter(fn ($item) =>
+                            data_get($item->data, 'current_status') === 'Delivered'
+                            || $item->status === 'Delivered'
+                            || filled(data_get($item->data, 'final_delivery_date'))
+                        )
+                        ->count(),
                     'waiting_for_client' => $deliverables->where('status', 'Waiting for DOC')->count(),
                     'work_hours' => round($shoots->sum(fn ($item) => (float) data_get($item->data, 'total_hours', 0)), 2),
                 ] : [],
