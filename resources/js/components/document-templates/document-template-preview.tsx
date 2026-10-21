@@ -144,7 +144,7 @@ export default function DocumentTemplatePreview({
                                             ? hasTax(item) ? money(Number(item.tax)) : '-'
                                             : ['rate', 'total'].includes(column) ? money(Number(item[column])) : item[column]}
                                         {column === 'item' && !columns.includes('description') && item.description && (
-                                            <div className="mt-1 whitespace-pre-wrap font-normal">{item.description}</div>
+                                            <TextLines text={item.description} className="mt-1 whitespace-pre-wrap font-normal" />
                                         )}
                                     </td>
                                 ))}
@@ -286,7 +286,7 @@ function ReferenceQuotationTemplate({
                 {document.subject && (
                     <div className="relative z-10 mt-7 max-w-[70%]">
                         <div>Subject :</div>
-                        <div className="mt-2 whitespace-pre-wrap">{document.subject}</div>
+                        <TextLines text={document.subject} className="mt-2 whitespace-pre-wrap" />
                     </div>
                 )}
 
@@ -307,8 +307,8 @@ function ReferenceQuotationTemplate({
                                 <td className="px-3 py-4 text-center text-[9pt] align-top">{index + 1}</td>
                                 {visibleColumns.map((column) => (
                                     <td key={column} className={`${documentColumnClass(column)} px-3 py-4 align-top`}>
-                                        {column === 'item' ? <><div className="text-[8pt]">{item.item}</div>{item.description && <div className="mt-3 whitespace-pre-wrap break-words text-[8pt] leading-[1.5]">{item.description}</div>}</>
-                                            : column === 'description' ? <div className="whitespace-pre-wrap break-words text-[8pt] leading-[1.5]">{item.description || '-'}</div>
+                                        {column === 'item' ? <><div className="text-[8pt]">{item.item}</div>{item.description && <TextLines text={item.description} className="mt-3 whitespace-pre-wrap break-words text-[8pt] leading-[1.5]" />}</>
+                                            : column === 'description' ? <TextLines text={item.description || '-'} className="whitespace-pre-wrap break-words text-[8pt] leading-[1.5]" />
                                             : ['rate', 'total'].includes(column) ? money(Number(item[column])) : item[column]}
                                     </td>
                                 ))}
@@ -404,7 +404,7 @@ function ReferenceInvoiceTemplate({
                 {document.subject && (
                     <div className="relative z-10 mt-7 max-w-[70%] text-base">
                         <div>Subject :</div>
-                        <div className="mt-2 whitespace-pre-wrap">{document.subject}</div>
+                        <TextLines text={document.subject} className="mt-2 whitespace-pre-wrap" />
                     </div>
                 )}
 
@@ -425,8 +425,8 @@ function ReferenceInvoiceTemplate({
                                 <td className="px-3 py-4 text-center text-[9pt] align-top">{index + 1}</td>
                                 {visibleColumns.map((column) => (
                                     <td key={column} className={`${documentColumnClass(column)} px-3 py-4 align-top`}>
-                                        {column === 'item' ? <><div className="text-[8pt]">{item.item}</div>{item.description && <div className="mt-1 whitespace-pre-wrap break-words text-[8pt] leading-[1.5]">{item.description}</div>}</>
-                                            : column === 'description' ? <div className="whitespace-pre-wrap break-words text-[8pt] leading-[1.5]">{item.description || '-'}</div>
+                                        {column === 'item' ? <><div className="text-[8pt]">{item.item}</div>{item.description && <TextLines text={item.description} className="mt-1 whitespace-pre-wrap break-words text-[8pt] leading-[1.5]" />}</>
+                                            : column === 'description' ? <TextLines text={item.description || '-'} className="whitespace-pre-wrap break-words text-[8pt] leading-[1.5]" />
                                             : ['rate', 'total'].includes(column) ? money(Number(item[column])) : item[column]}
                                     </td>
                                 ))}
@@ -468,7 +468,7 @@ function ReferenceInvoiceTemplate({
 }
 
 function InvoiceTotalRow({ label, value, bold = false, shaded = false }: { label: string; value: string; bold?: boolean; shaded?: boolean }) {
-    return <div className={`grid grid-cols-2 px-4 py-3 text-right ${bold ? 'font-bold text-black' : ''} ${shaded ? 'bg-[#f3f3f2]' : ''}`}><span>{label}</span><span>{value}</span></div>;
+    return <div className={`grid break-inside-avoid grid-cols-2 px-4 py-3 text-right ${bold ? 'font-bold text-black' : ''} ${shaded ? 'bg-[#f3f3f2]' : ''}`}><span>{label}</span><span>{value}</span></div>;
 }
 
 function SignatureLine({ label, image }: { label: string; image?: string | null }) {
@@ -521,5 +521,10 @@ function TotalRow({ label, value }: { label: string; value: string }) {
 }
 
 function Section({ title, content }: { title: string; content: string }) {
-    return <div><div className="mb-1 text-[10pt] font-normal">{title}</div><div className="whitespace-pre-line text-[7pt] leading-[1.35] text-slate-600">{content}</div></div>;
+    return <div className="break-inside-avoid"><div className="mb-1 break-inside-avoid text-[10pt] font-normal">{title}</div><TextLines text={content} className="whitespace-pre-line text-[7pt] leading-[1.35] text-slate-600" /></div>;
+}
+
+// One block per line, so a PDF page break falls between lines instead of slicing through one.
+function TextLines({ text, className }: { text: string; className?: string }) {
+    return <div className={className}>{String(text).split('\n').map((line, index) => <div key={index} className="break-inside-avoid">{line || '\u00a0'}</div>)}</div>;
 }

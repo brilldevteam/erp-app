@@ -6,6 +6,7 @@ All notable changes to the Wazely ERP application are documented here.
 
 ### Fixed
 - Removed the extra blank trailing page from quotation and invoice PDF downloads that use document templates.
+- Stopped quotation, proposal and invoice PDFs from slicing text across pages: Notes, Bank Details and Terms move to the next page as a whole when they would be split (longer ones break only between lines), item descriptions and the subject break only between lines, and total rows stay whole.
 - Aligned footer contact icons with their text and corrected the vertical position of all text in quotation and invoice PDFs, which html2canvas was drawing too low under Tailwind's image styles.
 - Restored card padding so page toolbars (search, view toggle, per-page and filters) are vertically centred and data tables run edge to edge without side or bottom gaps.
 - Kept the accounting report Download button at full width with even icon spacing, and kept Generate, Clear and Download on one line across Double Entry reports.
