@@ -59,11 +59,15 @@ class TrialBalanceController extends Controller
         abort_unless(Auth::user()->can('print-trial-balance'), 403);
         $filters = $request->validate(['from_date' => ['required', 'date'], 'to_date' => ['required', 'date', 'after_or_equal:from_date']]);
         $report = $this->trialBalanceService->generateTrialBalance($filters['from_date'], $filters['to_date']);
-        $rows = array_map(fn ($account) => [$account['account_code'], $account['account_name'], $account['opening_balance'],
-            $account['period_debit'], $account['period_credit'], $account['debit'], $account['credit']], $report['accounts']);
-        $rows[] = ['', __('Totals'), '', '', '', $report['total_debit'], $report['total_credit']];
+        // Opening and closing balances are signed (positive = debit), so each is split into debit and credit columns.
+        $rows = array_map(fn ($account) => [$account['account_code'], $account['account_name'],
+            max($account['opening_balance'], 0), max(-$account['opening_balance'], 0),
+            $account['net_debit'], $account['net_credit'],
+            max($account['closing_balance'], 0), max(-$account['closing_balance'], 0)], $report['accounts']);
+        $totals = $report['totals'];
+        $rows[] = ['', __('Totals'), $totals['opening_debit'], $totals['opening_credit'], $totals['net_debit'], $totals['net_credit'], $totals['closing_debit'], $totals['closing_credit']];
         $path = $exporter->create(__('Trial Balance'), [__('Period') => $filters['from_date'].' to '.$filters['to_date'], __('Status') => $report['is_balanced'] ? __('Balanced') : __('Unbalanced')],
-            [__('Account Code'), __('Account Name'), __('Opening Balance'), __('Period Debit'), __('Period Credit'), __('Debit'), __('Credit')], $rows, ['C', 'D', 'E', 'F', 'G']);
+            [__('Account Code'), __('Account Name'), __('Opening Debit'), __('Opening Credit'), __('Net Debit'), __('Net Credit'), __('Closing Debit'), __('Closing Credit')], $rows, ['C', 'D', 'E', 'F', 'G', 'H']);
         return response()->download($path, 'TB-'.$filters['from_date'].'-to-'.$filters['to_date'].'.xlsx')->deleteFileAfterSend(true);
     }
 }

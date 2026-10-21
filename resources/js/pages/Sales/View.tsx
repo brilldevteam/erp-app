@@ -151,6 +151,12 @@ export default function View() {
                                             <span>{invoice.payment_terms}</span>
                                         </div>
                                     )}
+                                    {invoice.revenue_account && (
+                                        <div className="flex justify-between gap-4">
+                                            <span className="text-muted-foreground">{t('Revenue Category')}</span>
+                                            <span className="text-right">{invoice.revenue_account.account_name}</span>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="mt-4 p-3 bg-blue-50 rounded">
                                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">

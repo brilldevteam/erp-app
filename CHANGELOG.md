@@ -22,6 +22,8 @@ All notable changes to the Wazely ERP application are documented here.
 - Show the Purchase Orders / LPO navigation entry only for companies whose active plan includes the add-on, preventing dashboard redirects from unavailable module links.
 
 ### Added
+- Added opening balance, net debit, net credit and closing balance columns to the Trial Balance screen, PDF and Excel export, grouped by Assets, Liabilities, Equity, Income and Expense: balance sheet accounts carry their balance forward, income and expense accounts start each year at zero with earlier results in Retained Earnings opening, and balances show Dr/Cr.
+- Added a Revenue Category to sales invoices: create, edit and quotation conversion offer the company's sales revenue accounts (defaulting to the usual service or product account), the posted invoice credits the chosen account so revenue can be reported by category, and the category is shown on the invoice details.
 - Added payment-mode selection (Cash, Bank Transfer, Cheque) to vendor payments, with a required cheque number for cheques, shown on payment details, vouchers, bank transaction descriptions and reports; customer receipts now print the selected payment mode as well.
 - Added opening and closing dates to Balance Sheet generation: balances are calculated as of the closing date, profit earned within the period is shown as Net Income for the Period under Equity, and the period appears in the balance sheet selector, lists, comparisons, PDF and Excel exports.
 - Added manual multi-currency transaction entry with effective-dated company exchange rates, historical rate snapshots, base-currency journal posting, currency-aware bank accounts, and a dry-run-safe live-data backfill command.

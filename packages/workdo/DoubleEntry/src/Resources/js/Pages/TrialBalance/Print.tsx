@@ -3,23 +3,7 @@ import { Head, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import html2pdf from 'html2pdf.js';
 import { formatCurrency, formatDate, getCompanySetting } from '@/utils/helpers';
-
-interface TrialBalanceAccount {
-    id: number;
-    account_code: string;
-    account_name: string;
-    debit: number;
-    credit: number;
-}
-
-interface TrialBalanceData {
-    accounts: TrialBalanceAccount[];
-    total_debit: number;
-    total_credit: number;
-    is_balanced: boolean;
-    from_date: string;
-    to_date: string;
-}
+import { TrialBalanceData, formatAmount, formatBalance, groupBySection } from './trialBalanceRows';
 
 interface TrialBalanceProps {
     trialBalance: TrialBalanceData;
@@ -47,7 +31,8 @@ export default function Print() {
                 filename: `TB-${String(trialBalance.from_date || '').slice(0, 10)}-to-${String(trialBalance.to_date || '').slice(0, 10)}.pdf`,
                 image: { type: 'jpeg' as const, quality: 0.98 },
                 html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' as const }
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' as const },
+                pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' }
             };
 
             try {
@@ -103,34 +88,40 @@ export default function Print() {
 
                 {/* Trial Balance Table */}
                 <div className="mb-6">
-                    <table className="w-full">
+                    <table className="w-full text-xs">
                         <thead>
                             <tr className="border-b-2 border-gray-800">
-                                <th className="text-left py-2 text-sm font-bold">{t('Account Code')}</th>
-                                <th className="text-left py-2 text-sm font-bold">{t('Account Name')}</th>
-                                <th className="text-right py-2 text-sm font-bold">{t('Debit')}</th>
-                                <th className="text-right py-2 text-sm font-bold">{t('Credit')}</th>
+                                <th className="text-left py-2 pr-2 font-bold">{t('Account')}</th>
+                                <th className="text-left py-2 pr-2 font-bold">{t('Code')}</th>
+                                <th className="text-right py-2 pl-2 font-bold">{t('Opening Balance')}</th>
+                                <th className="text-right py-2 pl-2 font-bold">{t('Net Debit')}</th>
+                                <th className="text-right py-2 pl-2 font-bold">{t('Net Credit')}</th>
+                                <th className="text-right py-2 pl-2 font-bold">{t('Closing Balance')}</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {trialBalance.accounts.map((account) => (
-                                <tr key={account.id} className="border-b border-gray-100">
-                                    <td className="py-1.5 text-sm">{account.account_code}</td>
-                                    <td className="py-1.5 text-sm">{account.account_name}</td>
-                                    <td className="py-1.5 text-sm text-right tabular-nums">
-                                        {account.debit > 0 ? formatCurrency(account.debit) : '-'}
-                                    </td>
-                                    <td className="py-1.5 text-sm text-right tabular-nums">
-                                        {account.credit > 0 ? formatCurrency(account.credit) : '-'}
-                                    </td>
+                        {groupBySection(trialBalance.accounts).map((group) => (
+                            <tbody key={group.section}>
+                                <tr>
+                                    <td colSpan={6} className="pt-3 pb-1 font-bold">{t(group.label)}</td>
                                 </tr>
-                            ))}
-                        </tbody>
+                                {group.accounts.map((account) => (
+                                    <tr key={account.id ?? account.account_code} className="border-b border-gray-100">
+                                        <td className="py-1 pr-2 pl-2">{account.account_name}</td>
+                                        <td className="py-1 pr-2">{account.account_code}</td>
+                                        <td className="py-1 pl-2 text-right tabular-nums whitespace-nowrap">{formatBalance(account.opening_balance)}</td>
+                                        <td className="py-1 pl-2 text-right tabular-nums whitespace-nowrap">{formatAmount(account.net_debit)}</td>
+                                        <td className="py-1 pl-2 text-right tabular-nums whitespace-nowrap">{formatAmount(account.net_credit)}</td>
+                                        <td className="py-1 pl-2 text-right tabular-nums whitespace-nowrap">{formatBalance(account.closing_balance)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        ))}
                         <tfoot>
                             <tr className="border-t-2 border-gray-800">
-                                <td colSpan={2} className="py-2 text-sm font-bold">{t('TOTAL')}</td>
-                                <td className="py-2 text-sm text-right font-bold tabular-nums">{formatCurrency(trialBalance.total_debit)}</td>
-                                <td className="py-2 text-sm text-right font-bold tabular-nums">{formatCurrency(trialBalance.total_credit)}</td>
+                                <td colSpan={3} className="py-2 font-bold">{t('TOTAL')}</td>
+                                <td className="py-2 pl-2 text-right font-bold tabular-nums whitespace-nowrap">{formatCurrency(trialBalance.totals.net_debit)}</td>
+                                <td className="py-2 pl-2 text-right font-bold tabular-nums whitespace-nowrap">{formatCurrency(trialBalance.totals.net_credit)}</td>
+                                <td className="py-2" />
                             </tr>
                         </tfoot>
                     </table>
@@ -147,6 +138,11 @@ export default function Print() {
                     -webkit-print-color-adjust: exact;
                     color-adjust: exact;
                     font-family: Arial, sans-serif;
+                }
+
+                /* html2canvas measures text baselines with an <img> it appends to <body>; Tailwind's img { display: block } breaks that and draws all PDF text too low. */
+                body > div > img {
+                    display: inline-block;
                 }
 
                 @page {

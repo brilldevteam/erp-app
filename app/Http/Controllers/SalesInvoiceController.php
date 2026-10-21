@@ -27,6 +27,7 @@ use App\Models\DocumentTemplate;
 use App\Services\SalesInvoiceService;
 use App\Services\DocumentTemplates\DocumentTemplateService;
 use Workdo\Quotation\Events\ConvertSalesQuotation;
+use Workdo\Account\Models\ChartOfAccount;
 
 class SalesInvoiceController extends Controller
 {
@@ -52,6 +53,13 @@ class SalesInvoiceController extends Controller
             ->where('created_by', creatorId())
             ->orderBy('tax_name')
             ->get(['id', 'tax_name', 'rate']);
+    }
+
+    private function revenueAccounts()
+    {
+        return ChartOfAccount::salesRevenueOptions(creatorId())
+            ->orderBy('account_code')
+            ->get(['id', 'account_code', 'account_name']);
     }
 
     private function productCatalog(): array
@@ -170,6 +178,7 @@ class SalesInvoiceController extends Controller
                 'warehouses' => $warehouses,
                 'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_INVOICE),
                 'productCatalog' => $this->productCatalog(),
+                'revenueAccounts' => $this->revenueAccounts(),
             ]);
         }
         else{
@@ -235,7 +244,7 @@ class SalesInvoiceController extends Controller
                 return redirect()->route('sales-invoices.index')->with('error', __('Permission denied'));
             }
 
-            $salesInvoice->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'warehouse', 'quotation']);
+            $salesInvoice->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'warehouse', 'quotation', 'revenueAccount:id,account_code,account_name']);
 
             return Inertia::render('Sales/View', [
                 'invoice' => $salesInvoice,
@@ -277,6 +286,7 @@ class SalesInvoiceController extends Controller
                 'warehouses' => $warehouses,
                 'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_INVOICE),
                 'productCatalog' => $this->productCatalog(),
+                'revenueAccounts' => $this->revenueAccounts(),
             ]);
         }
         else{
@@ -306,6 +316,7 @@ class SalesInvoiceController extends Controller
             $salesInvoice->warehouse_id = $salesInvoice->type === 'product' && $request->filled('warehouse_id')
                 ? $request->warehouse_id
                 : null;
+            $salesInvoice->revenue_account_id = $request->revenue_account_id;
             $salesInvoice->payment_terms = $request->payment_terms;
             $salesInvoice->subject = $request->subject;
             $salesInvoice->notes = $request->notes;

@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Workdo\Account\Models\ChartOfAccount;
 
 class StoreSalesInvoiceRequest extends FormRequest
 {
@@ -22,6 +23,7 @@ class StoreSalesInvoiceRequest extends FormRequest
             'document_template_id' => ['nullable', 'integer', Rule::exists('document_templates', 'id')->where(fn ($query) => $query->where('company_id', creatorId())->where('type', 'invoice'))],
             'type' => 'required|in:product,service',
             'warehouse_id' => ['nullable', 'integer', Rule::exists('warehouses', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
+            'revenue_account_id' => ['nullable', 'integer', Rule::in(ChartOfAccount::salesRevenueOptions(creatorId())->pluck('id')->all())],
             'payment_terms' => 'nullable|string|max:255',
             'subject' => 'nullable|string|max:500',
             'notes' => 'nullable|string',

@@ -11,29 +11,7 @@ import { AccountingReportDownloadMenu } from '@/components/accounting-report-dow
 import { DatePicker } from '@/components/ui/date-picker';
 import { formatDate, formatCurrency } from '@/utils/helpers';
 import NoRecordsFound from '@/components/no-records-found';
-
-interface TrialBalanceAccount {
-    id: number;
-    account_code: string;
-    account_name: string;
-    debit: number;
-    credit: number;
-}
-
-interface TrialBalanceData {
-    accounts: TrialBalanceAccount[];
-    total_debit: number;
-    total_credit: number;
-    is_balanced: boolean;
-    from_date: string;
-    to_date: string;
-    diagnostics?: {
-        active_accounts: number;
-        posted_journals: number;
-        has_accounts: boolean;
-        has_period_journals: boolean;
-    };
-}
+import { TrialBalanceData, formatAmount, formatBalance, groupBySection } from './trialBalanceRows';
 
 interface TrialBalanceProps {
     trialBalance: TrialBalanceData;
@@ -158,36 +136,45 @@ export default function Index() {
                 <Card className="shadow-lg border-0">
                     <CardContent className="p-8">
                         {trialBalance.accounts && trialBalance.accounts.length > 0 ? (
-                            <>
-                                <div className="space-y-1">
-                                    <div className="grid grid-cols-12 gap-4 py-2 border-b-2 border-gray-300 font-bold">
-                                        <div className="col-span-2">{t('Account Code')}</div>
-                                        <div className="col-span-6">{t('Account Name')}</div>
-                                        <div className="col-span-2 text-right">{t('Debit')}</div>
-                                        <div className="col-span-2 text-right">{t('Credit')}</div>
-                                    </div>
-                                    {trialBalance.accounts.map((account) => (
-                                        <div key={account.id} className="grid grid-cols-12 gap-4 py-1.5 border-b border-gray-100">
-                                            <div className="col-span-2 text-sm">
-                                                <span className="text-green-600">{account.account_code}</span>
-                                            </div>
-                                            <div className="col-span-6 text-sm font-medium">{account.account_name}</div>
-                                            <div className="col-span-2 text-right text-sm font-semibold tabular-nums">
-                                                {account.debit > 0 ? formatCurrency(account.debit) : '-'}
-                                            </div>
-                                            <div className="col-span-2 text-right text-sm font-semibold tabular-nums">
-                                                {account.credit > 0 ? formatCurrency(account.credit) : '-'}
-                                            </div>
-                                        </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full min-w-[760px] text-sm">
+                                    <thead>
+                                        <tr className="border-b-2 border-gray-300 text-left font-bold">
+                                            <th className="py-2 pr-4">{t('Account')}</th>
+                                            <th className="py-2 pr-4">{t('Account Code')}</th>
+                                            <th className="py-2 pl-4 text-right">{t('Opening Balance')}</th>
+                                            <th className="py-2 pl-4 text-right">{t('Net Debit')}</th>
+                                            <th className="py-2 pl-4 text-right">{t('Net Credit')}</th>
+                                            <th className="py-2 pl-4 text-right">{t('Closing Balance')}</th>
+                                        </tr>
+                                    </thead>
+                                    {groupBySection(trialBalance.accounts).map((group) => (
+                                        <tbody key={group.section}>
+                                            <tr>
+                                                <td colSpan={6} className="pt-4 pb-1 font-semibold text-gray-900">{t(group.label)}</td>
+                                            </tr>
+                                            {group.accounts.map((account) => (
+                                                <tr key={account.id ?? account.account_code} className="border-b border-gray-100">
+                                                    <td className="py-1.5 pr-4 pl-3 font-medium">{account.account_name}</td>
+                                                    <td className="py-1.5 pr-4 text-green-600">{account.account_code}</td>
+                                                    <td className="py-1.5 pl-4 text-right tabular-nums whitespace-nowrap">{formatBalance(account.opening_balance)}</td>
+                                                    <td className="py-1.5 pl-4 text-right tabular-nums whitespace-nowrap">{formatAmount(account.net_debit)}</td>
+                                                    <td className="py-1.5 pl-4 text-right tabular-nums whitespace-nowrap">{formatAmount(account.net_credit)}</td>
+                                                    <td className="py-1.5 pl-4 text-right font-semibold tabular-nums whitespace-nowrap">{formatBalance(account.closing_balance)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
                                     ))}
-                                </div>
-
-                                <div className="grid grid-cols-12 gap-4 pt-3 mt-3 border-t-2 border-gray-400 font-bold">
-                                    <div className="col-span-8">{t('TOTAL')}</div>
-                                    <div className="col-span-2 text-right tabular-nums">{formatCurrency(trialBalance.total_debit)}</div>
-                                    <div className="col-span-2 text-right tabular-nums">{formatCurrency(trialBalance.total_credit)}</div>
-                                </div>
-                            </>
+                                    <tfoot>
+                                        <tr className="border-t-2 border-gray-400 font-bold">
+                                            <td colSpan={3} className="pt-3">{t('TOTAL')}</td>
+                                            <td className="pt-3 pl-4 text-right tabular-nums whitespace-nowrap">{formatCurrency(trialBalance.totals.net_debit)}</td>
+                                            <td className="pt-3 pl-4 text-right tabular-nums whitespace-nowrap">{formatCurrency(trialBalance.totals.net_credit)}</td>
+                                            <td className="pt-3" />
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
                         ) : (
                             <NoRecordsFound
                                 icon={FileText}

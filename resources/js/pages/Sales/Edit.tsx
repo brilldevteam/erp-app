@@ -3,7 +3,8 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { useFormFields } from '@/hooks/useFormFields';
-import { InvoiceCustomerOption, InvoiceTaxOption, SalesInvoice, SalesInvoiceItem } from './types';
+import { InvoiceCustomerOption, InvoiceTaxOption, RevenueAccountOption, SalesInvoice, SalesInvoiceItem } from './types';
+import RevenueAccountField, { defaultRevenueAccountId } from './components/RevenueAccountField';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import InvoiceItemsTable from './components/InvoiceItemsTable';
 import ProductPickerDialog, { QuotationProduct } from '@/components/product-picker-dialog';
@@ -32,13 +33,14 @@ interface EditProps {
         units: Array<{ id: number; unit_name: string }>;
         taxes: Array<{ id: number; tax_name: string; rate: number }>;
     };
+    revenueAccounts?: RevenueAccountOption[];
     auth: { user: { permissions?: string[] } };
     [key: string]: any;
 }
 
 export default function Edit() {
     const { t } = useTranslation();
-    const { invoice, customers, taxes = [], warehouses, documentTemplates = [], productCatalog, auth } = usePage<EditProps>().props;
+    const { invoice, customers, taxes = [], warehouses, documentTemplates = [], productCatalog, revenueAccounts = [], auth } = usePage<EditProps>().props;
     const [availableProducts, setAvailableProducts] = useState<QuotationProduct[]>([]);
     const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
     const [productsLoading, setProductsLoading] = useState(false);
@@ -52,6 +54,7 @@ export default function Edit() {
         warehouse_id: invoice.warehouse_id?.toString() || '',
         document_template_id: invoice.document_template_id?.toString() || '',
         type: invoice.type || 'product',
+        revenue_account_id: invoice.revenue_account_id?.toString() || defaultRevenueAccountId(revenueAccounts, invoice.type || 'product'),
         items: (invoice.items || []).map(item => {
             const calculations = calculateLineItemAmounts(
                 item.quantity,
@@ -276,7 +279,17 @@ export default function Edit() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                                <RevenueAccountField
+                                    accounts={revenueAccounts}
+                                    value={data.revenue_account_id}
+                                    onChange={(value) => {
+                                        setData('revenue_account_id', value);
+                                        clearErrors('revenue_account_id' as any);
+                                    }}
+                                    error={(errors as Record<string, string>).revenue_account_id}
+                                />
+
                                 <div>
                                     <Label htmlFor="payment_terms">
                                         {t('Payment Terms')}

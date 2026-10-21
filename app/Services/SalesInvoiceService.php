@@ -47,6 +47,7 @@ class SalesInvoiceService
                 ? ($data['warehouse_id'] ?? null)
                 : null;
             $invoice->type = $data['type'];
+            $invoice->revenue_account_id = $data['revenue_account_id'] ?? null;
             $invoice->payment_terms = $data['payment_terms'] ?? null;
             $invoice->subject = $data['subject'] ?? null;
             $invoice->notes = $data['notes'] ?? null;

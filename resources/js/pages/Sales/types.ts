@@ -10,6 +10,8 @@ export interface SalesInvoice {
     customer_id: number;
     warehouse_id?: number;
     type: 'product' | 'service';
+    revenue_account_id?: number | null;
+    revenue_account?: RevenueAccountOption | null;
     subtotal: number;
     tax_amount: number;
     discount_amount: number;
@@ -69,6 +71,12 @@ export interface InvoiceTaxOption {
     id: number;
     tax_name: string;
     rate: number;
+}
+
+export interface RevenueAccountOption {
+    id: number;
+    account_code: string;
+    account_name: string;
 }
 
 export interface CustomerDetails {

@@ -3,7 +3,8 @@ import { Head, useForm, usePage, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { useFormFields } from '@/hooks/useFormFields';
-import { InvoiceCustomerOption, InvoiceTaxOption, SalesInvoiceItem } from './types';
+import { InvoiceCustomerOption, InvoiceTaxOption, RevenueAccountOption, SalesInvoiceItem } from './types';
+import RevenueAccountField, { defaultRevenueAccountId } from './components/RevenueAccountField';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import InvoiceItemsTable from './components/InvoiceItemsTable';
 import ProductPickerDialog, { QuotationProduct } from '@/components/product-picker-dialog';
@@ -34,6 +35,7 @@ interface CreateProps {
         units: Array<{ id: number; unit_name: string }>;
         taxes: Array<{ id: number; tax_name: string; rate: number }>;
     };
+    revenueAccounts?: RevenueAccountOption[];
     auth: { user: { permissions?: string[] } };
     initialProducts?: Array<{
         id: number;
@@ -65,7 +67,7 @@ interface CreateProps {
 
 export default function Create() {
     const { t } = useTranslation();
-    const { customers, taxes = [], warehouses, documentTemplates = [], productCatalog, auth, initialInvoice, initialProducts = [] } = usePage<CreateProps>().props;
+    const { customers, taxes = [], warehouses, documentTemplates = [], productCatalog, revenueAccounts = [], auth, initialInvoice, initialProducts = [] } = usePage<CreateProps>().props;
     const [availableProducts, setAvailableProducts] = useState<QuotationProduct[]>(initialProducts);
     const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
     const [productsLoading, setProductsLoading] = useState(false);
@@ -83,6 +85,7 @@ export default function Create() {
         warehouse_id: initialInvoice?.warehouse_id ?? '',
         document_template_id: initialInvoice?.document_template_id ?? documentTemplates.find((template) => template.is_default)?.id?.toString() ?? '',
         type: initialInvoice?.type ?? 'product',
+        revenue_account_id: defaultRevenueAccountId(revenueAccounts, initialInvoice?.type ?? 'product'),
         payment_terms: initialInvoice?.payment_terms ?? '',
         subject: initialInvoice?.subject ?? '',
         notes: initialInvoice?.notes ?? '',
@@ -188,6 +191,7 @@ export default function Create() {
 
     const handleTypeChange = async (type: 'product' | 'service') => {
         setData('type', type);
+        setData('revenue_account_id', defaultRevenueAccountId(revenueAccounts, type));
 
         if (type === 'service') {
             setData('warehouse_id', '');
@@ -404,7 +408,17 @@ export default function Create() {
                                 />
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                                <RevenueAccountField
+                                    accounts={revenueAccounts}
+                                    value={data.revenue_account_id}
+                                    onChange={(value) => {
+                                        setData('revenue_account_id', value);
+                                        clearErrors('revenue_account_id');
+                                    }}
+                                    error={(errors as Record<string, string>).revenue_account_id}
+                                />
+
                                 <div>
                                     <Label htmlFor="payment_terms">
                                         {t('Payment Terms')}

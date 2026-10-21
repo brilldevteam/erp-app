@@ -56,4 +56,15 @@ class ChartOfAccount extends Model
     {
         return $this->hasMany(JournalEntryItem::class, 'account_id');
     }
+
+    /**
+     * Active sales revenue accounts (4000-4899, Sales Revenue type) an invoice can post its revenue to.
+     */
+    public function scopeSalesRevenueOptions($query, $creatorId)
+    {
+        return $query->where('created_by', $creatorId)
+            ->where('is_active', true)
+            ->whereBetween('account_code', ['4000', '4899'])
+            ->whereIn('account_type_id', AccountType::select('id')->where('created_by', $creatorId)->where('code', 'SR'));
+    }
 }

@@ -27,6 +27,7 @@ class SalesInvoice extends Model
         'balance_amount',
         'status',
         'type',
+        'revenue_account_id',
         'payment_terms',
         'subject',
         'notes',
@@ -70,6 +71,11 @@ class SalesInvoice extends Model
             \Workdo\Quotation\Models\SalesQuotation::class,
             'quotation_id'
         );
+    }
+
+    public function revenueAccount(): BelongsTo
+    {
+        return $this->belongsTo(\Workdo\Account\Models\ChartOfAccount::class, 'revenue_account_id');
     }
 
     public function documentTemplate(): BelongsTo

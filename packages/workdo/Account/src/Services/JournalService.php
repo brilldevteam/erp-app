@@ -50,6 +50,25 @@ class JournalService
         }
     }
 
+    /**
+     * Revenue account chosen on the invoice (Revenue Category), or the default account for its type.
+     */
+    private function invoiceRevenueAccount($salesInvoice, string $defaultCode): ?ChartOfAccount
+    {
+        if ($salesInvoice->revenue_account_id) {
+            $chosen = ChartOfAccount::salesRevenueOptions(creatorId())
+                ->where('id', $salesInvoice->revenue_account_id)
+                ->first();
+            if ($chosen) {
+                return $chosen;
+            }
+        }
+
+        $this->validateAccounts([$defaultCode]);
+
+        return ChartOfAccount::where('account_code', $defaultCode)->where('created_by', creatorId())->first();
+    }
+
     private function existingPostedJournal(string $referenceType, $referenceId): ?JournalEntry
     {
         if (!$referenceId) {
@@ -74,7 +93,7 @@ class JournalService
         }
 
         // Validate required accounts exist
-        $requiredAccounts = ['1100', '4100'];
+        $requiredAccounts = ['1100'];
         if ($salesInvoice->tax_amount > 0) {
             $requiredAccounts[] = '2210';
         }
@@ -85,7 +104,7 @@ class JournalService
         $this->validateBalance($totalDebit, $totalCredit);
 
         $arAccount = ChartOfAccount::where('account_code', '1100')->where('created_by', creatorId())->first();
-        $salesAccount = ChartOfAccount::where('account_code', '4100')->where('created_by', creatorId())->first();
+        $salesAccount = $this->invoiceRevenueAccount($salesInvoice, '4100');
         $taxAccount = ChartOfAccount::where('account_code', '2210')->where('created_by', creatorId())->first();
 
         $journalEntry = JournalEntry::create(array_merge([
@@ -207,7 +226,7 @@ class JournalService
             return $existing;
         }
 
-        $requiredAccounts = ['1100', '4200'];
+        $requiredAccounts = ['1100'];
         if ($salesInvoice->tax_amount > 0) {
             $requiredAccounts[] = '2210';
         }
@@ -218,7 +237,7 @@ class JournalService
         $this->validateBalance($totalDebit, $totalCredit);
 
         $arAccount = ChartOfAccount::where('account_code', '1100')->where('created_by', creatorId())->first();
-        $serviceRevenueAccount = ChartOfAccount::where('account_code', '4200')->where('created_by', creatorId())->first();
+        $serviceRevenueAccount = $this->invoiceRevenueAccount($salesInvoice, '4200');
         $taxAccount = ChartOfAccount::where('account_code', '2210')->where('created_by', creatorId())->first();
 
         $journalEntry = JournalEntry::create(array_merge([

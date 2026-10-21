@@ -539,6 +539,9 @@ class QuotationController extends Controller
             'warehouses' => $warehouses,
             'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_INVOICE),
             'productCatalog' => $this->productCatalog(),
+            'revenueAccounts' => \Workdo\Account\Models\ChartOfAccount::salesRevenueOptions(creatorId())
+                ->orderBy('account_code')
+                ->get(['id', 'account_code', 'account_name']),
             'taxes' => ProductServiceTax::where('created_by', creatorId())->orderBy('tax_name')->get(['id', 'tax_name', 'rate']),
             'initialProducts' => $quotation->items
                 ->filter(fn ($item) => $item->product)
