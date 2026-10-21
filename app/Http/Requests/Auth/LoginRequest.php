@@ -92,6 +92,10 @@ class LoginRequest extends FormRequest
 
     private function hasValidPartyPortalAccess(User $user): bool
     {
+        if ($user->type === 'client' && $user->hasRole('production-client')) {
+            return $this->hasValidProductionClientAccess($user);
+        }
+
         $table = match ($user->type) {
             'client' => 'customers',
             'vendor' => 'vendors',
@@ -112,6 +116,22 @@ class LoginRequest extends FormRequest
         return $partyEmail !== ''
             && $partyEmail === $userEmail
             && !str_ends_with($userEmail, '@import.local');
+    }
+
+    private function hasValidProductionClientAccess(User $user): bool
+    {
+        $userEmail = strtolower(trim((string) $user->email));
+
+        if ($userEmail === '' || str_ends_with($userEmail, '@import.local')) {
+            return false;
+        }
+
+        return DB::table('project_clients')
+            ->join('projects', 'projects.id', '=', 'project_clients.project_id')
+            ->where('project_clients.client_id', $user->id)
+            ->where('projects.category', 'production')
+            ->where('projects.created_by', $user->created_by)
+            ->exists();
     }
 
     /**

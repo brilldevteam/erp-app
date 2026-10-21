@@ -34,8 +34,9 @@ export default function Edit({ customer, onSuccess }: EditCustomerProps) {
         password: '',
         password_confirmation: '',
         attachments: [],
-        billing_address: { ...customer.billing_address, country_code: addressCountryCode(customer.billing_address) || customer.billing_address.country_code },
-        shipping_address: { ...customer.shipping_address, country_code: addressCountryCode(customer.shipping_address) || customer.shipping_address.country_code },
+        // Customers created from a production client login can have no saved addresses.
+        billing_address: { ...customer.billing_address, country_code: addressCountryCode(customer.billing_address) || customer.billing_address?.country_code },
+        shipping_address: { ...customer.shipping_address, country_code: addressCountryCode(customer.shipping_address) || customer.shipping_address?.country_code },
     });
     const [uploading, setUploading] = useState(false);
 

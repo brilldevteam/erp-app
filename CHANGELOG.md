@@ -14,6 +14,11 @@ All notable changes to the Wazely ERP application are documented here.
 - Expanded transaction-list searches to match customer, vendor, company, contact, employee, reference, category, and account names in addition to document and payment numbers.
 - Expanded Invoice Aging to show customer account codes and individual outstanding invoice numbers, with customer subtotals and grand totals in both the report and PDF.
 - Removed the duplicate scrollbar and excess empty space from Video Production record forms.
+- Counted Video Production deliverables by their Episodes / Reels Count: the pipeline headline now shows reels delivered and each workflow status shows its number of reels instead of list rows; date columns in production lists show the date without a midnight time.
+- Opened the customer edit form for customers saved without billing or shipping addresses (such as production client logins) instead of showing a blank page.
+- Allowed enabled production clients assigned to production projects to sign in with the credentials created from Video Production, without requiring a separate accounting customer record or User Management edit.
+- Displayed the Production Client role label in User Management list and card views instead of the generic Client account type.
+- Aligned Video Production delivered-reel KPIs and pipeline totals to count Reel episodes consistently from delivered status or final delivery date, while keeping static posts separate.
 - Separated Video Production overview access from read-only production record access and limited production-only roles to production projects within the Project section.
 - Add payment-mode selection and receiving-account labeling when recording customer payments.
 - Populate the customer and receiving-account dropdowns when recording a payment from a sales invoice.

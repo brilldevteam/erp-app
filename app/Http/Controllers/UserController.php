@@ -29,6 +29,7 @@ class UserController extends Controller
     {
         if(Auth::user()->can('manage-users')){
             $users = User::query()
+                ->with('roles:id,name,label')
                 ->where(function($q) {
                     if(Auth::user()->can('manage-any-users')) {
                         $q->where('created_by', creatorId());
@@ -57,6 +58,9 @@ class UserController extends Controller
                 : collect();
             $users->getCollection()->transform(function ($user) use ($customerLinks, $vendorLinks) {
                 $user->is_online = Cache::has("user_online_{$user->id}");
+                $productionClientRole = $user->roles->firstWhere('name', 'production-client');
+                $user->display_role = $productionClientRole?->label ?: Str::headline($user->type);
+                $user->unsetRelation('roles');
                 if ($customerLinks->has($user->id)) {
                     $user->linked_party = ['type' => 'customer', 'id' => $customerLinks[$user->id]->id];
                 } elseif ($vendorLinks->has($user->id)) {

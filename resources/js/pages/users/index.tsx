@@ -124,6 +124,7 @@ export default function Index() {
 
     const hasUsableLoginEmail = (user: User) => !isPlaceholderEmail(user.email);
     const displayEmail = (email?: string | null) => isPlaceholderEmail(email) ? '-' : email;
+    const displayRole = (user: User) => user.display_role || user.type;
 
     const tableColumns = [
         {
@@ -162,9 +163,9 @@ export default function Index() {
             key: 'type',
             header: t('Role'),
             sortable: true,
-            render: (value: string) => (
+            render: (_value: string, user: User) => (
                 <span className="capitalize px-2 py-1 bg-gray-100 rounded-full text-sm">
-                    {value}
+                    {displayRole(user)}
                 </span>
             )
         },
@@ -477,7 +478,7 @@ export default function Index() {
                                                     
                                                     {/* Role Badge */}
                                                     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-primary/10 to-primary/5 text-primary border border-primary/20 capitalize">
-                                                        {user.type}
+                                                        {displayRole(user)}
                                                     </span>
                                                 </div>
 

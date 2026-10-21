@@ -4,6 +4,8 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -42,6 +44,58 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_enabled_production_client_assigned_to_a_production_project_can_authenticate(): void
+    {
+        [$client, $projectId] = $this->createProductionClient();
+
+        DB::table('project_clients')->insert([
+            'project_id' => $projectId,
+            'client_id' => $client->id,
+        ]);
+
+        $response = $this->post('/login', [
+            'email' => $client->email,
+            'password' => 'Password1!',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertAuthenticatedAs($client);
+    }
+
+    public function test_unassigned_production_client_cannot_authenticate(): void
+    {
+        [$client] = $this->createProductionClient();
+
+        $response = $this->post('/login', [
+            'email' => $client->email,
+            'password' => 'Password1!',
+        ]);
+
+        $response->assertSessionHasErrors('email');
+        $this->assertGuest();
+    }
+
+    public function test_disabled_production_client_cannot_authenticate(): void
+    {
+        [$client, $projectId] = $this->createProductionClient([
+            'is_enable_login' => false,
+            'is_disable' => true,
+        ]);
+
+        DB::table('project_clients')->insert([
+            'project_id' => $projectId,
+            'client_id' => $client->id,
+        ]);
+
+        $response = $this->post('/login', [
+            'email' => $client->email,
+            'password' => 'Password1!',
+        ]);
+
+        $response->assertSessionHasErrors('email');
+        $this->assertGuest();
+    }
+
     public function test_users_can_logout(): void
     {
         $user = User::factory()->create();
@@ -50,5 +104,38 @@ class AuthenticationTest extends TestCase
 
         $this->assertGuest();
         $response->assertRedirect('/');
+    }
+
+    private function createProductionClient(array $overrides = []): array
+    {
+        $company = User::factory()->create(['type' => 'company']);
+        $client = User::factory()->create(array_merge([
+            'type' => 'client',
+            'password' => 'Password1!',
+            'is_enable_login' => true,
+            'is_disable' => false,
+            'creator_id' => $company->id,
+            'created_by' => $company->id,
+        ], $overrides));
+
+        $role = new Role();
+        $role->name = 'production-client';
+        $role->guard_name = 'web';
+        $role->editable = false;
+        $role->created_by = $company->id;
+        $role->save();
+        $client->assignRole($role);
+
+        $projectId = DB::table('projects')->insertGetId([
+            'name' => 'Production Portal Test',
+            'category' => 'production',
+            'status' => 'Ongoing',
+            'creator_id' => $company->id,
+            'created_by' => $company->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return [$client, $projectId];
     }
 }

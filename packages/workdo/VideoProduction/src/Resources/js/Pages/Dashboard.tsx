@@ -106,14 +106,16 @@ const summaryLabels: Partial<Record<string, string>> = {
 
 const fieldFor = (kind: Kind, key: string) => displayFields(kind).find(([fieldKey]) => fieldKey === key);
 
-function formatRecordValue(value: any, type?: string) {
+function formatRecordValue(value: any, type?: string, dateOnly = false) {
     if (value === null || value === undefined || value === '') return '-';
 
     if (type === 'date' || type === 'datetime-local') {
         const date = new Date(String(value).replace(' ', 'T'));
         if (!Number.isNaN(date.getTime())) {
+            const withTime = type === 'datetime-local' && !dateOnly;
             return new Intl.DateTimeFormat('en-GB', {
-                day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true,
+                day: '2-digit', month: 'short', year: 'numeric',
+                ...(withTime ? { hour: 'numeric', minute: '2-digit', hour12: true } : {}),
             }).format(date);
         }
     }
@@ -127,12 +129,12 @@ function formatRecordValue(value: any, type?: string) {
     return String(value);
 }
 
-function RecordValue({ value, type }: { value: any; type?: string }) {
+function RecordValue({ value, type, dateOnly = false }: { value: any; type?: string; dateOnly?: boolean }) {
     if (type === 'url' && value) {
         return <a href={value} target="_blank" rel="noreferrer" className="text-primary underline-offset-4 hover:underline">{value}</a>;
     }
 
-    return <>{formatRecordValue(value, type)}</>;
+    return <>{formatRecordValue(value, type, dateOnly)}</>;
 }
 
 function storedFiles(data: any, key = 'supporting_files'): any[] {
@@ -429,7 +431,7 @@ function Manager({ kind, items, settings, nextRecordKey, companyName, project, s
                                             : key === 'current_status'
                                                 ? <StatusBadge value={record.data[key]} kind="deliverable" />
                                                 : <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">{record.data[key]}</span>
-                                        : <span className="line-clamp-2"><RecordValue value={record.data?.[key]} type={type} /></span>}
+                                        : <span className="line-clamp-2"><RecordValue value={record.data?.[key]} type={type} dateOnly /></span>}
                                 </td>)}
                                 <td className="px-3 py-3 text-right">
                                     <div className="flex justify-end gap-1">
@@ -551,7 +553,7 @@ export default function Dashboard() {
         ...(canManageSettings ? [['settings','Settings',Settings2]] : []),
     ];
     const defaultTab = tabs[0]?.[0] || 'overview';
-    const metrics = [['Shooting sessions',productionMetrics.shoots,Video],['Reels delivered',productionMetrics.reels_delivered,CheckCircle2],['Static posts delivered',productionMetrics.static_delivered,FileCheck2],['Work hours',productionMetrics.work_hours,Clock3]];
+    const metrics = [['Shooting sessions',productionMetrics.shoots,Video],['Reels delivered',productionMetrics.reels_delivered,CheckCircle2],['Work hours',productionMetrics.work_hours,Clock3]];
     const targets = [['Reels / month',settings.monthly_reel_target],['Static posts / month',settings.monthly_static_target],['Shoot sessions',`${settings.minimum_shoots} - ${settings.maximum_shoots}`],['Hours / shoot',settings.included_hours_per_shoot],['Script lead days',settings.required_lead_days],['Included revisions',settings.included_revisions],['Extra shooting hours',productionMetrics.extra_hours],['Waiting for client',productionMetrics.waiting_for_client]];
     const overviewItems = [...(records.shoot || []).map((item: any) => ({ ...item, recordType: 'shoot' })), ...(records.deliverable || []).map((item: any) => ({ ...item, recordType: 'deliverable' }))]
         .filter((item: any) => range !== 'monthly' || String(item.recorded_at || '').slice(0, 7) === month)
@@ -567,12 +569,18 @@ export default function Dashboard() {
         map.set(key, current);
         return map;
     }, new Map<string, any>()).values()).sort((a: any, b: any) => a.key.localeCompare(b.key)).slice(-8);
-    const deliverableStatuses = Array.from((overviewItems.filter((item: any) => item.recordType === 'deliverable') as any[]).reduce((map: Map<string, number>, item: any) => {
-        const status = item.data?.current_status || item.status || 'Not specified';
-        map.set(status, (map.get(status) || 0) + 1);
+    // Pipeline values count Reel episodes (a record with 2 reels counts as 2), not list rows.
+    const reelItems = overviewItems.filter((item: any) => item.recordType === 'deliverable' && item.data?.content_type === 'Reel');
+    const deliverableStatuses = Array.from((reelItems as any[]).reduce((map: Map<string, number>, item: any) => {
+        const status = item.data?.final_delivery_date || item.data?.current_status === 'Delivered' || item.status === 'Delivered'
+            ? 'Delivered'
+            : (item.data?.current_status || item.status || 'Not specified');
+        const reels = Math.max(1, parseInt(String(item.data?.episodes_reels_count ?? 1), 10) || 1);
+        map.set(status, (map.get(status) || 0) + reels);
         return map;
     }, new Map<string, number>()).entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
     const deliverableTotal = deliverableStatuses.reduce((sum, item) => sum + item.value, 0);
+    const deliveredReels = deliverableStatuses.find(item => item.name === 'Delivered')?.value || 0;
     const completedDeliverables = deliverableStatuses.filter(item => ['Delivered', 'Approved'].includes(item.name)).reduce((sum, item) => sum + item.value, 0);
     const completionRate = deliverableTotal > 0 ? Math.round((completedDeliverables / deliverableTotal) * 100) : 0;
     const plannedRate = productionMetrics.shoots > 0 ? Math.round((productionMetrics.planned_shoots / productionMetrics.shoots) * 100) : 0;
@@ -595,16 +603,16 @@ export default function Dashboard() {
                     </CardContent>
                 </Card>
 
-                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">{metrics.map(([label,value,Icon]:any, index) => <Card key={label} className="overflow-hidden border-slate-200/80 bg-white shadow-sm"><CardContent className="p-5 pt-5 sm:p-6 sm:pt-6 xl:p-5 xl:pt-5"><div className="flex items-start justify-between gap-4"><div className="min-w-0"><p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-slate-500">{t(label)}</p><p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-slate-950">{value}</p></div><span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${index === 3 ? 'bg-slate-100 text-slate-600' : 'bg-teal-50 text-teal-700'}`}><Icon className="h-[18px] w-[18px]" /></span></div>{index === 0 ? <div className="mt-4 grid grid-cols-3 gap-1.5"><div className="rounded-lg bg-emerald-50 px-2 py-2"><p className="text-lg font-semibold text-emerald-700">{productionMetrics.planned_shoots}</p><p className="text-[10px] font-medium uppercase tracking-wide text-emerald-700/80">{t('Planned')}</p></div><div className="rounded-lg bg-amber-50 px-2 py-2"><p className="text-lg font-semibold text-amber-700">{productionMetrics.urgent_shoots}</p><p className="text-[10px] font-medium uppercase tracking-wide text-amber-700/80">{t('Unplanned')}</p></div><div className="rounded-lg bg-slate-100 px-2 py-2"><p className="text-lg font-semibold text-slate-600">{unspecifiedShoots}</p><p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">{t('Not set')}</p></div></div> : <p className="mt-3 min-h-4 break-words text-xs leading-relaxed text-slate-500">{index === 1 ? `${deliverableTotal} deliverable records` : index === 2 ? t('Completed static output') : `${productionMetrics.extra_hours} extra hours`}</p>}</CardContent></Card>)}</div>
+                <div className="grid gap-5 md:grid-cols-3">{metrics.map(([label,value,Icon]:any, index) => <Card key={label} className="overflow-hidden border-slate-200/80 bg-white shadow-sm"><CardContent className="p-5 pt-5 sm:p-6 sm:pt-6"><div className="flex items-start justify-between gap-4"><div className="min-w-0"><p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-slate-500">{t(label)}</p><p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-slate-950">{value}</p></div><span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${index === 2 ? 'bg-slate-100 text-slate-600' : 'bg-teal-50 text-teal-700'}`}><Icon className="h-[18px] w-[18px]" /></span></div>{index === 0 ? <div className="mt-4 grid grid-cols-3 gap-1.5"><div className="rounded-lg bg-emerald-50 px-2 py-2"><p className="text-lg font-semibold text-emerald-700">{productionMetrics.planned_shoots}</p><p className="text-[10px] font-medium uppercase tracking-wide text-emerald-700/80">{t('Planned')}</p></div><div className="rounded-lg bg-amber-50 px-2 py-2"><p className="text-lg font-semibold text-amber-700">{productionMetrics.urgent_shoots}</p><p className="text-[10px] font-medium uppercase tracking-wide text-amber-700/80">{t('Unplanned')}</p></div><div className="rounded-lg bg-slate-100 px-2 py-2"><p className="text-lg font-semibold text-slate-600">{unspecifiedShoots}</p><p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">{t('Not set')}</p></div></div> : <p className="mt-3 min-h-4 break-words text-xs leading-relaxed text-slate-500">{index === 1 ? `${deliverableTotal} reels in pipeline` : `${productionMetrics.extra_hours} extra hours`}</p>}</CardContent></Card>)}</div>
 
                 <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 sm:p-5">
                     <div className="flex items-start gap-3"><span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500"/><div><p className="text-sm font-semibold text-slate-900">{t('Planned shoot')}</p><p className="mt-0.5 text-xs leading-relaxed text-slate-500">{t('Scheduled in advance within the agreed production plan and lead-time process.')}</p></div></div>
-                    <div className="flex items-start gap-3"><span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-amber-500"/><div><p className="text-sm font-semibold text-slate-900">{t('Unplanned shoot')}</p><p className="mt-0.5 text-xs leading-relaxed text-slate-500">{t('A last-minute or additional shoot handled subject to production-team availability.')}</p></div></div>
+                    <div className="flex items-start gap-3"><span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-amber-500"/><div><p className="text-sm font-semibold text-slate-900">{t('Unplanned shoot')}</p><p className="mt-0.5 text-xs leading-relaxed text-slate-500">{t('Shoots executed without standard Brill Creations pre-production or visual planning')}</p></div></div>
                 </div>
 
                 <div className="grid gap-6 xl:grid-cols-[1.65fr_1fr]">
                     <Card className="min-w-0"><CardHeader className="gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><CardTitle className="text-base">{t('Production activity')}</CardTitle><p className="mt-1 text-xs text-slate-500">{t('Shoot and deliverable records over time')}</p></div><span className="w-fit rounded-lg border bg-slate-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">{range === 'monthly' ? month : t('Latest 8 months')}</span></CardHeader><CardContent className="overflow-hidden px-3 sm:px-6"><div className="h-[220px] w-full sm:h-[245px]">{timeline.length ? <ResponsiveContainer width="100%" height="100%"><AreaChart data={timeline} margin={{ top: 12, right: 8, left: -22, bottom: 0 }}><defs><linearGradient id="shootActivity" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0f9f8f" stopOpacity={0.28}/><stop offset="95%" stopColor="#0f9f8f" stopOpacity={0.02}/></linearGradient></defs><CartesianGrid vertical={false} stroke="#e8eef1" strokeDasharray="3 5"/><XAxis dataKey="month" axisLine={false} tickLine={false} minTickGap={22} tick={{ fill:'#64748b',fontSize:10 }} tickMargin={10}/><YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill:'#94a3b8',fontSize:10 }}/><Tooltip contentStyle={dashboardTooltipStyle}/><Area type="monotone" dataKey="shoots" name="Shoots" stroke="#0f9f8f" strokeWidth={2.5} fill="url(#shootActivity)"/><Area type="monotone" dataKey="deliverables" name="Deliverables" stroke="#334155" strokeWidth={2.2} fill="transparent"/></AreaChart></ResponsiveContainer> : <div className="flex h-full items-center justify-center rounded-xl border border-dashed px-4 text-center text-sm text-slate-400">{t('No production activity in this period')}</div>}</div></CardContent></Card>
-                    <Card className="min-w-0"><CardHeader><CardTitle className="text-base">{t('Deliverable pipeline')}</CardTitle><p className="text-xs text-slate-500">{t('Current records by workflow status')}</p></CardHeader><CardContent><div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2"><div className="rounded-xl bg-slate-50 p-3"><p className="text-2xl font-semibold text-slate-950">{deliverableTotal}</p><p className="mt-0.5 text-xs text-slate-500">{t('Total deliverables')}</p></div><div className="rounded-xl bg-teal-50 p-3"><p className="text-2xl font-semibold text-teal-800">{completionRate}%</p><p className="mt-0.5 text-xs text-teal-700">{t('Completed')}</p></div></div><div className="space-y-3.5">{deliverableStatuses.length ? deliverableStatuses.slice(0, 12).map(item => <div key={item.name}><div className="mb-1.5 flex items-center justify-between gap-3 text-sm"><span className="flex min-w-0 items-center gap-2 text-slate-700"><span className={`h-2 w-2 shrink-0 rounded-full ${workflowStatusStyle(item.name).bar}`}/><span className="truncate">{t(item.name)}</span></span><strong className="shrink-0 tabular-nums text-slate-950">{item.value}</strong></div><div className="h-1.5 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${workflowStatusStyle(item.name).bar}`} style={{width:`${Math.max(6,(item.value/deliverableTotal)*100)}%`}}/></div></div>) : <div className="flex h-32 items-center justify-center rounded-xl border border-dashed px-4 text-center text-sm text-slate-400">{t('No deliverables in this period')}</div>}</div></CardContent></Card>
+                    <Card className="min-w-0"><CardHeader><CardTitle className="text-base">{t('Deliverable pipeline')}</CardTitle><p className="text-xs text-slate-500">{t('Reels by workflow status')}</p></CardHeader><CardContent><div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2"><div className="rounded-xl bg-slate-50 p-3"><p className="text-2xl font-semibold text-slate-950">{deliveredReels}</p><p className="mt-0.5 text-xs text-slate-500">{t('Reels delivered')}</p></div><div className="rounded-xl bg-teal-50 p-3"><p className="text-2xl font-semibold text-teal-800">{completionRate}%</p><p className="mt-0.5 text-xs text-teal-700">{t('Completed')}</p></div></div><div className="space-y-3.5">{deliverableStatuses.length ? deliverableStatuses.slice(0, 12).map(item => <div key={item.name}><div className="mb-1.5 flex items-center justify-between gap-3 text-sm"><span className="flex min-w-0 items-center gap-2 text-slate-700"><span className={`h-2 w-2 shrink-0 rounded-full ${workflowStatusStyle(item.name).bar}`}/><span className="truncate">{t(item.name)}</span></span><strong className="shrink-0 tabular-nums text-slate-950">{item.value}</strong></div><div className="h-1.5 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${workflowStatusStyle(item.name).bar}`} style={{width:`${Math.max(6,(item.value/deliverableTotal)*100)}%`}}/></div></div>) : <div className="flex h-32 items-center justify-center rounded-xl border border-dashed px-4 text-center text-sm text-slate-400">{t('No deliverables in this period')}</div>}</div></CardContent></Card>
                 </div>
 
                 <div className="grid gap-6 xl:grid-cols-3">
