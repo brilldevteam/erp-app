@@ -18,6 +18,7 @@ import { useDeleteHandler } from '@/hooks/useDeleteHandler';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { BalanceSheetViewProps } from './types';
 import { formatDate, formatCurrency } from '@/utils/helpers';
+import { AccountTransactionsLink, toLocalYmd } from '@/components/account-transactions-link';
 import Note from './Note';
 import Compare from './Compare';
 import Generate from './Generate';
@@ -27,6 +28,9 @@ import { balanceSheetLineName, formatBalanceSheetPeriod } from './period';
 export default function View() {
     const { t } = useTranslation();
     const { balanceSheet, groupedItems, allBalanceSheets, otherBalanceSheets, diagnostics, auth } = usePage<BalanceSheetViewProps>().props;
+    // Account links open the account's transactions from the period start (or 1 January) to the balance sheet date.
+    const accountsTo = toLocalYmd(balanceSheet.balance_sheet_date);
+    const accountsFrom = balanceSheet.period_start_date ? toLocalYmd(balanceSheet.period_start_date) : `${accountsTo.slice(0, 4)}-01-01`;
     const [showNoteModal, setShowNoteModal] = useState(false);
     const [showCompareModal, setShowCompareModal] = useState(false);
     const [showGenerateModal, setShowGenerateModal] = useState(false);
@@ -98,7 +102,7 @@ export default function View() {
                                     {items.map((item) => (
                                         <TableRow key={item.id}>
                                             <TableCell className="font-medium text-green-600">
-                                                {balanceSheetLineName(item, t)}
+                                                <AccountTransactionsLink accountId={item.account_id} fromDate={accountsFrom} toDate={accountsTo}>{balanceSheetLineName(item, t)}</AccountTransactionsLink>
                                             </TableCell>
                                             <TableCell className="text-center text-green-600">
                                                 {item.account?.account_code}
@@ -408,7 +412,7 @@ export default function View() {
                                                 <div key={subSection} className="mb-4">
                                                     {items.map((item) => (
                                                         <div key={item.id} className="flex justify-between py-1 text-sm">
-                                                            <span className="text-green-600">{balanceSheetLineName(item, t)}</span>
+                                                            <span className="text-green-600"><AccountTransactionsLink accountId={item.account_id} fromDate={accountsFrom} toDate={accountsTo}>{balanceSheetLineName(item, t)}</AccountTransactionsLink></span>
                                                             <span className="text-green-600 tabular-nums">{formatCurrency(item.amount)}</span>
                                                         </div>
                                                     ))}
@@ -433,7 +437,7 @@ export default function View() {
                                                         {items.map((item) => (
                                                             <div key={item.id} className="flex justify-between items-center py-1 text-sm ml-4">
                                                                 <div className="flex justify-between w-full">
-                                                                    <span className="text-green-600">{balanceSheetLineName(item, t)}</span>
+                                                                    <span className="text-green-600"><AccountTransactionsLink accountId={item.account_id} fromDate={accountsFrom} toDate={accountsTo}>{balanceSheetLineName(item, t)}</AccountTransactionsLink></span>
                                                                     <div className="flex gap-8">
                                                                         <span className="text-gray-600">{item.account?.account_code}</span>
                                                                         <span className="text-green-600 tabular-nums">{formatCurrency(item.amount)}</span>
@@ -473,7 +477,7 @@ export default function View() {
                                                         {items.map((item) => (
                                                             <div key={item.id} className="flex justify-between items-center py-1 text-sm ml-4">
                                                                 <div className="flex justify-between w-full">
-                                                                    <span className="text-green-600">{balanceSheetLineName(item, t)}</span>
+                                                                    <span className="text-green-600"><AccountTransactionsLink accountId={item.account_id} fromDate={accountsFrom} toDate={accountsTo}>{balanceSheetLineName(item, t)}</AccountTransactionsLink></span>
                                                                     <div className="flex gap-8">
                                                                         <span className="text-gray-600">{item.account?.account_code}</span>
                                                                         <span className="text-green-600 tabular-nums">{formatCurrency(item.amount)}</span>

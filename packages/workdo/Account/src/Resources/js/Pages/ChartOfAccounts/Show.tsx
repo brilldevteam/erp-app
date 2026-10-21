@@ -1,9 +1,13 @@
-import { Head, usePage, Link } from '@inertiajs/react';
+import { useState } from 'react';
+import { Head, usePage, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import AuthenticatedLayout from "@/layouts/authenticated-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CreditCard, TrendingUp, TrendingDown, Calendar, FileText, Hash, Building2 } from "lucide-react";
+import { Label } from '@/components/ui/label';
+import { DatePicker } from '@/components/ui/date-picker';
+import { AccountingReportDownloadMenu } from '@/components/accounting-report-download-menu';
+import { CreditCard, TrendingUp, TrendingDown, Calendar, FileText, Hash, Building2, Search } from "lucide-react";
 import { formatCurrency, formatDate } from '@/utils/helpers';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -22,42 +26,56 @@ interface ChartOfAccount {
     parent_account?: { account_name: string };
 }
 
-interface JournalEntry {
+interface LedgerTransaction {
     id: number;
+    date: string;
     journal_number: string;
-    journal_date: string;
+    reference: string | null;
     description: string;
-    entry_type: string;
+    debit: number;
+    credit: number;
+    /** Running balance, signed: positive = debit, negative = credit. */
+    balance: number;
 }
 
-interface JournalEntryItem {
-    id: number;
-    description: string;
-    debit_amount: number;
-    credit_amount: number;
-    created_at: string;
-    journal_entry: JournalEntry;
-}
-
-interface PaginatedHistory {
-    data: JournalEntryItem[];
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
+interface AccountLedger {
+    from_date: string;
+    to_date: string;
+    opening_balance: number;
+    transactions: LedgerTransaction[];
+    total_debit: number;
+    total_credit: number;
+    closing_balance: number;
 }
 
 interface ShowProps {
     chartofaccount: ChartOfAccount;
-    history: PaginatedHistory;
-    calculatedBalance: number;
-    totalDebits: number;
-    totalCredits: number;
+    ledger: AccountLedger;
+    balanceToday: number;
+    today: string;
+    auth: { user: { permissions?: string[] } };
 }
+
+/** A signed balance shown the Zoho way, e.g. "10,606.40 Cr". */
+const formatBalance = (value: number) =>
+    Math.abs(value) < 0.005 ? formatCurrency(0) : `${formatCurrency(Math.abs(value))} ${value > 0 ? 'Dr' : 'Cr'}`;
 
 export default function Show() {
     const { t } = useTranslation();
-    const { chartofaccount, history, calculatedBalance, totalDebits, totalCredits } = usePage<ShowProps>().props;
+    const { chartofaccount, ledger, balanceToday, today, auth } = usePage<ShowProps>().props;
+    const [fromDate, setFromDate] = useState(ledger.from_date);
+    const [toDate, setToDate] = useState(ledger.to_date);
+    const canDownload = auth.user?.permissions?.includes('print-general-ledger');
+
+    const generate = () => {
+        if (!fromDate || !toDate || fromDate > toDate) return;
+        router.get(route('account.chart-of-accounts.show', chartofaccount.id), { from_date: fromDate, to_date: toDate }, { preserveScroll: true });
+    };
+
+    const download = (format: 'pdf' | 'excel') => {
+        const params = new URLSearchParams({ from_date: ledger.from_date, to_date: ledger.to_date, format });
+        window.open(route('account.chart-of-accounts.transactions', chartofaccount.id) + '?' + params.toString(), '_blank', 'noopener,noreferrer');
+    };
 
     return (
         <AuthenticatedLayout
@@ -147,9 +165,8 @@ export default function Show() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-gray-600">{t('Opening Balance')}</p>
-                                    <p className="text-2xl font-bold text-gray-900">
-                                        {chartofaccount.opening_balance ? formatCurrency(chartofaccount.opening_balance) : formatCurrency(0)}
-                                    </p>
+                                    <p className="text-2xl font-bold text-gray-900">{formatBalance(ledger.opening_balance)}</p>
+                                    <p className="text-xs text-gray-500">{t('As on')} {formatDate(ledger.from_date)}</p>
                                 </div>
                                 <div className="p-3 bg-blue-100 rounded-full">
                                     <TrendingUp className="h-6 w-6 text-blue-600" />
@@ -161,18 +178,12 @@ export default function Show() {
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-600">{t('Current Balance')}</p>
-                                    <p className={`text-2xl font-bold ${
-                                        chartofaccount.current_balance >= 0 ? 'text-green-600' : 'text-red-600'
-                                    }`}>
-                                        {formatCurrency(chartofaccount.current_balance || 0)}
-                                    </p>
-                                    <p className="text-xs text-gray-500">{t('Stored')}</p>
+                                    <p className="text-sm font-medium text-gray-600">{t('Closing Balance')}</p>
+                                    <p className="text-2xl font-bold text-green-600">{formatBalance(ledger.closing_balance)}</p>
+                                    <p className="text-xs text-gray-500">{t('As on')} {formatDate(ledger.to_date)}</p>
                                 </div>
-                                <div className={`p-3 rounded-full ${
-                                    chartofaccount.current_balance >= 0 ? 'bg-green-100' : 'bg-red-100'
-                                }`}>
-                                    {chartofaccount.current_balance >= 0 ?
+                                <div className="p-3 rounded-full bg-green-100">
+                                    {ledger.closing_balance >= 0 ?
                                         <TrendingUp className="h-6 w-6 text-green-600" /> :
                                         <TrendingDown className="h-6 w-6 text-red-600" />
                                     }
@@ -184,20 +195,12 @@ export default function Show() {
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-600">{t('Calculated Balance')}</p>
-                                    <p className={`text-2xl font-bold ${
-                                        calculatedBalance >= 0 ? 'text-blue-600' : 'text-orange-600'
-                                    }`}>
-                                        {formatCurrency(calculatedBalance || 0)}
-                                    </p>
-                                    <p className="text-xs text-gray-500">
-                                        DR: {formatCurrency(totalDebits)} | CR: {formatCurrency(totalCredits)}
-                                    </p>
+                                    <p className="text-sm font-medium text-gray-600">{t('Balance Today')}</p>
+                                    <p className="text-2xl font-bold text-blue-600">{formatBalance(balanceToday)}</p>
+                                    <p className="text-xs text-gray-500">{t('As on')} {formatDate(today)}</p>
                                 </div>
-                                <div className={`p-3 rounded-full ${
-                                    calculatedBalance >= 0 ? 'bg-blue-100' : 'bg-orange-100'
-                                }`}>
-                                    {calculatedBalance >= 0 ?
+                                <div className="p-3 rounded-full bg-blue-100">
+                                    {balanceToday >= 0 ?
                                         <TrendingUp className="h-6 w-6 text-blue-600" /> :
                                         <TrendingDown className="h-6 w-6 text-orange-600" />
                                     }
@@ -210,54 +213,81 @@ export default function Show() {
 
             <Card className="mt-6">
                 <CardHeader className="pb-3">
-                    <div className="flex items-center space-x-2">
-                        <Calendar className="h-4 w-4 text-gray-600" />
-                        <h3 className="text-lg font-medium">{t('Transaction History')}</h3>
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="flex items-center space-x-2">
+                            <Calendar className="h-4 w-4 text-gray-600" />
+                            <div>
+                                <h3 className="text-lg font-medium">{t('Account Transactions')}</h3>
+                                <p className="text-sm text-gray-500">{formatDate(ledger.from_date)} - {formatDate(ledger.to_date)}</p>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap items-end gap-3">
+                            <div>
+                                <Label className="text-xs">{t('From Date')}</Label>
+                                <DatePicker value={fromDate} onChange={(value) => setFromDate(value)} placeholder={t('Select from date')} />
+                            </div>
+                            <div>
+                                <Label className="text-xs">{t('To Date')}</Label>
+                                <DatePicker value={toDate} onChange={(value) => setToDate(value)} placeholder={t('Select to date')} />
+                            </div>
+                            <Button onClick={generate} disabled={!fromDate || !toDate || fromDate > toDate} size="sm">
+                                <Search className="h-4 w-4 mr-2" />
+                                {t('Generate')}
+                            </Button>
+                            {canDownload && <AccountingReportDownloadMenu onPdf={() => download('pdf')} onExcel={() => download('excel')} />}
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent>
-                    {history?.data?.length > 0 ? (
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow className="bg-gray-50">
-                                        <TableHead className="font-semibold">{t('Journal Number')}</TableHead>
-                                        <TableHead className="font-semibold">{t('Date')}</TableHead>
-                                        <TableHead className="font-semibold">{t('Description')}</TableHead>
-                                        <TableHead className="text-right font-semibold">{t('Debit')}</TableHead>
-                                        <TableHead className="text-right font-semibold">{t('Credit')}</TableHead>
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-gray-50">
+                                    <TableHead className="font-semibold">{t('Date')}</TableHead>
+                                    <TableHead className="font-semibold">{t('Journal Number')}</TableHead>
+                                    <TableHead className="font-semibold">{t('Reference')}</TableHead>
+                                    <TableHead className="font-semibold">{t('Description')}</TableHead>
+                                    <TableHead className="text-right font-semibold">{t('Debit')}</TableHead>
+                                    <TableHead className="text-right font-semibold">{t('Credit')}</TableHead>
+                                    <TableHead className="text-right font-semibold">{t('Balance')}</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                <TableRow className="bg-blue-50/50 font-medium">
+                                    <TableCell className="whitespace-nowrap">{t('As on')} {formatDate(ledger.from_date)}</TableCell>
+                                    <TableCell colSpan={5}>{t('Opening Balance')}</TableCell>
+                                    <TableCell className="text-right whitespace-nowrap tabular-nums">{formatBalance(ledger.opening_balance)}</TableCell>
+                                </TableRow>
+                                {ledger.transactions.map((item) => (
+                                    <TableRow key={item.id} className="hover:bg-gray-50">
+                                        <TableCell className="whitespace-nowrap">{formatDate(item.date)}</TableCell>
+                                        <TableCell><span className="font-mono text-sm text-blue-700">{item.journal_number}</span></TableCell>
+                                        <TableCell className="max-w-[12rem] truncate" title={item.reference ?? ''}>{item.reference || '-'}</TableCell>
+                                        <TableCell className="max-w-xs truncate" title={item.description}>{item.description}</TableCell>
+                                        <TableCell className="text-right tabular-nums">{item.debit > 0 ? formatCurrency(item.debit) : '-'}</TableCell>
+                                        <TableCell className="text-right tabular-nums">{item.credit > 0 ? formatCurrency(item.credit) : '-'}</TableCell>
+                                        <TableCell className="text-right whitespace-nowrap tabular-nums">{formatBalance(item.balance)}</TableCell>
                                     </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {history.data?.map((item) => (
-                                        <TableRow key={item.id} className="hover:bg-gray-50">
-                                            <TableCell>
-                                                <span className="font-mono text-sm text-blue-700">{item.journal_entry.journal_number}</span>
-                                            </TableCell>
-                                            <TableCell>{formatDate(item.journal_entry.journal_date)}</TableCell>
-                                            <TableCell className="max-w-xs truncate">{item.description}</TableCell>
-                                            <TableCell className="text-right">
-                                                {item.debit_amount > 0 ? (
-                                                    <span className="text-red-600">{formatCurrency(item.debit_amount)}</span>
-                                                ) : '-'}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                {item.credit_amount > 0 ? (
-                                                    <span className="text-green-600">{formatCurrency(item.credit_amount)}</span>
-                                                ) : '-'}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    ) : (
-                        <div className="text-center py-12">
-                            <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                            <p className="text-gray-500 text-lg">{t('No transaction history found')}</p>
-                            <p className="text-gray-400 text-sm mt-1">{t('Transactions will appear here once journal entries are posted')}</p>
-                        </div>
-                    )}
+                                ))}
+                                {ledger.transactions.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={7} className="py-8 text-center text-gray-500">{t('No transactions in this period')}</TableCell>
+                                    </TableRow>
+                                )}
+                                <TableRow className="font-semibold border-t-2">
+                                    <TableCell colSpan={4}>{t('Total Debits and Credits')} ({formatDate(ledger.from_date)} - {formatDate(ledger.to_date)})</TableCell>
+                                    <TableCell className="text-right tabular-nums">{formatCurrency(ledger.total_debit)}</TableCell>
+                                    <TableCell className="text-right tabular-nums">{formatCurrency(ledger.total_credit)}</TableCell>
+                                    <TableCell />
+                                </TableRow>
+                                <TableRow className="bg-blue-50/50 font-semibold">
+                                    <TableCell className="whitespace-nowrap">{t('As on')} {formatDate(ledger.to_date)}</TableCell>
+                                    <TableCell colSpan={5}>{t('Closing Balance')}</TableCell>
+                                    <TableCell className="text-right whitespace-nowrap tabular-nums">{formatBalance(ledger.closing_balance)}</TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </div>
                 </CardContent>
             </Card>
         </AuthenticatedLayout>

@@ -10,6 +10,7 @@ import { FileText, Search } from "lucide-react";
 import { AccountingReportDownloadMenu } from '@/components/accounting-report-download-menu';
 import { DatePicker } from '@/components/ui/date-picker';
 import { formatDate, formatCurrency } from '@/utils/helpers';
+import { AccountTransactionsLink } from '@/components/account-transactions-link';
 
 interface Account {
     id: number;
@@ -168,7 +169,10 @@ export default function Index() {
                                         profitLoss.revenue.map((account) => (
                                             <div key={account.id} className="flex justify-between items-center py-1.5 border-b border-gray-100">
                                                 <p className="font-medium text-sm">
-                                                    <span className="text-green-600">{account.account_code}</span> - {account.account_name}
+                                                    <span className="text-green-600">{account.account_code}</span> -{' '}
+                                                    <AccountTransactionsLink accountId={account.id} fromDate={profitLoss.from_date} toDate={profitLoss.to_date} className="text-blue-700">
+                                                        {account.account_name}
+                                                    </AccountTransactionsLink>
                                                 </p>
                                                 <p className="font-semibold tabular-nums text-sm">{formatCurrency(account.balance)}</p>
                                             </div>
@@ -186,7 +190,10 @@ export default function Index() {
                                         profitLoss.expenses.map((account) => (
                                             <div key={account.id} className="flex justify-between items-center py-1.5 border-b border-gray-100">
                                                 <p className="font-medium text-sm">
-                                                    <span className="text-green-600">{account.account_code}</span> - {account.account_name}
+                                                    <span className="text-green-600">{account.account_code}</span> -{' '}
+                                                    <AccountTransactionsLink accountId={account.id} fromDate={profitLoss.from_date} toDate={profitLoss.to_date} className="text-blue-700">
+                                                        {account.account_name}
+                                                    </AccountTransactionsLink>
                                                 </p>
                                                 <p className="font-semibold tabular-nums text-sm">{formatCurrency(account.balance)}</p>
                                             </div>

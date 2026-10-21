@@ -6,12 +6,12 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Inertia\Inertia;
 use Workdo\Account\Models\ChartOfAccount;
-use Workdo\DoubleEntry\Services\ReportService;
+use Workdo\DoubleEntry\Services\TrialBalanceService;
 use Workdo\DoubleEntry\Services\AccountingReportExcelExportService;
 
 class AccountTransactionExportController extends Controller
 {
-    public function __invoke(Request $request, ChartOfAccount $account, ReportService $reports, AccountingReportExcelExportService $excel)
+    public function __invoke(Request $request, ChartOfAccount $account, TrialBalanceService $ledger, AccountingReportExcelExportService $excel)
     {
         abort_unless(auth()->user()->can('view-chart-of-accounts') && auth()->user()->can('print-general-ledger'), 403);
         abort_unless((int)$account->created_by === (int)creatorId(), 404);
@@ -20,17 +20,15 @@ class AccountTransactionExportController extends Controller
             'to_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:from_date'],
             'format' => ['required', 'in:pdf,excel'],
         ]);
-        $data = $reports->getGeneralLedger($filters + ['account_id' => $account->id]);
+        // Same figures as the account page and the trial balance (opening, running balance, closing).
+        $data = $ledger->accountLedger($account, $filters['from_date'], $filters['to_date']);
         $rows = [[__('Opening Balance'), '', '', '', 0, 0, abs($data['opening_balance']), $this->side($data['opening_balance'])]];
-        $debit = 0; $credit = 0;
         foreach ($data['transactions'] as $transaction) {
-            $debit += (float)$transaction['debit']; $credit += (float)$transaction['credit'];
-            $rows[] = [$transaction['date'], $transaction['journal_number'],
-                trim($transaction['reference_type'].($transaction['reference_id'] ? ' #'.$transaction['reference_id'] : '')),
+            $rows[] = [$transaction['date'], $transaction['journal_number'], (string) $transaction['reference'],
                 $transaction['description'], (float)$transaction['debit'], (float)$transaction['credit'],
                 abs($transaction['balance']), $this->side($transaction['balance'])];
         }
-        $rows[] = [__('Period Totals'), '', '', '', round($debit,2), round($credit,2), null, ''];
+        $rows[] = [__('Period Totals'), '', '', '', $data['total_debit'], $data['total_credit'], null, ''];
         $rows[] = [__('Closing Balance'), '', '', '', null, null, abs($data['closing_balance']), $this->side($data['closing_balance'])];
         $settings = \App\Models\Setting::where('created_by', creatorId())->whereIn('key', ['company_name','defaultCurrency'])->pluck('value','key');
         $metadata = [__('Company') => $settings['company_name'] ?? \App\Models\User::find(creatorId())?->name,

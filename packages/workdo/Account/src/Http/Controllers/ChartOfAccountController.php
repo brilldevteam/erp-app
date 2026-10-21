@@ -12,7 +12,8 @@ use Workdo\Account\Events\CreateChartOfAccount;
 use Workdo\Account\Events\DestroyChartOfAccount;
 use Workdo\Account\Events\UpdateChartOfAccount;
 use Workdo\Account\Models\AccountType;
-use Workdo\Account\Models\JournalEntryItem;
+use Illuminate\Http\Request;
+use Workdo\DoubleEntry\Services\TrialBalanceService;
 
 class ChartOfAccountController extends Controller
 {
@@ -136,28 +137,30 @@ class ChartOfAccountController extends Controller
         }
     }
 
-    public function show(ChartOfAccount $chartofaccount)
+    public function show(Request $request, ChartOfAccount $chartofaccount, TrialBalanceService $trialBalance)
     {
         if(Auth::user()->can('view-chart-of-accounts')){
-            $history = JournalEntryItem::with(['journalEntry'])
-                ->where('account_id', $chartofaccount->id)
-                ->orderBy('created_at', 'desc')
-                ->paginate(10);
+            $filters = $request->validate([
+                'from_date' => ['nullable', 'date_format:Y-m-d'],
+                'to_date' => ['nullable', 'date_format:Y-m-d'],
+            ]);
+            $fromDate = $filters['from_date'] ?? now()->startOfYear()->toDateString();
+            $toDate = $filters['to_date'] ?? now()->toDateString();
+            if ($toDate < $fromDate) {
+                $toDate = $fromDate;
+            }
 
-            // Calculate actual balance from journal entries
-            $totalDebits = JournalEntryItem::where('account_id', $chartofaccount->id)->sum('debit_amount');
-            $totalCredits = JournalEntryItem::where('account_id', $chartofaccount->id)->sum('credit_amount');
-            
-            $calculatedBalance = $chartofaccount->normal_balance === 'debit' 
-                ? ($chartofaccount->opening_balance + $totalDebits - $totalCredits)
-                : ($chartofaccount->opening_balance + $totalCredits - $totalDebits);
+            $ledger = $trialBalance->accountLedger($chartofaccount, $fromDate, $toDate);
+            // Balance at the end of today by the trial balance rule: this year's closing so far (signed: + debit, - credit).
+            $balanceToday = $fromDate === now()->startOfYear()->toDateString() && $toDate === now()->toDateString()
+                ? $ledger['closing_balance']
+                : $trialBalance->accountLedger($chartofaccount, now()->startOfYear()->toDateString(), now()->toDateString())['closing_balance'];
 
             return Inertia::render('Account/ChartOfAccounts/Show', [
                 'chartofaccount' => $chartofaccount->load(['account_type', 'parent_account']),
-                'history' => $history,
-                'calculatedBalance' => $calculatedBalance,
-                'totalDebits' => $totalDebits,
-                'totalCredits' => $totalCredits,
+                'ledger' => $ledger,
+                'balanceToday' => $balanceToday,
+                'today' => now()->toDateString(),
             ]);
         }
         else{

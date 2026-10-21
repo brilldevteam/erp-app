@@ -11,6 +11,7 @@ import { AccountingReportDownloadMenu } from '@/components/accounting-report-dow
 import { DatePicker } from '@/components/ui/date-picker';
 import { formatDate, formatCurrency } from '@/utils/helpers';
 import NoRecordsFound from '@/components/no-records-found';
+import { AccountTransactionsLink } from '@/components/account-transactions-link';
 import { TrialBalanceData, formatAmount, formatBalance, groupBySection } from './trialBalanceRows';
 
 interface TrialBalanceProps {
@@ -155,7 +156,11 @@ export default function Index() {
                                             </tr>
                                             {group.accounts.map((account) => (
                                                 <tr key={account.id ?? account.account_code} className="border-b border-gray-100">
-                                                    <td className="py-1.5 pr-4 pl-3 font-medium">{account.account_name}</td>
+                                                    <td className="py-1.5 pr-4 pl-3 font-medium">
+                                                        <AccountTransactionsLink accountId={account.id} fromDate={trialBalance.from_date} toDate={trialBalance.to_date} className="text-blue-700">
+                                                            {account.account_name}
+                                                        </AccountTransactionsLink>
+                                                    </td>
                                                     <td className="py-1.5 pr-4 text-green-600">{account.account_code}</td>
                                                     <td className="py-1.5 pl-4 text-right tabular-nums whitespace-nowrap">{formatBalance(account.opening_balance)}</td>
                                                     <td className="py-1.5 pl-4 text-right tabular-nums whitespace-nowrap">{formatAmount(account.net_debit)}</td>

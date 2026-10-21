@@ -153,6 +153,94 @@ class TrialBalanceService
         ];
     }
 
+    /**
+     * One account's transactions for a period (Zoho "Account Transactions"): the opening balance on the
+     * day before $fromDate, each posted line with a running balance, period totals and the closing balance.
+     * Uses the same opening rule as generateTrialBalance(), so it agrees with the account's trial balance row.
+     * Balances are signed: positive = debit, negative = credit.
+     */
+    public function accountLedger(ChartOfAccount $account, $fromDate, $toDate): array
+    {
+        $opening = round($this->openingBalance($account, $fromDate), 2);
+
+        $lines = DB::table('journal_entry_items as jei')
+            ->join('journal_entries as je', 'je.id', '=', 'jei.journal_entry_id')
+            ->where('jei.account_id', $account->id)
+            ->where('je.created_by', creatorId())
+            ->where('je.status', 'posted')
+            ->whereBetween('je.journal_date', [$fromDate, $toDate])
+            ->orderBy('je.journal_date')
+            ->orderBy('je.id')
+            ->orderBy('jei.id')
+            ->get(['jei.id', 'je.id as journal_entry_id', 'je.journal_date', 'je.journal_number', 'je.reference_type',
+                'je.description as journal_description', 'jei.description', 'jei.debit_amount', 'jei.credit_amount']);
+
+        $balance = $opening;
+        $totalDebit = 0.0;
+        $totalCredit = 0.0;
+        $transactions = $lines->map(function ($line) use (&$balance, &$totalDebit, &$totalCredit) {
+            $debit = (float) $line->debit_amount;
+            $credit = (float) $line->credit_amount;
+            $balance = round($balance + $debit - $credit, 2);
+            $totalDebit += $debit;
+            $totalCredit += $credit;
+
+            return [
+                'id' => $line->id,
+                'journal_entry_id' => $line->journal_entry_id,
+                'date' => $line->journal_date,
+                'journal_number' => $line->journal_number,
+                'reference' => $line->reference_type,
+                'description' => $line->description ?: $line->journal_description,
+                'debit' => $debit,
+                'credit' => $credit,
+                'balance' => $balance,
+            ];
+        })->values()->all();
+
+        return [
+            'from_date' => $fromDate,
+            'to_date' => $toDate,
+            'opening_balance' => $opening,
+            'transactions' => $transactions,
+            'total_debit' => round($totalDebit, 2),
+            'total_credit' => round($totalCredit, 2),
+            'closing_balance' => round($balance, 2),
+        ];
+    }
+
+    /** Signed balance of one account on the day before $fromDate, by the trial balance rule. */
+    public function openingBalance(ChartOfAccount $account, $fromDate): float
+    {
+        $yearStart = Carbon::parse($fromDate)->startOfYear()->toDateString();
+        $movement = fn ($accountIds, $before) => (float) DB::table('journal_entry_items as jei')
+            ->join('journal_entries as je', 'je.id', '=', 'jei.journal_entry_id')
+            ->whereIn('jei.account_id', $accountIds)
+            ->where('je.status', 'posted')
+            ->where('je.journal_date', '<', $before)
+            ->sum(DB::raw('jei.debit_amount - jei.credit_amount'));
+        $signedOpening = fn ($row) => $row->normal_balance === 'debit' ? (float) $row->opening_balance : -(float) $row->opening_balance;
+
+        if (in_array($this->section($account->account_code), ['income', 'expense'], true)) {
+            return $movement([$account->id], $fromDate) - $movement([$account->id], $yearStart);
+        }
+
+        $opening = $signedOpening($account) + $movement([$account->id], $fromDate);
+
+        if ($account->account_code === self::RETAINED_EARNINGS_CODE) {
+            // Earlier years' income and expense results belong to Retained Earnings.
+            $resultAccounts = ChartOfAccount::where('created_by', $account->created_by)
+                ->where('is_active', true)
+                ->whereBetween('account_code', ['4000', '5999'])
+                ->get(['id', 'account_code', 'normal_balance', 'opening_balance'])
+                ->filter(fn ($row) => in_array($this->section($row->account_code), ['income', 'expense'], true));
+            $opening += $resultAccounts->sum($signedOpening)
+                + ($resultAccounts->isEmpty() ? 0 : $movement($resultAccounts->pluck('id')->all(), $yearStart));
+        }
+
+        return $opening;
+    }
+
     private function section($accountCode): string
     {
         $code = (int) $accountCode;
