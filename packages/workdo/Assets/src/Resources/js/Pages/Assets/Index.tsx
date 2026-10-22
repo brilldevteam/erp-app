@@ -40,8 +40,9 @@ export default function Index() {
     });
 
     const [perPage] = useState(urlParams.get('per_page') || '10');
-    const [sortField, setSortField] = useState(urlParams.get('sort') || '');
-    const [sortDirection, setSortDirection] = useState(urlParams.get('direction') || 'asc');
+    // Default matches the server: newest purchase first.
+    const [sortField, setSortField] = useState(urlParams.get('sort') || 'purchase_date');
+    const [sortDirection, setSortDirection] = useState(urlParams.get('sort') ? (urlParams.get('direction') || 'asc') : 'desc');
     const [viewMode, setViewMode] = useState<'list' | 'grid'>(urlParams.get('view') as 'list' | 'grid' || 'list');
     const [modalState, setModalState] = useState<AssetModalState>({
         isOpen: false,
@@ -126,36 +127,36 @@ export default function Index() {
         {
             key: 'category.name',
             header: t('Category Name'),
-            sortable: false,
+            sortable: true,
             render: (value: any, row: any) => row.category?.name || '-'
         },
         {
             key: 'purchase_date',
             header: t('Purchase Date'),
-            sortable: false,
+            sortable: true,
             render: (value: string) => value ? formatDate(value) : '-'
         },
         {
             key: 'serial_code',
             header: t('Serial Code'),
-            sortable: false
+            sortable: true
         },
         {
             key: 'quantity',
             header: t('Quantity'),
-            sortable: false,
+            sortable: true,
             render: (value: number) => value || '-'
         },
         {
             key: 'unit_price',
             header: t('Unit Price'),
-            sortable: false,
+            sortable: true,
             render: (value: number) => value ? formatCurrency(value) : '-'
         },
         {
             key: 'purchase_cost',
             header: t('Purchase Cost'),
-            sortable: false,
+            sortable: true,
             render: (value: number) => value ? formatCurrency(value) : '-'
         },
         {

@@ -33,14 +33,34 @@ class AssetController extends Controller
                     }
                 })
                 ->when(request('name'), function($q) {
-                    $q->where(function($query) {
-                    $query->where('name', 'like', '%' . request('name') . '%');
-                    $query->orWhere('serial_code', 'like', '%' . request('name') . '%');
-                    $query->orWhere('location', 'like', '%' . request('name') . '%');
+                    $search = '%' . request('name') . '%';
+                    $q->where(function($query) use ($search) {
+                        $query->where('name', 'like', $search)
+                            ->orWhere('serial_code', 'like', $search)
+                            ->orWhereHas('location', fn($location) => $location->where('name', 'like', $search))
+                            ->orWhereHas('category', fn($category) => $category->where('name', 'like', $search));
                     });
                 })
                 ->when(request('category_id') && request('category_id') !== 'all', fn($q) => $q->where('category_id', request('category_id')))
-                ->when(request('sort'), fn($q) => $q->orderBy(request('sort'), request('direction', 'asc')), fn($q) => $q->latest())
+                ->tap(function($q) {
+                    // Sort only by known columns; the id tie-breaker keeps pages stable when values are equal
+                    // (e.g. many assets imported in the same second).
+                    $sortable = [
+                        'name' => 'name',
+                        'purchase_date' => 'purchase_date',
+                        'serial_code' => 'serial_code',
+                        'quantity' => 'quantity',
+                        'unit_price' => 'unit_price',
+                        'purchase_cost' => 'purchase_cost',
+                        'category.name' => AssetsCategory::select('name')->whereColumn('assets_categories.id', 'assets.category_id'),
+                    ];
+                    $direction = request('direction') === 'desc' ? 'desc' : 'asc';
+                    if (isset($sortable[request('sort')])) {
+                        $q->orderBy($sortable[request('sort')], $direction)->orderBy('id', $direction);
+                    } else {
+                        $q->orderByDesc('purchase_date')->orderByDesc('id');
+                    }
+                })
                 ->paginate(request('per_page', 10))
                 ->withQueryString();
 

@@ -6,6 +6,7 @@ All notable changes to the Wazely ERP application are documented here.
 
 ### Fixed
 - Removed the extra blank trailing page from quotation and invoice PDF downloads that use document templates.
+- Fixed the Assets list: searching no longer fails with a server error (it now matches name, serial code, location and category), the default order is newest purchase first with a stable tie-breaker so pages never shuffle, and Category, Purchase Date, Serial Code, Quantity, Unit Price and Purchase Cost can be sorted.
 - Stopped quotation, proposal and invoice PDFs from slicing text across pages: Notes, Bank Details and Terms move to the next page as a whole when they would be split (longer ones break only between lines), item descriptions and the subject break only between lines, and total rows stay whole.
 - Aligned footer contact icons with their text and corrected the vertical position of all text in quotation and invoice PDFs, which html2canvas was drawing too low under Tailwind's image styles.
 - Restored card padding so page toolbars (search, view toggle, per-page and filters) are vertically centred and data tables run edge to edge without side or bottom gaps.
