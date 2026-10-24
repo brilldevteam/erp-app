@@ -49,8 +49,11 @@ export interface PurchaseInvoiceItem {
     id?: number;
     invoice_id?: number;
     product_id: number;
+    account_id?: number | null;
     quantity: number;
     unit_price: number;
+    discount_type?: 'percentage' | 'fixed';
+    discount_value?: number;
     discount_percentage: number;
     discount_amount: number;
     tax_percentage: number;
@@ -58,6 +61,13 @@ export interface PurchaseInvoiceItem {
     total_amount: number;
     taxes?: Array<{id?: number; tax_name: string; tax_rate: number}>;
     product?: ProductServiceItem;
+    account?: BillAccountOption;
+}
+
+export interface BillAccountOption {
+    id: number;
+    account_code: string;
+    account_name: string;
 }
 
 export interface User {

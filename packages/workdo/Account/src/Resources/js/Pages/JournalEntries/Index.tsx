@@ -84,6 +84,7 @@ export default function Index() {
                                     <th className="px-4 py-3 text-left">{t('Journal Number')}</th>
                                     <th className="px-4 py-3 text-left">{t('Date')}</th>
                                     <th className="px-4 py-3 text-left">{t('Reference')}</th>
+                                    <th className="px-4 py-3 text-left">{t('Contact')}</th>
                                     <th className="px-4 py-3 text-right">{t('Debit')}</th>
                                     <th className="px-4 py-3 text-right">{t('Credit')}</th>
                                     <th className="px-4 py-3 text-left">{t('Status')}</th>
@@ -97,6 +98,9 @@ export default function Index() {
                                             <td className="px-4 py-3 font-medium text-blue-600">{entry.journal_number}</td>
                                             <td className="px-4 py-3">{formatDate(entry.journal_date)}</td>
                                             <td className="px-4 py-3">{entry.reference_type || '-'}</td>
+                                            <td className="px-4 py-3">
+                                                {[...new Set(entry.items.map((item) => item.contact_name).filter(Boolean))].join(', ') || '-'}
+                                            </td>
                                             <td className="px-4 py-3 text-right">{formatCurrency(entry.total_debit)}</td>
                                             <td className="px-4 py-3 text-right">{formatCurrency(entry.total_credit)}</td>
                                             <td className="px-4 py-3">
@@ -124,7 +128,7 @@ export default function Index() {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={7}>
+                                        <td colSpan={8}>
                                             <NoRecordsFound
                                                 icon={DollarSign}
                                                 title={t('No journal entries found')}

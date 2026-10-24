@@ -165,6 +165,9 @@ class TrialBalanceService
 
         $lines = DB::table('journal_entry_items as jei')
             ->join('journal_entries as je', 'je.id', '=', 'jei.journal_entry_id')
+            ->leftJoin('users as contact', 'contact.id', '=', 'jei.contact_id')
+            ->leftJoin('vendors as contact_vendor', 'contact_vendor.user_id', '=', 'jei.contact_id')
+            ->leftJoin('customers as contact_customer', 'contact_customer.user_id', '=', 'jei.contact_id')
             ->where('jei.account_id', $account->id)
             ->where('je.created_by', creatorId())
             ->where('je.status', 'posted')
@@ -173,7 +176,8 @@ class TrialBalanceService
             ->orderBy('je.id')
             ->orderBy('jei.id')
             ->get(['jei.id', 'je.id as journal_entry_id', 'je.journal_date', 'je.journal_number', 'je.reference_type',
-                'je.description as journal_description', 'jei.description', 'jei.debit_amount', 'jei.credit_amount']);
+                'je.description as journal_description', 'jei.description', 'jei.debit_amount', 'jei.credit_amount', 'contact.name as contact_name',
+                'contact.type as contact_type', 'contact_vendor.company_name as contact_vendor_company', 'contact_customer.company_name as contact_customer_company']);
 
         $balance = $opening;
         $totalDebit = 0.0;
@@ -192,6 +196,7 @@ class TrialBalanceService
                 'journal_number' => $line->journal_number,
                 'reference' => $line->reference_type,
                 'description' => $line->description ?: $line->journal_description,
+                'contact' => ($line->contact_type === 'vendor' ? $line->contact_vendor_company : $line->contact_customer_company) ?: $line->contact_name,
                 'debit' => $debit,
                 'credit' => $credit,
                 'balance' => $balance,

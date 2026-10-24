@@ -290,12 +290,12 @@ class JournalService
     }
 
     /**
-     * Creates journal entry for purchase inventory: Dr: Inventory + Tax, Cr: A/P
+     * Creates journal entry for a bill: Dr: each line's account (expense, inventory or asset) + Tax, Cr: A/P
      * Usage: PostPurchaseInvoiceListener after creating invoice
      */
     public function createPurchaseInventoryJournal($purchaseInvoice)
     {
-        $requiredAccounts = ['2000', '1200'];
+        $requiredAccounts = ['2000'];
         if ($purchaseInvoice->tax_amount > 0) {
             $requiredAccounts[] = '1500';
         }
@@ -307,8 +307,8 @@ class JournalService
         $this->validateBalance($totalDebit, $totalCredit);
 
         $apAccount = ChartOfAccount::where('account_code', '2000')->where('created_by', creatorId())->first();
-        $inventoryAccount = ChartOfAccount::where('account_code', '1200')->where('created_by', creatorId())->first();
         $taxAccount = ChartOfAccount::where('account_code', '1500')->where('created_by', creatorId())->first();
+        $lineDebits = $this->purchaseLineDebits($purchaseInvoice);
 
         $journalEntry = JournalEntry::create(array_merge([
             'journal_date' => $purchaseInvoice->invoice_date ?? now(),
@@ -323,15 +323,17 @@ class JournalService
             'created_by' => creatorId()
         ], $this->currencySnapshot($purchaseInvoice, $purchaseInvoice->total_amount)));
 
-        JournalEntryItem::create([
-            'journal_entry_id' => $journalEntry->id,
-            'account_id' => $inventoryAccount->id,
-            'description' => 'Purchase from ' . $purchaseInvoice->vendor->name,
-            'debit_amount' => $this->baseAmount($purchaseInvoice, $purchaseInvoice->subtotal - $purchaseInvoice->discount_amount),
-            'credit_amount' => 0,
-            'creator_id' => Auth::id(),
-            'created_by' => creatorId()
-        ]);
+        foreach ($lineDebits as $line) {
+            JournalEntryItem::create([
+                'journal_entry_id' => $journalEntry->id,
+                'account_id' => $line['account']->id,
+                'description' => 'Purchase from ' . $purchaseInvoice->vendor->name . ' - ' . $line['account']->account_name,
+                'debit_amount' => $line['amount'],
+                'credit_amount' => 0,
+                'creator_id' => Auth::id(),
+                'created_by' => creatorId()
+            ]);
+        }
 
         if ($purchaseInvoice->tax_amount > 0) {
             JournalEntryItem::create([
@@ -357,6 +359,49 @@ class JournalService
 
         $this->updateAccountBalances($journalEntry);
         return $journalEntry;
+    }
+
+    /**
+     * A bill's net amount (before tax) grouped by the account each line is charged to, in base currency.
+     * Lines without an account fall back to Inventory only for stock products; service and free-text
+     * lines must have an account. Rounding is absorbed by the largest line so the entry stays balanced.
+     */
+    private function purchaseLineDebits($purchaseInvoice): array
+    {
+        $purchaseInvoice->loadMissing('items.product');
+        $allowed = ChartOfAccount::billAccountOptions(creatorId())->keyBy('id');
+        $inventory = null;
+        $groups = [];
+
+        foreach ($purchaseInvoice->items as $item) {
+            $net = (float) $item->quantity * (float) $item->unit_price - (float) $item->discount_amount;
+            $account = $item->account_id ? $allowed->get($item->account_id) : null;
+
+            if (!$account) {
+                if ($item->product?->type !== 'product') {
+                    throw new \Exception(__('Select the account for each service line on bill :number before posting.', ['number' => $purchaseInvoice->invoice_number]));
+                }
+                $this->validateAccounts(['1200']);
+                $inventory ??= ChartOfAccount::where('account_code', '1200')->where('created_by', creatorId())->first();
+                $account = $inventory;
+            }
+
+            $groups[$account->id] ??= ['account' => $account, 'amount' => 0.0];
+            $groups[$account->id]['amount'] += $net;
+        }
+
+        $target = round($this->baseAmount($purchaseInvoice, $purchaseInvoice->subtotal - $purchaseInvoice->discount_amount), 2);
+        foreach ($groups as &$group) {
+            $group['amount'] = round($this->baseAmount($purchaseInvoice, $group['amount']), 2);
+        }
+        unset($group);
+
+        if ($groups) {
+            $largest = array_key_first(array_filter($groups, fn ($group) => $group['amount'] === max(array_column($groups, 'amount'))));
+            $groups[$largest]['amount'] = round($groups[$largest]['amount'] + $target - array_sum(array_column($groups, 'amount')), 2);
+        }
+
+        return array_values(array_filter($groups, fn ($group) => abs($group['amount']) >= 0.005));
     }
 
     /**

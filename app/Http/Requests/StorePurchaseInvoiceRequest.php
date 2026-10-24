@@ -4,9 +4,12 @@ namespace App\Http\Requests;
 
 use App\Rules\ValidProjectContractForVendor;
 use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\Concerns\ValidatesBillLines;
 
 class StorePurchaseInvoiceRequest extends FormRequest
 {
+    use ValidatesBillLines;
+
     public function authorize(): bool
     {
         return true;
@@ -29,8 +32,11 @@ class StorePurchaseInvoiceRequest extends FormRequest
             'items.*.description' => 'required_without:items.*.product_id|nullable|string',
             'items.*.unit' => 'nullable|string|max:50',
 
+            'items.*.account_id' => $this->lineAccountRule(),
             'items.*.quantity' => 'required|numeric|gt:0',
             'items.*.unit_price' => 'required|numeric|min:0',
+            'items.*.discount_type' => 'nullable|in:percentage,fixed',
+            'items.*.discount_value' => 'nullable|numeric|min:0',
             'items.*.discount_percentage' => 'nullable|numeric|min:0|max:100',
             'items.*.tax_percentage' => 'nullable|numeric|min:0|max:100',
             'attachments' => 'nullable|array',

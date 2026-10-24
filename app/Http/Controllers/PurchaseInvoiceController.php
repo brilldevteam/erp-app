@@ -12,6 +12,7 @@ use App\Http\Requests\StorePurchaseInvoiceRequest;
 use App\Http\Requests\UpdatePurchaseInvoiceRequest;
 use Workdo\ProductService\Models\ProductServiceItem;
 use Illuminate\Http\Request;
+use Workdo\Account\Models\ChartOfAccount;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -193,6 +194,7 @@ class PurchaseInvoiceController extends Controller
             return Inertia::render('Purchase/Create', [
                 'vendors' => $vendors,
                 'products' => $products,
+                'billAccounts' => ChartOfAccount::billAccountOptions(creatorId()),
                 'warehouses' => $warehouses,
                 'projectContracts' => $this->projectContractOptions(),
             ]);
@@ -273,7 +275,7 @@ class PurchaseInvoiceController extends Controller
                 return redirect()->route('purchase-invoices.index')->with('error', __('Permission denied'));
             }
 
-            $purchaseInvoice->load(['vendor', 'vendorDetails', 'items.product', 'items.taxes', 'warehouse', 'attachments.uploader']);
+            $purchaseInvoice->load(['vendor', 'vendorDetails', 'items.product', 'items.taxes', 'items.account:id,account_code,account_name', 'warehouse', 'attachments.uploader']);
 
             return Inertia::render('Purchase/View', [
                 'invoice' => $purchaseInvoice
@@ -327,6 +329,7 @@ class PurchaseInvoiceController extends Controller
                 'invoice' => $purchaseInvoice,
                 'vendors' => $vendors,
                 'products' => $products,
+                'billAccounts' => ChartOfAccount::billAccountOptions(creatorId()),
                 'warehouses' => $warehouses,
                 'projectContracts' => $this->projectContractOptions(),
             ]);
@@ -407,14 +410,11 @@ class PurchaseInvoiceController extends Controller
         $totalDiscount = 0;
 
         foreach ($items as $item) {
-            $lineTotal = $item['quantity'] * $item['unit_price'];
-            $discountAmount = ($lineTotal * ($item['discount_percentage'] ?? 0)) / 100;
-            $afterDiscount = $lineTotal - $discountAmount;
-            $taxAmount = ($afterDiscount * ($item['tax_percentage'] ?? 0)) / 100;
+            $amounts = PurchaseInvoiceItem::amounts($item);
 
-            $subtotal += $lineTotal;
-            $totalDiscount += $discountAmount;
-            $totalTax += $taxAmount;
+            $subtotal += $amounts['subtotal'];
+            $totalDiscount += $amounts['discount_amount'];
+            $totalTax += $amounts['tax_amount'];
         }
 
         return [
@@ -431,10 +431,13 @@ class PurchaseInvoiceController extends Controller
             $item = new PurchaseInvoiceItem();
             $item->invoice_id = $invoiceId;
             $item->product_id = $itemData['product_id'];
+            $item->account_id = $itemData['account_id'] ?? null;
             $item->description = $itemData['description'] ?? null;
             $item->unit = $itemData['unit'] ?? null;
             $item->quantity = $itemData['quantity'];
             $item->unit_price = $itemData['unit_price'];
+            $item->discount_type = ($itemData['discount_type'] ?? 'percentage') === 'fixed' ? 'fixed' : 'percentage';
+            $item->discount_value = $itemData['discount_value'] ?? 0;
             $item->discount_percentage = $itemData['discount_percentage'] ?? 0;
             $item->tax_percentage = $itemData['tax_percentage'] ?? 0;
             $item->save();

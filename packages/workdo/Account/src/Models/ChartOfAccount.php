@@ -58,6 +58,31 @@ class ChartOfAccount extends Model
     }
 
     /**
+     * Accounts a bill (purchase invoice) line can be charged to: expenses (5000-5999), inventory (1200),
+     * prepaid and other current assets (1300-1399) and fixed assets (1600-1999, excluding accumulated depreciation).
+     */
+    public static function billAccountOptions($creatorId)
+    {
+        return static::where('created_by', $creatorId)
+            ->where('is_active', true)
+            ->orderBy('account_code')
+            ->get(['id', 'account_code', 'account_name'])
+            ->filter(function ($account) {
+                $code = (int) $account->account_code;
+                if (strlen((string) $account->account_code) !== 4) {
+                    return false;
+                }
+                if ($code >= 1600 && $code <= 1999 && stripos($account->account_name, 'depr') !== false) {
+                    return false;
+                }
+
+                return ($code >= 5000 && $code <= 5999) || $code === 1200
+                    || ($code >= 1300 && $code <= 1399) || ($code >= 1600 && $code <= 1999);
+            })
+            ->values();
+    }
+
+    /**
      * Active sales revenue accounts (4000-4899, Sales Revenue type) an invoice can post its revenue to.
      */
     public function scopeSalesRevenueOptions($query, $creatorId)

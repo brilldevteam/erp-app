@@ -1,3 +1,4 @@
+import { lineDiscountLabel } from '@/utils/line-discount';
 import React from 'react';
 import { Head, usePage, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
@@ -174,14 +175,7 @@ function View() {
                                             <td className="px-4 py-4 text-right">{item.return_quantity || item.quantity}</td>
                                             <td className="px-4 py-4 text-right">{formatCurrency(item.unit_price)}</td>
                                             <td className="px-4 py-4 text-right">
-                                                {Number(item.discount_amount) > 0 ? (
-                                                    <div>
-                                                        <div>{Number(item.discount_percentage) > 0 ? `${item.discount_percentage}%` : formatCurrency(item.discount_amount)}</div>
-                                                        <div className="text-sm text-muted-foreground">
-                                                            -{formatCurrency(item.discount_amount)}
-                                                        </div>
-                                                    </div>
-                                                ) : '-'}
+                                                {lineDiscountLabel(item) ?? '-'}
                                             </td>
                                             <td className="px-4 py-4 text-right">
                                                 {item.taxes && item.taxes.length > 0 ? (

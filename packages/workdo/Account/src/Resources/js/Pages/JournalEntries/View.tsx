@@ -81,6 +81,7 @@ export default function View() {
                                 <thead>
                                     <tr className="border-b bg-muted/40">
                                         <th className="px-4 py-3 text-left">{t('Account')}</th>
+                                        <th className="px-4 py-3 text-left">{t('Contact')}</th>
                                         <th className="px-4 py-3 text-left">{t('Description')}</th>
                                         <th className="px-4 py-3 text-right">{t('Debit')}</th>
                                         <th className="px-4 py-3 text-right">{t('Credit')}</th>
@@ -92,6 +93,14 @@ export default function View() {
                                             <td className="px-4 py-3">
                                                 {item.account ? `${item.account.account_code} - ${item.account.account_name}` : '-'}
                                             </td>
+                                            <td className="px-4 py-3">
+                                                {item.contact_name ? (
+                                                    <>
+                                                        <div>{item.contact_name}</div>
+                                                        <div className="text-xs text-muted-foreground">{item.contact_type === 'vendor' ? t('Vendor') : t('Customer')}</div>
+                                                    </>
+                                                ) : '-'}
+                                            </td>
                                             <td className="px-4 py-3">{item.description || '-'}</td>
                                             <td className="px-4 py-3 text-right">{Number(item.debit_amount) > 0 ? formatCurrency(Number(item.debit_amount)) : '-'}</td>
                                             <td className="px-4 py-3 text-right">{Number(item.credit_amount) > 0 ? formatCurrency(Number(item.credit_amount)) : '-'}</td>
@@ -100,7 +109,7 @@ export default function View() {
                                 </tbody>
                                 <tfoot>
                                     <tr className="font-semibold">
-                                        <td className="px-4 py-3" colSpan={2}>{t('Totals')}</td>
+                                        <td className="px-4 py-3" colSpan={3}>{t('Totals')}</td>
                                         <td className="px-4 py-3 text-right">{formatCurrency(journalEntry.total_debit)}</td>
                                         <td className="px-4 py-3 text-right">{formatCurrency(journalEntry.total_credit)}</td>
                                     </tr>

@@ -40,13 +40,16 @@ export function calculateLineItemAmounts(
     quantity: number,
     unitPrice: number,
     discountPercentage: number = 0,
-    taxPercentage: number = 0
+    taxPercentage: number = 0,
+    discountType: 'percentage' | 'fixed' = 'percentage',
+    discountValue: number = 0
 ) {
-    const lineTotal = quantity * unitPrice;
-    const discountAmount = (lineTotal * discountPercentage) / 100;
+    const round = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+    const lineTotal = round(quantity * unitPrice);
+    const discountAmount = round(discountType === 'fixed' ? Math.min(Number(discountValue) || 0, lineTotal) : (lineTotal * discountPercentage) / 100);
     const afterDiscount = lineTotal - discountAmount;
-    const taxAmount = (afterDiscount * taxPercentage) / 100;
-    const totalAmount = afterDiscount + taxAmount;
+    const taxAmount = round((afterDiscount * taxPercentage) / 100);
+    const totalAmount = round(afterDiscount + taxAmount);
 
     return {
         discountAmount,

@@ -9,6 +9,7 @@ use Inertia\Inertia;
 use Workdo\Account\Http\Requests\StoreJournalEntryRequest;
 use Workdo\Account\Models\ChartOfAccount;
 use Workdo\Account\Models\JournalEntry;
+use Workdo\Account\Models\JournalEntryItem;
 
 class JournalEntryController extends Controller
 {
@@ -27,7 +28,15 @@ class JournalEntryController extends Controller
                 $q->where(function ($query) use ($search) {
                     $query->where('journal_number', 'like', "%{$search}%")
                         ->orWhere('reference_type', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%");
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhereHas('items', fn ($items) => $items->whereIn('contact_id', DB::table('users')
+                            ->leftJoin('vendors', 'vendors.user_id', '=', 'users.id')
+                            ->leftJoin('customers', 'customers.user_id', '=', 'users.id')
+                            ->where('users.created_by', creatorId())
+                            ->where(fn ($contact) => $contact->where('users.name', 'like', "%{$search}%")
+                                ->orWhere('vendors.company_name', 'like', "%{$search}%")
+                                ->orWhere('customers.company_name', 'like', "%{$search}%"))
+                            ->select('users.id')));
                 });
             })
             ->when(request('status') && request('status') !== 'all', fn ($q) => $q->where('status', request('status')))
@@ -37,8 +46,11 @@ class JournalEntryController extends Controller
                 $q->orderBy($sort, request('direction', 'desc'));
             }, fn ($q) => $q->latest());
 
+        $journalEntries = $query->paginate(request('per_page', 10))->withQueryString();
+        JournalEntryItem::attachContactNames($journalEntries->getCollection()->flatMap->items, creatorId());
+
         return Inertia::render('Account/JournalEntries/Index', [
-            'journalEntries' => $query->paginate(request('per_page', 10))->withQueryString(),
+            'journalEntries' => $journalEntries,
             'filters' => request()->only(['search', 'status', 'sort', 'direction', 'per_page']),
         ]);
     }
@@ -51,6 +63,7 @@ class JournalEntryController extends Controller
 
         return Inertia::render('Account/JournalEntries/Create', [
             'accounts' => $this->accountOptions(),
+            'contacts' => JournalEntryItem::contactOptions(creatorId()),
         ]);
     }
 
@@ -70,6 +83,7 @@ class JournalEntryController extends Controller
             ->map(function ($item) use ($validated, $rate) {
                 return [
                     'account_id' => $item['account_id'],
+                    'contact_id' => $item['contact_id'] ?? null,
                     'description' => $item['description'] ?: $validated['description'],
                     'debit_amount' => round((float) ($item['debit_amount'] ?? 0) * $rate, 2),
                     'credit_amount' => round((float) ($item['credit_amount'] ?? 0) * $rate, 2),
@@ -124,7 +138,7 @@ class JournalEntryController extends Controller
         }
 
         return Inertia::render('Account/JournalEntries/View', [
-            'journalEntry' => $journalEntry->load(['items.account', 'attachments.uploader:id,name']),
+            'journalEntry' => tap($journalEntry->load(['items.account', 'attachments.uploader:id,name']), fn ($entry) => JournalEntryItem::attachContactNames($entry->items, creatorId())),
             'canAttach' => Auth::user()->can('create-journal-entries'),
             'canRemoveAttachment' => Auth::user()->can('delete-journal-entries'),
         ]);

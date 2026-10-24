@@ -12,16 +12,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { formatCurrency } from '@/utils/helpers';
 import { Plus, Trash2 } from 'lucide-react';
-import { AccountOption, JournalEntryItem } from './types';
+import { AccountOption, ContactOption, JournalEntryItem } from './types';
 import TransactionCurrencyFields from '@/components/transaction-currency-fields';
 
 interface CreateProps {
     accounts: AccountOption[];
+    contacts: ContactOption[];
     settings?: { defaultCurrency?: string };
 }
 
 const emptyLine = (): JournalEntryItem => ({
     account_id: '',
+    contact_id: '',
     description: '',
     debit_amount: '',
     credit_amount: '',
@@ -31,7 +33,9 @@ const amount = (value: number | string) => Number(value || 0);
 
 export default function Create() {
     const { t } = useTranslation();
-    const { accounts, settings } = usePage<CreateProps>().props;
+    const { accounts, contacts = [], settings } = usePage<CreateProps>().props;
+    const contactLabel = (contact: ContactOption) =>
+        `${contact.company_name && contact.company_name !== contact.name ? `${contact.company_name} - ${contact.name}` : contact.name} (${contact.type === 'vendor' ? t('Vendor') : t('Customer')})`;
 
     const { data, setData, post, processing, errors } = useForm({
         journal_date: new Date().toISOString().split('T')[0],
@@ -146,14 +150,23 @@ export default function Create() {
                     <CardContent>
                         <InputError message={(errors as any).items} />
                         <div className="overflow-x-auto">
-                            <table className="w-full min-w-[900px]">
+                            <table className="w-full min-w-[860px] table-fixed">
+                                <colgroup>
+                                    <col className="w-[26%]" />
+                                    <col className="w-[24%]" />
+                                    <col className="w-[19%]" />
+                                    <col className="w-[13%]" />
+                                    <col className="w-[13%]" />
+                                    <col className="w-[5%]" />
+                                </colgroup>
                                 <thead>
                                     <tr className="border-b">
                                         <th className="px-3 py-2 text-left">{t('Account')}</th>
+                                        <th className="px-3 py-2 text-left">{t('Contact')}</th>
                                         <th className="px-3 py-2 text-left">{t('Line Description')}</th>
                                         <th className="px-3 py-2 text-right">{t('Debit')}</th>
                                         <th className="px-3 py-2 text-right">{t('Credit')}</th>
-                                        <th className="px-3 py-2 text-right">{t('Action')}</th>
+                                        <th className="px-1 py-2 text-right"><span className="sr-only">{t('Action')}</span></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -161,7 +174,7 @@ export default function Create() {
                                         <tr key={index} className="border-b">
                                             <td className="px-3 py-3 align-top">
                                                 <Select value={String(item.account_id)} onValueChange={(value) => updateLine(index, 'account_id', value)}>
-                                                    <SelectTrigger>
+                                                    <SelectTrigger className="w-full text-left">
                                                         <SelectValue placeholder={t('Select Account')} />
                                                     </SelectTrigger>
                                                     <SelectContent searchable>
@@ -173,6 +186,22 @@ export default function Create() {
                                                     </SelectContent>
                                                 </Select>
                                                 <InputError message={(errors as any)[`items.${index}.account_id`]} />
+                                            </td>
+                                            <td className="px-3 py-3 align-top">
+                                                <Select value={item.contact_id ? String(item.contact_id) : 'none'} onValueChange={(value) => updateLine(index, 'contact_id', value === 'none' ? '' : value)}>
+                                                    <SelectTrigger className="w-full text-left" title={contacts.find((contact) => String(contact.id) === String(item.contact_id)) ? contactLabel(contacts.find((contact) => String(contact.id) === String(item.contact_id))!) : undefined}>
+                                                        <SelectValue placeholder={t('Vendor or customer')} />
+                                                    </SelectTrigger>
+                                                    <SelectContent searchable>
+                                                        <SelectItem value="none">{t('No contact')}</SelectItem>
+                                                        {contacts.map((contact) => (
+                                                            <SelectItem key={contact.id} value={String(contact.id)}>
+                                                                {contactLabel(contact)}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <InputError message={(errors as any)[`items.${index}.contact_id`]} />
                                             </td>
                                             <td className="px-3 py-3 align-top">
                                                 <Input
@@ -203,7 +232,7 @@ export default function Create() {
                                                 />
                                                 <InputError message={(errors as any)[`items.${index}.credit_amount`]} />
                                             </td>
-                                            <td className="px-3 py-3 text-right align-top">
+                                            <td className="px-1 py-3 text-right align-top">
                                                 <Button type="button" variant="ghost" size="sm" className="text-red-600" onClick={() => removeLine(index)} disabled={data.items.length <= 2}>
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>

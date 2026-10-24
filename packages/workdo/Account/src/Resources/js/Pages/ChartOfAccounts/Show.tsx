@@ -32,6 +32,7 @@ interface LedgerTransaction {
     journal_number: string;
     reference: string | null;
     description: string;
+    contact?: string | null;
     debit: number;
     credit: number;
     /** Running balance, signed: positive = debit, negative = credit. */
@@ -263,7 +264,10 @@ export default function Show() {
                                         <TableCell className="whitespace-nowrap">{formatDate(item.date)}</TableCell>
                                         <TableCell><span className="font-mono text-sm text-blue-700">{item.journal_number}</span></TableCell>
                                         <TableCell className="max-w-[12rem] truncate" title={item.reference ?? ''}>{item.reference || '-'}</TableCell>
-                                        <TableCell className="max-w-xs truncate" title={item.description}>{item.description}</TableCell>
+                                        <TableCell className="max-w-xs" title={item.description}>
+                                            <div className="truncate">{item.description}</div>
+                                            {item.contact && <div className="truncate text-xs text-muted-foreground">{item.contact}</div>}
+                                        </TableCell>
                                         <TableCell className="text-right tabular-nums">{item.debit > 0 ? formatCurrency(item.debit) : '-'}</TableCell>
                                         <TableCell className="text-right tabular-nums">{item.credit > 0 ? formatCurrency(item.credit) : '-'}</TableCell>
                                         <TableCell className="text-right whitespace-nowrap tabular-nums">{formatBalance(item.balance)}</TableCell>

@@ -1,3 +1,4 @@
+import { lineDiscountLabel } from '@/utils/line-discount';
 import { DocumentTemplate, DocumentTemplateConfig, TemplateSampleDocument } from '@/types/document-template';
 import { formatCurrency, getImagePath } from '@/utils/helpers';
 import { Globe2, Mail, MapPin, Phone } from 'lucide-react';
@@ -139,7 +140,7 @@ export default function DocumentTemplatePreview({
                                 {columns.map((column) => (
                                     <td key={column} className="px-3 py-3 align-top whitespace-pre-wrap [overflow-wrap:anywhere]">
                                         {column === 'discount'
-                                            ? Number(item.discount) > 0 ? item.discount_type === 'fixed' ? money(Number(item.discount)) : `${item.discount_percentage}%` : '-'
+                                            ? lineDiscountLabel({ discount_type: item.discount_type, discount_percentage: item.discount_percentage, discount_amount: item.discount }, money) ?? '-'
                                             : column === 'tax'
                                             ? hasTax(item) ? money(Number(item.tax)) : '-'
                                             : ['rate', 'total'].includes(column) ? money(Number(item[column])) : item[column]}

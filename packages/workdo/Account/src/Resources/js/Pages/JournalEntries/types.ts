@@ -1,6 +1,7 @@
 export interface JournalEntryItem {
     id?: number;
     account_id: number | string;
+    contact_id?: number | string | null;
     description?: string;
     debit_amount: number | string;
     credit_amount: number | string;
@@ -10,6 +11,8 @@ export interface JournalEntryItem {
         account_name: string;
         normal_balance: 'debit' | 'credit';
     };
+    contact_name?: string | null;
+    contact_type?: 'vendor' | 'customer' | null;
 }
 
 export interface JournalEntry {
@@ -24,6 +27,13 @@ export interface JournalEntry {
     status: 'draft' | 'posted' | 'reversed';
     items: JournalEntryItem[];
     attachments?: { id: number; file_name: string; file_type: string; file_size: number; created_at: string; uploader?: { name: string } }[];
+}
+
+export interface ContactOption {
+    id: number;
+    name: string;
+    company_name: string | null;
+    type: 'vendor' | 'customer';
 }
 
 export interface AccountOption {

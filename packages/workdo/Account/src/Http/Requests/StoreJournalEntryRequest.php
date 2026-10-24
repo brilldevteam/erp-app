@@ -23,6 +23,7 @@ class StoreJournalEntryRequest extends FormRequest
             'description' => 'required|string|max:2000',
             'items' => 'required|array|min:2',
             'items.*.account_id' => 'required|exists:chart_of_accounts,id',
+            'items.*.contact_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::in(\Workdo\Account\Models\JournalEntryItem::contactOptions(creatorId())->pluck('id')->all())],
             'items.*.description' => 'nullable|string|max:1000',
             'items.*.debit_amount' => 'nullable|numeric|min:0',
             'items.*.credit_amount' => 'nullable|numeric|min:0',
@@ -68,6 +69,7 @@ class StoreJournalEntryRequest extends FormRequest
             'items.min' => __('At least two journal lines are required.'),
             'items.*.account_id.required' => __('Please select an account for each journal line.'),
             'items.*.account_id.exists' => __('Selected account does not exist.'),
+            'items.*.contact_id.in' => __('Select a vendor or customer from the list.'),
         ];
     }
 }

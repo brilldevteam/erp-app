@@ -1,3 +1,4 @@
+import { lineDiscountLabel } from '@/utils/line-discount';
 import React from 'react';
 import { Head, usePage, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
@@ -273,6 +274,7 @@ export default function View() {
                                 <thead>
                                     <tr className="border-b">
                                         <th className="px-4 py-3 text-left text-sm font-semibold">{t('Item Type (Product / Service / Part)')}</th>
+                                        <th className="px-4 py-3 text-left text-sm font-semibold">{t('Account')}</th>
                                         <th className="px-4 py-3 text-right text-sm font-semibold">{t('Qty')}</th>
                                         <th className="px-4 py-3 text-right text-sm font-semibold">{t('Unit Price')}</th>
                                         <th className="px-4 py-3 text-right text-sm font-semibold">{t('Discount')}</th>
@@ -292,17 +294,13 @@ export default function View() {
                                                     <div className="text-sm text-muted-foreground mt-1">{item.product.description}</div>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-4 text-right">{item.quantity}</td>
+                                            <td className="px-4 py-4 text-sm">
+                                                {item.account ? `${item.account.account_code} - ${item.account.account_name}` : <span className="text-muted-foreground">{t('Inventory (default)')}</span>}
+                                            </td>
+                                            <td className="px-4 py-4 text-right">{Number(item.quantity)}</td>
                                             <td className="px-4 py-4 text-right">{formatCurrency(item.unit_price)}</td>
                                             <td className="px-4 py-4 text-right">
-                                                {item.discount_percentage > 0 ? (
-                                                    <div>
-                                                        <div>{item.discount_percentage}%</div>
-                                                        <div className="text-sm text-muted-foreground">
-                                                            -{formatCurrency(item.discount_amount)}
-                                                        </div>
-                                                    </div>
-                                                ) : '-'}
+                                                {lineDiscountLabel(item) ?? '-'}
                                             </td>
                                             <td className="px-4 py-4 text-right">
                                                 {item.taxes && item.taxes.length > 0 ? (

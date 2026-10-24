@@ -3,7 +3,7 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { useFormFields } from '@/hooks/useFormFields';
-import { InvoiceVendorOption, ProjectContractOption, PurchaseInvoiceItem } from './types';
+import { InvoiceVendorOption, ProjectContractOption, PurchaseInvoiceItem, BillAccountOption } from './types';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import InvoiceItemsTable from './components/InvoiceItemsTable';
 import { useTaxCalculator } from './components/TaxCalculator';
@@ -25,12 +25,13 @@ interface CreateProps {
     products: Array<{ id: number; name: string; sku: string; purchase_price: number; unit: string; type: string; taxes: Array<{ id: number; tax_name: string; rate: number }> }>;
     warehouses: Array<{ id: number; name: string; address: string }>;
     projectContracts: ProjectContractOption[];
+    billAccounts: BillAccountOption[];
     [key: string]: any;
 }
 
 export default function Create() {
     const { t } = useTranslation();
-    const { vendors, products, warehouses, projectContracts, settings } = usePage<CreateProps>().props;
+    const { vendors, products, warehouses, projectContracts, billAccounts, settings } = usePage<CreateProps>().props;
 
     useFlashMessages();
     const { data, setData, post, processing, errors } = useForm({
@@ -48,6 +49,8 @@ export default function Create() {
             product_id: 0,
             quantity: 1,
             unit_price: 0,
+            discount_type: 'percentage',
+            discount_value: 0,
             discount_percentage: 0,
             discount_amount: 0,
             tax_percentage: 0,
@@ -293,8 +296,11 @@ export default function Create() {
                                     onClick={() => {
                                         const newItem = {
                                             product_id: 0,
+                                            account_id: null,
                                             quantity: 1,
                                             unit_price: 0,
+                                            discount_type: 'percentage' as const,
+                                            discount_value: 0,
                                             discount_percentage: 0,
                                             discount_amount: 0,
                                             tax_percentage: 0,
@@ -316,6 +322,7 @@ export default function Create() {
                                 onChange={(items) => setData('items', items)}
                                 errors={errors}
                                 products={products}
+                                accounts={billAccounts || []}
                                 showAddButton={false}
                             />
 

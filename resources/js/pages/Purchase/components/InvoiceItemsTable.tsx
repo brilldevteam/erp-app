@@ -1,29 +1,35 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { PurchaseInvoiceItem } from '../types';
+import { BillAccountOption, PurchaseInvoiceItem } from '../types';
 import ProductSelector from './ProductSelector';
 import { calculateLineItemAmounts } from './TaxCalculator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { InputError } from '@/components/ui/input-error';
 import { Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/helpers';
+import SalesLineDiscount from '@/components/sales-line-discount';
 
 interface Props {
     items: PurchaseInvoiceItem[];
     onChange: (items: PurchaseInvoiceItem[]) => void;
     errors: any;
-    products?: Array<{id: number; name: string; purchase_price: number; unit?: string; taxes?: Array<{id: number; tax_name: string; rate: number}>}>;
+    products?: Array<{id: number; name: string; purchase_price: number; unit?: string; type?: string; taxes?: Array<{id: number; tax_name: string; rate: number}>}>;
+    accounts?: BillAccountOption[];
     showAddButton?: boolean;
 }
 
-export default function InvoiceItemsTable({ items, onChange, errors, products = [], showAddButton = true }: Props) {
+export default function InvoiceItemsTable({ items, onChange, errors, products = [], accounts = [], showAddButton = true }: Props) {
     const { t } = useTranslation();
+    const inventoryAccountId = accounts.find(account => account.account_code === '1200')?.id ?? null;
     const addItem = () => {
         const newItem: PurchaseInvoiceItem = {
             product_id: 0,
             quantity: 1,
             unit_price: 0,
+            discount_type: 'percentage',
+            discount_value: 0,
             discount_percentage: 0,
             discount_amount: 0,
             tax_percentage: 0,
@@ -45,6 +51,10 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
 
         // Recalculate amounts
         const item = newItems[index];
+        if (field === 'discount_type') {
+            item.discount_percentage = 0;
+            item.discount_value = 0;
+        }
 
         // If tax_percentage is 0 but product has taxes, recalculate tax_percentage
         if (item.tax_percentage === 0 && item.product_id > 0) {
@@ -58,7 +68,9 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
             item.quantity,
             item.unit_price,
             item.discount_percentage,
-            item.tax_percentage
+            item.tax_percentage,
+            item.discount_type,
+            item.discount_value
         );
 
         item.discount_amount = calculations.discountAmount;
@@ -79,6 +91,8 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
         newItems[index] = {
             ...newItems[index],
             product_id: productId,
+            // Stock products are bought into Inventory unless another account is chosen; services keep the chosen account
+            account_id: product?.type === 'product' ? (newItems[index].account_id || inventoryAccountId) : (newItems[index].account_id ?? null),
             unit_price: Number(product?.purchase_price) || 0,
             tax_percentage: Number(totalTaxRate) || 0,
             taxes: taxes
@@ -92,7 +106,9 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
             item.quantity,
             item.unit_price,
             item.discount_percentage,
-            item.tax_percentage
+            item.tax_percentage,
+            item.discount_type,
+            item.discount_value
         );
 
         item.discount_amount = Number(calculations.discountAmount) || 0;
@@ -108,25 +124,28 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                 <table className="min-w-full">
                     <thead>
                         <tr className="border-b border-border">
-                            <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
+                            <th className="px-2 py-3 text-left text-sm font-semibold text-foreground min-w-[200px]">
                                 {t('Item Type (Product / Service / Part)')} <span className="text-red-500">*</span>
                             </th>
-                            <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
+                            <th className="px-2 py-3 text-left text-sm font-semibold text-foreground">
+                                {t('Account')} <span className="text-red-500">*</span>
+                            </th>
+                            <th className="px-2 py-3 text-left text-sm font-semibold text-foreground">
                                 {t('Qty')} <span className="text-red-500">*</span>
                             </th>
-                            <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
+                            <th className="px-2 py-3 text-left text-sm font-semibold text-foreground">
                                 {t('Unit Price')} <span className="text-red-500">*</span>
                             </th>
-                            <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                                {t('Discount')} %
+                            <th className="px-2 py-3 text-left text-sm font-semibold text-foreground">
+                                {t('Discount')}
                             </th>
-                            <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
+                            <th className="px-2 py-3 text-left text-sm font-semibold text-foreground">
                                 {t('Tax')}
                             </th>
-                            <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
+                            <th className="px-2 py-3 text-left text-sm font-semibold text-foreground">
                                 {t('Total')}
                             </th>
-                            <th className="px-4 py-3 text-center text-sm font-semibold text-foreground">
+                            <th className="px-2 py-3 text-center text-sm font-semibold text-foreground">
                                 {t('Action')}
                             </th>
                         </tr>
@@ -134,7 +153,7 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                     <tbody className="divide-y divide-border">
                         {items.map((item, index) => (
                             <tr key={index}>
-                                <td className="px-4 py-4">
+                                <td className="px-2 py-4 min-w-[200px]">
                                     <ProductSelector
                                         products={products}
                                         value={item.product_id}
@@ -142,7 +161,25 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                     />
                                     <InputError message={errors[`items.${index}.product_id`]} />
                                 </td>
-                                <td className="px-4 py-4">
+                                <td className="px-2 py-4">
+                                    <Select
+                                        value={item.account_id ? String(item.account_id) : ''}
+                                        onValueChange={(value) => updateItem(index, 'account_id', Number(value))}
+                                    >
+                                        <SelectTrigger className="w-44 text-sm">
+                                            <SelectValue placeholder={t('Select account')} />
+                                        </SelectTrigger>
+                                        <SelectContent searchable={true}>
+                                            {accounts.map(account => (
+                                                <SelectItem key={account.id} value={String(account.id)}>
+                                                    {account.account_code} - {account.account_name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={errors[`items.${index}.account_id`]} />
+                                </td>
+                                <td className="px-2 py-4">
                                     <Input
                                         type="number"
                                         value={item.quantity}
@@ -154,7 +191,7 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                     />
                                     <InputError message={errors[`items.${index}.quantity`]} />
                                 </td>
-                                <td className="px-4 py-4">
+                                <td className="px-2 py-4">
                                     <Input
                                         type="number"
                                         value={item.unit_price}
@@ -166,18 +203,11 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                     />
                                     <InputError message={errors[`items.${index}.unit_price`]} />
                                 </td>
-                                <td className="px-4 py-4">
-                                    <Input
-                                        type="number"
-                                        value={item.discount_percentage}
-                                        onChange={(e) => updateItem(index, 'discount_percentage', parseFloat(e.target.value) || 0)}
-                                        className="w-20 text-sm"
-                                        min="0"
-                                        max="100"
-                                        step="0.01"
-                                    />
+                                <td className="px-2 py-4">
+                                    <SalesLineDiscount item={item} onChange={(field, value) => updateItem(index, field, value)} />
+                                    <InputError message={errors[`items.${index}.discount_percentage`] || errors[`items.${index}.discount_value`] || errors[`items.${index}.discount_type`]} />
                                 </td>
-                                <td className="px-4 py-4">
+                                <td className="px-2 py-4">
                                     {item.taxes && item.taxes.length > 0 ? (
                                         <div className="flex flex-wrap gap-1">
                                             {item.taxes.map((tax, taxIndex) => (
@@ -187,17 +217,17 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                             ))}
                                         </div>
                                     ) : item.tax_percentage > 0 ? (
-                                        <span className="text-sm text-blue-800">Tax ({item.tax_percentage}%)</span>
+                                        <span className="text-sm text-blue-800 whitespace-nowrap">Tax ({item.tax_percentage}%)</span>
                                     ) : (
-                                        <span className="text-sm text-muted-foreground">No tax</span>
+                                        <span className="text-sm text-muted-foreground whitespace-nowrap">{t('No tax')}</span>
                                     )}
                                 </td>
-                                <td className="px-4 py-4">
-                                    <span className="text-sm font-medium">
+                                <td className="px-2 py-4">
+                                    <span className="text-sm font-medium whitespace-nowrap">
                                         {formatCurrency(item.total_amount)}
                                     </span>
                                 </td>
-                                <td className="px-4 py-4 text-center">
+                                <td className="px-2 py-4 text-center">
                                     <Button
                                         type="button"
                                         variant="ghost"

@@ -3,7 +3,7 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { useFormFields } from '@/hooks/useFormFields';
-import { InvoiceVendorOption, ProjectContractOption, PurchaseInvoice, PurchaseInvoiceItem } from './types';
+import { InvoiceVendorOption, ProjectContractOption, PurchaseInvoice, BillAccountOption, PurchaseInvoiceItem } from './types';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import InvoiceItemsTable from './components/InvoiceItemsTable';
 import { useTaxCalculator, calculateLineItemAmounts } from './components/TaxCalculator';
@@ -26,12 +26,13 @@ interface EditProps {
     products: Array<{id: number; name: string; sku: string; purchase_price: number; unit: string; type: string; taxes: Array<{id: number; tax_name: string; rate: number}>}>;
     warehouses: Array<{id: number; name: string; address: string}>;
     projectContracts: ProjectContractOption[];
+    billAccounts: BillAccountOption[];
     [key: string]: any;
 }
 
 export default function Edit() {
     const { t } = useTranslation();
-    const { invoice, vendors, products, warehouses, projectContracts } = usePage<EditProps>().props;
+    const { invoice, vendors, products, warehouses, projectContracts, billAccounts } = usePage<EditProps>().props;
 
     useFlashMessages();
 
@@ -53,10 +54,16 @@ export default function Edit() {
                 item.quantity,
                 item.unit_price,
                 item.discount_percentage,
-                item.tax_percentage
+                item.tax_percentage,
+                item.discount_type,
+                Number(item.discount_value) || 0
             );
             return {
                 ...item,
+                quantity: Number(item.quantity),
+                unit_price: Number(item.unit_price),
+                discount_type: item.discount_type || 'percentage',
+                discount_value: Number(item.discount_value) || 0,
                 taxes: item.taxes || [],
                 discount_amount: calculations.discountAmount,
                 tax_amount: calculations.taxAmount,
@@ -311,8 +318,11 @@ export default function Edit() {
                                     onClick={() => {
                                         const newItem = {
                                             product_id: 0,
+                                            account_id: null,
                                             quantity: 1,
                                             unit_price: 0,
+                                            discount_type: 'percentage' as const,
+                                            discount_value: 0,
                                             discount_percentage: 0,
                                             discount_amount: 0,
                                             tax_percentage: 0,
@@ -335,6 +345,7 @@ export default function Edit() {
                                 onChange={(items) => setData('items', items)}
                                 errors={errors}
                                 products={products}
+                                accounts={billAccounts || []}
                                 showAddButton={false}
                             />
 
