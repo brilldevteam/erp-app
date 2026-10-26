@@ -17,13 +17,15 @@ use Workdo\Account\Models\Expense;
 use Workdo\Account\Models\BankAccount;
 use Workdo\Account\Models\ChartOfAccount;
 use Workdo\Account\Services\ReportService;
+use Workdo\DoubleEntry\Services\TrialBalanceService;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
-    public function __construct(private ReportService $reportService)
-    {
-    }
+    public function __construct(
+        private ReportService $reportService,
+        private TrialBalanceService $trialBalanceService,
+    ) {}
 
     public function index(Request $request)
     {
@@ -336,10 +338,29 @@ class DashboardController extends Controller
         $cashBalance = ChartOfAccount::where('created_by', $creatorId)
             ->whereIn('account_code', ['1000', '1005'])
             ->sum('current_balance');
-        $bankBalance = BankAccount::where('created_by', $creatorId)
+        $activeBankAccounts = BankAccount::where('created_by', $creatorId)
             ->where('is_active', true)
             ->whereIn('account_type', ['0', '1'])
-            ->sum('current_balance');
+            ->get(['gl_account_id', 'current_balance']);
+
+        $bankGlAccountIds = $activeBankAccounts->pluck('gl_account_id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($bankGlAccountIds->isNotEmpty()) {
+            $trialBalance = $this->trialBalanceService->generateTrialBalance(
+                now()->startOfYear()->toDateString(),
+                now()->toDateString(),
+            );
+            $bankBalance = collect($trialBalance['accounts'])
+                ->whereIn('id', $bankGlAccountIds->all())
+                ->sum('closing_balance')
+                + $activeBankAccounts->whereNull('gl_account_id')->sum('current_balance');
+        } else {
+            // Older companies may have bank records that have not yet been linked to GL accounts.
+            $bankBalance = $activeBankAccounts->sum('current_balance');
+        }
 
         return [
             'accounts_receivable' => round((float) $receivables['total'], 2),

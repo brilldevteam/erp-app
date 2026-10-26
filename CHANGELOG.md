@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-26 - Account dashboard bank balance
+
+- Changed the Account Dashboard bank balance to use the current posted-ledger balances of active checking and savings accounts linked to chart-of-account records.
+- Prevented duplicate bank records linked to the same GL account from counting that ledger balance more than once.
+- Kept stored bank-account balances as a compatibility fallback only for legacy bank records that do not yet have a linked GL account.
+
 All notable changes to the Wazely ERP application are documented here.
 
 ## [Unreleased]
