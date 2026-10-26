@@ -37,7 +37,7 @@ class AIAssistantSettingsController extends Controller
             $validator = Validator::make($request->all(), [
                 'settings.ai_provider' => 'required|string|in:openai,anthropic,google',
                 'settings.ai_model'    => 'required|string|max:255',
-                'settings.ai_api_key'  => 'required|string|max:255',
+                'settings.ai_api_key'  => 'nullable|string|max:255',
             ]);
 
             if ($validator->fails()) {
@@ -47,6 +47,17 @@ class AIAssistantSettingsController extends Controller
             }
 
             $settings = $request->input('settings', []);
+
+            if (blank($settings['ai_api_key'] ?? null)) {
+                unset($settings['ai_api_key']);
+
+                if (blank(company_setting('ai_api_key'))) {
+                    return redirect()->back()->withErrors([
+                        'settings.ai_api_key' => __('An API key is required before enabling the AI Assistant.'),
+                    ]);
+                }
+            }
+
             try {
                 foreach ($settings as $key => $value) {
                     setSetting($key, $value, creatorId(), false);

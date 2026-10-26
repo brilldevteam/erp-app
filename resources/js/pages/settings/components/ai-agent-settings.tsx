@@ -29,14 +29,14 @@ export default function AIAgentSettings({ userSettings = {}, auth }: AIAgentSett
     const [aiSettings, setAiSettings] = useState({
         ai_agent_provider: userSettings?.ai_agent_provider || '',
         ai_agent_model: userSettings?.ai_agent_model || '',
-        ai_agent_api_key: userSettings?.ai_agent_api_key || ''
+        ai_agent_api_key: ''
     });
 
     useEffect(() => {
         setAiSettings({
             ai_agent_provider: userSettings?.ai_agent_provider || '',
             ai_agent_model: userSettings?.ai_agent_model || '',
-            ai_agent_api_key: userSettings?.ai_agent_api_key || ''
+            ai_agent_api_key: ''
         });
     }, [userSettings]);
 
@@ -166,7 +166,9 @@ export default function AIAgentSettings({ userSettings = {}, auth }: AIAgentSett
                                 type={showApiKey ? 'text' : 'password'}
                                 value={aiSettings.ai_agent_api_key}
                                 onChange={(e) => handleSettingsChange('ai_agent_api_key', e.target.value)}
-                                placeholder={t('Enter API Key')}
+                                placeholder={userSettings?.ai_agent_api_key_configured
+                                    ? t('Configured - leave blank to keep')
+                                    : t('Enter API Key')}
                                 disabled={!canEdit}
                                 className="pr-10"
                             />

@@ -38,7 +38,7 @@ const getInitialSettings = (userSettings?: Record<string, string>): EmailSetting
   host: userSettings?.email_host || 'smtp.example.com',
   port: userSettings?.email_port || '587',
   username: userSettings?.email_username || 'user@example.com',
-  password: userSettings?.email_password || '',
+  password: '',
   encryption: userSettings?.email_encryption || 'tls',
   fromAddress: userSettings?.email_fromAddress || 'noreply@example.com'
 });
@@ -240,7 +240,9 @@ export default function EmailSettings({ userSettings, auth, emailProviders = {} 
                         value={settings.password}
                         onChange={(e) => handleChange('password', e.target.value)}
                         disabled={!canEdit}
-                        placeholder="••••••••••••"
+                        placeholder={userSettings?.email_password_configured
+                          ? t('Configured - leave blank to keep')
+                          : t('Enter SMTP password')}
                         className="pr-10"
                       />
                       {canEdit && (

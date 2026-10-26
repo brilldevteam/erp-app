@@ -10,6 +10,7 @@ use App\Classes\Module;
 use App\Models\Setting;
 use App\Services\SocialAuthSettingsService;
 use App\Services\TimeClockDeviceService;
+use App\Services\BrowserSettingsPayloadService;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -50,6 +51,7 @@ class HandleInertiaRequests extends Middleware
         }
 
         $socialAuthSettings = app(SocialAuthSettingsService::class);
+        $browserSettings = app(BrowserSettingsPayloadService::class);
 
         return [
             ...parent::share($request),
@@ -76,9 +78,11 @@ class HandleInertiaRequests extends Middleware
             ],
             'packages' => (new Module())->allModules(),
             'adminAllSetting' => $request->user()
-                ? $socialAuthSettings->sanitize(getAdminAllSetting())
-                : $socialAuthSettings->sanitize(getAdminAllSetting(true)),
-            'companyAllSetting' => $request->user() ? getCompanyAllSetting($request->user()->id) : [],
+                ? $browserSettings->shared(getAdminAllSetting())
+                : $browserSettings->shared(getAdminAllSetting(true)),
+            'companyAllSetting' => $request->user()
+                ? $browserSettings->shared(getCompanyAllSetting($request->user()->id))
+                : [],
             'loginBrandSetting' => $request->user() ? [] : $this->getPublicLoginBrandSetting(),
             'imageUrlPrefix' =>  getImageUrlPrefix(),
             'baseUrl' =>  url('/'),

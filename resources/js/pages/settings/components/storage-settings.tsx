@@ -50,13 +50,13 @@ export default function StorageSettings({ userSettings, auth }: StorageSettingsP
     allowedFileTypes: userSettings?.allowedFileTypes || 'jpg,png,webp,gif',
     maxUploadSize: userSettings?.maxUploadSize || '2048',
     awsAccessKeyId: userSettings?.awsAccessKeyId || '',
-    awsSecretAccessKey: userSettings?.awsSecretAccessKey || '',
+    awsSecretAccessKey: '',
     awsDefaultRegion: userSettings?.awsDefaultRegion || 'us-east-1',
     awsBucket: userSettings?.awsBucket || '',
     awsUrl: userSettings?.awsUrl || '',
     awsEndpoint: userSettings?.awsEndpoint || '',
     wasabiAccessKey: userSettings?.wasabiAccessKey || '',
-    wasabiSecretKey: userSettings?.wasabiSecretKey || '',
+    wasabiSecretKey: '',
     wasabiRegion: userSettings?.wasabiRegion || 'us-east-1',
     wasabiBucket: userSettings?.wasabiBucket || '',
     wasabiUrl: userSettings?.wasabiUrl || '',
@@ -222,7 +222,9 @@ export default function StorageSettings({ userSettings, auth }: StorageSettingsP
             type="password"
             value={settings.awsSecretAccessKey}
             onChange={(e) => handleInputChange('awsSecretAccessKey', e.target.value)}
-            placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+            placeholder={userSettings?.awsSecretAccessKey_configured
+              ? t('Configured - leave blank to keep')
+              : t('Enter AWS secret access key')}
             disabled={!canEdit}
           />
         </div>
@@ -310,7 +312,9 @@ export default function StorageSettings({ userSettings, auth }: StorageSettingsP
             type="password"
             value={settings.wasabiSecretKey}
             onChange={(e) => handleInputChange('wasabiSecretKey', e.target.value)}
-            placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+            placeholder={userSettings?.wasabiSecretKey_configured
+              ? t('Configured - leave blank to keep')
+              : t('Enter Wasabi secret key')}
             disabled={!canEdit}
           />
         </div>

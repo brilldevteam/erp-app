@@ -24,7 +24,7 @@ interface PusherSettingsProps {
 const getInitialSettings = (userSettings?: Record<string, string>): PusherSettings => ({
   app_id: userSettings?.pusher_app_id || '',
   app_key: userSettings?.pusher_app_key || '',
-  app_secret: userSettings?.pusher_app_secret || '',
+  app_secret: '',
   app_cluster: userSettings?.pusher_app_cluster || 'mt1',
   enabled: userSettings?.pusher_enabled === '1' || false
 });
@@ -130,7 +130,9 @@ export default function PusherSettings({ userSettings, auth }: PusherSettingsPro
                       value={settings.app_secret}
                       onChange={(e) => handleChange('app_secret', e.target.value)}
                       disabled={!canEdit}
-                      placeholder="••••••••••••"
+                      placeholder={userSettings?.pusher_app_secret_configured
+                        ? t('Configured - leave blank to keep')
+                        : t('Enter app secret')}
                       className="pr-10"
                     />
                     {canEdit && (

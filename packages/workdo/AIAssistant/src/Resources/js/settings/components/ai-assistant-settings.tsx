@@ -29,14 +29,14 @@ export default function AIAssistantSettings({ userSettings = {}, auth }: AIAssis
     const [aiSettings, setAiSettings] = useState({
         ai_provider: userSettings?.ai_provider || '',
         ai_model: userSettings?.ai_model || '',
-        ai_api_key: userSettings?.ai_api_key || ''
+        ai_api_key: ''
     });
 
     useEffect(() => {
         setAiSettings({
             ai_provider: userSettings?.ai_provider || '',
             ai_model: userSettings?.ai_model || '',
-            ai_api_key: userSettings?.ai_api_key || ''
+            ai_api_key: ''
         });
     }, [userSettings]);
 
@@ -168,7 +168,9 @@ export default function AIAssistantSettings({ userSettings = {}, auth }: AIAssis
                                 type={showApiKey ? 'text' : 'password'}
                                 value={aiSettings.ai_api_key}
                                 onChange={(e) => handleSettingsChange('ai_api_key', e.target.value)}
-                                placeholder={t('Enter API Key')}
+                                placeholder={userSettings?.ai_api_key_configured
+                                    ? t('Configured - leave blank to keep')
+                                    : t('Enter API Key')}
                                 disabled={!canEdit}
                                 className="pr-10"
                             />

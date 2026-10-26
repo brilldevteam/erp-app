@@ -12,14 +12,18 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Mail;
 use App\Services\SocialAuthSettingsService;
+use App\Services\BrowserSettingsPayloadService;
 
 class SettingController extends Controller
 {
-    public function index(SocialAuthSettingsService $socialAuthSettings)
+    public function index(
+        SocialAuthSettingsService $socialAuthSettings,
+        BrowserSettingsPayloadService $browserSettings
+    )
     {
         if(Auth::user()->can('manage-settings'))
         {
-            $globalSettings = $socialAuthSettings->sanitize(getCompanyAllSetting());
+            $globalSettings = $browserSettings->settingsPage(getCompanyAllSetting());
             $emailProviders = config('email-providers');
 
             if(Auth::user()->hasRole('superadmin'))
@@ -426,6 +430,10 @@ class SettingController extends Controller
 
             $settings = $request->input('settings');
 
+            if (blank($settings['password'] ?? null)) {
+                unset($settings['password']);
+            }
+
             foreach ($settings as $key => $value) {
                 setSetting('email_' . $key, $value, null, false);
             }
@@ -565,6 +573,12 @@ class SettingController extends Controller
 
             $settings = $request->input('settings');
 
+            foreach (['awsSecretAccessKey', 'wasabiSecretKey'] as $secretKey) {
+                if (blank($settings[$secretKey] ?? null)) {
+                    unset($settings[$secretKey]);
+                }
+            }
+
             foreach ($settings as $key => $value) {
                 setSetting($key, $value, null, false);
             }
@@ -665,7 +679,7 @@ class SettingController extends Controller
             $request->validate([
                 'settings.app_id' => 'required|string|max:50',
                 'settings.app_key' => 'required|string|max:100',
-                'settings.app_secret' => 'required|string|max:100',
+                'settings.app_secret' => 'nullable|string|max:100',
                 'settings.app_cluster' => 'required|string|max:20',
             ], [
                 'settings.app_id.required' => __('Pusher App ID is required.'),
@@ -674,7 +688,6 @@ class SettingController extends Controller
                 'settings.app_key.required' => __('Pusher App Key is required.'),
                 'settings.app_key.string' => __('Pusher App Key must be a valid string.'),
                 'settings.app_key.max' => __('Pusher App Key must not exceed 100 characters.'),
-                'settings.app_secret.required' => __('Pusher App Secret is required.'),
                 'settings.app_secret.string' => __('Pusher App Secret must be a valid string.'),
                 'settings.app_secret.max' => __('Pusher App Secret must not exceed 100 characters.'),
                 'settings.app_cluster.required' => __('Pusher App Cluster is required.'),
@@ -683,6 +696,10 @@ class SettingController extends Controller
             ]);
 
             $settings = $request->input('settings');
+
+            if (blank($settings['app_secret'] ?? null)) {
+                unset($settings['app_secret']);
+            }
 
             foreach ($settings as $key => $value) {
                 setSetting('pusher_' . $key, $value, null, false);
@@ -729,10 +746,20 @@ class SettingController extends Controller
             $request->validate([
                 'settings.ai_agent_provider' => 'required|string|in:openai,anthropic,google',
                 'settings.ai_agent_model' => 'required|string|max:255',
-                'settings.ai_agent_api_key' => 'required|string|max:255',
+                'settings.ai_agent_api_key' => 'nullable|string|max:255',
             ]);
 
             $settings = $request->input('settings');
+
+            if (blank($settings['ai_agent_api_key'] ?? null)) {
+                unset($settings['ai_agent_api_key']);
+
+                if (blank(company_setting('ai_agent_api_key'))) {
+                    return back()->withErrors([
+                        'settings.ai_agent_api_key' => __('An API key is required before enabling the AI Agent.'),
+                    ]);
+                }
+            }
 
             foreach ($settings as $key => $value) {
                 setSetting($key, $value,null, false);

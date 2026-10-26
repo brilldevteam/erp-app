@@ -26,8 +26,11 @@ export const aiField = (data: any, setData: any, errors: any, mode: string = 'cr
     // Check if AI is configured using existing settings
     const aiProvider = companyAllSetting?.ai_provider;
     const aiModel = companyAllSetting?.ai_model;
-    const aiApiKey = companyAllSetting?.ai_api_key;
-    const isAIConfigured = !!(aiProvider && aiModel && aiApiKey);
+    const isAIConfigured = !!(
+        aiProvider
+        && aiModel
+        && companyAllSetting?.ai_api_key_configured
+    );
 
     // Return empty array if package not active or not configured
     if (!isAIPackageActive || !isAIConfigured) {

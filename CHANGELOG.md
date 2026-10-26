@@ -5,6 +5,7 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Fixed
+- Prevented SMTP passwords, AI API keys, Pusher secrets, storage secrets, OAuth secrets, and unknown settings from being included in shared browser payloads. Sensitive settings pages now receive configuration-state flags instead of saved secret values, and leaving a secret field blank preserves the existing credential.
 - Showed line discounts the same way everywhere: a fixed (cash) discount shows only its amount and a percentage discount shows only its percentage, on invoices, quotations, proposals, retainers, bills, credit and debit notes, sales and purchase returns, their print pages and template PDFs. Imported invoice lines that stored a discount amount with 0% are now marked as fixed-amount discounts of the same amount, so they no longer show "0.00%" and keep their discount when edited or returned (amounts and totals unchanged).
 - Removed the extra blank trailing page from quotation and invoice PDF downloads that use document templates.
 - Fixed the Assets list: searching no longer fails with a server error (it now matches name, serial code, location and category), the default order is newest purchase first with a stable tie-breaker so pages never shuffle, and Category, Purchase Date, Serial Code, Quantity, Unit Price and Purchase Cost can be sorted.
