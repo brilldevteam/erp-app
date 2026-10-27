@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Radio, Save, Eye, EyeOff, Zap } from 'lucide-react';
+import { Radio, Save, Eye, EyeOff, Zap, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { router } from '@inertiajs/react';
 
@@ -12,6 +12,7 @@ interface PusherSettings {
   app_id: string;
   app_key: string;
   app_secret: string;
+  clear_app_secret: boolean;
   app_cluster: string;
   enabled: boolean;
 }
@@ -25,6 +26,7 @@ const getInitialSettings = (userSettings?: Record<string, string>): PusherSettin
   app_id: userSettings?.pusher_app_id || '',
   app_key: userSettings?.pusher_app_key || '',
   app_secret: '',
+  clear_app_secret: false,
   app_cluster: userSettings?.pusher_app_cluster || 'mt1',
   enabled: userSettings?.pusher_enabled === '1' || false
 });
@@ -123,16 +125,19 @@ export default function PusherSettings({ userSettings, auth }: PusherSettingsPro
 
                 <div className="space-y-1.5">
                   <Label htmlFor="app_secret" className="font-medium">{t("App Secret")}</Label>
-                  <div className="relative">
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
                     <Input
                       id="app_secret"
                       type={showSecret ? "text" : "password"}
                       value={settings.app_secret}
-                      onChange={(e) => handleChange('app_secret', e.target.value)}
-                      disabled={!canEdit}
-                      placeholder={userSettings?.pusher_app_secret_configured
-                        ? t('Configured - leave blank to keep')
-                        : t('Enter app secret')}
+                        onChange={(e) => setSettings(prev => ({ ...prev, app_secret: e.target.value, clear_app_secret: false }))}
+                        disabled={!canEdit || settings.clear_app_secret}
+                        placeholder={settings.clear_app_secret
+                          ? t('Credential will be cleared')
+                          : userSettings?.pusher_app_secret_configured
+                            ? t('Configured - leave blank to keep')
+                            : t('Enter app secret')}
                       className="pr-10"
                     />
                     {canEdit && (
@@ -142,6 +147,7 @@ export default function PusherSettings({ userSettings, auth }: PusherSettingsPro
                         size="sm"
                         className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                         onClick={() => setShowSecret(!showSecret)}
+                          disabled={settings.clear_app_secret}
                       >
                         {showSecret ? (
                           <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -150,6 +156,21 @@ export default function PusherSettings({ userSettings, auth }: PusherSettingsPro
                         )}
                       </Button>
                     )}
+                      </div>
+                      {canEdit && userSettings?.pusher_app_secret_configured && (
+                        <Button
+                          type="button"
+                          variant={settings.clear_app_secret ? 'destructive' : 'outline'}
+                          onClick={() => setSettings(prev => ({
+                            ...prev,
+                            app_secret: '',
+                            clear_app_secret: !prev.clear_app_secret
+                          }))}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          {settings.clear_app_secret ? t('Will clear') : t('Clear')}
+                        </Button>
+                      )}
                   </div>
                 </div>
 

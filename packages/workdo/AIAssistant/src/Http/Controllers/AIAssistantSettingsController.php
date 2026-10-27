@@ -3,6 +3,7 @@
 namespace Workdo\AIAssistant\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Services\SensitiveSettingAuditService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -31,13 +32,14 @@ class AIAssistantSettingsController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, SensitiveSettingAuditService $audit)
     {
         if (Auth::user()->can('edit-ai-assistant-settings')) {
             $validator = Validator::make($request->all(), [
                 'settings.ai_provider' => 'required|string|in:openai,anthropic,google',
                 'settings.ai_model'    => 'required|string|max:255',
                 'settings.ai_api_key'  => 'nullable|string|max:255',
+                'settings.clear_ai_api_key' => 'nullable|boolean',
             ]);
 
             if ($validator->fails()) {
@@ -48,7 +50,21 @@ class AIAssistantSettingsController extends Controller
 
             $settings = $request->input('settings', []);
 
-            if (blank($settings['ai_api_key'] ?? null)) {
+            $clearApiKey = (bool) ($settings['clear_ai_api_key'] ?? false);
+            $replacement = $settings['ai_api_key'] ?? null;
+            $wasConfigured = filled(company_setting('ai_api_key'));
+
+            if ($clearApiKey && filled($replacement)) {
+                return redirect()->back()->withErrors([
+                    'settings.ai_api_key' => __('Enter a replacement or clear the stored credential, not both.'),
+                ]);
+            }
+
+            unset($settings['clear_ai_api_key']);
+
+            if ($clearApiKey) {
+                $settings['ai_api_key'] = null;
+            } elseif (blank($settings['ai_api_key'] ?? null)) {
                 unset($settings['ai_api_key']);
 
                 if (blank(company_setting('ai_api_key'))) {
@@ -62,6 +78,8 @@ class AIAssistantSettingsController extends Controller
                 foreach ($settings as $key => $value) {
                     setSetting($key, $value, creatorId(), false);
                 }
+
+                $audit->recordSubmittedSecret('ai_assistant', 'ai_api_key', $wasConfigured, $replacement, $clearApiKey);
 
                 return redirect()->back()->with('success', __('AI Assistant settings saved successfully.'));
             } catch (\Exception $e) {

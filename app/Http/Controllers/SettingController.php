@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Mail;
 use App\Services\SocialAuthSettingsService;
 use App\Services\BrowserSettingsPayloadService;
+use App\Services\SensitiveSettingAuditService;
+use Illuminate\Validation\ValidationException;
 
 class SettingController extends Controller
 {
@@ -389,7 +391,7 @@ class SettingController extends Controller
         }
     }
 
-    public function updateEmailSettings(Request $request)
+    public function updateEmailSettings(Request $request, SensitiveSettingAuditService $audit)
     {
         if(Auth::user()->can('edit-email-settings'))
         {
@@ -400,6 +402,7 @@ class SettingController extends Controller
                 'settings.port' => 'required|string|max:10',
                 'settings.username' => 'required|string|max:255',
                 'settings.password' => 'nullable|string|max:255',
+                'settings.clear_password' => 'nullable|boolean',
                 'settings.encryption' => 'required|string|max:10',
                 'settings.fromAddress' => 'required|email|max:255',
             ], [
@@ -430,13 +433,22 @@ class SettingController extends Controller
 
             $settings = $request->input('settings');
 
-            if (blank($settings['password'] ?? null)) {
+            $clearPassword = (bool) ($settings['clear_password'] ?? false);
+            $wasConfigured = filled(company_setting('email_password'));
+            $this->rejectReplacementAndClear($settings['password'] ?? null, $clearPassword, 'settings.password');
+            unset($settings['clear_password']);
+
+            if ($clearPassword) {
+                $settings['password'] = null;
+            } elseif (blank($settings['password'] ?? null)) {
                 unset($settings['password']);
             }
 
             foreach ($settings as $key => $value) {
                 setSetting('email_' . $key, $value, null, false);
             }
+
+            $audit->recordSubmittedSecret('email', 'email_password', $wasConfigured, $request->input('settings.password'), $clearPassword);
 
             return redirect()->back()->with('success', __('Email settings save successfully.'));
         }
@@ -515,7 +527,7 @@ class SettingController extends Controller
         }
     }
 
-    public function updateStorageSettings(Request $request)
+    public function updateStorageSettings(Request $request, SensitiveSettingAuditService $audit)
     {
         if(Auth::user()->can('edit-storage-settings'))
         {
@@ -525,12 +537,14 @@ class SettingController extends Controller
                 'settings.maxUploadSize' => 'required|numeric|min:1',
                 'settings.awsAccessKeyId' => 'nullable|string|max:255',
                 'settings.awsSecretAccessKey' => 'nullable|string|max:255',
+                'settings.clearAwsSecretAccessKey' => 'nullable|boolean',
                 'settings.awsDefaultRegion' => 'nullable|string|max:50',
                 'settings.awsBucket' => 'nullable|string|max:255',
                 'settings.awsUrl' => 'nullable|url|max:500',
                 'settings.awsEndpoint' => 'nullable|url|max:500',
                 'settings.wasabiAccessKey' => 'nullable|string|max:255',
                 'settings.wasabiSecretKey' => 'nullable|string|max:255',
+                'settings.clearWasabiSecretKey' => 'nullable|boolean',
                 'settings.wasabiRegion' => 'nullable|string|max:50',
                 'settings.wasabiBucket' => 'nullable|string|max:255',
                 'settings.wasabiUrl' => 'nullable|url|max:500',
@@ -573,14 +587,41 @@ class SettingController extends Controller
 
             $settings = $request->input('settings');
 
-            foreach (['awsSecretAccessKey', 'wasabiSecretKey'] as $secretKey) {
-                if (blank($settings[$secretKey] ?? null)) {
+            $secretActions = [
+                'awsSecretAccessKey' => [
+                    'clear' => 'clearAwsSecretAccessKey',
+                    'configured' => filled(company_setting('awsSecretAccessKey')),
+                ],
+                'wasabiSecretKey' => [
+                    'clear' => 'clearWasabiSecretKey',
+                    'configured' => filled(company_setting('wasabiSecretKey')),
+                ],
+            ];
+
+            foreach ($secretActions as $secretKey => $secretAction) {
+                $clear = (bool) ($settings[$secretAction['clear']] ?? false);
+                $this->rejectReplacementAndClear($settings[$secretKey] ?? null, $clear, "settings.{$secretKey}");
+                unset($settings[$secretAction['clear']]);
+
+                if ($clear) {
+                    $settings[$secretKey] = null;
+                } elseif (blank($settings[$secretKey] ?? null)) {
                     unset($settings[$secretKey]);
                 }
             }
 
             foreach ($settings as $key => $value) {
                 setSetting($key, $value, null, false);
+            }
+
+            foreach ($secretActions as $secretKey => $secretAction) {
+                $audit->recordSubmittedSecret(
+                    'storage',
+                    $secretKey,
+                    $secretAction['configured'],
+                    $request->input("settings.{$secretKey}"),
+                    (bool) $request->input("settings.{$secretAction['clear']}", false),
+                );
             }
 
             // Clear storage configuration cache
@@ -672,7 +713,7 @@ class SettingController extends Controller
         }
     }
 
-    public function updatePusherSettings(Request $request)
+    public function updatePusherSettings(Request $request, SensitiveSettingAuditService $audit)
     {
         if(Auth::user()->can('edit-pusher-settings'))
         {
@@ -680,6 +721,7 @@ class SettingController extends Controller
                 'settings.app_id' => 'required|string|max:50',
                 'settings.app_key' => 'required|string|max:100',
                 'settings.app_secret' => 'nullable|string|max:100',
+                'settings.clear_app_secret' => 'nullable|boolean',
                 'settings.app_cluster' => 'required|string|max:20',
             ], [
                 'settings.app_id.required' => __('Pusher App ID is required.'),
@@ -697,13 +739,22 @@ class SettingController extends Controller
 
             $settings = $request->input('settings');
 
-            if (blank($settings['app_secret'] ?? null)) {
+            $clearSecret = (bool) ($settings['clear_app_secret'] ?? false);
+            $wasConfigured = filled(company_setting('pusher_app_secret'));
+            $this->rejectReplacementAndClear($settings['app_secret'] ?? null, $clearSecret, 'settings.app_secret');
+            unset($settings['clear_app_secret']);
+
+            if ($clearSecret) {
+                $settings['app_secret'] = null;
+            } elseif (blank($settings['app_secret'] ?? null)) {
                 unset($settings['app_secret']);
             }
 
             foreach ($settings as $key => $value) {
                 setSetting('pusher_' . $key, $value, null, false);
             }
+
+            $audit->recordSubmittedSecret('pusher', 'pusher_app_secret', $wasConfigured, $request->input('settings.app_secret'), $clearSecret);
 
             return redirect()->back()->with('success', __('Pusher settings saved successfully.'));
         }
@@ -715,7 +766,8 @@ class SettingController extends Controller
 
     public function updateSocialLoginSettings(
         Request $request,
-        SocialAuthSettingsService $socialAuthSettings
+        SocialAuthSettingsService $socialAuthSettings,
+        SensitiveSettingAuditService $audit
     ) {
         if (!Auth::user()->hasRole('superadmin') || !Auth::user()->can('edit-social-login-settings')) {
             return back()->with('error', __('Permission denied'));
@@ -734,12 +786,23 @@ class SettingController extends Controller
             'settings.microsoft_tenant_id' => ['nullable', 'string', 'max:255', 'regex:/^[a-zA-Z0-9._-]+$/'],
         ]);
 
+        $before = $socialAuthSettings->adminPayload();
         $socialAuthSettings->update($validated['settings']);
+
+        foreach (['google', 'microsoft'] as $provider) {
+            $audit->recordSubmittedSecret(
+                'social_login',
+                "{$provider}_client_secret",
+                (bool) ($before["{$provider}_client_secret_configured"] ?? false),
+                $validated['settings']["{$provider}_client_secret"] ?? null,
+                (bool) ($validated['settings']["clear_{$provider}_client_secret"] ?? false),
+            );
+        }
 
         return back()->with('success', __('Social login settings saved successfully.'));
     }
 
-    public function updateAIAgentSettings(Request $request)
+    public function updateAIAgentSettings(Request $request, SensitiveSettingAuditService $audit)
     {
         if(Auth::user()->can('edit-ai-agent-settings'))
         {
@@ -747,11 +810,19 @@ class SettingController extends Controller
                 'settings.ai_agent_provider' => 'required|string|in:openai,anthropic,google',
                 'settings.ai_agent_model' => 'required|string|max:255',
                 'settings.ai_agent_api_key' => 'nullable|string|max:255',
+                'settings.clear_ai_agent_api_key' => 'nullable|boolean',
             ]);
 
             $settings = $request->input('settings');
 
-            if (blank($settings['ai_agent_api_key'] ?? null)) {
+            $clearApiKey = (bool) ($settings['clear_ai_agent_api_key'] ?? false);
+            $wasConfigured = filled(company_setting('ai_agent_api_key'));
+            $this->rejectReplacementAndClear($settings['ai_agent_api_key'] ?? null, $clearApiKey, 'settings.ai_agent_api_key');
+            unset($settings['clear_ai_agent_api_key']);
+
+            if ($clearApiKey) {
+                $settings['ai_agent_api_key'] = null;
+            } elseif (blank($settings['ai_agent_api_key'] ?? null)) {
                 unset($settings['ai_agent_api_key']);
 
                 if (blank(company_setting('ai_agent_api_key'))) {
@@ -764,6 +835,8 @@ class SettingController extends Controller
             foreach ($settings as $key => $value) {
                 setSetting($key, $value,null, false);
             }
+
+            $audit->recordSubmittedSecret('ai_agent', 'ai_agent_api_key', $wasConfigured, $request->input('settings.ai_agent_api_key'), $clearApiKey);
 
             return redirect()->back()->with('success', __('AI Agent settings saved successfully.'));
         }
@@ -802,5 +875,14 @@ class SettingController extends Controller
             }
         }
         return redirect()->back()->with('success', __('Mail Notification Setting save sucessfully.'));
+    }
+
+    private function rejectReplacementAndClear(mixed $replacement, bool $clear, string $field): void
+    {
+        if ($clear && filled($replacement)) {
+            throw ValidationException::withMessages([
+                $field => __('Enter a replacement or clear the stored credential, not both.'),
+            ]);
+        }
     }
 }
