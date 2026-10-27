@@ -41,6 +41,12 @@ class BrowserSettingsPayloadServiceTest extends TestCase
             'pusher_app_secret' => 'pusher-secret',
             'ai_api_key' => 'assistant-secret',
             'ai_agent_api_key' => null,
+            'stripe_key' => 'pk_test_visible',
+            'stripe_secret' => 'sk_test_secret',
+            'stripe_enabled' => 'on',
+            'paypal_client_id' => 'paypal-visible-id',
+            'paypal_secret_key' => 'paypal-secret',
+            'paypal_mode' => 'sandbox',
             'unknown_setting' => 'not-allowlisted',
         ]);
 
@@ -52,6 +58,10 @@ class BrowserSettingsPayloadServiceTest extends TestCase
         $this->assertTrue($payload['pusher_app_secret_configured']);
         $this->assertTrue($payload['ai_api_key_configured']);
         $this->assertFalse($payload['ai_agent_api_key_configured']);
+        $this->assertSame('pk_test_visible', $payload['stripe_key']);
+        $this->assertSame('paypal-visible-id', $payload['paypal_client_id']);
+        $this->assertTrue($payload['stripe_secret_configured']);
+        $this->assertTrue($payload['paypal_secret_key_configured']);
 
         foreach ([
             'email_password',
@@ -60,6 +70,8 @@ class BrowserSettingsPayloadServiceTest extends TestCase
             'pusher_app_secret',
             'ai_api_key',
             'ai_agent_api_key',
+            'stripe_secret',
+            'paypal_secret_key',
             'unknown_setting',
         ] as $forbiddenKey) {
             $this->assertArrayNotHasKey($forbiddenKey, $payload);

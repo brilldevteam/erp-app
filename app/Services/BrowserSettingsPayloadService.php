@@ -94,6 +94,11 @@ class BrowserSettingsPayloadService
         'pusher_enabled',
         'bankTransferEnabled',
         'instructions',
+        'stripe_key',
+        'stripe_enabled',
+        'paypal_client_id',
+        'paypal_enabled',
+        'paypal_mode',
         'contract_prefix',
     ];
 
@@ -106,6 +111,8 @@ class BrowserSettingsPayloadService
         'wasabiSecretKey' => 'wasabiSecretKey_configured',
         'google_client_secret' => 'google_client_secret_configured',
         'microsoft_client_secret' => 'microsoft_client_secret_configured',
+        'stripe_secret' => 'stripe_secret_configured',
+        'paypal_secret_key' => 'paypal_secret_key_configured',
     ];
 
     public function shared(array $settings): array
