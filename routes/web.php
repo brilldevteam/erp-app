@@ -14,6 +14,7 @@ use App\Http\Controllers\TranslationController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\BankTransferPaymentController;
 use App\Http\Controllers\BulkImportController;
+use App\Http\Controllers\ZohoMigrationController;
 use App\Http\Controllers\DocumentTemplateController;
 use App\Http\Controllers\ModuleAssetController;
 
@@ -46,6 +47,13 @@ Route::get('/module-assets/{module}/favicon', [ModuleAssetController::class, 'fa
     ->name('module-assets.favicon');
 
 Route::middleware(['auth', 'auth.session.current', 'verified', 'PlanModuleCheck'])->group(function () {
+    Route::prefix('zoho-migrations')->name('zoho-migrations.')->group(function () {
+        Route::get('/', [ZohoMigrationController::class, 'index'])->name('index');
+        Route::post('/', [ZohoMigrationController::class, 'store'])->name('store');
+        Route::get('{zohoMigration}', [ZohoMigrationController::class, 'show'])->name('show');
+        Route::post('{zohoMigration}/files', [ZohoMigrationController::class, 'upload'])->name('files.store');
+    });
+
     Route::prefix('bulk-imports')->name('bulk-imports.')->group(function () {
         Route::get('{entity}/template', [BulkImportController::class, 'template'])->name('template');
         Route::post('{entity}', [BulkImportController::class, 'store'])->name('store');
