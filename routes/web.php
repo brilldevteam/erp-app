@@ -52,6 +52,9 @@ Route::middleware(['auth', 'auth.session.current', 'verified', 'PlanModuleCheck'
         Route::post('/', [ZohoMigrationController::class, 'store'])->name('store');
         Route::get('{zohoMigration}', [ZohoMigrationController::class, 'show'])->name('show');
         Route::post('{zohoMigration}/files', [ZohoMigrationController::class, 'upload'])->name('files.store');
+        Route::get('{zohoMigration}/files/{file}/source', [ZohoMigrationController::class, 'source'])->name('files.source');
+        Route::post('{zohoMigration}/stages/{stageKey}/validate', [ZohoMigrationController::class, 'validateStage'])->name('stages.validate');
+        Route::get('{zohoMigration}/stages/{stageKey}/issues', [ZohoMigrationController::class, 'issueReport'])->name('stages.issues');
     });
 
     Route::prefix('bulk-imports')->name('bulk-imports.')->group(function () {

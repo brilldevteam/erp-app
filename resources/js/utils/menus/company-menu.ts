@@ -1,4 +1,4 @@
-import { LayoutGrid, Users, Warehouse,ArrowRightLeft, Package, Tag, Tags, Shield, Settings, Image, CreditCard, Headphones, ShoppingCart, Kanban, Calendar, MessageCircle, Replace ,Receipt, Bot, FileText} from 'lucide-react';
+import { LayoutGrid, Users, Settings, Image, CreditCard, Headphones, ShoppingCart, MessageCircle, Replace, Receipt, Bot, FileText, Import } from 'lucide-react';
 import { NavItem } from '@/types';
 
 export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
@@ -96,6 +96,13 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
                 order: 70,
             },
         ],
+    },
+    {
+        title: t('Bulk Import'),
+        href: route('zoho-migrations.index'),
+        icon: Import,
+        permission: 'view-zoho-migrations',
+        order: 37,
     },
     {
         title: t('Media Library'),

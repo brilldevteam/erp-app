@@ -39,6 +39,11 @@ class InspectZohoMigrationFile implements ShouldQueue
                     ? $exception->getMessage()
                     : 'The source file could not be inspected. Review the file format and try again.',
             ]);
+            $file->batch->stages()->where('stage_key', $file->stage_key)->update([
+                'status' => 'failed',
+                'rejected_count' => $file->row_count,
+                'updated_at' => now(),
+            ]);
         }
     }
 }

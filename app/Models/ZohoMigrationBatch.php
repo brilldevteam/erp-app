@@ -16,6 +16,7 @@ class ZohoMigrationBatch extends Model
         'name',
         'zoho_organization_id',
         'status',
+        'workflow_mode',
         'accounting_mode',
         'base_currency',
         'source_date_format',
@@ -38,5 +39,20 @@ class ZohoMigrationBatch extends Model
     public function files(): HasMany
     {
         return $this->hasMany(ZohoMigrationFile::class, 'batch_id');
+    }
+
+    public function stages(): HasMany
+    {
+        return $this->hasMany(ZohoMigrationStage::class, 'batch_id')->orderBy('position');
+    }
+
+    public function issues(): HasMany
+    {
+        return $this->hasMany(ZohoMigrationIssue::class, 'batch_id');
+    }
+
+    public function events(): HasMany
+    {
+        return $this->hasMany(ZohoMigrationEvent::class, 'batch_id')->latest();
     }
 }

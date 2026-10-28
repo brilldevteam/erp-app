@@ -13,7 +13,10 @@ class ZohoMigrationFileInspector
 {
     public const MAX_ROWS = 10000;
 
-    public function __construct(private readonly ZohoProfileCatalog $profiles)
+    public function __construct(
+        private readonly ZohoProfileCatalog $profiles,
+        private readonly ZohoStageCatalog $stages,
+    )
     {
     }
 
@@ -46,6 +49,10 @@ class ZohoMigrationFileInspector
                 ? 'The Zoho export profile is ambiguous and requires review.'
                 : 'No supported Zoho export profile matches these headers.';
             throw new RuntimeException($message);
+        }
+        $stage = $this->stages->find((string) $file->stage_key);
+        if (!$stage || !in_array($detection['dataset_type'], $stage['datasets'], true)) {
+            throw new RuntimeException('This file was detected as '.str_replace('_', ' ', (string) $detection['dataset_type']).' and does not belong in the selected stage.');
         }
 
         $rows = [];
@@ -92,6 +99,18 @@ class ZohoMigrationFileInspector
                 'headers' => $headers,
                 'row_count' => count($rows),
                 'failure_message' => null,
+            ]);
+            $file->batch->stages()->where('stage_key', $file->stage_key)->update([
+                'status' => 'review_required',
+                'accepted_count' => count($rows),
+                'rejected_count' => 0,
+                'warning_count' => 0,
+                'summary' => json_encode([
+                    'dataset_type' => $detection['dataset_type'],
+                    'profile_key' => $detection['profile_key'],
+                    'file_id' => $file->id,
+                ]),
+                'updated_at' => now(),
             ]);
         });
     }

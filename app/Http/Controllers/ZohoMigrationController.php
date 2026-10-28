@@ -4,27 +4,52 @@ namespace App\Http\Controllers;
 
 use App\Jobs\InspectZohoMigrationFile;
 use App\Models\ZohoMigrationBatch;
+use App\Models\ZohoMigrationEvent;
 use App\Models\ZohoMigrationFile;
+use App\Models\ZohoMigrationStage;
 use App\Rules\SpreadsheetUpload;
+use App\Services\ZohoMigration\ZohoStageCatalog;
+use App\Services\ZohoMigration\ZohoMigrationValidator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Database\QueryException;
 use Illuminate\Validation\Rule;
+use Inertia\Inertia;
+use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ZohoMigrationController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function __construct(private readonly ZohoStageCatalog $stages)
+    {
+    }
+
+    public function index(Request $request): Response
     {
         $this->authorizeAction($request, 'view-zoho-migrations');
 
         $batches = ZohoMigrationBatch::where('tenant_id', $this->tenantId($request))
             ->withCount('files')
             ->latest()
-            ->paginate(20);
+            ->get()
+            ->map(fn (ZohoMigrationBatch $batch) => $this->payload($batch));
 
-        return response()->json($batches);
+        return Inertia::render('zoho-migrations/index', [
+            'batches' => $batches,
+            'warehouses' => \App\Models\Warehouse::where('created_by', $this->tenantId($request))
+                ->where('is_active', true)
+                ->get(['id', 'name']),
+            'permissions' => [
+                'create' => $request->user()->can('create-zoho-migrations'),
+                'upload' => $request->user()->can('upload-zoho-migration-files'),
+                'approve' => $request->user()->can('approve-zoho-migrations'),
+                'execute' => $request->user()->can('execute-zoho-migrations'),
+            ],
+        ]);
     }
 
     public function store(Request $request): JsonResponse
@@ -33,6 +58,7 @@ class ZohoMigrationController extends Controller
         $tenantId = $this->tenantId($request);
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:150'],
+            'workflow_mode' => ['required', Rule::in(['full', 'standalone'])],
             'zoho_organization_id' => ['nullable', 'string', 'max:100'],
             'accounting_mode' => ['required', Rule::in(ZohoMigrationBatch::ACCOUNTING_MODES)],
             'base_currency' => ['required', 'string', 'size:3'],
@@ -46,14 +72,39 @@ class ZohoMigrationController extends Controller
             'ai_enabled' => ['sometimes', 'boolean'],
         ]);
 
-        $batch = ZohoMigrationBatch::create([
-            ...$validated,
-            'base_currency' => strtoupper($validated['base_currency']),
-            'tenant_id' => $tenantId,
-            'created_by' => $request->user()->id,
-            'status' => 'draft',
-            'ai_enabled' => (bool) ($validated['ai_enabled'] ?? false),
-        ]);
+        $batch = DB::transaction(function () use ($validated, $tenantId, $request): ZohoMigrationBatch {
+            $batch = ZohoMigrationBatch::create([
+                ...$validated,
+                'base_currency' => strtoupper($validated['base_currency']),
+                'tenant_id' => $tenantId,
+                'created_by' => $request->user()->id,
+                'status' => 'active',
+                'ai_enabled' => (bool) ($validated['ai_enabled'] ?? false),
+            ]);
+
+            foreach ($this->stages->all() as $stage) {
+                ZohoMigrationStage::create([
+                    'batch_id' => $batch->id,
+                    'tenant_id' => $tenantId,
+                    'stage_key' => $stage['key'],
+                    'position' => $stage['position'],
+                    'status' => $stage['key'] === 'configuration' ? 'completed' : 'not_started',
+                    'completed_at' => $stage['key'] === 'configuration' ? now() : null,
+                    'completed_by' => $stage['key'] === 'configuration' ? $request->user()->id : null,
+                ]);
+            }
+
+            ZohoMigrationEvent::create([
+                'batch_id' => $batch->id,
+                'tenant_id' => $tenantId,
+                'user_id' => $request->user()->id,
+                'stage_key' => 'configuration',
+                'event_type' => 'batch_created',
+                'message' => 'Migration workspace created and configuration completed.',
+            ]);
+
+            return $batch;
+        });
 
         return response()->json($this->payload($batch), 201);
     }
@@ -62,7 +113,7 @@ class ZohoMigrationController extends Controller
     {
         $this->authorizeBatch($request, $zohoMigration, 'view-zoho-migrations');
 
-        return response()->json($this->payload($zohoMigration->load('files')));
+        return response()->json($this->payload($zohoMigration->load(['files', 'stages', 'issues', 'events'])));
     }
 
     public function upload(Request $request, ZohoMigrationBatch $zohoMigration): JsonResponse
@@ -71,10 +122,17 @@ class ZohoMigrationController extends Controller
         abort_if($zohoMigration->configuration_locked_at, 409, 'This migration configuration is locked.');
 
         $validated = $request->validate([
+            'stage_key' => ['required', 'string', 'max:80'],
             'file' => [
                 'required', 'file', 'max:10240', new SpreadsheetUpload(),
             ],
         ]);
+
+        $stage = $this->stages->find($validated['stage_key']);
+        abort_unless($stage, 422, 'Unknown migration stage.');
+        abort_unless($stage['supported'], 422, 'This Zoho dataset is not yet supported.');
+        abort_if($stage['key'] === 'configuration', 422, 'Configuration does not accept a source file.');
+        $this->ensureStageIsAvailable($zohoMigration, $stage);
 
         $uploaded = $validated['file'];
         $sha256 = hash_file('sha256', $uploaded->getRealPath());
@@ -89,6 +147,7 @@ class ZohoMigrationController extends Controller
             $file = ZohoMigrationFile::create([
                 'batch_id' => $zohoMigration->id,
                 'tenant_id' => $zohoMigration->tenant_id,
+                'stage_key' => $stage['key'],
                 'uploaded_by' => $request->user()->id,
                 'original_filename' => $uploaded->getClientOriginalName(),
                 'disk' => 'local',
@@ -109,7 +168,59 @@ class ZohoMigrationController extends Controller
 
         InspectZohoMigrationFile::dispatch($file->id);
 
+        ZohoMigrationEvent::create([
+            'batch_id' => $zohoMigration->id,
+            'tenant_id' => $zohoMigration->tenant_id,
+            'user_id' => $request->user()->id,
+            'stage_key' => $stage['key'],
+            'event_type' => 'file_uploaded',
+            'message' => 'Source file uploaded for inspection.',
+            'metadata' => ['file_id' => $file->id, 'filename' => $file->original_filename],
+        ]);
+
         return response()->json($file, 202);
+    }
+
+    public function validateStage(Request $request, ZohoMigrationBatch $zohoMigration, string $stageKey, ZohoMigrationValidator $validator): JsonResponse
+    {
+        $this->authorizeBatch($request, $zohoMigration, 'upload-zoho-migration-files');
+        $stage = $this->stages->find($stageKey);
+        abort_unless($stage && $stage['supported'], 422, 'This migration stage cannot be validated.');
+        $this->ensureStageIsAvailable($zohoMigration, $stage);
+
+        return response()->json($validator->validate($zohoMigration, $stageKey, $request->user()->id));
+    }
+
+    public function source(Request $request, ZohoMigrationBatch $zohoMigration, ZohoMigrationFile $file): StreamedResponse
+    {
+        $this->authorizeBatch($request, $zohoMigration, 'view-zoho-migrations');
+        abort_unless($file->batch_id === $zohoMigration->id && $file->tenant_id === $zohoMigration->tenant_id, 404);
+
+        return Storage::disk($file->disk)->download($file->path, $file->original_filename);
+    }
+
+    public function issueReport(Request $request, ZohoMigrationBatch $zohoMigration, string $stageKey): StreamedResponse
+    {
+        $this->authorizeBatch($request, $zohoMigration, 'view-zoho-migrations');
+        abort_unless($this->stages->find($stageKey), 404);
+        $issues = $zohoMigration->issues()->where('stage_key', $stageKey)->with(['file:id,original_filename', 'stagedRow:id,source_row_number'])->get();
+
+        return response()->streamDownload(function () use ($issues): void {
+            $output = fopen('php://output', 'wb');
+            fputcsv($output, ['Source file', 'Source row', 'Type', 'Field', 'Source value', 'Message', 'Status']);
+            foreach ($issues as $issue) {
+                fputcsv($output, array_map([$this, 'safeCsv'], [
+                    $issue->file?->original_filename,
+                    $issue->stagedRow?->source_row_number,
+                    $issue->type,
+                    $issue->field,
+                    $issue->source_value,
+                    $issue->message,
+                    $issue->status,
+                ]));
+            }
+            fclose($output);
+        }, "zoho-{$stageKey}-issues.csv", ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     private function payload(ZohoMigrationBatch $batch): array
@@ -118,6 +229,7 @@ class ZohoMigrationController extends Controller
             'id' => $batch->id,
             'name' => $batch->name,
             'status' => $batch->status,
+            'workflow_mode' => $batch->workflow_mode,
             'accounting_mode' => $batch->accounting_mode,
             'base_currency' => $batch->base_currency,
             'source_date_format' => $batch->source_date_format,
@@ -127,9 +239,81 @@ class ZohoMigrationController extends Controller
             'ai_enabled' => $batch->ai_enabled,
             'configuration_locked_at' => $batch->configuration_locked_at?->toIso8601String(),
             'files_count' => $batch->files_count ?? $batch->files?->count(),
-            'files' => $batch->relationLoaded('files') ? $batch->files : null,
+            'files' => $batch->relationLoaded('files')
+                ? $batch->files->map(fn (ZohoMigrationFile $file) => $this->filePayload($file))->values()
+                : null,
+            'stages' => $this->stagePayloads($batch),
+            'issues' => $batch->relationLoaded('issues') ? $batch->issues : null,
+            'events' => $batch->relationLoaded('events') ? $batch->events->take(30)->values() : null,
             'created_at' => $batch->created_at?->toIso8601String(),
         ];
+    }
+
+    private function stagePayloads(ZohoMigrationBatch $batch): array
+    {
+        $states = $batch->relationLoaded('stages')
+            ? $batch->stages->keyBy('stage_key')
+            : $batch->stages()->get()->keyBy('stage_key');
+        $files = $batch->relationLoaded('files')
+            ? $batch->files->groupBy('stage_key')
+            : $batch->files()->get()->groupBy('stage_key');
+        $previousCompleted = true;
+
+        return array_map(function (array $definition) use ($batch, $states, $files, &$previousCompleted): array {
+            $state = $states->get($definition['key']);
+            $locked = $batch->workflow_mode === 'full' && !$previousCompleted;
+            $status = $state?->status ?? ($definition['key'] === 'configuration' ? 'completed' : 'not_started');
+            $destinationUrl = $definition['destination'] && Route::has($definition['destination'])
+                ? route($definition['destination'])
+                : null;
+            $payload = $definition + [
+                'status' => $locked ? 'locked' : ($definition['supported'] ? $status : 'unsupported'),
+                'locked' => $locked,
+                'accepted_count' => $state?->accepted_count ?? 0,
+                'rejected_count' => $state?->rejected_count ?? 0,
+                'warning_count' => $state?->warning_count ?? 0,
+                'completed_at' => $state?->completed_at?->toIso8601String(),
+                'summary' => $state?->summary,
+                'files' => ($files->get($definition['key']) ?? collect())
+                    ->map(fn (ZohoMigrationFile $file) => $this->filePayload($file))
+                    ->values(),
+                'destination_url' => $destinationUrl,
+            ];
+            $previousCompleted = $status === 'completed';
+
+            return $payload;
+        }, $this->stages->all());
+    }
+
+    private function filePayload(ZohoMigrationFile $file): array
+    {
+        return [
+            'id' => $file->id,
+            'stage_key' => $file->stage_key,
+            'original_filename' => $file->original_filename,
+            'size_bytes' => $file->size_bytes,
+            'status' => $file->status,
+            'dataset_type' => $file->dataset_type,
+            'profile_key' => $file->profile_key,
+            'detection_confidence' => $file->detection_confidence,
+            'headers' => $file->headers,
+            'row_count' => $file->row_count,
+            'failure_message' => $file->failure_message,
+            'preview_rows' => $file->status === 'staged'
+                ? $file->stagedRows()->orderBy('source_row_number')->limit(5)->get(['source_row_number', 'original_values'])
+                : [],
+            'created_at' => $file->created_at?->toIso8601String(),
+        ];
+    }
+
+    private function ensureStageIsAvailable(ZohoMigrationBatch $batch, array $stage): void
+    {
+        if ($batch->workflow_mode !== 'full' || !$stage['previous_key']) {
+            return;
+        }
+
+        $previous = $batch->stages()->where('stage_key', $stage['previous_key'])->first();
+        abort_unless($previous?->status === 'completed', 409, 'Complete the previous migration stage first.');
     }
 
     private function authorizeBatch(Request $request, ZohoMigrationBatch $batch, string $permission): void
@@ -148,5 +332,12 @@ class ZohoMigrationController extends Controller
         return $request->user()->type === 'company'
             ? $request->user()->id
             : (int) $request->user()->created_by;
+    }
+
+    private function safeCsv(mixed $value): string
+    {
+        $text = (string) $value;
+
+        return preg_match('/^[=+\-@]/', $text) ? "'{$text}" : $text;
     }
 }
