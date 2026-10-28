@@ -61,7 +61,6 @@ type Batch = {
 
 type Props = {
     batches: Batch[];
-    warehouses: Array<{ id: number; name: string }>;
     permissions: { create: boolean; upload: boolean; approve: boolean; execute: boolean };
 };
 
@@ -75,7 +74,7 @@ const statusStyle: Record<string, { marker: string; text: string; icon: typeof C
     not_started: { marker: 'border-slate-300 bg-white text-slate-400', text: 'text-slate-500', icon: Circle, label: 'Not started' },
 };
 
-export default function ZohoMigrations({ batches: initialBatches, warehouses, permissions }: Props) {
+export default function ZohoMigrations({ batches: initialBatches, permissions }: Props) {
     const [batches, setBatches] = useState(initialBatches);
     const [selectedBatchId, setSelectedBatchId] = useState<number | null>(initialBatches[0]?.id ?? null);
     const [selectedStageKey, setSelectedStageKey] = useState<string | null>(initialBatches[0]?.stages?.[0]?.key ?? null);
@@ -184,12 +183,15 @@ export default function ZohoMigrations({ batches: initialBatches, warehouses, pe
                             <Field label="Zoho organization ID"><Input name="zoho_organization_id" placeholder="Optional" /></Field>
                             <Field label="Zoho date format"><NativeSelect name="source_date_format" options={[["dd/MM/yyyy", 'DD/MM/YYYY'], ["MM/dd/yyyy", 'MM/DD/YYYY'], ["yyyy-MM-dd", 'YYYY-MM-DD'], ["dd-MM-yyyy", 'DD-MM-YYYY']]} /></Field>
                             <Field label="Inventory cutover"><Input name="inventory_cutover_at" type="date" required /></Field>
-                            <Field label="Default warehouse"><NativeSelect name="default_warehouse_id" options={warehouses.map(item => [String(item.id), item.name])} /></Field>
+                            <Field label="Default warehouse">
+                                <Input name="default_warehouse_name" required placeholder="Main Warehouse" />
+                                <p className="text-xs text-slate-500">An exact existing name is reused; otherwise a new active warehouse is added to ERP.</p>
+                            </Field>
                             <input type="hidden" name="duplicate_strategy" value="block" />
                             <input type="hidden" name="ai_enabled" value="0" />
                         </div>
                         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-                        <Button className="mt-5" disabled={busy || warehouses.length === 0}>{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Create workspace</Button>
+                        <Button className="mt-5" disabled={busy}>{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Create workspace</Button>
                     </form>
                 )}
 

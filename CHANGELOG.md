@@ -5,6 +5,7 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Added
+- Allowed migration setup to accept a default warehouse name directly, reusing an exact company warehouse or creating an active warehouse that is immediately available throughout ERP.
 - Added a dedicated Bulk Import workspace with full and standalone Zoho migration modes, a strict 25-stage vertical journey, durable progress/issue/audit tracking, stage-aware CSV/XLSX uploads, source previews, supported-profile gating, ERP record links, and responsive progress/status panels. Existing page-level invoice, bill, and warehouse import buttons now route all migration work through the controlled workspace.
 - Added the tenant-scoped Zoho migration workspace foundation with immutable accounting-mode configuration, private hashed uploads, conservative export-profile detection, durable staged source rows, dedicated permissions, and queued file inspection. This foundation does not create financial records.
 

@@ -7,6 +7,7 @@ use App\Models\ZohoMigrationBatch;
 use App\Models\ZohoMigrationEvent;
 use App\Models\ZohoMigrationFile;
 use App\Models\ZohoMigrationStage;
+use App\Models\Warehouse;
 use App\Rules\SpreadsheetUpload;
 use App\Services\ZohoMigration\ZohoStageCatalog;
 use App\Services\ZohoMigration\ZohoMigrationValidator;
@@ -40,9 +41,6 @@ class ZohoMigrationController extends Controller
 
         return Inertia::render('zoho-migrations/index', [
             'batches' => $batches,
-            'warehouses' => \App\Models\Warehouse::where('created_by', $this->tenantId($request))
-                ->where('is_active', true)
-                ->get(['id', 'name']),
             'permissions' => [
                 'create' => $request->user()->can('create-zoho-migrations'),
                 'upload' => $request->user()->can('upload-zoho-migration-files'),
@@ -64,17 +62,33 @@ class ZohoMigrationController extends Controller
             'base_currency' => ['required', 'string', 'size:3'],
             'source_date_format' => ['required', Rule::in(['dd/MM/yyyy', 'MM/dd/yyyy', 'yyyy-MM-dd', 'dd-MM-yyyy'])],
             'inventory_cutover_at' => ['required', 'date'],
-            'default_warehouse_id' => [
-                'required',
-                Rule::exists('warehouses', 'id')->where(fn ($query) => $query->where('created_by', $tenantId)),
-            ],
+            'default_warehouse_name' => ['required', 'string', 'max:255'],
             'duplicate_strategy' => ['required', Rule::in(ZohoMigrationBatch::DUPLICATE_STRATEGIES)],
             'ai_enabled' => ['sometimes', 'boolean'],
         ]);
 
         $batch = DB::transaction(function () use ($validated, $tenantId, $request): ZohoMigrationBatch {
+            $warehouseName = trim($validated['default_warehouse_name']);
+            $warehouse = Warehouse::where('created_by', $tenantId)
+                ->whereRaw('LOWER(name) = ?', [mb_strtolower($warehouseName)])
+                ->first();
+            if (!$warehouse) {
+                abort_unless($request->user()->can('create-warehouses'), 403, 'You need permission to create the default warehouse.');
+                $warehouse = Warehouse::create([
+                    'name' => $warehouseName,
+                    'address' => 'Not provided during migration setup',
+                    'city' => 'Not specified',
+                    'zip_code' => 'N/A',
+                    'is_active' => true,
+                    'creator_id' => $request->user()->id,
+                    'created_by' => $tenantId,
+                ]);
+            }
+
+            unset($validated['default_warehouse_name']);
             $batch = ZohoMigrationBatch::create([
                 ...$validated,
+                'default_warehouse_id' => $warehouse->id,
                 'base_currency' => strtoupper($validated['base_currency']),
                 'tenant_id' => $tenantId,
                 'created_by' => $request->user()->id,
