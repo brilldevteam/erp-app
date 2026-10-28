@@ -17,15 +17,18 @@ class ReportService
 
         $invoiceQuery = DB::table('sales_invoices')
             ->where('sales_invoices.created_by', creatorId())
-            ->whereIn('sales_invoices.status', ['posted', 'partial'])
             ->leftJoin('users', 'sales_invoices.customer_id', '=', 'users.id')
             ->leftJoin('customers', function ($join) {
                 $join->on('sales_invoices.customer_id', '=', 'customers.user_id')
                     ->on('sales_invoices.created_by', '=', 'customers.created_by');
             })
             ->where('users.type', 'client')
-            ->where('sales_invoices.balance_amount', '>', 0)
             ->where('sales_invoices.invoice_date', '<=', $asOfDate);
+        $invoiceQuery = OutstandingDocumentService::apply(
+            $invoiceQuery,
+            'sales_invoices.status',
+            'sales_invoices.balance_amount'
+        );
 
         $invoiceQuery->when($customerId, fn ($query) =>
             $query->where('sales_invoices.customer_id', $customerId));
@@ -141,13 +144,16 @@ class ReportService
     {
         $asOfDate = $filters['as_of_date'] ?? date('Y-m-d');
 
-        $bills = DB::table('purchase_invoices')
+        $billQuery = DB::table('purchase_invoices')
             ->where('purchase_invoices.created_by', creatorId())
-            ->whereIn('purchase_invoices.status', ['posted', 'partial'])
             ->leftJoin('users', 'purchase_invoices.vendor_id', '=', 'users.id')
             ->where('users.type', 'vendor')
-            ->where('purchase_invoices.balance_amount', '>', 0)
-            ->where('purchase_invoices.invoice_date', '<=', $asOfDate)
+            ->where('purchase_invoices.invoice_date', '<=', $asOfDate);
+        $bills = OutstandingDocumentService::apply(
+            $billQuery,
+            'purchase_invoices.status',
+            'purchase_invoices.balance_amount'
+        )
             ->select(
                 'purchase_invoices.id',
                 'purchase_invoices.invoice_number as bill_number',
@@ -226,7 +232,7 @@ class ReportService
             ->join('sales_invoice_items', 'sales_invoice_item_taxes.item_id', '=', 'sales_invoice_items.id')
             ->join('sales_invoices', 'sales_invoice_items.invoice_id', '=', 'sales_invoices.id')
             ->where('sales_invoices.created_by', creatorId())
-            ->whereIn('sales_invoices.status', ['posted', 'partial', 'paid'])
+            ->whereNotIn('sales_invoices.status', ['draft', 'cancelled'])
             ->whereBetween('sales_invoices.invoice_date', [$fromDate, $toDate])
             ->select(
                 'sales_invoice_item_taxes.tax_name',
@@ -241,7 +247,7 @@ class ReportService
             ->join('purchase_invoice_items', 'purchase_invoice_item_taxes.item_id', '=', 'purchase_invoice_items.id')
             ->join('purchase_invoices', 'purchase_invoice_items.invoice_id', '=', 'purchase_invoices.id')
             ->where('purchase_invoices.created_by', creatorId())
-            ->whereIn('purchase_invoices.status', ['posted', 'partial', 'paid'])
+            ->whereNotIn('purchase_invoices.status', ['draft', 'cancelled'])
             ->whereBetween('purchase_invoices.invoice_date', [$fromDate, $toDate])
             ->select(
                 'purchase_invoice_item_taxes.tax_name',
@@ -292,7 +298,7 @@ class ReportService
         foreach ($customers as $customer) {
             $invoiced = DB::table('sales_invoices')
                 ->where('customer_id', $customer->id)
-                ->whereIn('status', ['posted', 'partial', 'paid'])
+                ->whereNotIn('status', ['draft', 'cancelled'])
                 ->where('invoice_date', '<=', $asOfDate)
                 ->sum('total_amount');
 
@@ -304,7 +310,7 @@ class ReportService
 
             $balance = DB::table('sales_invoices')
                 ->where('customer_id', $customer->id)
-                ->whereIn('status', ['posted', 'partial', 'paid'])
+                ->whereNotIn('status', ['draft', 'cancelled'])
                 ->where('invoice_date', '<=', $asOfDate)
                 ->sum('balance_amount');
 
@@ -355,7 +361,7 @@ class ReportService
         foreach ($vendors as $vendor) {
             $billed = DB::table('purchase_invoices')
                 ->where('vendor_id', $vendor->id)
-                ->whereIn('status', ['posted', 'partial', 'paid'])
+                ->whereNotIn('status', ['draft', 'cancelled'])
                 ->where('invoice_date', '<=', $asOfDate)
                 ->sum('total_amount');
 
@@ -367,7 +373,7 @@ class ReportService
 
             $balance = DB::table('purchase_invoices')
                 ->where('vendor_id', $vendor->id)
-                ->whereIn('status', ['posted', 'partial', 'paid'])
+                ->whereNotIn('status', ['draft', 'cancelled'])
                 ->where('invoice_date', '<=', $asOfDate)
                 ->sum('balance_amount');
 
@@ -418,7 +424,7 @@ class ReportService
 
         $invoicesQuery = DB::table('sales_invoices')
             ->where('customer_id', $customerId)
-            ->whereIn('status', ['posted', 'partial', 'paid'])
+            ->whereNotIn('status', ['draft', 'cancelled'])
             ->select('invoice_number', 'invoice_date as date', 'due_date', 'subtotal', 'tax_amount', 'total_amount', 'balance_amount', 'status');
 
         if ($startDate) $invoicesQuery->where('invoice_date', '>=', $startDate);
@@ -486,7 +492,7 @@ class ReportService
 
         $invoicesQuery = DB::table('purchase_invoices')
             ->where('vendor_id', $vendorId)
-            ->whereIn('status', ['posted', 'partial', 'paid'])
+            ->whereNotIn('status', ['draft', 'cancelled'])
             ->select('invoice_number', 'invoice_date as date', 'due_date', 'subtotal', 'tax_amount', 'total_amount', 'balance_amount', 'status');
 
         if ($startDate) $invoicesQuery->where('invoice_date', '>=', $startDate);
