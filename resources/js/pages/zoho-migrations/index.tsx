@@ -177,7 +177,7 @@ export default function ZohoMigrations({ batches: initialBatches, warehouses, pe
                     <form onSubmit={createBatch} className="mt-5 border-b border-slate-200 bg-white pb-6">
                         <div className="mb-4 flex items-center justify-between"><h2 className="text-base font-semibold">Create migration workspace</h2><Button type="button" variant="ghost" onClick={() => setShowCreate(false)}>Cancel</Button></div>
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                            <Field label="Migration name"><Input name="name" required placeholder="Zoho migration - Company" /></Field>
+                            <Field label="Migration name"><Input name="name" required placeholder="Company data migration" /></Field>
                             <Field label="Workflow"><NativeSelect name="workflow_mode" options={[['full', 'Full guided migration'], ['standalone', 'Standalone imports']]} /></Field>
                             <Field label="Accounting mode"><NativeSelect name="accounting_mode" options={[['rebuild', 'Rebuild from documents'], ['full_history', 'Full Zoho ledger history']]} /></Field>
                             <Field label="Base currency"><Input name="base_currency" required maxLength={3} defaultValue="QAR" /></Field>
