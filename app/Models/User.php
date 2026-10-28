@@ -137,6 +137,14 @@ class User extends Authenticatable implements MustVerifyEmail
         return $query->whereNotIn('type', $excludeTypes);
     }
 
+    public function scopeAccountingCustomers($query, ?int $tenantId = null)
+    {
+        return $query
+            ->where($this->qualifyColumn('type'), 'client')
+            ->when($tenantId !== null, fn ($query) => $query->where($this->qualifyColumn('created_by'), $tenantId))
+            ->whereDoesntHave('roles', fn ($query) => $query->where('name', 'production-client'));
+    }
+
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

@@ -96,7 +96,7 @@ class SalesReturnController extends Controller
         $perPage = $request->get('per_page', 10);
         $returns = $query->paginate($perPage);
 
-        $customers = User::where('type', 'client')->select('id', 'name', 'email')->where('created_by', creatorId())->get();
+        $customers = User::query()->accountingCustomers(creatorId())->get(['id', 'name', 'email']);
         $warehouses = Warehouse::where('is_active', true)->select('id', 'name')->where('created_by', creatorId())->get();
 
             return Inertia::render('SalesReturns/Index', [

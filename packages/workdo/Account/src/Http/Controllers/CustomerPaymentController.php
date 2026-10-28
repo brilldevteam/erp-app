@@ -83,8 +83,8 @@ class CustomerPaymentController extends Controller
             $query->orderBy($sortField, $sortDirection);
 
             $payments = $query->paginate($request->get('per_page', 10));
-            $customers = User::where('type', 'client')
-                ->where('created_by', creatorId())
+            $customers = User::query()
+                ->accountingCustomers(creatorId())
                 ->orderBy('name')
                 ->get(['id', 'name']);
 
@@ -270,9 +270,9 @@ class CustomerPaymentController extends Controller
     {
         abort_unless(Auth::user()->can('create-customer-payments'), 403);
 
-        $customerExists = User::whereKey($customerId)
-            ->where('type', 'client')
-            ->where('created_by', creatorId())
+        $customerExists = User::query()
+            ->accountingCustomers(creatorId())
+            ->whereKey($customerId)
             ->exists();
         abort_unless($customerExists, 404);
 

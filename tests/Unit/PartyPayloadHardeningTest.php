@@ -10,18 +10,17 @@ class PartyPayloadHardeningTest extends TestCase
     #[DataProvider('paymentControllerProvider')]
     public function test_payment_selectors_are_minimal_and_outstanding_endpoints_are_protected(
         string $path,
-        string $partyType,
+        string $partyScope,
         string $permission,
         string $documentFields
     ): void {
         $source = $this->source($path);
 
-        $this->assertStringContainsString("->where('type', '{$partyType}')", $source);
+        $this->assertStringContainsString($partyScope, $source);
         $this->assertStringContainsString("->where('created_by', creatorId())", $source);
         $this->assertStringContainsString("->get(['id', 'name'])", $source);
         $this->assertStringContainsString("abort_unless(Auth::user()->can('{$permission}'), 403)", $source);
         $this->assertStringContainsString($documentFields, $source);
-        $this->assertStringNotContainsString("->where('type', '{$partyType}')->where('created_by', creatorId())->get()", $source);
         $this->assertStringContainsString("bankAccount:id,account_name,account_number", $source);
         $this->assertStringNotContainsString("with(['customer', 'customerDetails', 'bankAccount'", $source);
         $this->assertStringNotContainsString("with(['vendor', 'vendorDetails', 'bankAccount'", $source);
@@ -32,19 +31,19 @@ class PartyPayloadHardeningTest extends TestCase
         return [
             'customer payments' => [
                 'packages/workdo/Account/src/Http/Controllers/CustomerPaymentController.php',
-                'client',
+                '->accountingCustomers(creatorId())',
                 'create-customer-payments',
                 "->get(['id', 'invoice_number', 'invoice_date', 'total_amount', 'balance_amount', 'status', 'currency_code', 'exchange_rate'])",
             ],
             'vendor payments' => [
                 'packages/workdo/Account/src/Http/Controllers/VendorPaymentController.php',
-                'vendor',
+                "->where('type', 'vendor')",
                 'create-vendor-payments',
                 "->get(['id', 'invoice_number', 'invoice_date', 'total_amount', 'balance_amount', 'status', 'currency_code', 'exchange_rate'])",
             ],
             'retainer payments' => [
                 'packages/workdo/Retainer/src/Http/Controllers/RetainerPaymentController.php',
-                'client',
+                "->where('type', 'client')",
                 'create-retainer-payments',
                 "->select('id', 'retainer_number', 'total_amount', 'paid_amount', 'balance_amount', 'status')",
             ],
@@ -68,7 +67,7 @@ class PartyPayloadHardeningTest extends TestCase
         return [
             'customer payment' => [
                 'packages/workdo/Account/src/Http/Requests/StoreCustomerPaymentRequest.php',
-                ["Rule::exists('users', 'id')", "->where('type', 'client')", "Rule::exists('sales_invoices', 'id')", "Rule::exists('credit_notes', 'id')", $tenant],
+                ['new TenantAccountingCustomer(creatorId())', "Rule::exists('sales_invoices', 'id')", "Rule::exists('credit_notes', 'id')", $tenant],
             ],
             'vendor payment' => [
                 'packages/workdo/Account/src/Http/Requests/StoreVendorPaymentRequest.php',

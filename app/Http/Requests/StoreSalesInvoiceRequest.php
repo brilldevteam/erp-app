@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use App\Rules\TenantAccountingCustomer;
 use Workdo\Account\Models\ChartOfAccount;
 
 class StoreSalesInvoiceRequest extends FormRequest
@@ -18,7 +19,7 @@ class StoreSalesInvoiceRequest extends FormRequest
         return [
             'invoice_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:invoice_date',
-            'customer_id' => ['required', 'integer', Rule::exists('users', 'id')->where(fn ($query) => $query->where('created_by', creatorId())->where('type', 'client'))],
+            'customer_id' => ['required', 'integer', new TenantAccountingCustomer(creatorId())],
             'quotation_id' => ['nullable', 'integer', Rule::exists('sales_quotations', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
             'document_template_id' => ['nullable', 'integer', Rule::exists('document_templates', 'id')->where(fn ($query) => $query->where('company_id', creatorId())->where('type', 'invoice'))],
             'type' => 'required|in:product,service',

@@ -5,6 +5,7 @@ namespace Workdo\Account\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Validation\Rule;
+use App\Rules\TenantAccountingCustomer;
 
 class StoreCustomerPaymentRequest extends FormRequest
 {
@@ -17,7 +18,7 @@ class StoreCustomerPaymentRequest extends FormRequest
     {
         return [
             'payment_date' => 'required|date|before_or_equal:today',
-            'customer_id' => ['required', 'integer', Rule::exists('users', 'id')->where(fn ($query) => $query->where('created_by', creatorId())->where('type', 'client'))],
+            'customer_id' => ['required', 'integer', new TenantAccountingCustomer(creatorId())],
             'bank_account_id' => ['required', \Illuminate\Validation\Rule::exists('bank_accounts', 'id')->where('created_by', creatorId())->where('is_active', true)],
             'payment_mode' => 'required|in:cash,bank_transfer,cheque',
             'reference_number' => 'required_if:payment_mode,cheque|nullable|string|max:100',

@@ -92,7 +92,7 @@ class CreditNoteController extends Controller
 
             $creditNotes = $query->paginate($request->per_page ?? 10)->withQueryString();
 
-            $customers = User::where('type', 'client')->where('created_by', creatorId())->get(['id', 'name']);
+            $customers = User::query()->accountingCustomers(creatorId())->get(['id', 'name']);
             $salesReturns = SalesInvoiceReturn::where('created_by', creatorId())->get(['id', 'return_number']);
 
             return Inertia::render('Account/CreditNotes/Index', [
@@ -110,7 +110,7 @@ class CreditNoteController extends Controller
     public function create()
     {
         if(Auth::user()->can('create-credit-notes')){
-            $customers = User::where('type', 'client')->where('created_by', creatorId())->get(['id', 'name']);
+            $customers = User::query()->accountingCustomers(creatorId())->get(['id', 'name']);
             $products = ProductServiceItem::where('created_by', creatorId())
                 ->get(['id', 'name', 'sku', 'sale_price', 'unit', 'type', 'tax_ids'])
                 ->map(fn($product) => [
