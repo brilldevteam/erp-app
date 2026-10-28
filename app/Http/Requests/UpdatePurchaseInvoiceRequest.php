@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Rules\ValidProjectContractForVendor;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use App\Http\Requests\Concerns\ValidatesBillLines;
 
 class UpdatePurchaseInvoiceRequest extends FormRequest
@@ -22,13 +23,13 @@ class UpdatePurchaseInvoiceRequest extends FormRequest
             'due_date' => 'required|date|after_or_equal:invoice_date',
             'currency_code' => 'required|string|size:3',
             'exchange_rate' => 'required|numeric|gt:0',
-            'vendor_id' => 'required|exists:users,id',
+            'vendor_id' => ['required', 'integer', Rule::exists('users', 'id')->where(fn ($query) => $query->where('created_by', creatorId())->where('type', 'vendor'))],
             'project_contract_id' => ['nullable', 'integer', new ValidProjectContractForVendor($this->input('vendor_id'))],
-            'warehouse_id' => 'nullable|exists:warehouses,id',
+            'warehouse_id' => ['nullable', 'integer', Rule::exists('warehouses', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
             'payment_terms' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|integer|min:1',
+            'items.*.product_id' => ['required', 'integer', 'min:1', Rule::exists('product_service_items', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
             'items.*.account_id' => $this->lineAccountRule(),
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',

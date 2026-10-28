@@ -5,6 +5,7 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Fixed
+- Reduced customer, vendor, bank-account, invoice, bill and retainer selector responses to the fields their forms use. Payment and retainer lookups now require the matching create permission, and submitted customer, vendor, warehouse, product, account and allocation IDs must belong to the active company and correct party before records can be created.
 - Prevented SMTP passwords, AI API keys, Pusher secrets, storage secrets, OAuth secrets, and unknown settings from being included in shared browser payloads. Sensitive settings pages now receive configuration-state flags instead of saved secret values, and leaving a secret field blank preserves the existing credential.
 - Added explicit credential-clearing controls for SMTP, AI, Pusher, storage, social-login, Stripe, and PayPal secrets. Secret configuration, replacement, and clearing are recorded in a tenant-scoped audit trail without storing credential values.
 - Showed line discounts the same way everywhere: a fixed (cash) discount shows only its amount and a percentage discount shows only its percentage, on invoices, quotations, proposals, retainers, bills, credit and debit notes, sales and purchase returns, their print pages and template PDFs. Imported invoice lines that stored a discount amount with 0% are now marked as fixed-amount discounts of the same amount, so they no longer show "0.00%" and keep their discount when edited or returned (amounts and totals unchanged).

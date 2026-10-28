@@ -16,6 +16,7 @@ use Workdo\Retainer\Events\UpdateRetainerPaymentStatus;
 use Workdo\Retainer\Events\DestroyRetainerPayment;
 use Workdo\Retainer\Http\Requests\StoreSalesRetainerPaymentRequest;
 use Workdo\Account\Services\BankTransactionsService;
+use Illuminate\Validation\ValidationException;
 
 class RetainerPaymentController extends Controller
 {
@@ -28,7 +29,14 @@ class RetainerPaymentController extends Controller
     public function index(Request $request)
     {
         if (Auth::user()->can('manage-retainer-payments')) {
-            $query = SalesRetainerPayment::with(['retainer', 'customer', 'customerDetails', 'bankAccount', 'allocations.retainer'])
+            $query = SalesRetainerPayment::with([
+                'retainer:id,retainer_number',
+                'customer:id,name',
+                'customerDetails:user_id,company_name,contact_person_name',
+                'bankAccount:id,account_name,account_number',
+                'allocations:id,payment_id,retainer_id,allocated_amount',
+                'allocations.retainer:id,retainer_number',
+            ])
                 ->where(function ($q) {
                     if (Auth::user()->can('manage-any-retainer-payments')) {
                         $q->where('created_by', creatorId());
@@ -76,11 +84,13 @@ class RetainerPaymentController extends Controller
 
             $customers = User::where('type', 'client')
                 ->where('created_by', creatorId())
-                ->get();
+                ->orderBy('name')
+                ->get(['id', 'name']);
 
             $bankAccounts = BankAccount::where('is_active', true)
                 ->where('created_by', creatorId())
-                ->get();
+                ->orderBy('account_name')
+                ->get(['id', 'account_name', 'account_number']);
 
             return Inertia::render('Retainer/RetainerPayments/Index', [
                 'payments'     => $payments,
@@ -98,6 +108,31 @@ class RetainerPaymentController extends Controller
         if (Auth::user()->can('create-retainer-payments')) {
             if (!$request->allocations || count($request->allocations) === 0) {
                 return back()->with('error', __('At least one retainer allocation is required to create a payment.'));
+            }
+
+            $allocations = collect($request->allocations);
+            $retainers = SalesRetainer::query()
+                ->whereIn('id', $allocations->pluck('retainer_id'))
+                ->where('customer_id', $request->customer_id)
+                ->where('created_by', creatorId())
+                ->whereIn('status', ['accepted', 'partial'])
+                ->where('balance_amount', '>', 0)
+                ->get()
+                ->keyBy('id');
+
+            if ($allocations->pluck('retainer_id')->unique()->count() !== $retainers->count()) {
+                throw ValidationException::withMessages([
+                    'allocations' => __('Select outstanding retainers belonging to this customer.'),
+                ]);
+            }
+
+            foreach ($allocations->groupBy('retainer_id') as $retainerId => $retainerAllocations) {
+                $retainer = $retainers->get($retainerId);
+                if ($retainerAllocations->sum('amount') > (float) $retainer->balance_amount + 0.01) {
+                    throw ValidationException::withMessages([
+                        'allocations' => __('Retainer allocation cannot exceed the outstanding balance.'),
+                    ]);
+                }
             }
 
             // Create payment
@@ -188,6 +223,14 @@ class RetainerPaymentController extends Controller
 
     public function getOutstandingRetainers($customerId)
     {
+        abort_unless(Auth::user()->can('create-retainer-payments'), 403);
+
+        $customerExists = User::whereKey($customerId)
+            ->where('type', 'client')
+            ->where('created_by', creatorId())
+            ->exists();
+        abort_unless($customerExists, 404);
+
         $retainers = SalesRetainer::where('customer_id', $customerId)
             ->where('created_by', creatorId())
             ->whereIn('status', ['accepted', 'partial'])

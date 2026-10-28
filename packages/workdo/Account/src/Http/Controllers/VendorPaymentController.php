@@ -37,7 +37,7 @@ class VendorPaymentController extends Controller
     public function index(Request $request)
     {
         if(Auth::user()->can('manage-vendor-payments')){
-            $query = VendorPayment::with(['vendor', 'vendorDetails', 'bankAccount', 'allocations.invoice', 'debitNoteApplications.debitNote'])
+            $query = VendorPayment::with($this->paymentRelations())
                 ->where(function($q) {
                     if(Auth::user()->can('manage-any-vendor-payments')) {
                         $q->where('created_by', creatorId());
@@ -82,9 +82,15 @@ class VendorPaymentController extends Controller
             $query->orderBy($sortField, $sortDirection);
 
             $payments = $query->paginate($request->get('per_page', 10));
-            $vendors = User::where('type', 'vendor')->where('created_by', creatorId())->get();
+            $vendors = User::where('type', 'vendor')
+                ->where('created_by', creatorId())
+                ->orderBy('name')
+                ->get(['id', 'name']);
 
-            $bankAccounts = BankAccount::where('is_active', true)->where('created_by', creatorId())->get();
+            $bankAccounts = BankAccount::where('is_active', true)
+                ->where('created_by', creatorId())
+                ->orderBy('account_name')
+                ->get(['id', 'account_name', 'account_number']);
 
             return Inertia::render('Account/VendorPayments/Index', [
                 'payments' => $payments,
@@ -118,6 +124,35 @@ class VendorPaymentController extends Controller
                 ->where('vendor_id', $request->vendor_id)
                 ->where('created_by', creatorId())
                 ->get()->keyBy('id');
+
+            if (collect($request->allocations)->pluck('invoice_id')->unique()->count() !== $allocationInvoices->count()) {
+                throw ValidationException::withMessages([
+                    'allocations' => __('Select payable invoices belonging to this vendor.'),
+                ]);
+            }
+
+            foreach (collect($request->allocations)->groupBy('invoice_id') as $invoiceId => $invoiceAllocations) {
+                $invoice = $allocationInvoices->get($invoiceId);
+                if (!$invoice || $invoice->balance_amount <= 0 || in_array($invoice->status, ['draft', 'cancelled', 'paid'], true)) {
+                    throw ValidationException::withMessages([
+                        'allocations' => __('The selected invoice is not available for this vendor payment.'),
+                    ]);
+                }
+                if ($invoiceAllocations->sum('amount') > (float) $invoice->balance_amount + 0.01) {
+                    throw ValidationException::withMessages([
+                        'allocations' => __('Invoice allocation cannot exceed the invoice balance.'),
+                    ]);
+                }
+            }
+
+            foreach (collect($request->debit_notes ?? [])->groupBy('debit_note_id') as $debitNoteId => $noteApplications) {
+                $debitNote = $allocationDebitNotes->get($debitNoteId);
+                if (!$debitNote || $noteApplications->sum('amount') > (float) $debitNote->balance_amount + 0.01) {
+                    throw ValidationException::withMessages([
+                        'debit_notes' => __('Debit note applications cannot exceed the available balance.'),
+                    ]);
+                }
+            }
             $totalInvoiceBaseAmount = collect($request->allocations)->sum(function ($allocation) use ($allocationInvoices) {
                 $invoice = $allocationInvoices->get($allocation['invoice_id']);
                 return (float) $allocation['amount'] * (float) ($invoice?->exchange_rate ?: 1);
@@ -204,11 +239,19 @@ class VendorPaymentController extends Controller
 
     public function getOutstandingInvoices($vendorId)
     {
+        abort_unless(Auth::user()->can('create-vendor-payments'), 403);
+
+        $vendorExists = User::whereKey($vendorId)
+            ->where('type', 'vendor')
+            ->where('created_by', creatorId())
+            ->exists();
+        abort_unless($vendorExists, 404);
+
         $invoices = PurchaseInvoice::where('vendor_id', $vendorId)
             ->where('balance_amount', '>', 0)
             ->whereIn('status', ['posted', 'partial'])
             ->where('created_by', creatorId())
-            ->get();
+            ->get(['id', 'invoice_number', 'invoice_date', 'total_amount', 'balance_amount', 'status', 'currency_code', 'exchange_rate']);
 
         $debitNotes = \Workdo\Account\Models\DebitNote::where('vendor_id', $vendorId)
             ->where('balance_amount', '>', 0)
@@ -302,7 +345,7 @@ class VendorPaymentController extends Controller
             return back()->with('error', __('Permission denied'));
         }
 
-        $vendorPayment->load(['vendor', 'vendorDetails', 'bankAccount', 'allocations.invoice', 'debitNoteApplications.debitNote']);
+        $vendorPayment->load($this->paymentRelations(includePortalEmail: true));
 
         $paymentTemplate = DocumentTemplate::query()
             ->forCompany((int) $vendorPayment->created_by)
@@ -330,5 +373,18 @@ class VendorPaymentController extends Controller
         else{
             return back()->with('error', __('Permission denied'));
         }
+    }
+
+    private function paymentRelations(bool $includePortalEmail = false): array
+    {
+        return [
+            $includePortalEmail ? 'vendor:id,name,email' : 'vendor:id,name',
+            'vendorDetails:user_id,company_name,contact_person_name,contact_person_email,primary_email',
+            'bankAccount:id,account_name,account_number',
+            'allocations:id,payment_id,invoice_id,allocated_amount',
+            'allocations.invoice:id,invoice_number,currency_code',
+            'debitNoteApplications:id,payment_id,debit_note_id,applied_amount,application_date',
+            'debitNoteApplications.debitNote:id,debit_note_number,currency_code',
+        ];
     }
 }
