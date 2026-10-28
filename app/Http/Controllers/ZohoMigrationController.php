@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Jobs\InspectZohoMigrationFile;
 use App\Models\ZohoMigrationBatch;
 use App\Models\ZohoMigrationFile;
+use App\Rules\SpreadsheetUpload;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -71,12 +72,7 @@ class ZohoMigrationController extends Controller
 
         $validated = $request->validate([
             'file' => [
-                'required', 'file', 'max:10240', 'mimes:csv,txt,xlsx',
-                function (string $attribute, mixed $value, \Closure $fail): void {
-                    if (!in_array(strtolower($value->getClientOriginalExtension()), ['csv', 'xlsx'], true)) {
-                        $fail('The source file must use the .csv or .xlsx extension.');
-                    }
-                },
+                'required', 'file', 'max:10240', new SpreadsheetUpload(),
             ],
         ]);
 

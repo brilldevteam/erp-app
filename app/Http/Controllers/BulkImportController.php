@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Jobs\ProcessBulkImport;
 use App\Jobs\ValidateBulkImport;
 use App\Models\BulkImport;
+use App\Rules\SpreadsheetUpload;
 use App\Services\BulkImport\BulkImportRegistry;
 use App\Services\BulkImport\SpreadsheetService;
 use Illuminate\Http\JsonResponse;
@@ -47,12 +48,7 @@ class BulkImportController extends Controller
                 'required',
                 'file',
                 'max:10240',
-                'mimes:csv,txt,xlsx',
-                function (string $attribute, mixed $value, \Closure $fail): void {
-                    if (!in_array(strtolower($value->getClientOriginalExtension()), ['csv', 'xlsx'], true)) {
-                        $fail('The import file must use the .csv or .xlsx extension.');
-                    }
-                },
+                new SpreadsheetUpload(),
             ],
         ]);
 
