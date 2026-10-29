@@ -157,34 +157,43 @@ class ZohoMigrationController extends Controller
 
         $uploaded = $validated['file'];
         $sha256 = hash_file('sha256', $uploaded->getRealPath());
-        if ($zohoMigration->files()->where('sha256', $sha256)->exists()) {
-            return response()->json(['message' => 'This exact source file is already attached to the migration.'], 422);
-        }
+        $file = $zohoMigration->files()->where('sha256', $sha256)->first();
+        $isRetry = $file !== null;
 
-        $directory = "zoho-migrations/{$zohoMigration->tenant_id}/{$zohoMigration->id}/".Str::uuid();
-        $path = $uploaded->storeAs($directory, 'source.'.strtolower($uploaded->getClientOriginalExtension()), 'local');
-
-        try {
-            $file = ZohoMigrationFile::create([
-                'batch_id' => $zohoMigration->id,
-                'tenant_id' => $zohoMigration->tenant_id,
-                'stage_key' => $stage['key'],
+        if ($file) {
+            abort_unless($file->stage_key === $stage['key'], 422, 'This exact source file is already attached to another migration stage.');
+            $file->update([
                 'uploaded_by' => $request->user()->id,
                 'original_filename' => $uploaded->getClientOriginalName(),
-                'disk' => 'local',
-                'path' => $path,
-                'sha256' => $sha256,
-                'size_bytes' => $uploaded->getSize(),
-                'mime_type' => $uploaded->getMimeType(),
                 'status' => 'uploaded',
+                'failure_message' => null,
             ]);
-        } catch (QueryException $exception) {
-            Storage::disk('local')->delete($path);
-            if ($zohoMigration->files()->where('sha256', $sha256)->exists()) {
-                return response()->json(['message' => 'This exact source file is already attached to the migration.'], 422);
-            }
+        } else {
+            $directory = "zoho-migrations/{$zohoMigration->tenant_id}/{$zohoMigration->id}/".Str::uuid();
+            $path = $uploaded->storeAs($directory, 'source.'.strtolower($uploaded->getClientOriginalExtension()), 'local');
 
-            throw $exception;
+            try {
+                $file = ZohoMigrationFile::create([
+                    'batch_id' => $zohoMigration->id,
+                    'tenant_id' => $zohoMigration->tenant_id,
+                    'stage_key' => $stage['key'],
+                    'uploaded_by' => $request->user()->id,
+                    'original_filename' => $uploaded->getClientOriginalName(),
+                    'disk' => 'local',
+                    'path' => $path,
+                    'sha256' => $sha256,
+                    'size_bytes' => $uploaded->getSize(),
+                    'mime_type' => $uploaded->getMimeType(),
+                    'status' => 'uploaded',
+                ]);
+            } catch (QueryException $exception) {
+                Storage::disk('local')->delete($path);
+                if ($zohoMigration->files()->where('sha256', $sha256)->exists()) {
+                    return response()->json(['message' => 'This source file was attached by another request. Select it again to retry.'], 409);
+                }
+
+                throw $exception;
+            }
         }
 
         $zohoMigration->files()
@@ -194,7 +203,14 @@ class ZohoMigrationController extends Controller
             ->update(['status' => 'superseded']);
 
         InspectZohoMigrationFile::dispatch($file->id);
-        $zohoMigration->stages()->where('stage_key', $stage['key'])->update(['status' => 'processing']);
+        $zohoMigration->stages()->where('stage_key', $stage['key'])->update([
+            'status' => 'processing',
+            'accepted_count' => 0,
+            'rejected_count' => 0,
+            'warning_count' => 0,
+            'summary' => null,
+            'completed_at' => null,
+        ]);
 
         ZohoMigrationEvent::create([
             'batch_id' => $zohoMigration->id,
@@ -202,9 +218,11 @@ class ZohoMigrationController extends Controller
             'user_id' => $request->user()->id,
             'stage_key' => $stage['key'],
             'event_type' => 'file_uploaded',
-            'message' => $zohoMigration->files()->where('stage_key', $stage['key'])->where('status', 'superseded')->exists()
-                ? 'Previous unimported source replaced; new file uploaded for inspection.'
-                : 'Source file uploaded for inspection.',
+            'message' => $isRetry
+                ? 'Existing unimported source selected again; inspection restarted.'
+                : ($zohoMigration->files()->where('stage_key', $stage['key'])->where('status', 'superseded')->exists()
+                    ? 'Previous unimported source replaced; new file uploaded for inspection.'
+                    : 'Source file uploaded for inspection.'),
             'metadata' => ['file_id' => $file->id, 'filename' => $file->original_filename],
         ]);
 
