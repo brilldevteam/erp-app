@@ -285,7 +285,7 @@ function TimelineStage({ stage, isSelected, connectorComplete, isLast, onSelect 
 function StagePanel({ stage, batch, permissions, busy, error, uploadProgress, fileInput, onUpload, onValidate, onExecute, onManualImport }: { stage: Stage | null; batch: Batch; permissions: Props['permissions']; busy: boolean; error: string | null; uploadProgress: number | null; fileInput: React.RefObject<HTMLInputElement>; onUpload: (file: File) => void; onValidate: () => void; onExecute: () => void; onManualImport: (pastedData: string) => Promise<void> }) {
     if (!stage) return null;
     const style = statusStyle[stage.status] ?? statusStyle.not_started;
-    const latestFile = stage.files[stage.files.length - 1];
+    const latestFile = [...stage.files].reverse().find(file => file.status !== 'superseded');
     const stageIssues = batch.issues?.filter(issue => issue.stage_key === stage.key) ?? [];
     const stageEvents = batch.events?.filter(event => event.stage_key === stage.key) ?? [];
     const canUpload = permissions.upload && stage.supported && !stage.manual_entry && !stage.locked && stage.key !== 'configuration';
@@ -308,8 +308,8 @@ function StagePanel({ stage, batch, permissions, busy, error, uploadProgress, fi
         {canUpload && (
             <div className="mt-6 border border-dashed border-slate-300 bg-white p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div><h3 className="text-sm font-semibold">Upload original Zoho export</h3><p className="mt-1 text-xs text-slate-500">CSV or XLSX, up to 10 MB and 10,000 rows.</p></div>
-                    <div><input ref={fileInput} className="hidden" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={event => event.target.files?.[0] && onUpload(event.target.files[0])} /><Button disabled={busy} onClick={() => fileInput.current?.click()}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}Choose file</Button></div>
+                    <div><h3 className="text-sm font-semibold">Upload original Zoho export</h3><p className="mt-1 text-xs text-slate-500">CSV or XLSX, up to 10 MB and 10,000 rows.</p>{latestFile && <p className="mt-1 text-xs font-medium text-amber-700">Choosing another file replaces the current unimported source and restarts validation.</p>}</div>
+                    <div><input ref={fileInput} className="hidden" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={event => event.target.files?.[0] && onUpload(event.target.files[0])} /><Button disabled={busy} onClick={() => fileInput.current?.click()}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}{latestFile ? 'Replace file' : 'Choose file'}</Button></div>
                 </div>
                 {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
                 {uploadProgress !== null && <div className="mt-4"><div className="mb-1 flex justify-between text-xs font-medium text-slate-600"><span>Uploading source</span><span>{uploadProgress}%</span></div><div className="h-2 overflow-hidden bg-slate-200"><div className="h-full bg-emerald-500 transition-all" style={{ width: `${uploadProgress}%` }} /></div></div>}

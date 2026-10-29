@@ -149,6 +149,11 @@ class ZohoMigrationController extends Controller
         abort_unless($stage['supported'], 422, 'This Zoho dataset is not yet supported.');
         abort_if($stage['key'] === 'configuration', 422, 'Configuration does not accept a source file.');
         $this->ensureStageIsAvailable($zohoMigration, $stage);
+        abort_if(
+            $zohoMigration->stages()->where('stage_key', $stage['key'])->where('status', 'completed')->exists(),
+            409,
+            'This stage is already imported and cannot have its source replaced.'
+        );
 
         $uploaded = $validated['file'];
         $sha256 = hash_file('sha256', $uploaded->getRealPath());
@@ -197,7 +202,9 @@ class ZohoMigrationController extends Controller
             'user_id' => $request->user()->id,
             'stage_key' => $stage['key'],
             'event_type' => 'file_uploaded',
-            'message' => 'Source file uploaded for inspection.',
+            'message' => $zohoMigration->files()->where('stage_key', $stage['key'])->where('status', 'superseded')->exists()
+                ? 'Previous unimported source replaced; new file uploaded for inspection.'
+                : 'Source file uploaded for inspection.',
             'metadata' => ['file_id' => $file->id, 'filename' => $file->original_filename],
         ]);
 

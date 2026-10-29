@@ -81,7 +81,12 @@ class ZohoMigrationFileInspector
         $spreadsheet->disconnectWorksheets();
 
         DB::transaction(function () use ($file, $headers, $detection, $rows): void {
-            $file->stagedRows()->delete();
+            $activeFile = ZohoMigrationFile::lockForUpdate()->findOrFail($file->id);
+            if ($activeFile->status === 'superseded') {
+                return;
+            }
+
+            $activeFile->stagedRows()->delete();
             $now = now();
             foreach (array_chunk($rows, 500) as $chunk) {
                 ZohoMigrationStagedRow::insert(array_map(fn (array $row) => [
@@ -91,7 +96,7 @@ class ZohoMigrationFileInspector
                     'updated_at' => $now,
                 ], $chunk));
             }
-            $file->update([
+            $activeFile->update([
                 'status' => 'staged',
                 'dataset_type' => $detection['dataset_type'],
                 'profile_key' => $detection['profile_key'],

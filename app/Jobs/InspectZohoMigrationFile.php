@@ -24,12 +24,21 @@ class InspectZohoMigrationFile implements ShouldQueue
     public function handle(ZohoMigrationFileInspector $inspector, ZohoMigrationValidator $validator): void
     {
         $file = ZohoMigrationFile::findOrFail($this->fileId);
+        if ($file->status === 'superseded') {
+            return;
+        }
 
         try {
             $file->update(['status' => 'detecting', 'failure_message' => null]);
             $inspector->inspectAndStage($file);
+            if ($file->fresh()->status === 'superseded') {
+                return;
+            }
             $validator->validate($file->batch, (string) $file->stage_key, (int) $file->uploaded_by);
         } catch (\Throwable $exception) {
+            if ($file->fresh()->status === 'superseded') {
+                return;
+            }
             Log::warning('Zoho migration file inspection failed.', [
                 'file_id' => $file->id,
                 'batch_id' => $file->batch_id,
