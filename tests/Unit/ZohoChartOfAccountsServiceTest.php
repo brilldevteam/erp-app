@@ -41,4 +41,14 @@ class ZohoChartOfAccountsServiceTest extends TestCase
     {
         self::assertContains('processing', ZohoChartOfAccountsService::EXECUTABLE_STATUSES);
     }
+
+    public function test_import_transaction_captures_the_stage_it_completes(): void
+    {
+        $source = file_get_contents(__DIR__.'/../../app/Services/ZohoMigration/ZohoChartOfAccountsService.php');
+
+        self::assertStringContainsString(
+            'function () use ($rows, $definition, $batch, $actorId, $stage)',
+            $source
+        );
+    }
 }

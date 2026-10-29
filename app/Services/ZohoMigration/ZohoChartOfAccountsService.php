@@ -87,7 +87,7 @@ class ZohoChartOfAccountsService
         }
 
         $definition = new ChartOfAccountDefinition();
-        $counts = DB::transaction(function () use ($rows, $definition, $batch, $actorId): array {
+        $counts = DB::transaction(function () use ($rows, $definition, $batch, $actorId, $stage): array {
             $counts = ['imported' => 0, 'updated' => 0, 'skipped' => 0];
             $pending = $rows->values();
 

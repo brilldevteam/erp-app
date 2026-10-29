@@ -14,6 +14,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Added the tenant-scoped Zoho migration workspace foundation with immutable accounting-mode configuration, private hashed uploads, conservative export-profile detection, durable staged source rows, dedicated permissions, and queued file inspection. This foundation does not create financial records.
 
 ### Fixed
+- Captured the active migration stage inside the transactional Chart of Accounts importer so a successful row pass can mark the stage complete instead of rolling back with an undefined-variable error.
 - Allowed an unchanged, previously attached spreadsheet to be selected again after an unimported stage failure, restarting inspection instead of showing a duplicate-file error.
 - Made replacement uploads explicit and race-safe: choosing a new spreadsheet replaces the current unimported source, stale inspection jobs stop without changing the stage, and completed imports remain protected.
 - Allowed queued Chart of Accounts execution to continue after the controller marks the stage as processing, preventing a fully validated import from immediately failing before any ERP records are written.
