@@ -10,6 +10,7 @@ use App\Models\ZohoMigrationStage;
 use App\Models\Warehouse;
 use App\Rules\SpreadsheetUpload;
 use App\Services\ZohoMigration\ZohoStageCatalog;
+use App\Services\ZohoMigration\ZohoManualPrerequisiteService;
 use App\Services\ZohoMigration\ZohoMigrationValidator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -205,6 +206,33 @@ class ZohoMigrationController extends Controller
         return response()->json($validator->validate($zohoMigration, $stageKey, $request->user()->id));
     }
 
+    public function importManualPrerequisite(
+        Request $request,
+        ZohoMigrationBatch $zohoMigration,
+        string $stageKey,
+        ZohoManualPrerequisiteService $manualPrerequisites
+    ): JsonResponse {
+        $this->authorizeBatch($request, $zohoMigration, 'upload-zoho-migration-files');
+        abort_if($zohoMigration->configuration_locked_at, 409, 'This migration configuration is locked.');
+        $stage = $this->stages->find($stageKey);
+        abort_unless($stage && ($stage['manual_entry'] ?? false), 422, 'This stage does not accept pasted prerequisite data.');
+        $this->ensureStageIsAvailable($zohoMigration, $stage);
+
+        $validated = $request->validate([
+            'pasted_data' => ['required', 'string', 'max:2000000'],
+            'accuracy_confirmed' => ['accepted'],
+        ], [
+            'accuracy_confirmed.accepted' => 'Confirm that every pasted value has been checked. Later document imports depend on this data.',
+        ]);
+
+        return response()->json($manualPrerequisites->import(
+            $zohoMigration,
+            $stageKey,
+            $validated['pasted_data'],
+            $request->user()->id
+        ));
+    }
+
     public function source(Request $request, ZohoMigrationBatch $zohoMigration, ZohoMigrationFile $file): StreamedResponse
     {
         $this->authorizeBatch($request, $zohoMigration, 'view-zoho-migrations');
@@ -293,7 +321,7 @@ class ZohoMigrationController extends Controller
                     ->values(),
                 'destination_url' => $destinationUrl,
             ];
-            $previousCompleted = $status === 'completed';
+            $previousCompleted = !$definition['supported'] || $status === 'completed';
 
             return $payload;
         }, $this->stages->all());
@@ -313,7 +341,7 @@ class ZohoMigrationController extends Controller
             'headers' => $file->headers,
             'row_count' => $file->row_count,
             'failure_message' => $file->failure_message,
-            'preview_rows' => $file->status === 'staged'
+            'preview_rows' => ($file->status === 'staged' || str_starts_with((string) $file->profile_key, 'manual.'))
                 ? $file->stagedRows()->orderBy('source_row_number')->limit(5)->get(['source_row_number', 'original_values'])
                 : [],
             'created_at' => $file->created_at?->toIso8601String(),

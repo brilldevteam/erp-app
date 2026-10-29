@@ -28,4 +28,14 @@ class ZohoStageCatalogTest extends TestCase
         $this->assertFalse($catalog->find('currencies')['supported']);
         $this->assertNull($catalog->find('does_not_exist'));
     }
+
+    public function test_missing_zoho_master_data_uses_confirmed_manual_entry_stages(): void
+    {
+        $catalog = new ZohoStageCatalog();
+
+        $this->assertTrue($catalog->find('items')['supported']);
+        $this->assertTrue($catalog->find('items')['manual_entry']);
+        $this->assertTrue($catalog->find('inventory_cutover')['supported']);
+        $this->assertTrue($catalog->find('inventory_cutover')['manual_entry']);
+    }
 }

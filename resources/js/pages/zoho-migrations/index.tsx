@@ -5,11 +5,12 @@ import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
     AlertTriangle, ArrowUpRight, Check, CheckCircle2, ChevronRight, Circle,
     Clock3, Download, FileSpreadsheet, History, Import, Loader2, LockKeyhole,
-    Plus, RefreshCw, Upload, XCircle,
+    ClipboardPaste, Plus, RefreshCw, Upload, XCircle,
 } from 'lucide-react';
 
 type MigrationFile = {
@@ -32,6 +33,7 @@ type Stage = {
     description: string;
     position: number;
     supported: boolean;
+    manual_entry?: boolean;
     status: string;
     locked: boolean;
     accepted_count: number;
@@ -156,6 +158,15 @@ export default function ZohoMigrations({ batches: initialBatches, permissions }:
         }
     };
 
+    const importManualPrerequisite = async (pastedData: string) => {
+        if (!selectedBatch || !selectedStage) return;
+        await axios.post(route('zoho-migrations.stages.manual-prerequisite', [selectedBatch.id, selectedStage.key]), {
+            pasted_data: pastedData,
+            accuracy_confirmed: true,
+        });
+        await refreshBatch(selectedBatch.id);
+    };
+
     return (
         <AuthenticatedLayout>
             <Head title="Bulk Import" />
@@ -226,7 +237,7 @@ export default function ZohoMigrations({ batches: initialBatches, permissions }:
                                     {selectedBatch.stages.map((stage, index) => <TimelineStage key={stage.key} stage={stage} isSelected={selectedStage?.key === stage.key} connectorComplete={stage.status === 'completed'} isLast={index === selectedBatch.stages.length - 1} onSelect={() => setSelectedStageKey(stage.key)} />)}
                                 </div>
                             </section>
-                            <StagePanel stage={selectedStage} batch={selectedBatch} permissions={permissions} busy={busy} error={error} fileInput={fileInput} onUpload={uploadFile} onValidate={validateStage} />
+                            <StagePanel stage={selectedStage} batch={selectedBatch} permissions={permissions} busy={busy} error={error} fileInput={fileInput} onUpload={uploadFile} onValidate={validateStage} onManualImport={importManualPrerequisite} />
                         </div>
                     </>
                 ) : !showCreate ? (
@@ -252,13 +263,13 @@ function TimelineStage({ stage, isSelected, connectorComplete, isLast, onSelect 
     </button>;
 }
 
-function StagePanel({ stage, batch, permissions, busy, error, fileInput, onUpload, onValidate }: { stage: Stage | null; batch: Batch; permissions: Props['permissions']; busy: boolean; error: string | null; fileInput: React.RefObject<HTMLInputElement>; onUpload: (file: File) => void; onValidate: () => void }) {
+function StagePanel({ stage, batch, permissions, busy, error, fileInput, onUpload, onValidate, onManualImport }: { stage: Stage | null; batch: Batch; permissions: Props['permissions']; busy: boolean; error: string | null; fileInput: React.RefObject<HTMLInputElement>; onUpload: (file: File) => void; onValidate: () => void; onManualImport: (pastedData: string) => Promise<void> }) {
     if (!stage) return null;
     const style = statusStyle[stage.status] ?? statusStyle.not_started;
     const latestFile = stage.files[stage.files.length - 1];
     const stageIssues = batch.issues?.filter(issue => issue.stage_key === stage.key) ?? [];
     const stageEvents = batch.events?.filter(event => event.stage_key === stage.key) ?? [];
-    const canUpload = permissions.upload && stage.supported && !stage.locked && stage.key !== 'configuration';
+    const canUpload = permissions.upload && stage.supported && !stage.manual_entry && !stage.locked && stage.key !== 'configuration';
 
     return <section className="min-w-0 bg-slate-50 px-4 py-6 sm:px-7 lg:px-8">
         <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-start sm:justify-between">
@@ -269,6 +280,8 @@ function StagePanel({ stage, batch, permissions, busy, error, fileInput, onUploa
         {stage.status === 'unsupported' && <Notice icon={Clock3} title="Not yet supported" text="This stage remains visible in the complete migration sequence, but execution is disabled until its Zoho profile and reconciliation rules are verified." />}
         {stage.locked && <Notice icon={LockKeyhole} title="Complete the previous stage" text="Guided migrations enforce the approved top-to-bottom order. This stage will unlock automatically after the previous stage reconciles." />}
         {stage.key === 'configuration' && <Notice icon={CheckCircle2} title="Configuration complete" text={`${batch.base_currency} base currency, ${batch.accounting_mode === 'rebuild' ? 'document rebuild' : 'full ledger history'} accounting mode, and ${batch.workflow_mode} workflow are recorded for this migration.`} />}
+
+        {stage.manual_entry && !stage.locked && permissions.upload && <ManualPrerequisitePanel key={stage.key} stage={stage} busy={busy} onImport={onManualImport} />}
 
         {canUpload && (
             <div className="mt-6 border border-dashed border-slate-300 bg-white p-5">
@@ -291,6 +304,58 @@ function StagePanel({ stage, batch, permissions, busy, error, fileInput, onUploa
         {stageIssues.length > 0 && <div className="mt-6"><SectionTitle icon={AlertTriangle} title="Validation issues" /><div className="divide-y divide-slate-200 border-y border-slate-200 bg-white">{stageIssues.map(issue => <div key={issue.id} className="flex items-start justify-between gap-4 px-4 py-3"><p className="text-sm text-slate-700">{issue.message}</p>{issue.resolution_url && <a className="shrink-0 text-sm font-medium text-sky-700" href={issue.resolution_url}>Fix in ERP</a>}</div>)}</div></div>}
         <div className="mt-7"><SectionTitle icon={History} title="Activity" /><div className="mt-3 space-y-3">{stageEvents.length ? stageEvents.map(event => <div key={event.id} className="flex gap-3 text-sm"><span className="mt-1 h-2 w-2 rounded-full bg-slate-300" /><div><p className="text-slate-700">{event.message}</p><p className="mt-0.5 text-xs text-slate-400">{new Date(event.created_at).toLocaleString()}</p></div></div>) : <p className="text-sm text-slate-500">No activity recorded for this stage.</p>}</div></div>
     </section>;
+}
+
+const manualHeaders: Record<string, string[]> = {
+    items: ['name', 'sku', 'type', 'category', 'unit', 'taxes', 'sale_price', 'purchase_price', 'description'],
+    inventory_cutover: ['sku', 'warehouse', 'quantity'],
+};
+
+function ManualPrerequisitePanel({ stage, busy, onImport }: { stage: Stage; busy: boolean; onImport: (pastedData: string) => Promise<void> }) {
+    const headers = manualHeaders[stage.key] ?? [];
+    const headerLine = headers.join('\t');
+    const [pastedData, setPastedData] = useState(headerLine);
+    const [confirmed, setConfirmed] = useState(false);
+    const [localBusy, setLocalBusy] = useState(false);
+    const [localError, setLocalError] = useState<string | null>(null);
+
+    const submit = async () => {
+        setLocalBusy(true);
+        setLocalError(null);
+        try {
+            await onImport(pastedData);
+            setConfirmed(false);
+        } catch (exception: any) {
+            const errors = exception.response?.data?.errors;
+            setLocalError(errors ? Object.values(errors).flat().join(' ') : (exception.response?.data?.message ?? 'The pasted data could not be imported.'));
+        } finally {
+            setLocalBusy(false);
+        }
+    };
+
+    return <div className="mt-6 border-y border-amber-300 bg-amber-50">
+        <div className="flex gap-3 border-b border-amber-200 px-4 py-4">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
+            <div>
+                <h3 className="text-sm font-semibold text-amber-950">Accuracy required before later imports</h3>
+                <p className="mt-1 text-sm text-amber-900">Zoho did not provide this dataset. Copy and paste the approved data without changing the column order. Product, invoice, bill and stock imports will rely on these exact values. Incorrect SKUs, names, warehouses or quantities can link later records incorrectly.</p>
+            </div>
+        </div>
+        <div className="bg-white px-4 py-5">
+            <div className="flex items-center gap-2"><ClipboardPaste className="h-4 w-4 text-slate-500" /><h3 className="text-sm font-semibold text-slate-900">Paste from Excel</h3></div>
+            <p className="mt-2 overflow-x-auto whitespace-pre border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">{headerLine}</p>
+            <Textarea value={pastedData} onChange={event => setPastedData(event.target.value)} className="mt-3 min-h-[220px] resize-y rounded-none font-mono text-xs" spellCheck={false} />
+            <label className="mt-4 flex items-start gap-3 text-sm text-slate-700">
+                <input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} className="mt-0.5 h-4 w-4" />
+                <span>I checked every pasted row against the approved source. I understand later imports will use these SKUs, names, warehouses and quantities.</span>
+            </label>
+            {localError && <p className="mt-3 text-sm font-medium text-red-700">{localError}</p>}
+            <Button className="mt-4" disabled={busy || localBusy || !confirmed || pastedData.trim() === headerLine} onClick={submit}>
+                {(busy || localBusy) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+                Confirm and import
+            </Button>
+        </div>
+    </div>;
 }
 
 function FilePreview({ file }: { file: MigrationFile }) {
