@@ -49,7 +49,7 @@ class ZohoManualPrerequisiteImportTest extends TestCase
             'duplicate_strategy' => 'block',
             'ai_enabled' => false,
         ]);
-        foreach (['items' => 10, 'inventory_cutover' => 23] as $stageKey => $position) {
+        foreach (['items' => 9, 'inventory_cutover' => 22] as $stageKey => $position) {
             ZohoMigrationStage::create([
                 'batch_id' => $batch->id,
                 'tenant_id' => $company->id,

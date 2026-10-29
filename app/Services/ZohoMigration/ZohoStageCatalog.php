@@ -6,7 +6,6 @@ class ZohoStageCatalog
 {
     private const STAGES = [
         ['key' => 'configuration', 'title' => 'Migration configuration', 'description' => 'Organization, accounting mode, cutover and import rules.', 'supported' => true, 'datasets' => [], 'destination' => null],
-        ['key' => 'currencies', 'title' => 'Currencies and exchange rates', 'description' => 'Currencies and historical rates used by transactions.', 'supported' => false, 'datasets' => ['currencies', 'exchange_rates'], 'destination' => null],
         ['key' => 'chart_of_accounts', 'title' => 'Account types and Chart of Accounts', 'description' => 'Financial account structure and account codes.', 'supported' => true, 'datasets' => ['chart_of_accounts'], 'destination' => 'account.chart-of-accounts.index'],
         ['key' => 'taxes', 'title' => 'Taxes and tax groups', 'description' => 'Zoho tax rates and grouped tax definitions.', 'supported' => false, 'datasets' => ['taxes', 'tax_groups'], 'destination' => null],
         ['key' => 'units', 'title' => 'Product and service units', 'description' => 'Units used by products, services and document lines.', 'supported' => false, 'datasets' => ['units'], 'destination' => null],

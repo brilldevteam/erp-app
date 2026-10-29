@@ -11,12 +11,13 @@ class ZohoStageCatalogTest extends TestCase
     {
         $stages = (new ZohoStageCatalog())->all();
 
-        $this->assertCount(25, $stages);
-        $this->assertSame(range(1, 25), array_column($stages, 'position'));
+        $this->assertCount(24, $stages);
+        $this->assertSame(range(1, 24), array_column($stages, 'position'));
         $this->assertSame('configuration', $stages[0]['key']);
-        $this->assertSame('reconciliation', $stages[24]['key']);
+        $this->assertSame('chart_of_accounts', $stages[1]['key']);
+        $this->assertSame('reconciliation', $stages[23]['key']);
         $this->assertSame('configuration', $stages[1]['previous_key']);
-        $this->assertSame('accounting', $stages[24]['previous_key']);
+        $this->assertSame('accounting', $stages[23]['previous_key']);
     }
 
     public function test_only_verified_profiles_are_enabled(): void
@@ -25,7 +26,7 @@ class ZohoStageCatalogTest extends TestCase
 
         $this->assertTrue($catalog->find('sales_invoices')['supported']);
         $this->assertContains('sales_invoices', $catalog->find('sales_invoices')['datasets']);
-        $this->assertFalse($catalog->find('currencies')['supported']);
+        $this->assertNull($catalog->find('currencies'));
         $this->assertNull($catalog->find('does_not_exist'));
     }
 
