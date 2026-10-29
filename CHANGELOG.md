@@ -10,6 +10,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Added a dedicated Bulk Import workspace with full and standalone Zoho migration modes, a strict 24-stage vertical journey, durable progress/issue/audit tracking, stage-aware CSV/XLSX uploads, source previews, supported-profile gating, ERP record links, and responsive progress/status panels. Existing page-level invoice, bill, and warehouse import buttons now route all migration work through the controlled workspace.
 - Removed the standalone currencies and exchange-rates stage. The migration configuration owns the base currency, while foreign currency and transaction exchange rates are validated with their invoices, bills, payments, and journals.
 - Completed the Chart of Accounts workspace flow with visible upload/processing progress, automatic queued inspection and validation, row-level correction guidance and downloadable issue reports, corrected-file replacement, guarded execution, and automatic journey completion only after the ERP transaction succeeds.
+- Added explicit Zoho-to-ERP account-type mapping for all 16 types present in the verified Brill Creations export, preserving normal-balance semantics while reporting genuinely missing account codes for correction.
 - Added the tenant-scoped Zoho migration workspace foundation with immutable accounting-mode configuration, private hashed uploads, conservative export-profile detection, durable staged source rows, dedicated permissions, and queued file inspection. This foundation does not create financial records.
 
 ### Fixed

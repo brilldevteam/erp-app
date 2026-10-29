@@ -15,6 +15,24 @@ class ZohoChartOfAccountsService
         'other current liability', 'long term liability', 'other liability',
     ];
 
+    private const ERP_TYPE_MAP = [
+        'accounts payable' => 'Current Liabilities',
+        'accounts receivable' => 'Current Assets',
+        'bank' => 'Current Assets',
+        'cash' => 'Current Assets',
+        'cost of goods sold' => 'Cost of Goods Sold',
+        'credit card' => 'Current Liabilities',
+        'expense' => 'Operating Expenses',
+        'fixed asset' => 'Fixed Assets',
+        'income' => 'Sales Revenue',
+        'other asset' => 'Other Assets',
+        'other current asset' => 'Current Assets',
+        'other current liability' => 'Current Liabilities',
+        'other expense' => 'Other Expenses',
+        'other liability' => 'Long-term Liabilities',
+        'stock' => 'Current Assets',
+    ];
+
     public function __construct(private readonly ZohoProfileCatalog $profiles)
     {
     }
@@ -27,11 +45,12 @@ class ZohoChartOfAccountsService
         }
 
         $type = $row['account type'] ?? '';
+        $name = $row['account name'] ?? '';
 
         return [
             'account_code' => $row['account code'] ?? '',
-            'account_name' => $row['account name'] ?? '',
-            'account_type' => $type,
+            'account_name' => $name,
+            'account_type' => $this->erpType($type, $name),
             'parent_account' => $row['parent account'] ?? '',
             'normal_balance' => in_array(mb_strtolower($type), self::CREDIT_TYPES, true) ? 'credit' : 'debit',
             'opening_balance' => 0,
@@ -39,6 +58,16 @@ class ZohoChartOfAccountsService
             'description' => $row['description'] ?? null,
             'is_active' => mb_strtolower($row['account status'] ?? 'active') === 'active',
         ];
+    }
+
+    private function erpType(string $type, string $name): string
+    {
+        $normalizedType = mb_strtolower($type);
+        if ($normalizedType === 'equity') {
+            return str_contains(mb_strtolower($name), 'retained earning') ? 'Retained Earnings' : 'Share Capital';
+        }
+
+        return self::ERP_TYPE_MAP[$normalizedType] ?? $type;
     }
 
     public function import(ZohoMigrationBatch $batch, int $actorId): array

@@ -29,8 +29,10 @@ class ZohoChartOfAccountsServiceTest extends TestCase
         ]);
 
         self::assertSame('debit', $asset['normal_balance']);
+        self::assertSame('Current Assets', $asset['account_type']);
         self::assertTrue($asset['is_active']);
         self::assertSame('credit', $liability['normal_balance']);
+        self::assertSame('Current Liabilities', $liability['account_type']);
         self::assertFalse($liability['is_active']);
         self::assertSame('Current Liabilities', $liability['parent_account']);
     }
