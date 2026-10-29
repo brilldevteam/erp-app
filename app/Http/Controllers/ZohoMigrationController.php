@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\InspectZohoMigrationFile;
+use App\Jobs\ImportZohoMigrationStage;
 use App\Models\ZohoMigrationBatch;
 use App\Models\ZohoMigrationEvent;
 use App\Models\ZohoMigrationFile;
@@ -181,7 +182,14 @@ class ZohoMigrationController extends Controller
             throw $exception;
         }
 
+        $zohoMigration->files()
+            ->where('stage_key', $stage['key'])
+            ->whereKeyNot($file->id)
+            ->whereIn('status', ['uploaded', 'detecting', 'staged', 'review_required'])
+            ->update(['status' => 'superseded']);
+
         InspectZohoMigrationFile::dispatch($file->id);
+        $zohoMigration->stages()->where('stage_key', $stage['key'])->update(['status' => 'processing']);
 
         ZohoMigrationEvent::create([
             'batch_id' => $zohoMigration->id,
@@ -204,6 +212,20 @@ class ZohoMigrationController extends Controller
         $this->ensureStageIsAvailable($zohoMigration, $stage);
 
         return response()->json($validator->validate($zohoMigration, $stageKey, $request->user()->id));
+    }
+
+    public function executeStage(Request $request, ZohoMigrationBatch $zohoMigration, string $stageKey): JsonResponse
+    {
+        $this->authorizeBatch($request, $zohoMigration, 'execute-zoho-migrations');
+        $stage = $this->stages->find($stageKey);
+        abort_unless($stage && $stageKey === 'chart_of_accounts', 422, 'This migration stage is not executable yet.');
+        $state = $zohoMigration->stages()->where('stage_key', $stageKey)->firstOrFail();
+        abort_unless($state->status === 'ready' && $state->rejected_count === 0, 409, 'Resolve validation issues before importing.');
+
+        $state->update(['status' => 'processing']);
+        ImportZohoMigrationStage::dispatch($zohoMigration->id, $stageKey, $request->user()->id);
+
+        return response()->json(['message' => 'Import started.'], 202);
     }
 
     public function importManualPrerequisite(

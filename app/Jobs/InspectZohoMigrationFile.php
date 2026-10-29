@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\ZohoMigrationFile;
 use App\Services\ZohoMigration\ZohoMigrationFileInspector;
+use App\Services\ZohoMigration\ZohoMigrationValidator;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
@@ -20,13 +21,14 @@ class InspectZohoMigrationFile implements ShouldQueue
         $this->onQueue('imports');
     }
 
-    public function handle(ZohoMigrationFileInspector $inspector): void
+    public function handle(ZohoMigrationFileInspector $inspector, ZohoMigrationValidator $validator): void
     {
         $file = ZohoMigrationFile::findOrFail($this->fileId);
 
         try {
             $file->update(['status' => 'detecting', 'failure_message' => null]);
             $inspector->inspectAndStage($file);
+            $validator->validate($file->batch, (string) $file->stage_key, (int) $file->uploaded_by);
         } catch (\Throwable $exception) {
             Log::warning('Zoho migration file inspection failed.', [
                 'file_id' => $file->id,

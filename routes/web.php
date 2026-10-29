@@ -54,6 +54,7 @@ Route::middleware(['auth', 'auth.session.current', 'verified', 'PlanModuleCheck'
         Route::post('{zohoMigration}/files', [ZohoMigrationController::class, 'upload'])->name('files.store');
         Route::get('{zohoMigration}/files/{file}/source', [ZohoMigrationController::class, 'source'])->name('files.source');
         Route::post('{zohoMigration}/stages/{stageKey}/validate', [ZohoMigrationController::class, 'validateStage'])->name('stages.validate');
+        Route::post('{zohoMigration}/stages/{stageKey}/execute', [ZohoMigrationController::class, 'executeStage'])->name('stages.execute');
         Route::post('{zohoMigration}/stages/{stageKey}/manual-prerequisite', [ZohoMigrationController::class, 'importManualPrerequisite'])->name('stages.manual-prerequisite');
         Route::get('{zohoMigration}/stages/{stageKey}/issues', [ZohoMigrationController::class, 'issueReport'])->name('stages.issues');
     });

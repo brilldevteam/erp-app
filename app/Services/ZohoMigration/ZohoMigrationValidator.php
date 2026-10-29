@@ -7,6 +7,7 @@ use App\Models\ZohoMigrationBatch;
 use App\Models\ZohoMigrationEvent;
 use App\Models\ZohoMigrationIssue;
 use App\Models\ZohoMigrationStagedRow;
+use App\Services\BulkImport\Definitions\ChartOfAccountDefinition;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Workdo\Account\Models\Customer;
@@ -15,7 +16,10 @@ use Workdo\ProductService\Models\ProductServiceItem;
 
 class ZohoMigrationValidator
 {
-    public function __construct(private readonly ZohoProfileCatalog $profiles)
+    public function __construct(
+        private readonly ZohoProfileCatalog $profiles,
+        private readonly ZohoChartOfAccountsService $chartOfAccounts,
+    )
     {
     }
 
@@ -30,17 +34,31 @@ class ZohoMigrationValidator
             $batch->issues()->where('stage_key', $stageKey)->delete();
             $accepted = 0;
             $rejected = 0;
+            $sourceAccounts = $stageKey === 'chart_of_accounts'
+                ? $files->flatMap(fn ($file) => $file->stagedRows()->get())->map(fn ($row) => $this->chartOfAccounts->prepare($row->original_values))
+                : collect();
+            $sourceAccountKeys = $sourceAccounts->flatMap(fn (array $row) => [
+                mb_strtolower((string) $row['account_code']),
+                mb_strtolower((string) $row['account_name']),
+            ])->filter()->all();
+            $seenAccountCodes = [];
 
             foreach ($files as $file) {
                 foreach ($file->stagedRows()->orderBy('source_row_number')->cursor() as $row) {
-                    $issues = $this->rowIssues($batch->tenant_id, $stageKey, $this->normalize($row->original_values));
+                    $normalized = $stageKey === 'chart_of_accounts'
+                        ? $this->chartOfAccounts->prepare($row->original_values)
+                        : $this->normalize($row->original_values);
+                    $issues = $stageKey === 'chart_of_accounts'
+                        ? $this->chartAccountIssues($normalized, $batch->tenant_id, $sourceAccountKeys, $seenAccountCodes)
+                        : $this->rowIssues($batch->tenant_id, $stageKey, $normalized);
+                    $row->normalized_values = $normalized;
                     if ($issues) {
                         $rejected++;
                         $this->storeIssues($batch, $row, $stageKey, $issues);
-                        $row->update(['status' => 'invalid', 'validation_errors' => array_column($issues, 'message')]);
+                        $row->update(['status' => 'invalid', 'validation_errors' => array_column($issues, 'message'), 'normalized_values' => $normalized]);
                     } else {
                         $accepted++;
-                        $row->update(['status' => 'validated', 'validation_errors' => null]);
+                        $row->update(['status' => 'validated', 'validation_errors' => null, 'normalized_values' => $normalized]);
                     }
                 }
             }
@@ -69,6 +87,32 @@ class ZohoMigrationValidator
 
             return ['accepted' => $accepted, 'rejected' => $rejected, 'warnings' => 0, 'issues' => $rejected];
         });
+    }
+
+    private function chartAccountIssues(array $row, int $tenantId, array $sourceAccountKeys, array &$seenCodes): array
+    {
+        $definition = new ChartOfAccountDefinition();
+        $errors = $definition->validate($row, $tenantId);
+        $parent = mb_strtolower(trim((string) ($row['parent_account'] ?? '')));
+        if ($parent !== '' && in_array($parent, $sourceAccountKeys, true)) {
+            $errors = array_values(array_filter($errors, fn (string $error) => $error !== 'Parent account was not found.'));
+        }
+
+        $code = mb_strtolower(trim((string) ($row['account_code'] ?? '')));
+        if ($code !== '' && isset($seenCodes[$code])) {
+            $errors[] = 'Account code appears more than once in this file.';
+        }
+        if ($code !== '') {
+            $seenCodes[$code] = true;
+        }
+
+        return array_map(fn (string $message) => [
+            'type' => 'invalid_chart_account',
+            'field' => str_contains($message, 'Account type') ? 'account_type' : (str_contains($message, 'Parent') ? 'parent_account' : 'account_code'),
+            'source_value' => str_contains($message, 'Account type') ? $row['account_type'] : (str_contains($message, 'Parent') ? $row['parent_account'] : $row['account_code']),
+            'message' => $message,
+            'resolution_url' => Route::has('account.chart-of-accounts.index') ? route('account.chart-of-accounts.index') : null,
+        ], array_values(array_unique($errors)));
     }
 
     private function rowIssues(int $tenantId, string $stageKey, array $row): array

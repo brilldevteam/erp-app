@@ -70,6 +70,7 @@ const statusStyle: Record<string, { marker: string; text: string; icon: typeof C
     completed: { marker: 'border-emerald-500 bg-emerald-500 text-white', text: 'text-emerald-700', icon: Check, label: 'Completed' },
     processing: { marker: 'border-sky-500 bg-sky-50 text-sky-600', text: 'text-sky-700', icon: Loader2, label: 'Processing' },
     review_required: { marker: 'border-amber-500 bg-amber-50 text-amber-700', text: 'text-amber-700', icon: AlertTriangle, label: 'Review required' },
+    ready: { marker: 'border-sky-500 bg-sky-50 text-sky-700', text: 'text-sky-700', icon: CheckCircle2, label: 'Ready to import' },
     failed: { marker: 'border-red-500 bg-red-50 text-red-600', text: 'text-red-700', icon: XCircle, label: 'Failed' },
     locked: { marker: 'border-slate-300 bg-slate-100 text-slate-400', text: 'text-slate-500', icon: LockKeyhole, label: 'Locked' },
     unsupported: { marker: 'border-slate-300 bg-white text-slate-400', text: 'text-slate-500', icon: Clock3, label: 'Not yet supported' },
@@ -83,6 +84,7 @@ export default function ZohoMigrations({ batches: initialBatches, permissions }:
     const [showCreate, setShowCreate] = useState(initialBatches.length === 0);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [uploadProgress, setUploadProgress] = useState<number | null>(null);
     const fileInput = useRef<HTMLInputElement>(null);
     const selectedBatch = batches.find(batch => batch.id === selectedBatchId) ?? null;
     const selectedStage = selectedBatch?.stages.find(stage => stage.key === selectedStageKey) ?? selectedBatch?.stages[0] ?? null;
@@ -99,7 +101,7 @@ export default function ZohoMigrations({ batches: initialBatches, permissions }:
     };
 
     useEffect(() => {
-        const hasProcessing = selectedBatch?.stages.some(stage => stage.files.some(file => ['uploaded', 'detecting'].includes(file.status)));
+        const hasProcessing = selectedBatch?.stages.some(stage => stage.status === 'processing' || stage.files.some(file => ['uploaded', 'detecting'].includes(file.status)));
         if (!hasProcessing || !selectedBatch) return;
         const timer = window.setInterval(() => refreshBatch(selectedBatch.id), 2500);
         return () => window.clearInterval(timer);
@@ -141,12 +143,14 @@ export default function ZohoMigrations({ batches: initialBatches, permissions }:
         if (!selectedBatch || !selectedStage) return;
         setBusy(true);
         setError(null);
+        setUploadProgress(0);
         const data = new FormData();
         data.append('stage_key', selectedStage.key);
         data.append('file', file);
         try {
             await axios.post(route('zoho-migrations.files.store', selectedBatch.id), data, {
                 headers: { 'Content-Type': 'multipart/form-data' },
+                onUploadProgress: event => setUploadProgress(event.total ? Math.round((event.loaded / event.total) * 100) : 0),
             });
             await refreshBatch(selectedBatch.id);
         } catch (exception: any) {
@@ -154,7 +158,22 @@ export default function ZohoMigrations({ batches: initialBatches, permissions }:
             setError(errors ? Object.values(errors).flat().join(' ') : (exception.response?.data?.message ?? 'The file could not be uploaded.'));
         } finally {
             setBusy(false);
+            setUploadProgress(null);
             if (fileInput.current) fileInput.current.value = '';
+        }
+    };
+
+    const executeStage = async () => {
+        if (!selectedBatch || !selectedStage) return;
+        setBusy(true);
+        setError(null);
+        try {
+            await axios.post(route('zoho-migrations.stages.execute', [selectedBatch.id, selectedStage.key]));
+            await refreshBatch(selectedBatch.id);
+        } catch (exception: any) {
+            setError(exception.response?.data?.message ?? 'The import could not be started.');
+        } finally {
+            setBusy(false);
         }
     };
 
@@ -237,7 +256,7 @@ export default function ZohoMigrations({ batches: initialBatches, permissions }:
                                     {selectedBatch.stages.map((stage, index) => <TimelineStage key={stage.key} stage={stage} isSelected={selectedStage?.key === stage.key} connectorComplete={stage.status === 'completed'} isLast={index === selectedBatch.stages.length - 1} onSelect={() => setSelectedStageKey(stage.key)} />)}
                                 </div>
                             </section>
-                            <StagePanel stage={selectedStage} batch={selectedBatch} permissions={permissions} busy={busy} error={error} fileInput={fileInput} onUpload={uploadFile} onValidate={validateStage} onManualImport={importManualPrerequisite} />
+                            <StagePanel stage={selectedStage} batch={selectedBatch} permissions={permissions} busy={busy} error={error} uploadProgress={uploadProgress} fileInput={fileInput} onUpload={uploadFile} onValidate={validateStage} onExecute={executeStage} onManualImport={importManualPrerequisite} />
                         </div>
                     </>
                 ) : !showCreate ? (
@@ -263,7 +282,7 @@ function TimelineStage({ stage, isSelected, connectorComplete, isLast, onSelect 
     </button>;
 }
 
-function StagePanel({ stage, batch, permissions, busy, error, fileInput, onUpload, onValidate, onManualImport }: { stage: Stage | null; batch: Batch; permissions: Props['permissions']; busy: boolean; error: string | null; fileInput: React.RefObject<HTMLInputElement>; onUpload: (file: File) => void; onValidate: () => void; onManualImport: (pastedData: string) => Promise<void> }) {
+function StagePanel({ stage, batch, permissions, busy, error, uploadProgress, fileInput, onUpload, onValidate, onExecute, onManualImport }: { stage: Stage | null; batch: Batch; permissions: Props['permissions']; busy: boolean; error: string | null; uploadProgress: number | null; fileInput: React.RefObject<HTMLInputElement>; onUpload: (file: File) => void; onValidate: () => void; onExecute: () => void; onManualImport: (pastedData: string) => Promise<void> }) {
     if (!stage) return null;
     const style = statusStyle[stage.status] ?? statusStyle.not_started;
     const latestFile = stage.files[stage.files.length - 1];
@@ -280,6 +299,9 @@ function StagePanel({ stage, batch, permissions, busy, error, fileInput, onUploa
         {stage.status === 'unsupported' && <Notice icon={Clock3} title="Not yet supported" text="This stage remains visible in the complete migration sequence, but execution is disabled until its Zoho profile and reconciliation rules are verified." />}
         {stage.locked && <Notice icon={LockKeyhole} title="Complete the previous stage" text="Guided migrations enforce the approved top-to-bottom order. This stage will unlock automatically after the previous stage reconciles." />}
         {stage.key === 'configuration' && <Notice icon={CheckCircle2} title="Configuration complete" text={`${batch.base_currency} base currency, ${batch.accounting_mode === 'rebuild' ? 'document rebuild' : 'full ledger history'} accounting mode, and ${batch.workflow_mode} workflow are recorded for this migration.`} />}
+        {stage.status === 'processing' && <Notice icon={Loader2} title="Import processing" text="The source is being inspected, validated, or imported. This page updates automatically; you can safely leave it open." />}
+        {stage.status === 'ready' && <Notice icon={CheckCircle2} title="Validation passed" text={`${stage.accepted_count} rows passed validation. Review the counts, then import them into ERP.`} />}
+        {stage.status === 'completed' && <Notice icon={CheckCircle2} title="Import completed" text={`${stage.accepted_count} validated rows were processed successfully. The next journey stage is now available.`} />}
 
         {stage.manual_entry && !stage.locked && permissions.upload && <ManualPrerequisitePanel key={stage.key} stage={stage} busy={busy} onImport={onManualImport} />}
 
@@ -290,18 +312,22 @@ function StagePanel({ stage, batch, permissions, busy, error, fileInput, onUploa
                     <div><input ref={fileInput} className="hidden" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={event => event.target.files?.[0] && onUpload(event.target.files[0])} /><Button disabled={busy} onClick={() => fileInput.current?.click()}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}Choose file</Button></div>
                 </div>
                 {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+                {uploadProgress !== null && <div className="mt-4"><div className="mb-1 flex justify-between text-xs font-medium text-slate-600"><span>Uploading source</span><span>{uploadProgress}%</span></div><div className="h-2 overflow-hidden bg-slate-200"><div className="h-full bg-emerald-500 transition-all" style={{ width: `${uploadProgress}%` }} /></div></div>}
             </div>
         )}
 
+        {stage.status === 'processing' && <div className="mt-5 h-2 overflow-hidden bg-slate-200"><div className="h-full w-1/2 animate-pulse bg-sky-500" /></div>}
+
         {latestFile && <>
             <div className="mt-5 flex flex-wrap gap-2">
-                {latestFile.status === 'staged' && <Button onClick={onValidate} disabled={busy}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Validate stage</Button>}
+                {stage.status === 'review_required' && <Button onClick={onValidate} disabled={busy}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}Recheck corrections</Button>}
+                {stage.status === 'ready' && permissions.execute && <Button onClick={onExecute} disabled={busy}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Import className="mr-2 h-4 w-4" />}Import {stage.accepted_count} rows</Button>}
                 <Button variant="outline" asChild><a href={route('zoho-migrations.files.source', [batch.id, latestFile.id])}><Download className="mr-2 h-4 w-4" />Source file</a></Button>
                 {stageIssues.length > 0 && <Button variant="outline" asChild><a href={route('zoho-migrations.stages.issues', [batch.id, stage.key])}><Download className="mr-2 h-4 w-4" />Issue report</a></Button>}
             </div>
             <FilePreview file={latestFile} />
         </>}
-        {stageIssues.length > 0 && <div className="mt-6"><SectionTitle icon={AlertTriangle} title="Validation issues" /><div className="divide-y divide-slate-200 border-y border-slate-200 bg-white">{stageIssues.map(issue => <div key={issue.id} className="flex items-start justify-between gap-4 px-4 py-3"><p className="text-sm text-slate-700">{issue.message}</p>{issue.resolution_url && <a className="shrink-0 text-sm font-medium text-sky-700" href={issue.resolution_url}>Fix in ERP</a>}</div>)}</div></div>}
+        {stageIssues.length > 0 && <div className="mt-6"><SectionTitle icon={AlertTriangle} title="Correct these before import" /><p className="mt-2 text-sm text-slate-600">Fix the source Excel and upload it again, or add the missing reference in ERP and choose Recheck corrections. No rows will be imported while errors remain.</p><div className="mt-3 divide-y divide-slate-200 border-y border-slate-200 bg-white">{stageIssues.map((issue: any) => <div key={issue.id} className="flex items-start justify-between gap-4 px-4 py-3"><div><p className="text-sm font-medium text-slate-800">{issue.message}</p>{issue.source_value && <p className="mt-1 text-xs text-slate-500">{issue.field}: {issue.source_value}</p>}</div>{issue.resolution_url && <a className="shrink-0 text-sm font-medium text-sky-700" href={issue.resolution_url}>Fix in ERP</a>}</div>)}</div></div>}
         <div className="mt-7"><SectionTitle icon={History} title="Activity" /><div className="mt-3 space-y-3">{stageEvents.length ? stageEvents.map(event => <div key={event.id} className="flex gap-3 text-sm"><span className="mt-1 h-2 w-2 rounded-full bg-slate-300" /><div><p className="text-slate-700">{event.message}</p><p className="mt-0.5 text-xs text-slate-400">{new Date(event.created_at).toLocaleString()}</p></div></div>) : <p className="text-sm text-slate-500">No activity recorded for this stage.</p>}</div></div>
     </section>;
 }
