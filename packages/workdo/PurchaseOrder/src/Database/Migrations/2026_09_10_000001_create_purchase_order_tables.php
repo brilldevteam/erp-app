@@ -132,7 +132,13 @@ return new class extends Migration {
             $table->foreignId('purchase_invoice_id')->constrained('purchase_invoices')->cascadeOnDelete();
             $table->foreignId('created_by')->constrained('users');
             $table->timestamps();
-            $table->unique(['purchase_order_id', 'purchase_invoice_id']);
+            $table->unique(['purchase_order_id', 'purchase_invoice_id'], 'po_invoice_link_unique');
+        });
+        }
+
+        if (!Schema::hasIndex('purchase_order_invoice_links', 'po_invoice_link_unique')) {
+        Schema::table('purchase_order_invoice_links', function (Blueprint $table) {
+            $table->unique(['purchase_order_id', 'purchase_invoice_id'], 'po_invoice_link_unique');
         });
         }
 
