@@ -370,30 +370,14 @@ class HrmUtility extends Model
 
         ];
 
-        $hrRole = Role::where('name', 'hr')->where('created_by', $company_id)->where('guard_name', 'web')->first();
-        if (empty($hrRole)) {
-            $hrRole = new Role();
-            $hrRole->name = 'hr';
-            $hrRole->guard_name = 'web';
-            $hrRole->label = 'Hr';
-            $hrRole->editable = 0;
-            $hrRole->created_by = $company_id;
-            $hrRole->save();
-
-            foreach ($hrRolePermissions as $permission_v) {
-                $permission = Permission::where('name', $permission_v)->first();
-                if (!empty($permission) && !$hrRole->hasPermissionTo($permission_v)) {
-                    $hrRole->givePermissionTo($permission);
-                }
-            }
-        } else {
-            foreach ($hrRolePermissions as $permission_v) {
-                $permission = Permission::where('name', $permission_v)->first();
-                if (!empty($permission) && !$hrRole->hasPermissionTo($permission_v)) {
-                    $hrRole->givePermissionTo($permission);
-                }
-            }
-        }
+        $hrRole = Role::firstOrCreate(
+            ['name' => 'hr', 'created_by' => $company_id, 'guard_name' => 'web'],
+            ['label' => 'Hr', 'editable' => 0],
+        );
+        $permissionIds = Permission::whereIn('name', $hrRolePermissions)
+            ->where('guard_name', 'web')
+            ->pluck('id');
+        $hrRole->permissions()->syncWithoutDetaching($permissionIds);
 
         // Set default working days (Monday to Friday)
         setSetting('working_days', json_encode([1, 2, 3, 4, 5]), $company_id);
