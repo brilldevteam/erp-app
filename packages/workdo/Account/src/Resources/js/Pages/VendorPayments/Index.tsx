@@ -24,7 +24,6 @@ import Create from './Create';
 import View from './View';
 import NoRecordsFound from '@/components/no-records-found';
 import { VendorPayment, VendorPaymentsIndexProps, VendorPaymentModalState } from './types';
-import { BulkImportButton } from '@/components/bulk-import-button';
 
 interface VendorPaymentFilters {
     vendor_id: string;
@@ -322,9 +321,6 @@ export default function Index() {
             pageTitle={t('Manage Vendor Payments')}
             pageActions={
                 <div className="flex items-center gap-2">
-                    {auth.user?.permissions?.includes('import-vendor-payments') && auth.user?.permissions?.includes('create-vendor-payments') && (
-                        <BulkImportButton entity="vendor-payments" label={t('Vendor Payments')} />
-                    )}
                     <TooltipProvider>
                         {auth.user?.permissions?.includes('create-vendor-payments') && (
                             <Tooltip delayDuration={0}>

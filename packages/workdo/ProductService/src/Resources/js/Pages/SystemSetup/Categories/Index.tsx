@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { useDeleteHandler } from '@/hooks/useDeleteHandler';
 import AuthenticatedLayout from "@/layouts/authenticated-layout";
-import { BulkImportButton } from '@/components/bulk-import-button';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
@@ -128,9 +127,6 @@ export default function Index() {
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-lg font-medium">{t('Category')}</h3>
                                     <div className="flex items-center gap-2">
-                                        {auth.user?.permissions?.includes('import-product-service-categories') && auth.user?.permissions?.includes('create-product-service-categories') && (
-                                            <BulkImportButton entity="product-service-categories" label={t('Categories')} />
-                                        )}
                                         {auth.user?.permissions?.includes('create-product-service-categories') && (
                                             <Tooltip delayDuration={0}>
                                                 <TooltipTrigger asChild>

@@ -24,7 +24,6 @@ import Edit from './Edit';
 import View from './View';
 import { Customer } from './types';
 import { usePageButtons } from '@/hooks/usePageButtons';
-import { BulkImportButton } from '@/components/bulk-import-button';
 interface CustomerFilters {
     company_name: string;
     customer_code: string;
@@ -253,10 +252,6 @@ export default function Index() {
                             <div key={button.id}>{button.component}</div>
                         ))}
                     <TooltipProvider>
-                        {auth.user?.permissions?.includes('create-customers')
-                            && auth.user?.permissions?.includes('import-customers') && (
-                            <BulkImportButton entity="customers" label={t('Customers')} />
-                        )}
                         {auth.user?.permissions?.includes('create-customers') && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>

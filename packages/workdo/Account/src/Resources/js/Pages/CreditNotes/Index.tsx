@@ -19,7 +19,6 @@ import { SearchInput } from "@/components/ui/search-input";
 import { ListGridToggle } from '@/components/ui/list-grid-toggle';
 import { formatCurrency, formatDate } from '@/utils/helpers';
 import NoRecordsFound from '@/components/no-records-found';
-import { BulkImportButton } from '@/components/bulk-import-button';
 
 interface CreditNote {
     id: number;
@@ -273,10 +272,6 @@ export default function Index() {
             pageActions={
                 <div className="flex gap-2">
                     <TooltipProvider>
-                        {(auth.user?.permissions?.includes('import-credit-notes')
-                            || auth.user?.permissions?.includes('create-credit-notes')) && (
-                            <BulkImportButton entity="credit-notes" label={t('Credit Notes')} />
-                        )}
                         {auth.user?.permissions?.includes('create-credit-notes') && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>

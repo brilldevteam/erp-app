@@ -16,7 +16,6 @@ import { SearchInput } from "@/components/ui/search-input";
 import { ListGridToggle } from '@/components/ui/list-grid-toggle';
 import { PerPageSelector } from '@/components/ui/per-page-selector';
 import { FilterButton } from '@/components/ui/filter-button';
-import { BulkImportButton } from '@/components/bulk-import-button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import Create from './Create';
@@ -243,9 +242,6 @@ export default function Index() {
             pageTitle={t('Manage Petty Cashes')}
 pageActions={
                 <div className="flex items-center gap-2">
-                    {auth.user?.permissions?.includes('import-petty-cashes') && auth.user?.permissions?.includes('create-petty-cashes') && (
-                        <BulkImportButton entity="petty-cashes" label={t('Petty Cashes')} />
-                    )}
                     {auth.user?.permissions?.includes('create-petty-cashes') && (
                         <TooltipProvider>
                             <Tooltip delayDuration={0}>

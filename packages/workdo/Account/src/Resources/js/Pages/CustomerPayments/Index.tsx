@@ -25,7 +25,6 @@ import NoRecordsFound from '@/components/no-records-found';
 import Create from './Create';
 import View from './View';
 import { CustomerPaymentsIndexProps, CustomerPaymentModalState, CustomerPayment } from './types';
-import { BulkImportButton } from '@/components/bulk-import-button';
 
 interface CustomerPaymentFilters {
     search: string;
@@ -313,9 +312,6 @@ export default function Index() {
             pageTitle={t('Manage Payment Received')}
             pageActions={
                 <div className="flex items-center gap-2">
-                    {auth.user?.permissions?.includes('import-customer-payments') && auth.user?.permissions?.includes('create-customer-payments') && (
-                        <BulkImportButton entity="customer-payments" label={t('Payment Received')} />
-                    )}
                     <TooltipProvider>
                         {auth.user?.permissions?.includes('create-customer-payments') && (
                             <Tooltip delayDuration={0}>

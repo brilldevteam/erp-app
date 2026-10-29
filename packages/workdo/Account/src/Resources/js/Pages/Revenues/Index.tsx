@@ -25,7 +25,6 @@ import Create from './Create';
 import EditRevenue from './Edit';
 import View from './View';
 import { usePageButtons } from '@/hooks/usePageButtons';
-import { BulkImportButton } from '@/components/bulk-import-button';
 interface Revenue {
     id: number;
     revenue_number: string;
@@ -346,9 +345,6 @@ export default function Index() {
                         {boxBtn.map((button) => (
                             <div key={button.id}>{button.component}</div>
                         ))}
-                        {auth.user?.permissions?.includes('import-revenues') && auth.user?.permissions?.includes('create-revenues') && (
-                            <BulkImportButton entity="revenues" label={t('Revenues')} />
-                        )}
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>
                                     <Button size="sm" onClick={() => openModal('add')}>

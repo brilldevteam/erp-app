@@ -3,7 +3,6 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import { Button } from '@/components/ui/button';
-import { BulkImportButton } from '@/components/bulk-import-button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
@@ -48,9 +47,6 @@ export default function Index() {
             pageTitle={t('Journal Entries')}
             pageActions={
                 <div className="flex items-center gap-2">
-                    {auth.user?.permissions?.includes('import-journal-entries') && auth.user?.permissions?.includes('create-journal-entries') && (
-                        <BulkImportButton entity="journal-entries" label={t('Journal Entries')} />
-                    )}
                     {auth.user?.permissions?.includes('create-journal-entries') && (
                         <Button asChild size="icon">
                             <Link href={route('account.journal-entries.create')}>

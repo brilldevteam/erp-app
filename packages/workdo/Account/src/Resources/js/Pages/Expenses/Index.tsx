@@ -24,7 +24,6 @@ import { formatDate, formatCurrency } from '@/utils/helpers';
 import Create from './Create';
 import EditExpense from './Edit';
 import View from './View';
-import { BulkImportButton } from '@/components/bulk-import-button';
 
 interface Expense {
     id: number;
@@ -320,9 +319,6 @@ export default function Index() {
             pageTitle={t('Manage Expenses')}
             pageActions={
                 <div className="flex items-center gap-2">
-                    {auth.user?.permissions?.includes('import-expenses') && auth.user?.permissions?.includes('create-expenses') && (
-                        <BulkImportButton entity="expenses" label={t('Expenses')} />
-                    )}
                     {auth.user.permissions.includes('create-expenses') && (
                     <TooltipProvider>
                         <Tooltip delayDuration={0}>

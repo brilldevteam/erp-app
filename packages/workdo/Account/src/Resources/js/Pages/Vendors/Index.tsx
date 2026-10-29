@@ -24,7 +24,6 @@ import Edit from './Edit';
 import View from './View';
 import { VendorsIndexProps, VendorFilters, VendorModalState, Vendor } from './types';
 import { usePageButtons } from '@/hooks/usePageButtons';
-import { BulkImportButton } from '@/components/bulk-import-button';
 
 export default function Index() {
     const { vendors, auth, openCreate, returnTo, editVendor } = usePage<VendorsIndexProps>().props;
@@ -226,9 +225,6 @@ export default function Index() {
                         {boxBtn.map((button) => (
                             <div key={button.id}>{button.component}</div>
                         ))}
-                        {auth.user?.permissions?.includes('import-vendors') && auth.user?.permissions?.includes('create-vendors') && (
-                            <BulkImportButton entity="vendors" label={t('Vendors')} />
-                        )}
                     <TooltipProvider>
                         {auth.user?.permissions?.includes('create-vendors') && (
                             <Tooltip delayDuration={0}>

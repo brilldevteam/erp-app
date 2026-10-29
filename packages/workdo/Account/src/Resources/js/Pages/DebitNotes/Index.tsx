@@ -20,7 +20,6 @@ import { SearchInput } from "@/components/ui/search-input";
 import { ListGridToggle } from '@/components/ui/list-grid-toggle';
 import { formatCurrency, formatDate } from '@/utils/helpers';
 import NoRecordsFound from '@/components/no-records-found';
-import { BulkImportButton } from '@/components/bulk-import-button';
 
 interface DebitNote {
     id: number;
@@ -275,10 +274,6 @@ export default function Index() {
             pageActions={
                 <div className="flex gap-2">
                     <TooltipProvider>
-                        {(auth.user?.permissions?.includes('import-debit-notes')
-                            || auth.user?.permissions?.includes('create-debit-notes')) && (
-                            <BulkImportButton entity="debit-notes" label={t('Vendor Credits')} />
-                        )}
                         {auth.user?.permissions?.includes('create-debit-notes') && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>
