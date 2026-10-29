@@ -10,6 +10,8 @@ use RuntimeException;
 
 class ZohoChartOfAccountsService
 {
+    public const EXECUTABLE_STATUSES = ['ready', 'processing'];
+
     private const CREDIT_TYPES = [
         'accounts payable', 'credit card', 'equity', 'income', 'other income',
         'other current liability', 'long term liability', 'other liability',
@@ -73,7 +75,7 @@ class ZohoChartOfAccountsService
     public function import(ZohoMigrationBatch $batch, int $actorId): array
     {
         $stage = $batch->stages()->where('stage_key', 'chart_of_accounts')->firstOrFail();
-        if ($stage->status !== 'ready' || $stage->rejected_count > 0) {
+        if (!in_array($stage->status, self::EXECUTABLE_STATUSES, true) || $stage->rejected_count > 0) {
             throw new RuntimeException('Resolve all validation issues before importing Chart of Accounts.');
         }
 

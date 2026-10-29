@@ -36,4 +36,9 @@ class ZohoChartOfAccountsServiceTest extends TestCase
         self::assertFalse($liability['is_active']);
         self::assertSame('Current Liabilities', $liability['parent_account']);
     }
+
+    public function test_execution_accepts_the_processing_state_used_by_the_queue(): void
+    {
+        self::assertContains('processing', ZohoChartOfAccountsService::EXECUTABLE_STATUSES);
+    }
 }

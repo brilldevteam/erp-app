@@ -14,6 +14,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Added the tenant-scoped Zoho migration workspace foundation with immutable accounting-mode configuration, private hashed uploads, conservative export-profile detection, durable staged source rows, dedicated permissions, and queued file inspection. This foundation does not create financial records.
 
 ### Fixed
+- Allowed queued Chart of Accounts execution to continue after the controller marks the stage as processing, preventing a fully validated import from immediately failing before any ERP records are written.
 - Removed standalone import buttons from all module and setup pages so every migration import is entered through the central Bulk Import workspace.
 - Made HRM plan initialization idempotent and faster by synchronizing the HR role's permissions in one operation, preventing repeated company plan assignment from timing out or failing on duplicate permission links.
 - Shortened the purchase-order invoice-link unique index name so clean MySQL installations complete without exceeding the 64-character identifier limit, including safe recovery when the table was created before the original migration failed.
