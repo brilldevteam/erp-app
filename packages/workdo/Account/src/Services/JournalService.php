@@ -25,10 +25,28 @@ class JournalService
     {
         return [
             'currency_code' => $transaction->currency_code ?: company_setting('defaultCurrency', creatorId()),
+            'base_currency_code' => $transaction->base_currency_code ?: company_setting('defaultCurrency', creatorId()),
             'exchange_rate' => $transaction->exchange_rate ?: 1,
             'foreign_amount' => $foreignAmount,
             'base_amount' => $this->baseAmount($transaction, $foreignAmount),
         ];
+    }
+
+    private function exchangeDifferenceAccount(string $type): ChartOfAccount
+    {
+        $setting = $type === 'gain' ? 'exchangeGainAccountId' : 'exchangeLossAccountId';
+        $account = ChartOfAccount::query()
+            ->whereKey(company_setting($setting, creatorId()))
+            ->where('created_by', creatorId())
+            ->first();
+
+        if (!$account) {
+            throw new \RuntimeException(__(':account must be configured before posting a foreign-currency settlement.', [
+                'account' => $type === 'gain' ? 'Exchange Gain account' : 'Exchange Loss account',
+            ]));
+        }
+
+        return $account;
     }
 
     private function validateAccounts(array $accountCodes , $userID = null)
@@ -421,19 +439,25 @@ class JournalService
         }
 
         $basePaymentAmount = $this->baseAmount($customerPayment, $customerPayment->payment_amount);
-        $baseAllocatedAmount = (float) $customerPayment->allocations()
-            ->with('invoice')
-            ->get()
-            ->sum(fn ($allocation) => (float) $allocation->allocated_amount * (float) ($allocation->invoice?->exchange_rate ?: 1));
+        $allocations = $customerPayment->allocations()->with('invoice')->get();
+        $baseAllocatedAmount = (float) $allocations->sum(fn ($allocation) =>
+            (float) ($allocation->carrying_base_amount ?? ((float) $allocation->allocated_amount * (float) ($allocation->invoice?->exchange_rate ?: 1)))
+        );
+        $baseSettlementAmount = (float) $allocations->sum(fn ($allocation) =>
+            (float) ($allocation->settlement_base_amount ?? ((float) $allocation->allocated_amount * (float) ($customerPayment->exchange_rate ?: 1)))
+        );
         $baseCreditNoteAmount = (float) $customerPayment->creditNoteApplications()
             ->with('creditNote')
             ->get()
             ->sum(fn ($application) => (float) $application->applied_amount * (float) ($application->creditNote?->exchange_rate ?: 1));
-        $baseCashAppliedAmount = min($basePaymentAmount, max(0, $baseAllocatedAmount - $baseCreditNoteAmount));
-        $baseDepositAmount = max(0, $basePaymentAmount - $baseCashAppliedAmount);
+        $creditForeignAmount = (float) $customerPayment->creditNoteApplications()->sum('applied_amount');
+        $baseCashCarryingAmount = max(0, $baseAllocatedAmount - $baseCreditNoteAmount);
+        $baseCashSettlementAmount = min($basePaymentAmount, max(0, $baseSettlementAmount - ($creditForeignAmount * (float) ($customerPayment->exchange_rate ?: 1))));
+        $exchangeDifference = round($baseCashSettlementAmount - $baseCashCarryingAmount, 2);
+        $baseDepositAmount = max(0, $basePaymentAmount - $baseCashSettlementAmount);
 
         $requiredAccounts = [];
-        if ($baseCashAppliedAmount > 0) {
+        if ($baseCashCarryingAmount > 0) {
             $requiredAccounts[] = '1100';
         }
         if ($baseDepositAmount > 0) {
@@ -445,7 +469,9 @@ class JournalService
         $depositAccount = ChartOfAccount::where('account_code', '2350')->where('created_by', creatorId())->first();
 
         // Validate amounts balance
-        $this->validateBalance($basePaymentAmount, $basePaymentAmount);
+        $totalDebit = $basePaymentAmount + max(0, -$exchangeDifference);
+        $totalCredit = $baseCashCarryingAmount + $baseDepositAmount + max(0, $exchangeDifference);
+        $this->validateBalance($totalDebit, $totalCredit);
 
         $journalEntry = JournalEntry::create(array_merge([
             'journal_date' => $customerPayment->payment_date ?? now(),
@@ -453,8 +479,8 @@ class JournalService
             'reference_type' => 'customer_payment',
             'reference_id' => $customerPayment->id,
             'description' => 'Customer Payment #' . $customerPayment->payment_number,
-            'total_debit' => $basePaymentAmount,
-            'total_credit' => $basePaymentAmount,
+            'total_debit' => $totalDebit,
+            'total_credit' => $totalCredit,
             'status' => 'posted',
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
@@ -471,13 +497,13 @@ class JournalService
             'created_by' => creatorId()
         ]);
 
-        if ($baseCashAppliedAmount > 0) {
+        if ($baseCashCarryingAmount > 0) {
             JournalEntryItem::create([
                 'journal_entry_id' => $journalEntry->id,
                 'account_id' => $arAccount->id,
                 'description' => 'Customer payment applied to invoices',
                 'debit_amount' => 0,
-                'credit_amount' => $baseCashAppliedAmount,
+                'credit_amount' => $baseCashCarryingAmount,
                 'creator_id' => Auth::id(),
                 'created_by' => creatorId()
             ]);
@@ -492,6 +518,22 @@ class JournalService
                 'credit_amount' => $baseDepositAmount,
                 'creator_id' => Auth::id(),
                 'created_by' => creatorId()
+            ]);
+        }
+
+        if ($exchangeDifference > 0) {
+            $gainAccount = $this->exchangeDifferenceAccount('gain');
+            JournalEntryItem::create([
+                'journal_entry_id' => $journalEntry->id, 'account_id' => $gainAccount->id,
+                'description' => 'Realized exchange gain', 'debit_amount' => 0,
+                'credit_amount' => $exchangeDifference, 'creator_id' => Auth::id(), 'created_by' => creatorId(),
+            ]);
+        } elseif ($exchangeDifference < 0) {
+            $lossAccount = $this->exchangeDifferenceAccount('loss');
+            JournalEntryItem::create([
+                'journal_entry_id' => $journalEntry->id, 'account_id' => $lossAccount->id,
+                'description' => 'Realized exchange loss', 'debit_amount' => abs($exchangeDifference),
+                'credit_amount' => 0, 'creator_id' => Auth::id(), 'created_by' => creatorId(),
             ]);
         }
 
@@ -566,11 +608,31 @@ class JournalService
         }
 
         $basePaymentAmount = $this->baseAmount($vendorPayment, $vendorPayment->payment_amount);
+        $allocations = $vendorPayment->allocations()->with('invoice')->get();
+        $baseAllocatedCarryingAmount = (float) $allocations->sum(fn ($allocation) =>
+            (float) ($allocation->carrying_base_amount ?? ((float) $allocation->allocated_amount * (float) ($allocation->invoice?->exchange_rate ?: 1)))
+        );
+        $baseAllocatedSettlementAmount = (float) $allocations->sum(fn ($allocation) =>
+            (float) ($allocation->settlement_base_amount ?? ((float) $allocation->allocated_amount * (float) ($vendorPayment->exchange_rate ?: 1)))
+        );
+        $baseDebitNoteAmount = (float) $vendorPayment->debitNoteApplications()
+            ->with('debitNote')
+            ->get()
+            ->sum(fn ($application) => (float) $application->applied_amount * (float) ($application->debitNote?->exchange_rate ?: 1));
+        $debitNoteForeignAmount = (float) $vendorPayment->debitNoteApplications()->sum('applied_amount');
+        $basePayableCarryingAmount = max(0, $baseAllocatedCarryingAmount - $baseDebitNoteAmount);
+        $baseCashSettlementAmount = min($basePaymentAmount, max(0, $baseAllocatedSettlementAmount - ($debitNoteForeignAmount * (float) ($vendorPayment->exchange_rate ?: 1))));
+        $exchangeDifference = round($baseCashSettlementAmount - $basePayableCarryingAmount, 2);
+        $baseUnallocatedAmount = max(0, $basePaymentAmount - $baseCashSettlementAmount);
         // Validate A/P account exists
         $this->validateAccounts(['2000']);
         $apAccount = ChartOfAccount::where('account_code', '2000')->where('created_by', creatorId())->first();
-        // Validate amounts balance
-        $this->validateBalance($basePaymentAmount, $basePaymentAmount);
+        if ($baseUnallocatedAmount > 0.01) {
+            throw new \RuntimeException(__('Vendor payments must be fully allocated before posting.'));
+        }
+        $totalDebit = $basePayableCarryingAmount + max(0, $exchangeDifference);
+        $totalCredit = $baseCashSettlementAmount + max(0, -$exchangeDifference);
+        $this->validateBalance($totalDebit, $totalCredit);
 
         $journalEntry = JournalEntry::create(array_merge([
             'journal_date' => $vendorPayment->payment_date ?? now(),
@@ -578,8 +640,8 @@ class JournalService
             'reference_type' => 'vendor_payment',
             'reference_id' => $vendorPayment->id,
             'description' => 'Vendor Payment #' . $vendorPayment->payment_number,
-            'total_debit' => $basePaymentAmount,
-            'total_credit' => $basePaymentAmount,
+            'total_debit' => $totalDebit,
+            'total_credit' => $totalCredit,
             'status' => 'posted',
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
@@ -589,7 +651,7 @@ class JournalService
             'journal_entry_id' => $journalEntry->id,
             'account_id' => $apAccount->id,
             'description' => 'Payment to ' . $vendorPayment->vendor->name,
-            'debit_amount' => $basePaymentAmount,
+            'debit_amount' => $basePayableCarryingAmount,
             'credit_amount' => 0,
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
@@ -601,10 +663,26 @@ class JournalService
             'account_id' => $bankGLAccount->id,
             'description' => 'Payment from ' . $vendorPayment->bankAccount->account_name,
             'debit_amount' => 0,
-            'credit_amount' => $basePaymentAmount,
+            'credit_amount' => $baseCashSettlementAmount,
             'creator_id' => Auth::id(),
             'created_by' => creatorId()
         ]);
+
+        if ($exchangeDifference > 0) {
+            $lossAccount = $this->exchangeDifferenceAccount('loss');
+            JournalEntryItem::create([
+                'journal_entry_id' => $journalEntry->id, 'account_id' => $lossAccount->id,
+                'description' => 'Realized exchange loss', 'debit_amount' => $exchangeDifference,
+                'credit_amount' => 0, 'creator_id' => Auth::id(), 'created_by' => creatorId(),
+            ]);
+        } elseif ($exchangeDifference < 0) {
+            $gainAccount = $this->exchangeDifferenceAccount('gain');
+            JournalEntryItem::create([
+                'journal_entry_id' => $journalEntry->id, 'account_id' => $gainAccount->id,
+                'description' => 'Realized exchange gain', 'debit_amount' => 0,
+                'credit_amount' => abs($exchangeDifference), 'creator_id' => Auth::id(), 'created_by' => creatorId(),
+            ]);
+        }
 
         try {
             UpdateBudgetSpending::dispatch($journalEntry);

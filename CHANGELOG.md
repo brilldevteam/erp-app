@@ -5,6 +5,13 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Added
+- Completed multi-currency accounting for sales and purchase documents, receipts, payments, credit notes and debit notes: immutable base/transaction currency snapshots, party preferred currencies, mandatory manual foreign rates, currency-matched allocations and bank accounts, realized exchange gain/loss posting, allocation carrying/settlement values, and dual-currency document totals. Existing posted ledger values are preserved, and Zoho imports retain their historical currency snapshots without manufacturing settlement differences.
+- Purchase invoices now keep a free-text description per line plus optional Supplier Invoice Number and Purchase Order Number references; sales invoices now keep an optional Sales Order Reference. The fields flow through editing, searching, views, PDFs, duplication and imports.
+- Added independent Download sales invoice and Download purchase invoice permissions. Download controls and direct PDF routes now enforce these permissions while allowing authorized downloads in every document status.
+- Company users can configure exchange gain and loss accounts from Currency Rates. Customer and vendor forms can set a preferred document currency.
+
+### Changed
+- Renamed the visible Double Entry module label, headings and breadcrumbs to Reports while retaining all internal routes, permissions and technical accounting names.
 - Bulk Import upload guide (`ZohoUploadGuide`): every upload step lists the file it takes, with where to export it in Zoho Books and what to watch for. Steps that take several files (Credit applications, Final reconciliation) list them in order, marked required or optional, and show which are attached. Choosing a file first opens this guide; the file picker opens from it.
 - Files can be removed from a step before it is imported (new `DELETE zoho-migrations/{batch}/files/{file}` route, with confirmation). The file, its rows and its issues are deleted, and the step's other files are checked again. Removing a newer export of an imported Expenses step returns the step to its import. Removal is refused for imported files, imported steps, and while a check or import is running. An imported step no longer offers an upload, except Expenses.
 - A file that is not a Zoho report this step takes, added to a step that takes several files (Credit applications, Final reconciliation), is now set aside with a message in the activity list. The step's other files are kept and re-checked; previously the whole step showed "Failed".

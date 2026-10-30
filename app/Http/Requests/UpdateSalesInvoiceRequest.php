@@ -20,6 +20,7 @@ class UpdateSalesInvoiceRequest extends FormRequest
             'due_date' => 'required|date|after_or_equal:invoice_date',
             'currency_code' => 'required|string|size:3',
             'exchange_rate' => 'required|numeric|gt:0',
+            'sales_order_reference' => 'nullable|string|max:255',
             'customer_id' => ['required', 'integer', Rule::exists('users', 'id')->where(fn ($query) => $query->where('created_by', creatorId())->where('type', 'client'))],
             'document_template_id' => ['nullable', 'integer', Rule::exists('document_templates', 'id')->where(fn ($query) => $query->where('company_id', creatorId())->where('type', 'invoice'))],
             'warehouse_id' => ['nullable', 'integer', Rule::exists('warehouses', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],

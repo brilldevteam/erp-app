@@ -20,7 +20,7 @@ class PurchaseInvoiceDefinition implements EntityDefinition, AllowsRepeatedIdent
     public function key(): string { return 'purchase-invoices'; }
     public function permission(): string { return 'import-purchase-invoices'; }
     public function createPermission(): string { return 'create-purchase-invoices'; }
-    public function headers(): array { return ['invoice_number', 'invoice_date', 'due_date', 'vendor_email', 'vendor', 'item_sku', 'item_name', 'quantity', 'unit_price', 'discount_percentage', 'tax_names', 'tax_percentage', 'payment_terms', 'warehouse', 'paid_amount', 'status', 'notes']; }
+    public function headers(): array { return ['invoice_number', 'supplier_invoice_number', 'purchase_order_number', 'invoice_date', 'due_date', 'vendor_email', 'vendor', 'item_sku', 'item_name', 'description', 'quantity', 'unit_price', 'discount_percentage', 'tax_names', 'tax_percentage', 'payment_terms', 'warehouse', 'paid_amount', 'status', 'notes']; }
     public function requiredFields(): array { return ['invoice_number', 'invoice_date', 'vendor', 'item_sku', 'item_name', 'quantity', 'unit_price']; }
     public function aliases(): array { return ['invoice_number' => ['bill no', 'bill number', 'invoice no'], 'vendor_email' => ['vendor email', 'supplier email', 'email'], 'vendor' => ['vendor name', 'supplier'], 'item_sku' => ['item code', 'sku', 'product code'], 'unit_price' => ['rate', 'price']]; }
     public function example(): array { return ['BILL-1001', date('Y-m-d'), date('Y-m-d', strtotime('+30 days')), 'vendor@example.com', 'ABC Supplies', 'SKU-100', 'Example Product', '2', '70', '0', 'VAT 15%', '15', 'Net 30', 'Main Warehouse', '0', 'posted', 'Imported from Zoho Books']; }
@@ -60,6 +60,8 @@ class PurchaseInvoiceDefinition implements EntityDefinition, AllowsRepeatedIdent
             $date = $this->dateValue($row['invoice_date']);
             $invoice = PurchaseInvoice::create([
                 'invoice_number' => $this->text($row['invoice_number']),
+                'supplier_invoice_number' => $this->nullableText($row['supplier_invoice_number'] ?? null),
+                'purchase_order_number' => $this->nullableText($row['purchase_order_number'] ?? null),
                 'invoice_date' => $date,
                 'due_date' => $this->dateValue($row['due_date'] ?? null) ?? $date,
                 'vendor_id' => $this->vendorUser($row, $tenantId)->id,
@@ -74,6 +76,9 @@ class PurchaseInvoiceDefinition implements EntityDefinition, AllowsRepeatedIdent
                 'status' => $row['status'],
                 'payment_terms' => $this->nullableText($row['payment_terms'] ?? null),
                 'notes' => $this->nullableText($row['notes'] ?? null),
+                'currency_code' => strtoupper((string) (company_setting('defaultCurrency', $tenantId) ?: 'USD')),
+                'base_currency_code' => strtoupper((string) (company_setting('defaultCurrency', $tenantId) ?: 'USD')),
+                'exchange_rate' => 1,
                 'creator_id' => $actorId,
                 'created_by' => $tenantId,
             ]);
@@ -82,6 +87,7 @@ class PurchaseInvoiceDefinition implements EntityDefinition, AllowsRepeatedIdent
         $item = PurchaseInvoiceItem::create([
             'invoice_id' => $invoice->id,
             'product_id' => $this->product($row, $tenantId)->id,
+            'description' => $this->nullableText($row['description'] ?? null),
             'quantity' => $this->integer($row['quantity'] ?? 1, 1),
             'unit_price' => $this->decimal($row['unit_price'] ?? 0),
             'discount_percentage' => $this->decimal($row['discount_percentage'] ?? 0),
@@ -102,6 +108,6 @@ class PurchaseInvoiceDefinition implements EntityDefinition, AllowsRepeatedIdent
         $tax = $items->sum('tax_amount');
         $total = $items->sum('total_amount');
         $paid = min((float) $invoice->paid_amount, (float) $total);
-        $invoice->update(['subtotal' => $subtotal, 'discount_amount' => $discount, 'tax_amount' => $tax, 'total_amount' => $total, 'paid_amount' => $paid, 'balance_amount' => max(0, $total - $paid)]);
+        $invoice->update(['subtotal' => $subtotal, 'discount_amount' => $discount, 'tax_amount' => $tax, 'total_amount' => $total, 'base_amount' => round($total * (float) ($invoice->exchange_rate ?: 1), 2), 'paid_amount' => $paid, 'balance_amount' => max(0, $total - $paid)]);
     }
 }

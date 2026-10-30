@@ -93,7 +93,7 @@ class DebitNoteController extends Controller
 
             $debitNotes = $query->paginate($request->per_page ?? 10)->withQueryString();
 
-            $vendors = User::where('type', 'vendor')->where('created_by', creatorId())->get(['id', 'name']);
+            $vendors = User::where('type', 'vendor')->where('created_by', creatorId())->get(['id', 'name', 'preferred_currency_code']);
             $purchaseReturns = PurchaseReturn::where('created_by', creatorId())->get(['id', 'return_number']);
 
             return Inertia::render('Account/DebitNotes/Index', [
@@ -181,6 +181,9 @@ class DebitNoteController extends Controller
                 }
 
                 $totalAmount = $subtotal + $taxAmount;
+                $currency = app(\Workdo\Account\Services\CurrencyConversionService::class)->transactionValues(
+                    [...$validated, 'total_amount' => $totalAmount], 'total_amount', $tenantId
+                );
 
                 $debitNote = DebitNote::create([
                     'debit_note_date' => $validated['debit_note_date'],
@@ -193,6 +196,10 @@ class DebitNoteController extends Controller
                     'total_amount' => $totalAmount,
                     'applied_amount' => 0,
                     'balance_amount' => $totalAmount,
+                    'currency_code' => $currency['currency_code'],
+                    'base_currency_code' => $currency['base_currency_code'],
+                    'exchange_rate' => $currency['exchange_rate'],
+                    'base_amount' => $currency['base_amount'],
                     'notes' => $validated['notes'] ?? null,
                     'creator_id' => Auth::id(),
                     'created_by' => $tenantId,

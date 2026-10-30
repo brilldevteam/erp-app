@@ -71,6 +71,7 @@ class ZohoCustomerPaymentService extends ZohoPaymentService
             'reference_number' => $header['reference'],
             'payment_amount' => $header['amount'],
             'currency_code' => $header['currency_code'],
+            'base_currency_code' => strtoupper((string) (company_setting('defaultCurrency', $tenantId) ?: 'USD')),
             'exchange_rate' => $rate,
             'base_amount' => round($header['amount'] * $rate, 2),
             'status' => 'cleared',
@@ -82,10 +83,14 @@ class ZohoCustomerPaymentService extends ZohoPaymentService
 
         foreach ($allocations as $allocation) {
             $invoice = $this->document($allocation['document_number'], $partnerId, $tenantId);
+            $carryingValue = round($allocation['applied'] * (float) ($invoice->exchange_rate ?: 1), 2);
             CustomerPaymentAllocation::create([
                 'payment_id' => $payment->id,
                 'invoice_id' => $invoice->id,
                 'allocated_amount' => $allocation['applied'],
+                'carrying_base_amount' => $carryingValue,
+                'settlement_base_amount' => $carryingValue,
+                'exchange_difference' => 0,
                 'creator_id' => $actorId,
                 'created_by' => $tenantId,
             ]);

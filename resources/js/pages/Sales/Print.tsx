@@ -10,6 +10,7 @@ import { useFormFields } from '@/hooks/useFormFields';
 import DocumentTemplatePreview from '@/components/document-templates/document-template-preview';
 import { DocumentTemplate, TemplateSampleDocument } from '@/types/document-template';
 import { AddressDisplay } from '@/components/address-display';
+import DualCurrencyAmount from '@/components/dual-currency-amount';
 
 interface PrintProps {
     invoice: SalesInvoice;
@@ -135,6 +136,7 @@ export default function Print() {
                         <div className="text-sm mt-2 space-y-1">
                             <p>{t('Date')}: {formatDate(invoice.invoice_date)}</p>
                             <p>{t('Due')}: {formatDate(invoice.due_date)}</p>
+                            {invoice.sales_order_reference && <p>{t('Sales Order Reference')}: {invoice.sales_order_reference}</p>}
                         </div>
                         {pageButtons.length > 0 && (
                             <div className="mt-4 flex justify-end">
@@ -266,7 +268,7 @@ export default function Print() {
                                 <div className="border-t border-gray-400 pt-2 mt-2">
                                     <div className="flex justify-between font-bold text-lg">
                                         <span>{t('TOTAL')}:</span>
-                                        <span>{formatCurrency(invoice.total_amount)}</span>
+                                        <DualCurrencyAmount amount={invoice.total_amount} currencyCode={invoice.currency_code} baseAmount={invoice.base_amount} baseCurrencyCode={invoice.base_currency_code} />
                                     </div>
                                 </div>
                             </div>

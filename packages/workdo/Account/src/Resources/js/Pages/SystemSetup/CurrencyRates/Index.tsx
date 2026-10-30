@@ -13,8 +13,9 @@ import SystemSetupSidebar from '../SystemSetupSidebar';
 
 type Currency = { code: string; name: string; symbol: string };
 type Rate = { id: number; currency_code: string; exchange_rate: string; effective_date: string; is_active: boolean };
+type Account = { id: number; account_code: string; account_name: string };
 
-export default function Index({ rates, currencies, baseCurrency }: { rates: Rate[]; currencies: Currency[]; baseCurrency: string }) {
+export default function Index({ rates, currencies, baseCurrency, accounts, exchangeAccounts }: { rates: Rate[]; currencies: Currency[]; baseCurrency: string; accounts: Account[]; exchangeAccounts: { gain_account_id: string; loss_account_id: string } }) {
     const { t } = useTranslation();
     const form = useForm({
         currency_code: '',
@@ -22,6 +23,7 @@ export default function Index({ rates, currencies, baseCurrency }: { rates: Rate
         effective_date: new Date().toISOString().slice(0, 10),
         is_active: true,
     });
+    const accountForm = useForm(exchangeAccounts);
 
     const submit = (event: FormEvent) => {
         event.preventDefault();
@@ -37,6 +39,25 @@ export default function Index({ rates, currencies, baseCurrency }: { rates: Rate
             <div className="flex flex-col gap-8 md:flex-row">
                 <div className="flex-shrink-0 md:w-64"><SystemSetupSidebar activeItem="currency-rates" /></div>
                 <div className="min-w-0 flex-1 space-y-6">
+                    <Card className="shadow-sm">
+                        <CardContent className="p-6">
+                            <h3 className="text-lg font-medium">{t('Realized Exchange Accounts')}</h3>
+                            <p className="mt-1 text-sm text-muted-foreground">{t('Foreign-currency payments cannot be posted until separate gain and loss accounts are selected.')}</p>
+                            <form onSubmit={(event) => { event.preventDefault(); accountForm.put(route('account.currency-rates.exchange-accounts'), { preserveScroll: true }); }} className="mt-6 grid gap-4 md:grid-cols-3 md:items-end">
+                                <div>
+                                    <Label required>{t('Exchange Gain Account')}</Label>
+                                    <Select value={accountForm.data.gain_account_id} onValueChange={(value) => accountForm.setData('gain_account_id', value)}><SelectTrigger><SelectValue placeholder={t('Select account')} /></SelectTrigger><SelectContent searchable>{accounts.map((account) => <SelectItem key={account.id} value={String(account.id)}>{account.account_code} - {account.account_name}</SelectItem>)}</SelectContent></Select>
+                                    <InputError message={accountForm.errors.gain_account_id} />
+                                </div>
+                                <div>
+                                    <Label required>{t('Exchange Loss Account')}</Label>
+                                    <Select value={accountForm.data.loss_account_id} onValueChange={(value) => accountForm.setData('loss_account_id', value)}><SelectTrigger><SelectValue placeholder={t('Select account')} /></SelectTrigger><SelectContent searchable>{accounts.map((account) => <SelectItem key={account.id} value={String(account.id)}>{account.account_code} - {account.account_name}</SelectItem>)}</SelectContent></Select>
+                                    <InputError message={accountForm.errors.loss_account_id} />
+                                </div>
+                                <Button disabled={accountForm.processing}>{t('Save Accounts')}</Button>
+                            </form>
+                        </CardContent>
+                    </Card>
                     <Card className="shadow-sm">
                         <CardContent className="p-6">
                             <h3 className="text-lg font-medium">{t('Currencies & Exchange Rates')}</h3>

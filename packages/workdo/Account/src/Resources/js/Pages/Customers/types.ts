@@ -14,6 +14,7 @@ export interface Customer {
   tax_number?: string;
   cr_number?: string;
   payment_terms?: string;
+  preferred_currency_code?: string;
   billing_address: Address;
   shipping_address: Address;
   same_as_billing: boolean;
@@ -27,6 +28,7 @@ export interface Customer {
     id: number;
     name: string;
     email?: string | null;
+    preferred_currency_code?: string | null;
     is_disable?: number;
     is_enable_login?: boolean;
     avatar?: string;
@@ -43,6 +45,7 @@ export interface Customer {
 
 export interface CustomerFormData {
   company_name: string;
+  preferred_currency_code: string;
   contact_person_name: string;
   contact_person_email: string;
   contact_person_mobile?: string;

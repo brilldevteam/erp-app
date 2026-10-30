@@ -40,6 +40,7 @@ class PurchaseInvoiceController extends Controller
                 'users.id',
                 'users.name',
                 'users.email',
+                'users.preferred_currency_code',
                 'vendors.company_name',
                 'vendors.contact_person_name'
             )
@@ -121,6 +122,8 @@ class PurchaseInvoiceController extends Controller
                 $search = trim($request->search);
                 $query->where(function ($q) use ($search) {
                     $q->where('invoice_number', 'like', "%{$search}%")
+                        ->orWhere('supplier_invoice_number', 'like', "%{$search}%")
+                        ->orWhere('purchase_order_number', 'like', "%{$search}%")
                         ->orWhereHas('vendor', fn ($vendor) => $vendor->where('name', 'like', "%{$search}%"))
                         ->orWhereHas('vendorDetails', function ($vendor) use ($search) {
                             $vendor->where('company_name', 'like', "%{$search}%")
@@ -215,6 +218,8 @@ class PurchaseInvoiceController extends Controller
 
             $invoice = new PurchaseInvoice();
             $invoice->invoice_date = $request->invoice_date;
+            $invoice->supplier_invoice_number = $request->supplier_invoice_number;
+            $invoice->purchase_order_number = $request->purchase_order_number;
             $invoice->due_date = $request->due_date;
             $invoice->vendor_id = $request->vendor_id;
             $invoice->project_contract_id = $request->filled('project_contract_id') ? $request->project_contract_id : null;
@@ -222,6 +227,7 @@ class PurchaseInvoiceController extends Controller
             $invoice->payment_terms = $request->payment_terms;
             $invoice->notes = $request->notes;
             $invoice->currency_code = $currency['currency_code'];
+            $invoice->base_currency_code = $currency['base_currency_code'];
             $invoice->exchange_rate = $currency['exchange_rate'];
             $invoice->base_amount = $currency['base_amount'];
             $invoice->subtotal = $totals['subtotal'];
@@ -352,6 +358,8 @@ class PurchaseInvoiceController extends Controller
             );
 
             $purchaseInvoice->invoice_date = $request->invoice_date;
+            $purchaseInvoice->supplier_invoice_number = $request->supplier_invoice_number;
+            $purchaseInvoice->purchase_order_number = $request->purchase_order_number;
             $purchaseInvoice->due_date = $request->due_date;
             $purchaseInvoice->vendor_id = $request->vendor_id;
             $purchaseInvoice->project_contract_id = $request->filled('project_contract_id') ? $request->project_contract_id : null;
@@ -359,6 +367,7 @@ class PurchaseInvoiceController extends Controller
             $purchaseInvoice->payment_terms = $request->payment_terms;
             $purchaseInvoice->notes = $request->notes;
             $purchaseInvoice->currency_code = $currency['currency_code'];
+            $purchaseInvoice->base_currency_code = $currency['base_currency_code'];
             $purchaseInvoice->exchange_rate = $currency['exchange_rate'];
             $purchaseInvoice->base_amount = $currency['base_amount'];
             $purchaseInvoice->subtotal = $totals['subtotal'];
@@ -539,7 +548,7 @@ class PurchaseInvoiceController extends Controller
 
     public function print(PurchaseInvoice $purchaseInvoice)
     {
-        if(Auth::user()->can('print-purchase-invoices')){
+        if(Auth::user()->can('download-purchase-invoices') && $purchaseInvoice->created_by == creatorId() && $this->checkInvoiceAccess($purchaseInvoice)){
             $purchaseInvoice->load(['vendor', 'vendorDetails', 'items.product', 'items.taxes', 'warehouse']);
 
             return Inertia::render('Purchase/Print', [

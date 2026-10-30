@@ -4,6 +4,7 @@ export interface Customer {
     id: number;
     name: string;
     email: string;
+    preferred_currency_code?: string | null;
 }
 
 export interface BankAccount {

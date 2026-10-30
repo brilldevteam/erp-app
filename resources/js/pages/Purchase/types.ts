@@ -1,8 +1,12 @@
 export interface PurchaseInvoice {
     currency_code: string;
     exchange_rate: number;
+    base_amount?: number;
     id: number;
     invoice_number: string;
+    supplier_invoice_number?: string;
+    purchase_order_number?: string;
+    base_currency_code?: string;
     invoice_date: string;
     due_date: string;
     vendor_id: number;
@@ -49,6 +53,8 @@ export interface PurchaseInvoiceItem {
     id?: number;
     invoice_id?: number;
     product_id: number;
+    description?: string;
+    unit?: string;
     account_id?: number | null;
     quantity: number;
     unit_price: number;
@@ -78,6 +84,7 @@ export interface User {
 }
 
 export interface InvoiceVendorOption extends User {
+    preferred_currency_code?: string | null;
     company_name?: string;
     contact_person_name?: string;
 }

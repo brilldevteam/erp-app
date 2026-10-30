@@ -16,6 +16,8 @@ class StoreDebitNoteRequest extends FormRequest
         return [
             'vendor_id' => 'required|exists:users,id',
             'debit_note_date' => 'required|date',
+            'currency_code' => 'required|string|size:3',
+            'exchange_rate' => 'required|numeric|gt:0',
             'reason' => 'required|string|max:255',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',

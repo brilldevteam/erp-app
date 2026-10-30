@@ -49,8 +49,7 @@ class ZohoSalesInvoiceService
         private readonly ZohoProfileCatalog $profiles,
         private readonly ZohoFreeTextLineProduct $lineProduct,
         private readonly ZohoJournalWriter $journals,
-    ) {
-    }
+    ) {}
 
     public function prepare(array $values, ZohoMigrationBatch $batch): array
     {
@@ -123,17 +122,17 @@ class ZohoSalesInvoiceService
         if ($row['action'] === null) {
             $errors[] = "Invoice Status '{$row['zoho_status']}' is not a known Zoho status.";
         }
-        if (!$row['invoice_date']) {
+        if (! $row['invoice_date']) {
             $errors[] = "Invoice Date '{$row['invoice_date_source']}' is not a valid date.";
         }
-        if (!$row['due_date']) {
+        if (! $row['due_date']) {
             $errors[] = "Due Date '{$row['due_date_source']}' is not a valid date.";
         } elseif ($row['invoice_date'] && $row['due_date'] < $row['invoice_date']) {
             $errors[] = 'Due Date is before the Invoice Date.';
         }
         if ($row['customer'] === '') {
             $errors[] = 'Customer Name is required.';
-        } elseif (!$this->customerUser($row['customer'], $batch->tenant_id)) {
+        } elseif (! $this->customerUser($row['customer'], $batch->tenant_id)) {
             $errors[] = "Customer '{$row['customer']}' was not found in ERP. Complete the Customers step first.";
         }
         if ($row['quantity'] <= 0) {
@@ -147,10 +146,10 @@ class ZohoSalesInvoiceService
         if ($row['discount_value'] < 0 || $row['discount_value'] > round($row['quantity'] * $row['unit_price'], 2)) {
             $errors[] = 'Item Total '.number_format($row['line_total'], 2).' does not fit Quantity × Item Price ('.number_format($row['quantity'] * $row['unit_price'], 2).').';
         }
-        if (!$this->revenueAccount($row, $batch->tenant_id)) {
+        if (! $this->revenueAccount($row, $batch->tenant_id)) {
             $errors[] = "Revenue account {$row['revenue_account_code']} ({$row['revenue_account_name']}) was not found in ERP. Complete the Chart of Accounts step first.";
         }
-        if ($row['discount_value'] > 0 && !$this->discountAccount($batch->tenant_id)) {
+        if ($row['discount_value'] > 0 && ! $this->discountAccount($batch->tenant_id)) {
             $errors[] = 'Zoho posts item discounts to its Discount account, and ERP has no single account named Discount. Complete the Chart of Accounts step first.';
         }
         if (mb_strlen((string) $row['subject']) > 500) {
@@ -176,10 +175,10 @@ class ZohoSalesInvoiceService
                 }
             }
             if ($row['action'] === 'post') {
-                if (!$this->receivableAccount($batch->tenant_id)) {
+                if (! $this->receivableAccount($batch->tenant_id)) {
                     $errors[] = 'Receivable account '.self::RECEIVABLE_ACCOUNT_CODE.' (Accounts Receivable) was not found in ERP.';
                 }
-                if (!$existing && JournalEntry::where('journal_number', $this->journalNumber($row, $batch->tenant_id))->exists()) {
+                if (! $existing && JournalEntry::where('journal_number', $this->journalNumber($row, $batch->tenant_id))->exists()) {
                     $errors[] = 'Journal number '.$this->journalNumber($row, $batch->tenant_id).' is already used; this invoice may have been imported before.';
                 }
             }
@@ -199,7 +198,7 @@ class ZohoSalesInvoiceService
     public function import(ZohoMigrationBatch $batch, int $actorId): array
     {
         $stage = $batch->stages()->where('stage_key', 'sales_invoices')->firstOrFail();
-        if (!in_array($stage->status, ZohoChartOfAccountsService::EXECUTABLE_STATUSES, true) || $stage->rejected_count > 0) {
+        if (! in_array($stage->status, ZohoChartOfAccountsService::EXECUTABLE_STATUSES, true) || $stage->rejected_count > 0) {
             throw new RuntimeException('Resolve all validation issues before importing sales invoices.');
         }
 
@@ -218,7 +217,7 @@ class ZohoSalesInvoiceService
         $invoices = [];
         foreach ($rows as $row) {
             $data = $prepared[(int) $row->source_row_number];
-            if (!$data['include']) {
+            if (! $data['include']) {
                 throw new RuntimeException('Row '.$row->source_row_number.' ('.$data['invoice_number'].') is now '.$data['zoho_status'].' in the file. Upload the file again to re-check it.');
             }
             if ($issues = $this->issues($data, $batch, (int) $row->source_row_number, $context)) {
@@ -248,6 +247,7 @@ class ZohoSalesInvoiceService
                     foreach ($lines as [$row]) {
                         $row->update(['status' => 'skipped']);
                     }
+
                     continue;
                 }
 
@@ -289,6 +289,7 @@ class ZohoSalesInvoiceService
                     'subject' => $header['subject'],
                     'notes' => $notes,
                     'currency_code' => $header['currency_code'],
+                    'base_currency_code' => strtoupper((string) $batch->base_currency),
                     'exchange_rate' => $header['exchange_rate'],
                     'creator_id' => $actorId,
                     'created_by' => $batch->tenant_id,
@@ -334,7 +335,7 @@ class ZohoSalesInvoiceService
                     $counts['drafts']++;
                 }
 
-                if ($quotation && !$quotation->invoice_id) {
+                if ($quotation && ! $quotation->invoice_id) {
                     $quotation->update(['invoice_id' => $invoice->id, 'converted_to_invoice' => true]);
                     $counts['linked_quotations']++;
                 }

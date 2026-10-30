@@ -25,6 +25,7 @@ import { DateRangePicker } from '@/components/ui/date-range-picker';
 
 import NoRecordsFound from '@/components/no-records-found';
 import { InvoiceVendorOption, PurchaseInvoice, PurchaseFilters } from './types';
+import DualCurrencyAmount from '@/components/dual-currency-amount';
 interface PurchaseIndexProps {
     invoices: {
         data: PurchaseInvoice[];
@@ -219,7 +220,7 @@ export default function Index() {
                 </span>
             )
         },
-        ...(auth.user?.permissions?.some((p: string) => ['view-purchase-invoices', 'edit-purchase-invoices', 'delete-purchase-invoices', 'post-purchase-invoices', 'print-purchase-invoices'].includes(p)) ? [{
+        ...(auth.user?.permissions?.some((p: string) => ['view-purchase-invoices', 'edit-purchase-invoices', 'delete-purchase-invoices', 'post-purchase-invoices', 'download-purchase-invoices'].includes(p)) ? [{
             key: 'actions',
             header: t('Actions'),
             render: (_: any, invoice: PurchaseInvoice) => (
@@ -227,7 +228,7 @@ export default function Index() {
                     <TooltipProvider>
                         <SignatureButtons invoice={invoice} />
                         <PurchaseInvoiceActionButtons invoice={invoice} />
-                        {auth.user?.permissions?.includes('print-purchase-invoices') && (
+                        {auth.user?.permissions?.includes('download-purchase-invoices') && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>
                                     <Button
@@ -564,11 +565,11 @@ export default function Index() {
                                                         <div className="border-t mt-2 pt-2">
                                                             <div className="flex justify-between items-center">
                                                                 <span className="text-sm font-semibold text-gray-900">{t('Total Amount')}</span>
-                                                                <span className="text-lg font-bold text-gray-900">{formatCurrency(invoice.total_amount)}</span>
+                                                                <DualCurrencyAmount className="text-lg font-bold text-gray-900" amount={invoice.total_amount} currencyCode={invoice.currency_code} baseAmount={invoice.base_amount} baseCurrencyCode={invoice.base_currency_code} />
                                                             </div>
                                                             <div className="flex justify-between items-center mt-1">
                                                                 <span className="text-xs text-gray-600">{t('Balance Due')}</span>
-                                                                <span className="text-sm font-semibold text-blue-600">{formatCurrency(invoice.balance_amount)}</span>
+                                                                <DualCurrencyAmount className="text-sm font-semibold text-blue-600" amount={invoice.balance_amount} currencyCode={invoice.currency_code} baseAmount={Number(invoice.balance_amount) * Number(invoice.exchange_rate || 1)} baseCurrencyCode={invoice.base_currency_code} />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -580,7 +581,7 @@ export default function Index() {
                                                     <TooltipProvider>
                                                         <SignatureButtons invoice={invoice} />
                                                         <PurchaseInvoiceActionButtons invoice={invoice} />
-                                                        {auth.user?.permissions?.includes('print-purchase-invoices') && (
+                                                        {auth.user?.permissions?.includes('download-purchase-invoices') && (
                                                             <Tooltip delayDuration={0}>
                                                                 <TooltipTrigger asChild>
                                                                     <Button variant="ghost" size="sm" onClick={() => window.open(route('purchase-invoices.print', invoice.id) + '?download=pdf', '_blank')} className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700">

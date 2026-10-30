@@ -12,12 +12,18 @@ class CustomerPaymentAllocation extends Model
         'payment_id',
         'invoice_id',
         'allocated_amount',
+        'carrying_base_amount',
+        'settlement_base_amount',
+        'exchange_difference',
         'creator_id',
         'created_by'
     ];
 
     protected $casts = [
-        'allocated_amount' => 'decimal:2'
+        'allocated_amount' => 'decimal:2',
+        'carrying_base_amount' => 'decimal:2',
+        'settlement_base_amount' => 'decimal:2',
+        'exchange_difference' => 'decimal:2',
     ];
 
     public function payment(): BelongsTo

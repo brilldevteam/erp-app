@@ -32,6 +32,7 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Account'])->group
     Route::get('account/currency-rates/latest', [CurrencyRateController::class, 'latest'])->name('account.currency-rates.latest');
     Route::get('account/currency-rates', [CurrencyRateController::class, 'index'])->name('account.currency-rates.index');
     Route::post('account/currency-rates', [CurrencyRateController::class, 'store'])->name('account.currency-rates.store');
+    Route::put('account/currency-rates/exchange-accounts', [CurrencyRateController::class, 'updateExchangeAccounts'])->name('account.currency-rates.exchange-accounts');
     Route::delete('account/currency-rates/{currencyRate}', [CurrencyRateController::class, 'destroy'])->name('account.currency-rates.destroy');
     Route::resource('account/vendors', VendorController::class, ['as' => 'account']);
     Route::resource('account/customers', CustomerController::class, ['as' => 'account']);

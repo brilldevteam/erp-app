@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2 } from "lucide-react";
 import { formatCurrency } from '@/utils/helpers';
+import TransactionCurrencyFields from '@/components/transaction-currency-fields';
 
 interface Product {
     id: number;
@@ -34,7 +35,7 @@ interface CreditNoteItem {
 }
 
 interface CreateProps {
-    customers: Array<{id: number; name: string}>;
+    customers: Array<{id: number; name: string; preferred_currency_code?: string | null}>;
     products: Product[];
 }
 
@@ -45,6 +46,8 @@ export default function Create() {
     const { data, setData, post, processing, errors } = useForm({
         customer_id: '',
         credit_note_date: new Date().toISOString().split('T')[0],
+        currency_code: '',
+        exchange_rate: '1.00000000',
         reason: '',
         notes: '',
         items: [
@@ -134,7 +137,10 @@ export default function Create() {
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
                                     <Label htmlFor="customer_id">{t('Customer')}</Label>
-                                    <Select value={data.customer_id} onValueChange={(value) => setData('customer_id', value)}>
+                                    <Select value={data.customer_id} onValueChange={(value) => {
+                                        const currency = customers.find((customer) => String(customer.id) === value)?.preferred_currency_code;
+                                        setData((current) => ({ ...current, customer_id: value, ...(currency ? { currency_code: currency, exchange_rate: '' } : {}) }));
+                                    }}>
                                         <SelectTrigger>
                                             <SelectValue placeholder={t('Select customer')} />
                                         </SelectTrigger>
@@ -171,6 +177,8 @@ export default function Create() {
                                     {errors.reason && <p className="text-sm text-red-600">{errors.reason}</p>}
                                 </div>
                             </div>
+
+                            <TransactionCurrencyFields currencyCode={data.currency_code} exchangeRate={data.exchange_rate} amount={total} transactionDate={data.credit_note_date} onCurrencyChange={(value) => setData('currency_code', value)} onRateChange={(value) => setData('exchange_rate', value)} errors={errors as Record<string, string>} />
 
                             <div>
                                 <Label htmlFor="notes">{t('Notes')}</Label>

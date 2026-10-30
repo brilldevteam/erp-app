@@ -17,6 +17,7 @@ import { useFormFields } from '@/hooks/useFormFields';
 import { displayEmail } from '@/utils/display-email';
 import { Dialog } from '@/components/ui/dialog';
 import CreateCustomerPayment from '../../../../packages/workdo/Account/src/Resources/js/Pages/CustomerPayments/Create';
+import DualCurrencyAmount from '@/components/dual-currency-amount';
 
 interface ViewProps {
     invoice: SalesInvoice;
@@ -78,7 +79,7 @@ export default function View() {
                                     {t(invoice.status.toUpperCase())}
                                 </span>
                                 <div className="text-right">
-                                    <div className="text-2xl font-bold">{formatCurrency(invoice.total_amount)}</div>
+                                    <DualCurrencyAmount className="text-2xl font-bold" amount={invoice.total_amount} currencyCode={invoice.currency_code} baseAmount={invoice.base_amount} baseCurrencyCode={invoice.base_currency_code} />
                                     <div className="text-sm text-muted-foreground">{t('Total Amount')}</div>
                                 </div>
                             </div>
@@ -162,7 +163,7 @@ export default function View() {
                                 <div className="mt-4 p-3 bg-blue-50 rounded">
                                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                                         <div className="flex flex-wrap gap-2">
-                                            {auth.user?.permissions?.includes('print-sales-invoices') && (
+                                            {auth.user?.permissions?.includes('download-sales-invoices') && (
                                                 <>
                                                     <Button
                                                         variant="outline"
@@ -224,6 +225,9 @@ export default function View() {
                             </div>
                         </div>
 
+                        {invoice.sales_order_reference && (
+                            <div className="mt-4 border-t pt-4"><span className="text-sm font-medium">{t('Sales Order Reference')}:</span> <span className="text-sm text-muted-foreground">{invoice.sales_order_reference}</span></div>
+                        )}
                         {invoice.notes && (
                             <div className="mt-4 pt-4 border-t">
                                 <span className="font-medium text-sm">{t('Notes')}:</span>
@@ -343,7 +347,7 @@ export default function View() {
                                 <div className="border-t pt-3">
                                     <div className="flex justify-between">
                                         <span className="font-semibold">{t('Total Amount')}</span>
-                                        <span className="font-bold text-lg">{formatCurrency(invoice.total_amount)}</span>
+                                        <DualCurrencyAmount className="text-lg font-bold" amount={invoice.total_amount} currencyCode={invoice.currency_code} baseAmount={invoice.base_amount} baseCurrencyCode={invoice.base_currency_code} />
                                     </div>
                                 </div>
                                 {invoice.paid_amount > 0 && (

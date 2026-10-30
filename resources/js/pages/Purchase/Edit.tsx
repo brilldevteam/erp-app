@@ -43,6 +43,8 @@ export default function Edit() {
         due_date: invoice.due_date,
         currency_code: invoice.currency_code,
         exchange_rate: String(invoice.exchange_rate),
+        supplier_invoice_number: invoice.supplier_invoice_number || '',
+        purchase_order_number: invoice.purchase_order_number || '',
         vendor_id: invoice.vendor_id.toString(),
         project_contract_id: invoice.project_contract_id?.toString() || '',
         warehouse_id: invoice.warehouse_id?.toString() || '',
@@ -136,7 +138,15 @@ export default function Edit() {
                                     <Label htmlFor="vendor_id" required>
                                         {t('Vendor')}
                                     </Label>
-                                    <Select value={data.vendor_id} onValueChange={(value) => setData((current) => ({ ...current, vendor_id: value, project_contract_id: '' }))}>
+                                    <Select value={data.vendor_id} onValueChange={(value) => {
+                                        const preferredCurrency = vendors.find((vendor) => String(vendor.id) === value)?.preferred_currency_code;
+                                        setData((current) => ({
+                                            ...current,
+                                            vendor_id: value,
+                                            project_contract_id: '',
+                                            ...(preferredCurrency ? { currency_code: preferredCurrency, exchange_rate: '' } : {}),
+                                        }));
+                                    }}>
                                         <SelectTrigger>
                                             <SelectValue placeholder={t('Select Vendor')} />
                                         </SelectTrigger>
@@ -197,6 +207,16 @@ export default function Edit() {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                <div>
+                                    <Label htmlFor="supplier_invoice_number">{t('Supplier Invoice Number')}</Label>
+                                    <Input id="supplier_invoice_number" value={data.supplier_invoice_number} onChange={(event) => setData('supplier_invoice_number', event.target.value)} />
+                                    <InputError message={(errors as any).supplier_invoice_number} />
+                                </div>
+                                <div>
+                                    <Label htmlFor="purchase_order_number">{t('Purchase Order Number')}</Label>
+                                    <Input id="purchase_order_number" value={data.purchase_order_number} onChange={(event) => setData('purchase_order_number', event.target.value)} />
+                                    <InputError message={(errors as any).purchase_order_number} />
+                                </div>
                                 <div>
                                     <Label htmlFor="payment_terms">
                                         {t('Payment Terms')}

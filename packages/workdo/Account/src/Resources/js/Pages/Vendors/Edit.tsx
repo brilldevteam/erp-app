@@ -14,6 +14,7 @@ import { EditVendorProps, VendorFormData } from './types';
 import { useFormFields } from '@/hooks/useFormFields';
 import PartyDocuments from '../Parties/PartyDocuments';
 import SavedPartyDocuments from '../Parties/SavedPartyDocuments';
+import PreferredCurrencyField from '@/components/preferred-currency-field';
 
 export default function Edit({ vendor, onSuccess }: EditVendorProps) {
     const { t } = useTranslation();
@@ -24,6 +25,7 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
         && !vendor.user?.is_disable;
     const { data, setData, put, transform, processing, errors } = useForm<VendorFormData>({
         ...vendor,
+        preferred_currency_code: vendor.user?.preferred_currency_code || '',
         portal_access_enabled: portalAccessEnabled,
         password: '',
         password_confirmation: '',
@@ -143,6 +145,7 @@ export default function Edit({ vendor, onSuccess }: EditVendorProps) {
                         />
                         <InputError message={errors.payment_terms} />
                     </div>
+                    <PreferredCurrencyField value={data.preferred_currency_code} onChange={(value) => setData('preferred_currency_code', value)} error={errors.preferred_currency_code} />
                 </div>
                 <div>
                     <Label htmlFor="billing_name">{t('Billing Name')}</Label>

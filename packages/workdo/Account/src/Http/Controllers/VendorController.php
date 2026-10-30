@@ -49,7 +49,7 @@ class VendorController extends Controller
 
             return Inertia::render('Account/Vendors/Index', [
                 'vendors' => $vendors,
-                'editVendor' => request('edit') ? Vendor::with('user:id,email,is_enable_login,is_disable')->where('created_by', creatorId())->find(request('edit')) : null,
+                'editVendor' => request('edit') ? Vendor::with('user:id,email,preferred_currency_code,is_enable_login,is_disable')->where('created_by', creatorId())->find(request('edit')) : null,
                 'openCreate' => request()->boolean('create'),
                 'returnTo' => request('return_to') === 'project.contractors.index' ? request('return_to') : null,
             ]);
@@ -82,6 +82,7 @@ class VendorController extends Controller
             try {
                 $user = DB::transaction(function () use ($vendor, $validated, $request, $portalAccounts, $attachments, &$paths) {
                     $user = $portalAccounts->create($vendor, 'vendor', $validated, creatorId(), Auth::id());
+                    $user->update(['preferred_currency_code' => strtoupper((string) ($validated['preferred_currency_code'] ?? company_setting('defaultCurrency', creatorId()) ?: 'USD'))]);
                     $vendor->save();
                     $attachments->store($vendor, $request->file('attachments', []), $paths);
                     return $user;
@@ -128,6 +129,7 @@ class VendorController extends Controller
             try {
                 $user = DB::transaction(function () use ($vendor, $validated, $request, $portalAccounts, $attachments, &$paths) {
                     $user = $portalAccounts->sync($vendor, 'vendor', $validated, creatorId(), Auth::id());
+                    $user->update(['preferred_currency_code' => strtoupper((string) ($validated['preferred_currency_code'] ?? company_setting('defaultCurrency', creatorId()) ?: 'USD'))]);
                     $vendor->save();
                     $attachments->store($vendor, $request->file('attachments', []), $paths);
                     return $user;

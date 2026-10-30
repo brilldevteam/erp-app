@@ -61,7 +61,7 @@ class ZohoCustomerCreditService extends ZohoCreditDocumentService
 
     protected function createDocument(array $header, array $lines, int $partnerId, ?Model $linked, int $productId, int $actorId, int $tenantId): Model
     {
-        $values = $this->documentValues($header, $lines);
+        $values = $this->documentValues($header, $lines, $tenantId);
         $note = CreditNote::create([
             'credit_note_number' => $this->erpNumber($header['number'], $tenantId),
             'credit_note_date' => $header['date'],
@@ -71,9 +71,9 @@ class ZohoCustomerCreditService extends ZohoCreditDocumentService
             'approved_by' => $header['action'] === 'post' ? $actorId : null,
             'creator_id' => $actorId,
             'created_by' => $tenantId,
-        ] + array_diff_key($values, array_flip(['currency_code', 'exchange_rate', 'base_amount'])));
+        ] + array_diff_key($values, array_flip(['currency_code', 'base_currency_code', 'exchange_rate', 'base_amount'])));
         // Not mass-assignable on the ERP model, so set explicitly.
-        $note->forceFill(array_intersect_key($values, array_flip(['currency_code', 'exchange_rate', 'base_amount'])))->save();
+        $note->forceFill(array_intersect_key($values, array_flip(['currency_code', 'base_currency_code', 'exchange_rate', 'base_amount'])))->save();
 
         foreach ($lines as $line) {
             CreditNoteItem::create(['credit_note_id' => $note->id] + $this->lineValues($line, $productId));

@@ -64,6 +64,7 @@ class CurrencyConversionService
 
         return [
             'currency_code' => $currency,
+            'base_currency_code' => $this->baseCurrency($companyId),
             'exchange_rate' => $rate,
             'base_amount' => $this->toBase($data[$amountKey] ?? 0, $rate),
         ];

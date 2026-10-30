@@ -156,6 +156,7 @@ class VendorPaymentController extends Controller
                 throw ValidationException::withMessages(['bank_account_id' => __('Select a bank account in the payment currency.')]);
             }
             $payment->currency_code = $currency['currency_code'];
+            $payment->base_currency_code = $currency['base_currency_code'];
             $payment->exchange_rate = $currency['exchange_rate'];
             $payment->base_amount = $currency['base_amount'];
             $payment->notes = $request->notes;
@@ -166,10 +167,21 @@ class VendorPaymentController extends Controller
             // Create allocations if provided
             if ($request->allocations) {
                 foreach ($request->allocations as $allocation) {
+                    $invoice = $allocationInvoices->get($allocation['invoice_id']);
+                    if (!$invoice || strtoupper((string) $invoice->currency_code) !== $currency['currency_code']) {
+                        throw ValidationException::withMessages([
+                            'allocations' => __('All bills must use the payment currency.'),
+                        ]);
+                    }
+                    $carryingBase = round((float) $allocation['amount'] * (float) ($invoice->exchange_rate ?: 1), 2);
+                    $settlementBase = round((float) $allocation['amount'] * (float) $currency['exchange_rate'], 2);
                     $paymentAllocation = new VendorPaymentAllocation();
                     $paymentAllocation->payment_id = $payment->id;
                     $paymentAllocation->invoice_id = $allocation['invoice_id'];
                     $paymentAllocation->allocated_amount = $allocation['amount'];
+                    $paymentAllocation->carrying_base_amount = $carryingBase;
+                    $paymentAllocation->settlement_base_amount = $settlementBase;
+                    $paymentAllocation->exchange_difference = round($settlementBase - $carryingBase, 2);
                     $paymentAllocation->save();
                 }
             }

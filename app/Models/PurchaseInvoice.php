@@ -10,8 +10,11 @@ class PurchaseInvoice extends Model
 {
     protected $fillable = [
         'invoice_number',
+        'supplier_invoice_number',
+        'purchase_order_number',
         'purchase_order_reference',
         'currency_code',
+        'base_currency_code',
         'exchange_rate',
         'base_amount',
         'invoice_date',

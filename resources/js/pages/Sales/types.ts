@@ -1,10 +1,13 @@
 export interface SalesInvoice {
     currency_code: string;
     exchange_rate: number;
+    base_amount?: number;
     id: number;
     quotation_id?: number;
     document_template_id?: number;
     invoice_number: string;
+    sales_order_reference?: string;
+    base_currency_code?: string;
     invoice_date: string;
     due_date: string;
     customer_id: number;
@@ -63,6 +66,7 @@ export interface User {
 }
 
 export interface InvoiceCustomerOption extends User {
+    preferred_currency_code?: string | null;
     company_name?: string;
     contact_person_name?: string;
 }

@@ -87,6 +87,7 @@ export default function Create() {
         type: initialInvoice?.type ?? 'product',
         revenue_account_id: defaultRevenueAccountId(revenueAccounts, initialInvoice?.type ?? 'product'),
         payment_terms: initialInvoice?.payment_terms ?? '',
+        sales_order_reference: (initialInvoice as any)?.sales_order_reference ?? '',
         subject: initialInvoice?.subject ?? '',
         notes: initialInvoice?.notes ?? '',
         currency_code: (initialInvoice as any)?.currency_code ?? '',
@@ -329,7 +330,12 @@ export default function Create() {
                                     </Label>
                                     <Select value={data.customer_id} onValueChange={(value) => {
                                         if (value === 'create-customer') { setIsCustomerDialogOpen(true); return; }
-                                        setData('customer_id', value);
+                                        const preferredCurrency = customerOptions.find((customer) => String(customer.id) === value)?.preferred_currency_code;
+                                        setData((current) => ({
+                                            ...current,
+                                            customer_id: value,
+                                            ...(preferredCurrency ? { currency_code: preferredCurrency, exchange_rate: '' } : {}),
+                                        }));
                                         if (value) clearErrors('customer_id');
                                     }}>
                                         <SelectTrigger>
@@ -429,6 +435,17 @@ export default function Create() {
                                         onChange={(e) => setData('payment_terms', e.target.value)}
                                         placeholder={t('e.g., Net 30')}
                                     />
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="sales_order_reference">{t('Sales Order Reference')}</Label>
+                                    <Input
+                                        id="sales_order_reference"
+                                        value={data.sales_order_reference}
+                                        onChange={(event) => setData('sales_order_reference', event.target.value)}
+                                        placeholder={t('Optional sales order reference')}
+                                    />
+                                    <InputError message={(errors as any).sales_order_reference} />
                                 </div>
 
                                 <div>

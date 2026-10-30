@@ -7,6 +7,7 @@ import { formatCurrency, formatDate, getCompanySetting } from '@/utils/helpers';
 import { PurchaseInvoice } from './types';
 import { usePageButtons } from '@/hooks/usePageButtons';
 import { useFormFields } from '@/hooks/useFormFields';
+import DualCurrencyAmount from '@/components/dual-currency-amount';
 
 interface PrintProps {
     invoice: PurchaseInvoice;
@@ -102,6 +103,8 @@ export default function Print() {
                         <div className="text-sm mt-2 space-y-1">
                             <p>{t('Date')}: {formatDate(invoice.invoice_date)}</p>
                             <p>{t('Due')}: {formatDate(invoice.due_date)}</p>
+                            {invoice.supplier_invoice_number && <p>{t('Supplier Invoice Number')}: {invoice.supplier_invoice_number}</p>}
+                            {invoice.purchase_order_number && <p>{t('Purchase Order Number')}: {invoice.purchase_order_number}</p>}
                         </div>
                     </div>
                 </div>
@@ -180,6 +183,7 @@ export default function Print() {
                                         {item.product?.sku && (
                                             <div className="text-xs text-gray-500">{t('SKU')}: {item.product.sku}</div>
                                         )}
+                                        {item.description && <div className="mt-1 whitespace-pre-wrap text-xs text-gray-600">{item.description}</div>}
                                     </td>
                                     <td className="text-center py-4">{Number(item.quantity)}</td>
                                     <td className="text-right py-4">{formatCurrency(item.unit_price)}</td>
@@ -234,7 +238,7 @@ export default function Print() {
                                 <div className="border-t border-gray-400 pt-2 mt-2">
                                     <div className="flex justify-between font-bold text-lg">
                                         <span>{t('TOTAL')}:</span>
-                                        <span>{formatCurrency(invoice.total_amount)}</span>
+                                        <DualCurrencyAmount amount={invoice.total_amount} currencyCode={invoice.currency_code} baseAmount={invoice.base_amount} baseCurrencyCode={invoice.base_currency_code} />
                                     </div>
                                 </div>
                             </div>

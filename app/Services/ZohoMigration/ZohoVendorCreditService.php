@@ -72,7 +72,7 @@ class ZohoVendorCreditService extends ZohoCreditDocumentService
 
     protected function createDocument(array $header, array $lines, int $partnerId, ?Model $linked, int $productId, int $actorId, int $tenantId): Model
     {
-        $values = $this->documentValues($header, $lines);
+        $values = $this->documentValues($header, $lines, $tenantId);
         $number = $this->erpNumber($header['number'], $tenantId);
         if ($number !== $this->candidateNumbers($header['number'], $tenantId)[0]) {
             $values['notes'] .= "\n\nNumbered {$number} because {$this->candidateNumbers($header['number'], $tenantId)[0]} is used by another company.";
@@ -86,9 +86,9 @@ class ZohoVendorCreditService extends ZohoCreditDocumentService
             'approved_by' => $header['action'] === 'post' ? $actorId : null,
             'creator_id' => $actorId,
             'created_by' => $tenantId,
-        ] + array_diff_key($values, array_flip(['currency_code', 'exchange_rate', 'base_amount'])));
+        ] + array_diff_key($values, array_flip(['currency_code', 'base_currency_code', 'exchange_rate', 'base_amount'])));
         // Not mass-assignable on the ERP model, so set explicitly.
-        $note->forceFill(array_intersect_key($values, array_flip(['currency_code', 'exchange_rate', 'base_amount'])))->save();
+        $note->forceFill(array_intersect_key($values, array_flip(['currency_code', 'base_currency_code', 'exchange_rate', 'base_amount'])))->save();
 
         foreach ($lines as $line) {
             DebitNoteItem::create(['debit_note_id' => $note->id, 'creator_id' => $actorId, 'created_by' => $tenantId] + $this->lineValues($line, $productId));

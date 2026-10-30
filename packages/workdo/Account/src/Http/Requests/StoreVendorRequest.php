@@ -27,6 +27,7 @@ class StoreVendorRequest extends FormRequest
             'tax_number' => 'nullable|string|max:255',
             'cr_number' => 'nullable|string|max:255',
             'payment_terms' => 'nullable|string|max:255',
+            'preferred_currency_code' => 'nullable|string|size:3',
             'billing_address' => 'nullable|array',
             'same_as_billing' => 'boolean',
             'shipping_address' => 'nullable|array',

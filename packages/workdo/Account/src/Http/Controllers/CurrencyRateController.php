@@ -8,6 +8,8 @@ use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Workdo\Account\Models\CompanyCurrencyRate;
 use Workdo\Account\Services\CurrencyConversionService;
+use Workdo\Account\Models\ChartOfAccount;
+use App\Models\Setting;
 
 class CurrencyRateController extends Controller
 {
@@ -23,6 +25,11 @@ class CurrencyRateController extends Controller
             'rates' => $rates,
             'currencies' => config('default_currency.currencies', []),
             'baseCurrency' => $currency->baseCurrency(),
+            'accounts' => ChartOfAccount::query()->where('created_by', creatorId())->orderBy('account_code')->get(['id', 'account_code', 'account_name']),
+            'exchangeAccounts' => [
+                'gain_account_id' => (string) (company_setting('exchangeGainAccountId', creatorId()) ?: ''),
+                'loss_account_id' => (string) (company_setting('exchangeLossAccountId', creatorId()) ?: ''),
+            ],
         ]);
     }
 
@@ -68,5 +75,21 @@ class CurrencyRateController extends Controller
         abort_unless((int) $currencyRate->created_by === (int) creatorId(), 403);
         $currencyRate->delete();
         return back()->with('success', __('Exchange rate deleted successfully.'));
+    }
+
+    public function updateExchangeAccounts(Request $request)
+    {
+        abort_unless(auth()->user()->can('manage-chart-of-accounts'), 403);
+        $accountIds = ChartOfAccount::query()->where('created_by', creatorId())->pluck('id')->all();
+        $validated = $request->validate([
+            'gain_account_id' => ['required', 'integer', Rule::in($accountIds)],
+            'loss_account_id' => ['required', 'integer', Rule::in($accountIds), 'different:gain_account_id'],
+        ]);
+
+        foreach (['exchangeGainAccountId' => $validated['gain_account_id'], 'exchangeLossAccountId' => $validated['loss_account_id']] as $key => $value) {
+            Setting::updateOrCreate(['key' => $key, 'created_by' => creatorId()], ['value' => (string) $value]);
+        }
+
+        return back()->with('success', __('Exchange gain and loss accounts saved successfully.'));
     }
 }

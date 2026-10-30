@@ -20,7 +20,7 @@ class SalesInvoiceDefinition implements EntityDefinition, AllowsRepeatedIdentity
     public function key(): string { return 'sales-invoices'; }
     public function permission(): string { return 'import-sales-invoices'; }
     public function createPermission(): string { return 'create-sales-invoices'; }
-    public function headers(): array { return ['invoice_number', 'invoice_date', 'due_date', 'customer_email', 'customer', 'item_sku', 'item_name', 'description', 'quantity', 'unit_price', 'discount_type', 'discount_value', 'discount_percentage', 'tax_names', 'tax_percentage', 'payment_terms', 'warehouse', 'paid_amount', 'status', 'notes']; }
+    public function headers(): array { return ['invoice_number', 'sales_order_reference', 'invoice_date', 'due_date', 'customer_email', 'customer', 'item_sku', 'item_name', 'description', 'quantity', 'unit_price', 'discount_type', 'discount_value', 'discount_percentage', 'tax_names', 'tax_percentage', 'payment_terms', 'warehouse', 'paid_amount', 'status', 'notes']; }
     public function requiredFields(): array { return ['invoice_number', 'invoice_date', 'customer', 'item_sku', 'item_name', 'quantity', 'unit_price']; }
     public function aliases(): array { return ['invoice_number' => ['invoice no', 'invoice number'], 'invoice_date' => ['date'], 'due_date' => ['due date'], 'customer_email' => ['customer email', 'email'], 'customer' => ['customer name', 'customer'], 'item_sku' => ['item code', 'sku', 'product code'], 'unit_price' => ['rate', 'price'], 'tax_names' => ['tax', 'tax name']]; }
     public function example(): array { return ['INV-1001', date('Y-m-d'), date('Y-m-d', strtotime('+30 days')), 'customer@example.com', 'Example Customer', 'SKU-100', 'Example Product', '2', '100', '0', 'VAT 15%', '15', 'Net 30', 'Main Warehouse', '0', 'posted', 'Imported from Zoho Books']; }
@@ -64,6 +64,7 @@ class SalesInvoiceDefinition implements EntityDefinition, AllowsRepeatedIdentity
             $date = $this->dateValue($row['invoice_date']);
             $invoice = SalesInvoice::create([
                 'invoice_number' => $this->text($row['invoice_number']),
+                'sales_order_reference' => $this->nullableText($row['sales_order_reference'] ?? null),
                 'invoice_date' => $date,
                 'due_date' => $this->dateValue($row['due_date'] ?? null) ?? $date,
                 'customer_id' => $this->customerUser($row, $tenantId)->id,
@@ -78,6 +79,9 @@ class SalesInvoiceDefinition implements EntityDefinition, AllowsRepeatedIdentity
                 'type' => 'product',
                 'payment_terms' => $this->nullableText($row['payment_terms'] ?? null),
                 'notes' => $this->nullableText($row['notes'] ?? null),
+                'currency_code' => strtoupper((string) (company_setting('defaultCurrency', $tenantId) ?: 'USD')),
+                'base_currency_code' => strtoupper((string) (company_setting('defaultCurrency', $tenantId) ?: 'USD')),
+                'exchange_rate' => 1,
                 'creator_id' => $actorId,
                 'created_by' => $tenantId,
             ]);
@@ -115,6 +119,6 @@ class SalesInvoiceDefinition implements EntityDefinition, AllowsRepeatedIdentity
         $tax = $items->sum('tax_amount');
         $total = $items->sum('total_amount');
         $paid = min((float) $invoice->paid_amount, (float) $total);
-        $invoice->update(['subtotal' => $subtotal, 'discount_amount' => $discount, 'tax_amount' => $tax, 'total_amount' => $total, 'paid_amount' => $paid, 'balance_amount' => max(0, $total - $paid)]);
+        $invoice->update(['subtotal' => $subtotal, 'discount_amount' => $discount, 'tax_amount' => $tax, 'total_amount' => $total, 'base_amount' => round($total * (float) ($invoice->exchange_rate ?: 1), 2), 'paid_amount' => $paid, 'balance_amount' => max(0, $total - $paid)]);
     }
 }

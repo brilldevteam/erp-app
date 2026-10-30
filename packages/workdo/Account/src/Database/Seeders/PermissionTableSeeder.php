@@ -113,6 +113,10 @@ class PermissionTableSeeder extends Seeder
             ['name' => 'delete-credit-notes', 'module' => 'credit-notes', 'label' => 'Delete Credit Notes'],
             ['name' => 'import-credit-notes', 'module' => 'credit-notes', 'label' => 'Import Credit Notes'],
 
+            // Document download permissions are intentionally separate from create/view/print access.
+            ['name' => 'download-sales-invoices', 'module' => 'sales-invoices', 'label' => 'Download Sales Invoices'],
+            ['name' => 'download-purchase-invoices', 'module' => 'purchase-invoices', 'label' => 'Download Purchase Invoices'],
+
             // JournalEntry management
             ['name' => 'manage-journal-entries', 'module' => 'journal-entries', 'label' => 'Manage Journal Entries'],
             ['name' => 'view-journal-entries', 'module' => 'journal-entries', 'label' => 'View Journal Entries'],

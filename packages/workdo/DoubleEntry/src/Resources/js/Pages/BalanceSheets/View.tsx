@@ -142,7 +142,7 @@ export default function View() {
     return (
         <AuthenticatedLayout
             breadcrumbs={[
-                {label: t('Double Entry')},
+                {label: t('Reports')},
                 {label: t('Balance Sheets'), url: route('double-entry.balance-sheets.list')},
                 {label: `${t('Balance Sheet')} - ${formatBalanceSheetPeriod(balanceSheet)}`}
             ]}

@@ -14,6 +14,7 @@ import { Edit, FileText, ArrowLeft, Building2, User, Calendar, Package, MapPin, 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePageButtons } from '@/hooks/usePageButtons';
 import { useFormFields } from '@/hooks/useFormFields';
+import DualCurrencyAmount from '@/components/dual-currency-amount';
 
 interface ViewProps {
     invoice: PurchaseInvoice;
@@ -66,7 +67,7 @@ export default function View() {
                                     {t(invoice.status.toUpperCase())}
                                 </span>
                                 <div className="text-right">
-                                    <div className="text-2xl font-bold">{formatCurrency(invoice.total_amount)}</div>
+                                    <DualCurrencyAmount className="text-2xl font-bold" amount={invoice.total_amount} currencyCode={invoice.currency_code} baseAmount={invoice.base_amount} baseCurrencyCode={invoice.base_currency_code} />
                                     <div className="text-sm text-muted-foreground">{t('Total Amount')}</div>
                                 </div>
                             </div>
@@ -136,7 +137,7 @@ export default function View() {
                                 <div className="mt-5 rounded bg-blue-50 p-4">
                                     <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                                         <div className="flex flex-wrap gap-2">
-                                            {auth.user?.permissions?.includes('print-purchase-invoices') && (
+                                            {auth.user?.permissions?.includes('download-purchase-invoices') && (
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
@@ -178,6 +179,12 @@ export default function View() {
                             </div>
                         </div>
 
+                        {(invoice.supplier_invoice_number || invoice.purchase_order_number) && (
+                            <div className="mt-4 grid gap-3 border-t pt-4 sm:grid-cols-2">
+                                {invoice.supplier_invoice_number && <div><span className="text-sm font-medium">{t('Supplier Invoice Number')}:</span> <span className="text-sm text-muted-foreground">{invoice.supplier_invoice_number}</span></div>}
+                                {invoice.purchase_order_number && <div><span className="text-sm font-medium">{t('Purchase Order Number')}:</span> <span className="text-sm text-muted-foreground">{invoice.purchase_order_number}</span></div>}
+                            </div>
+                        )}
                         {invoice.notes && (
                             <div className="mt-4 pt-4 border-t">
                                 <span className="font-medium text-sm">{t('Notes')}:</span>
@@ -290,8 +297,8 @@ export default function View() {
                                                 {item.product?.sku && (
                                                     <div className="text-sm text-muted-foreground">SKU: {item.product.sku}</div>
                                                 )}
-                                                {item.product?.description && (
-                                                    <div className="text-sm text-muted-foreground mt-1">{item.product.description}</div>
+                                                {item.description && (
+                                                    <div className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{item.description}</div>
                                                 )}
                                             </td>
                                             <td className="px-4 py-4 text-sm">
@@ -352,7 +359,7 @@ export default function View() {
                                 <div className="border-t pt-3">
                                     <div className="flex justify-between">
                                         <span className="font-semibold">{t('Total Amount')}</span>
-                                        <span className="font-bold text-lg">{formatCurrency(invoice.total_amount)}</span>
+                                        <DualCurrencyAmount className="text-lg font-bold" amount={invoice.total_amount} currencyCode={invoice.currency_code} baseAmount={invoice.base_amount} baseCurrencyCode={invoice.base_currency_code} />
                                     </div>
                                 </div>
                                 {invoice.paid_amount > 0 && (

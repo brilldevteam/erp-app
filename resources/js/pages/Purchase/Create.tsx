@@ -39,6 +39,8 @@ export default function Create() {
         due_date: '',
         currency_code: settings?.defaultCurrency || 'USD',
         exchange_rate: '1.00000000',
+        supplier_invoice_number: '',
+        purchase_order_number: '',
         vendor_id: '',
         project_contract_id: '',
         warehouse_id: '',
@@ -47,6 +49,7 @@ export default function Create() {
         attachments: [] as File[],
         items: [{
             product_id: 0,
+            description: '',
             quantity: 1,
             unit_price: 0,
             discount_type: 'percentage',
@@ -126,7 +129,15 @@ export default function Create() {
                                     <Label htmlFor="vendor_id" required>
                                         {t('Vendor')}
                                     </Label>
-                                    <Select value={data.vendor_id} onValueChange={(value) => setData((current) => ({ ...current, vendor_id: value, project_contract_id: '' }))}>
+                                    <Select value={data.vendor_id} onValueChange={(value) => {
+                                        const preferredCurrency = vendors.find((vendor) => String(vendor.id) === value)?.preferred_currency_code;
+                                        setData((current) => ({
+                                            ...current,
+                                            vendor_id: value,
+                                            project_contract_id: '',
+                                            ...(preferredCurrency ? { currency_code: preferredCurrency, exchange_rate: '' } : {}),
+                                        }));
+                                    }}>
                                         <SelectTrigger>
                                             <SelectValue placeholder={t('Select Vendor')} />
                                         </SelectTrigger>
@@ -187,6 +198,16 @@ export default function Create() {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                <div>
+                                    <Label htmlFor="supplier_invoice_number">{t('Supplier Invoice Number')}</Label>
+                                    <Input id="supplier_invoice_number" value={data.supplier_invoice_number} onChange={(event) => setData('supplier_invoice_number', event.target.value)} />
+                                    <InputError message={(errors as any).supplier_invoice_number} />
+                                </div>
+                                <div>
+                                    <Label htmlFor="purchase_order_number">{t('Purchase Order Number')}</Label>
+                                    <Input id="purchase_order_number" value={data.purchase_order_number} onChange={(event) => setData('purchase_order_number', event.target.value)} />
+                                    <InputError message={(errors as any).purchase_order_number} />
+                                </div>
                                 <div>
                                     <Label htmlFor="payment_terms">
                                         {t('Payment Terms')}
@@ -296,6 +317,7 @@ export default function Create() {
                                     onClick={() => {
                                         const newItem = {
                                             product_id: 0,
+                                            description: '',
                                             account_id: null,
                                             quantity: 1,
                                             unit_price: 0,

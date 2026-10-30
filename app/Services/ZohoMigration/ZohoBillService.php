@@ -250,6 +250,7 @@ class ZohoBillService
                     'payment_terms' => $header['payment_terms'],
                     'notes' => $header['notes'],
                     'currency_code' => $header['currency_code'],
+                    'base_currency_code' => strtoupper((string) $batch->base_currency),
                     'exchange_rate' => $header['exchange_rate'],
                     'creator_id' => $actorId,
                     'created_by' => $batch->tenant_id,

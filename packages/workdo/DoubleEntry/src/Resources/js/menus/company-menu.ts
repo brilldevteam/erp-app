@@ -6,7 +6,7 @@ declare global {
 
 export const doubleentryCompanyMenu = (t: (key: string) => string) => [
     {
-        title: t('Double Entry'),
+        title: t('Reports'),
         icon: BookOpen,
         permission: 'manage-double-entry',
         order: 39,

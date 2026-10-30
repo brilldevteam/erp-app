@@ -62,7 +62,7 @@ export default function Comparison() {
         return (
             <AuthenticatedLayout
                 breadcrumbs={[
-                    {label: t('Double Entry')},
+                    {label: t('Reports')},
                     {label: t('Balance Sheets'), url: route('double-entry.balance-sheets.index')},
                     {label: t('Comparison')}
                 ]}
@@ -173,7 +173,7 @@ export default function Comparison() {
     return (
         <AuthenticatedLayout
             breadcrumbs={[
-                {label: t('Double Entry')},
+                {label: t('Reports')},
                 {label: t('Balance Sheets'), url: route('double-entry.balance-sheets.index')},
                 {label: t('Comparison')}
             ]}

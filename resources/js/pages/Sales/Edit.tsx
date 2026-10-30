@@ -214,7 +214,12 @@ export default function Edit() {
                                         {t('Customer')}
                                     </Label>
                                     <Select value={data.customer_id} onValueChange={(value) => {
-                                        setData('customer_id', value);
+                                        const preferredCurrency = customers.find((customer) => String(customer.id) === value)?.preferred_currency_code;
+                                        setData((current) => ({
+                                            ...current,
+                                            customer_id: value,
+                                            ...(preferredCurrency ? { currency_code: preferredCurrency, exchange_rate: '' } : {}),
+                                        }));
                                         if (value) clearErrors('customer_id');
                                     }}>
                                         <SelectTrigger>
@@ -300,6 +305,12 @@ export default function Edit() {
                                         onChange={(e) => setData('payment_terms', e.target.value)}
                                         placeholder={t('e.g., Net 30')}
                                     />
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="sales_order_reference">{t('Sales Order Reference')}</Label>
+                                    <Input id="sales_order_reference" value={data.sales_order_reference || ''} onChange={(event) => setData('sales_order_reference', event.target.value)} />
+                                    <InputError message={(errors as any).sales_order_reference} />
                                 </div>
 
                                 <div>

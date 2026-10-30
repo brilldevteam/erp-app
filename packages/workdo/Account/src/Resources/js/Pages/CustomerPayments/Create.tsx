@@ -205,7 +205,8 @@ export default function Create({ customers, bankAccounts, onSuccess, defaultCust
                         <Label htmlFor="customer_id" required>{t('Customer')}</Label>
                         <Select value={data.customer_id} onValueChange={(value) => {
                             if (value === 'create-customer') { setIsCustomerDialogOpen(true); return; }
-                            setData('customer_id', value);
+                            const currency = customerOptions.find((customer) => String(customer.id) === value)?.preferred_currency_code;
+                            setData((current) => ({ ...current, customer_id: value, ...(currency ? { currency_code: currency, exchange_rate: '' } : {}) }));
                         }}>
                             <SelectTrigger>
                                 <SelectValue placeholder={t('Select Customer')} />

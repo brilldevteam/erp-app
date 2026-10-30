@@ -24,6 +24,7 @@ export interface Vendor {
     tax_number?: string;
     cr_number?: string;
     payment_terms?: string;
+    preferred_currency_code?: string;
     currency_code: string;
     credit_limit?: number;
     billing_address: Address;
@@ -47,6 +48,7 @@ export interface Vendor {
         id: number;
         name: string;
         avatar?: string;
+        preferred_currency_code?: string | null;
         is_enable_login?: boolean;
         is_disable?: number;
     };
@@ -78,6 +80,7 @@ export interface CreateVendorFormData {
     tax_number: string;
     cr_number: string;
     payment_terms: string;
+    preferred_currency_code: string;
     billing_address: Address;
     shipping_address: Address;
     same_as_billing: boolean;

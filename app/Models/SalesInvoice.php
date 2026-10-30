@@ -11,10 +11,12 @@ class SalesInvoice extends Model
     protected $fillable = [
         'quotation_id',
         'currency_code',
+        'base_currency_code',
         'exchange_rate',
         'base_amount',
         'document_template_id',
         'invoice_number',
+        'sales_order_reference',
         'invoice_date',
         'due_date',
         'customer_id',

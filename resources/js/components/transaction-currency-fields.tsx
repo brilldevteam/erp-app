@@ -52,20 +52,14 @@ export default function TransactionCurrencyFields({
         }
     };
 
-    const selectCurrency = async (value: string) => {
+    const selectCurrency = (value: string) => {
         onCurrencyChange(value);
         if (value === baseCurrency) {
             onRateChange('1.00000000');
             return;
         }
-        const query = new URLSearchParams({ currency_code: value, ...(transactionDate ? { date: transactionDate } : {}) });
-        const response = await fetch(`${route('account.currency-rates.latest')}?${query.toString()}`);
-        if (response.ok) {
-            const result = await response.json();
-            onRateChange(result.exchange_rate);
-        } else {
-            onRateChange('');
-        }
+        // A transaction rate is an auditable snapshot, so users enter the agreed rate explicitly.
+        onRateChange('');
     };
 
     const converted = Number(amount || 0) * Number(exchangeRate || 0);

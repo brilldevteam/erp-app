@@ -41,6 +41,7 @@ class SalesInvoiceService
             $invoice->quotation_id = $quotation?->id;
             $invoice->document_template_id = $template->id;
             $invoice->invoice_date = $data['invoice_date'];
+            $invoice->sales_order_reference = $data['sales_order_reference'] ?? null;
             $invoice->due_date = $data['due_date'];
             $invoice->customer_id = $data['customer_id'];
             $invoice->warehouse_id = $data['type'] === 'product'
@@ -52,6 +53,7 @@ class SalesInvoiceService
             $invoice->subject = $data['subject'] ?? null;
             $invoice->notes = $data['notes'] ?? null;
             $invoice->currency_code = $currency['currency_code'];
+            $invoice->base_currency_code = $currency['base_currency_code'];
             $invoice->exchange_rate = $currency['exchange_rate'];
             $invoice->base_amount = $currency['base_amount'];
             $invoice->subtotal = $totals['subtotal'];

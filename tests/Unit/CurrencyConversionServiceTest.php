@@ -8,6 +8,12 @@ use Workdo\Account\Services\CurrencyConversionService;
 
 class CurrencyConversionServiceTest extends TestCase
 {
+    public static function setUpBeforeClass(): void
+    {
+        parent::setUpBeforeClass();
+        require_once dirname(__DIR__, 2).'/packages/workdo/Account/src/Services/CurrencyConversionService.php';
+    }
+
     #[DataProvider('conversionCases')]
     public function test_it_converts_and_rounds_transaction_amounts($amount, $rate, string $expected): void
     {

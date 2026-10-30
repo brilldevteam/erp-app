@@ -22,6 +22,8 @@ class StorePurchaseInvoiceRequest extends FormRequest
             'due_date' => 'required|date|after_or_equal:invoice_date',
             'currency_code' => 'required|string|size:3',
             'exchange_rate' => 'required|numeric|gt:0',
+            'supplier_invoice_number' => 'nullable|string|max:255',
+            'purchase_order_number' => 'nullable|string|max:255',
             'vendor_id' => 'required|exists:users,id',
             'project_contract_id' => ['nullable', 'integer', new ValidProjectContractForVendor($this->input('vendor_id'))],
             'warehouse_id' => 'nullable|exists:warehouses,id',
@@ -29,7 +31,7 @@ class StorePurchaseInvoiceRequest extends FormRequest
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'nullable|integer|min:1|exists:product_service_items,id',
-            'items.*.description' => 'required_without:items.*.product_id|nullable|string',
+            'items.*.description' => 'required_without:items.*.product_id|nullable|string|max:20000',
             'items.*.unit' => 'nullable|string|max:50',
 
             'items.*.account_id' => $this->lineAccountRule(),

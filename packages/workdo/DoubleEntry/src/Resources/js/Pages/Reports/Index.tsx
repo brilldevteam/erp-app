@@ -41,7 +41,7 @@ export default function Index() {
     return (
         <AuthenticatedLayout
             breadcrumbs={[
-                { label: t('Double Entry') },
+                { label: t('Reports') },
                 { label: t('Reports') }
             ]}
             pageTitle={t('Reports')}

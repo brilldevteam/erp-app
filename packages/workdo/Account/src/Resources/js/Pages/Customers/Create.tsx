@@ -12,6 +12,7 @@ import { CustomerFormData } from './types';
 import { useFormFields } from '@/hooks/useFormFields';
 import { CustomerAddressFields } from '@/components/customer-address-fields';
 import PartyDocuments from '../Parties/PartyDocuments';
+import PreferredCurrencyField from '@/components/preferred-currency-field';
 interface CreateCustomerProps {
     onSuccess: (userId?: number) => void;
     returnToCurrentPage?: boolean;
@@ -28,6 +29,7 @@ export default function Create({ onSuccess, returnToCurrentPage = false, returnT
         tax_number: '',
         cr_number: '',
         payment_terms: '',
+        preferred_currency_code: '',
         billing_address: {
             name: '',
             country_code: '',
@@ -164,6 +166,7 @@ export default function Create({ onSuccess, returnToCurrentPage = false, returnT
                         />
                         <InputError message={errors.payment_terms} />
                     </div>
+                    <PreferredCurrencyField value={data.preferred_currency_code} onChange={(value) => setData('preferred_currency_code', value)} error={errors.preferred_currency_code} />
                 </div>
                 <CustomerAddressFields
                     kind="billing"

@@ -25,6 +25,10 @@ class DebitNote extends Model
         'total_amount',
         'applied_amount',
         'balance_amount',
+        'currency_code',
+        'base_currency_code',
+        'exchange_rate',
+        'base_amount',
         'notes',
         'approved_by',
         'creator_id',
@@ -38,7 +42,9 @@ class DebitNote extends Model
         'discount_amount' => 'decimal:2',
         'total_amount' => 'decimal:2',
         'applied_amount' => 'decimal:2',
-        'balance_amount' => 'decimal:2'
+        'balance_amount' => 'decimal:2',
+        'exchange_rate' => 'decimal:8',
+        'base_amount' => 'decimal:2',
     ];
 
     public function items(): HasMany

@@ -150,6 +150,7 @@ class CustomerPaymentController extends Controller
                         throw ValidationException::withMessages(['bank_account_id' => __('Select a bank account in the payment currency.')]);
                     }
                     $payment->currency_code = $currency['currency_code'];
+                    $payment->base_currency_code = $currency['base_currency_code'];
                     $payment->exchange_rate = $currency['exchange_rate'];
                     $payment->base_amount = $currency['base_amount'];
                     $payment->notes = $request->notes;
@@ -179,10 +180,22 @@ class CustomerPaymentController extends Controller
                             ]);
                         }
 
+                        if (strtoupper((string) $invoice->currency_code) !== $currency['currency_code']) {
+                            throw ValidationException::withMessages([
+                                'allocations' => __('All invoices must use the payment currency.'),
+                            ]);
+                        }
+
+                        $carryingBase = round((float) $allocation['amount'] * (float) ($invoice->exchange_rate ?: 1), 2);
+                        $settlementBase = round((float) $allocation['amount'] * (float) $currency['exchange_rate'], 2);
+
                         CustomerPaymentAllocation::create([
                             'payment_id' => $payment->id,
                             'invoice_id' => $allocation['invoice_id'],
                             'allocated_amount' => $allocation['amount'],
+                            'carrying_base_amount' => $carryingBase,
+                            'settlement_base_amount' => $settlementBase,
+                            'exchange_difference' => round($settlementBase - $carryingBase, 2),
                             'creator_id' => Auth::id(),
                             'created_by' => creatorId(),
                         ]);
@@ -383,6 +396,9 @@ class CustomerPaymentController extends Controller
                     'payment_id' => $payment->id,
                     'invoice_id' => $invoice->id,
                     'allocated_amount' => $amount,
+                    'carrying_base_amount' => $amountBase,
+                    'settlement_base_amount' => $amountBase,
+                    'exchange_difference' => 0,
                     'creator_id' => Auth::id(),
                     'created_by' => creatorId(),
                 ]);

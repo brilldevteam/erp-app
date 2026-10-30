@@ -78,6 +78,7 @@ class ZohoVendorPaymentService extends ZohoPaymentService
             'reference_number' => $header['reference'],
             'payment_amount' => $header['amount'],
             'currency_code' => $header['currency_code'],
+            'base_currency_code' => strtoupper((string) (company_setting('defaultCurrency', $tenantId) ?: 'USD')),
             'exchange_rate' => $rate,
             'base_amount' => round($header['amount'] * $rate, 2),
             'status' => 'cleared',
@@ -89,10 +90,14 @@ class ZohoVendorPaymentService extends ZohoPaymentService
 
         foreach ($allocations as $allocation) {
             $bill = $this->document($allocation['document_number'], $partnerId, $tenantId);
+            $carryingValue = round($allocation['applied'] * (float) ($bill->exchange_rate ?: 1), 2);
             VendorPaymentAllocation::create([
                 'payment_id' => $payment->id,
                 'invoice_id' => $bill->id,
                 'allocated_amount' => $allocation['applied'],
+                'carrying_base_amount' => $carryingValue,
+                'settlement_base_amount' => $carryingValue,
+                'exchange_difference' => 0,
             ]);
             $this->applyToDocument($bill, $allocation['applied']);
         }

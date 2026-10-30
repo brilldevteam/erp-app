@@ -40,6 +40,7 @@ class ZohoJournalWriter
             'total_credit' => $credit,
             'status' => 'posted',
             'base_amount' => $debit,
+            'base_currency_code' => strtoupper((string) (company_setting('defaultCurrency', $tenantId) ?: 'USD')),
             'creator_id' => $actorId,
             'created_by' => $tenantId,
         ]);

@@ -15,6 +15,7 @@ import { CustomerAddressFields } from '@/components/customer-address-fields';
 import { addressCountryCode } from '@/types/address';
 import PartyDocuments from '../Parties/PartyDocuments';
 import SavedPartyDocuments from '../Parties/SavedPartyDocuments';
+import PreferredCurrencyField from '@/components/preferred-currency-field';
 interface EditCustomerProps {
     customer: Customer;
     onSuccess: () => void;
@@ -30,6 +31,7 @@ export default function Edit({ customer, onSuccess }: EditCustomerProps) {
     const { data, setData, put, transform, processing, errors } = useForm<CustomerFormData>({
         ...customer,
         contact_person_email: customer.contact_person_email ?? '',
+        preferred_currency_code: customer.user?.preferred_currency_code || '',
         portal_access_enabled: portalAccessEnabled,
         password: '',
         password_confirmation: '',
@@ -154,6 +156,7 @@ export default function Edit({ customer, onSuccess }: EditCustomerProps) {
                         />
                         <InputError message={errors.payment_terms} />
                     </div>
+                    <PreferredCurrencyField value={data.preferred_currency_code} onChange={(value) => setData('preferred_currency_code', value)} error={errors.preferred_currency_code} />
                 </div>
                 <CustomerAddressFields
                     kind="billing"

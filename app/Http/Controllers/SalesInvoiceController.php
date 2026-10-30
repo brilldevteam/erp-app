@@ -40,6 +40,7 @@ class SalesInvoiceController extends Controller
             ->select(
                 'users.id',
                 'users.name',
+                'users.preferred_currency_code',
                 'customers.company_name',
                 'customers.contact_person_name',
                 'customers.contact_person_email as email'
@@ -123,6 +124,7 @@ class SalesInvoiceController extends Controller
                 $search = trim($request->search);
                 $query->where(function ($q) use ($search) {
                     $q->where('invoice_number', 'like', "%{$search}%")
+                        ->orWhere('sales_order_reference', 'like', "%{$search}%")
                         ->orWhereHas('customer', fn ($customer) => $customer->where('name', 'like', "%{$search}%"))
                         ->orWhereHas('customerDetails', function ($customer) use ($search) {
                             $customer->where('company_name', 'like', "%{$search}%")
@@ -308,6 +310,7 @@ class SalesInvoiceController extends Controller
 
             \Illuminate\Support\Facades\DB::transaction(function () use ($request, $salesInvoice, $totals, $currency) {
             $salesInvoice->invoice_date = $request->invoice_date;
+            $salesInvoice->sales_order_reference = $request->sales_order_reference;
             $salesInvoice->due_date = $request->due_date;
             $salesInvoice->customer_id = $request->customer_id;
             $salesInvoice->document_template_id = app(DocumentTemplateService::class)
@@ -321,6 +324,7 @@ class SalesInvoiceController extends Controller
             $salesInvoice->subject = $request->subject;
             $salesInvoice->notes = $request->notes;
             $salesInvoice->currency_code = $currency['currency_code'];
+            $salesInvoice->base_currency_code = $currency['base_currency_code'];
             $salesInvoice->exchange_rate = $currency['exchange_rate'];
             $salesInvoice->base_amount = $currency['base_amount'];
             $salesInvoice->subtotal = $totals['subtotal'];
@@ -599,7 +603,7 @@ class SalesInvoiceController extends Controller
 
     public function print(SalesInvoice $salesInvoice)
     {
-        if(Auth::user()->can('print-sales-invoices')){
+        if(Auth::user()->can('download-sales-invoices') && $salesInvoice->created_by == creatorId() && $this->checkInvoiceAccess($salesInvoice)){
             $salesInvoice->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'warehouse']);
             $templateService = app(DocumentTemplateService::class);
             $template = $templateService->resolveForDocument(

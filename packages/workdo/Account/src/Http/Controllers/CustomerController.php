@@ -40,7 +40,7 @@ class CustomerController extends Controller
 
             return Inertia::render('Account/Customers/Index', [
                 'customers' => $customers,
-                'editCustomer' => request('edit') ? Customer::with('user:id,email,is_enable_login,is_disable')->where('created_by', creatorId())->find(request('edit')) : null,
+                'editCustomer' => request('edit') ? Customer::with('user:id,email,preferred_currency_code,is_enable_login,is_disable')->where('created_by', creatorId())->find(request('edit')) : null,
             ]);
         }
         return back()->with('error', __('Permission denied'));
@@ -69,6 +69,7 @@ class CustomerController extends Controller
             try {
                 $user = DB::transaction(function () use ($customer, $validated, $request, $portalAccounts, $attachments, &$paths) {
                     $user = $portalAccounts->create($customer, 'client', $validated, creatorId(), Auth::id());
+                    $user->update(['preferred_currency_code' => strtoupper((string) ($validated['preferred_currency_code'] ?? company_setting('defaultCurrency', creatorId()) ?: 'USD'))]);
                     $customer->save();
                     $attachments->store($customer, $request->file('attachments', []), $paths);
                     return $user;
@@ -111,6 +112,7 @@ class CustomerController extends Controller
             try {
                 $user = DB::transaction(function () use ($customer, $validated, $request, $portalAccounts, $attachments, &$paths) {
                     $user = $portalAccounts->sync($customer, 'client', $validated, creatorId(), Auth::id());
+                    $user->update(['preferred_currency_code' => strtoupper((string) ($validated['preferred_currency_code'] ?? company_setting('defaultCurrency', creatorId()) ?: 'USD'))]);
                     $customer->save();
                     $attachments->store($customer, $request->file('attachments', []), $paths);
                     return $user;

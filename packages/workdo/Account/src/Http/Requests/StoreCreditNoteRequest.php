@@ -16,6 +16,8 @@ class StoreCreditNoteRequest extends FormRequest
         return [
             'customer_id' => 'required|exists:users,id',
             'credit_note_date' => 'required|date',
+            'currency_code' => 'required|string|size:3',
+            'exchange_rate' => 'required|numeric|gt:0',
             'reason' => 'required|string|max:255',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',

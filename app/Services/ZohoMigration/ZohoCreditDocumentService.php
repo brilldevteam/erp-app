@@ -32,8 +32,7 @@ abstract class ZohoCreditDocumentService
         protected readonly ZohoProfileCatalog $profiles,
         protected readonly ZohoFreeTextLineProduct $lineProduct,
         protected readonly ZohoJournalWriter $journals,
-    ) {
-    }
+    ) {}
 
     /**
      * Stage key, Zoho column names (id, number, date, status, partner, linked document), labels, the ERP
@@ -139,13 +138,13 @@ abstract class ZohoCreditDocumentService
         if ($row['action'] === null) {
             $errors[] = "{$c['label']} status '{$row['zoho_status']}' is not a known Zoho status.";
         }
-        if (!$row['date']) {
+        if (! $row['date']) {
             $errors[] = "Date '{$row['date_source']}' is not a valid date.";
         }
         $partner = $row['partner'] !== '' ? $this->partnerUser($row['partner'], $batch->tenant_id) : null;
         if ($row['partner'] === '') {
             $errors[] = "{$c['partner_label']} Name is required.";
-        } elseif (!$partner) {
+        } elseif (! $partner) {
             $errors[] = "{$c['partner_label']} '{$row['partner']}' was not found in ERP. Complete the {$c['partner_step']} step first.";
         }
         if ($row['quantity'] <= 0) {
@@ -158,12 +157,12 @@ abstract class ZohoCreditDocumentService
             $errors[] = 'Item Total '.number_format($row['line_total'], 2).' does not fit Quantity × Item Price ('.number_format($row['quantity'] * $row['unit_price'], 2).').';
         }
         if ($row['tax_amount'] != 0.0) {
-            $errors[] = "This line has Zoho tax (".number_format($row['tax_amount'], 2)."); taxed {$c['label_plural']} are not supported by this import yet.";
+            $errors[] = 'This line has Zoho tax ('.number_format($row['tax_amount'], 2)."); taxed {$c['label_plural']} are not supported by this import yet.";
         }
-        if (!$this->lineAccount($row, $batch->tenant_id)) {
+        if (! $this->lineAccount($row, $batch->tenant_id)) {
             $errors[] = "Account {$row['account_code']} ({$row['account_name']}) was not found in ERP. Complete the Chart of Accounts step first.";
         }
-        if ($this->postsDiscounts() && $this->lineDiscount($row) > 0 && !$this->discountAccount($batch->tenant_id)) {
+        if ($this->postsDiscounts() && $this->lineDiscount($row) > 0 && ! $this->discountAccount($batch->tenant_id)) {
             $errors[] = 'Zoho posts item discounts to its Discount account, and ERP has no single account named Discount. Complete the Chart of Accounts step first.';
         }
         if ($row['currency_code'] !== strtoupper((string) $batch->base_currency) && $row['exchange_rate'] <= 0) {
@@ -183,10 +182,10 @@ abstract class ZohoCreditDocumentService
                 }
             }
             if ($row['action'] === 'post') {
-                if (!$this->controlAccount($batch->tenant_id)) {
+                if (! $this->controlAccount($batch->tenant_id)) {
                     $errors[] = "Account {$c['control_code']} ({$c['control_name']}) was not found in ERP.";
                 }
-                if (!$existing && JournalEntry::where('journal_number', $this->journalNumber($row, $batch->tenant_id))->exists()) {
+                if (! $existing && JournalEntry::where('journal_number', $this->journalNumber($row, $batch->tenant_id))->exists()) {
                     $errors[] = 'Journal number '.$this->journalNumber($row, $batch->tenant_id)." is already used; this {$c['label']} may have been imported before.";
                 }
             }
@@ -207,7 +206,7 @@ abstract class ZohoCreditDocumentService
     {
         $c = $this->config();
         $stage = $batch->stages()->where('stage_key', $c['stage_key'])->firstOrFail();
-        if (!in_array($stage->status, ZohoChartOfAccountsService::EXECUTABLE_STATUSES, true) || $stage->rejected_count > 0) {
+        if (! in_array($stage->status, ZohoChartOfAccountsService::EXECUTABLE_STATUSES, true) || $stage->rejected_count > 0) {
             throw new RuntimeException("Resolve all validation issues before importing {$c['label_plural']}.");
         }
 
@@ -226,7 +225,7 @@ abstract class ZohoCreditDocumentService
         $documents = [];
         foreach ($rows as $row) {
             $data = $prepared[(int) $row->source_row_number];
-            if (!$data['include']) {
+            if (! $data['include']) {
                 throw new RuntimeException('Row '.$row->source_row_number.' ('.$data['number'].') is now '.$data['zoho_status'].' in the file. Upload the file again to re-check it.');
             }
             if ($issues = $this->issues($data, $batch, (int) $row->source_row_number, $context)) {
@@ -254,6 +253,7 @@ abstract class ZohoCreditDocumentService
                     foreach ($lines as [$row]) {
                         $row->update(['status' => 'skipped']);
                     }
+
                     continue;
                 }
 
@@ -337,7 +337,7 @@ abstract class ZohoCreditDocumentService
     }
 
     /** Document totals, plus notes that keep what the ERP lines cannot hold (Zoho line text) and Zoho context. */
-    protected function documentValues(array $header, array $lines): array
+    protected function documentValues(array $header, array $lines, int $tenantId): array
     {
         $c = $this->config();
         $subtotal = round(array_sum(array_map(fn (array $line) => round($line['quantity'] * $line['unit_price'], 2), $lines)), 2);
@@ -348,7 +348,7 @@ abstract class ZohoCreditDocumentService
             $header['zoho_notes'],
             "Zoho lines:\n".implode("\n", $lineText),
             $header['terms'] !== '' ? "Terms & Conditions:\n{$header['terms']}" : '',
-            $header['linked_numbers'] ? "Applied in Zoho to: ".implode(', ', $header['linked_numbers']) : '',
+            $header['linked_numbers'] ? 'Applied in Zoho to: '.implode(', ', $header['linked_numbers']) : '',
             'Zoho status: '.ucfirst(mb_strtolower($header['zoho_status'])),
         ]);
 
@@ -362,6 +362,7 @@ abstract class ZohoCreditDocumentService
             'balance_amount' => $total,
             'notes' => implode("\n\n", $notes),
             'currency_code' => $header['currency_code'],
+            'base_currency_code' => strtoupper((string) (company_setting('defaultCurrency', $tenantId) ?: 'USD')),
             'exchange_rate' => $header['exchange_rate'],
             'base_amount' => round($total * $header['exchange_rate'], 2),
         ];

@@ -26,6 +26,7 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
     const addItem = () => {
         const newItem: PurchaseInvoiceItem = {
             product_id: 0,
+            description: '',
             quantity: 1,
             unit_price: 0,
             discount_type: 'percentage',
@@ -94,6 +95,7 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
             // Stock products are bought into Inventory unless another account is chosen; services keep the chosen account
             account_id: product?.type === 'product' ? (newItems[index].account_id || inventoryAccountId) : (newItems[index].account_id ?? null),
             unit_price: Number(product?.purchase_price) || 0,
+            unit: product?.unit || newItems[index].unit,
             tax_percentage: Number(totalTaxRate) || 0,
             taxes: taxes
         };
@@ -159,7 +161,15 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                         value={item.product_id}
                                         onChange={(productId, product) => handleProductSelect(index, productId, product)}
                                     />
+                                    <textarea
+                                        value={item.description || ''}
+                                        onChange={(event) => updateItem(index, 'description', event.target.value)}
+                                        placeholder={t('Item description')}
+                                        rows={3}
+                                        className="mt-2 min-h-20 w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                    />
                                     <InputError message={errors[`items.${index}.product_id`]} />
+                                    <InputError message={errors[`items.${index}.description`]} />
                                 </td>
                                 <td className="px-2 py-4">
                                     <Select

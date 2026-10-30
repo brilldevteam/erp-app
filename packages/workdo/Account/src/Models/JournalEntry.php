@@ -19,6 +19,7 @@ class JournalEntry extends Model
         'total_debit',
         'total_credit',
         'currency_code',
+        'base_currency_code',
         'exchange_rate',
         'foreign_amount',
         'base_amount',

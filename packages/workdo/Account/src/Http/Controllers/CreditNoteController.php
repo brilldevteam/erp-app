@@ -92,7 +92,7 @@ class CreditNoteController extends Controller
 
             $creditNotes = $query->paginate($request->per_page ?? 10)->withQueryString();
 
-            $customers = User::where('type', 'client')->where('created_by', creatorId())->get(['id', 'name']);
+            $customers = User::where('type', 'client')->where('created_by', creatorId())->get(['id', 'name', 'preferred_currency_code']);
             $salesReturns = SalesInvoiceReturn::where('created_by', creatorId())->get(['id', 'return_number']);
 
             return Inertia::render('Account/CreditNotes/Index', [
@@ -180,6 +180,9 @@ class CreditNoteController extends Controller
                 }
 
                 $totalAmount = $subtotal + $taxAmount;
+                $currency = app(\Workdo\Account\Services\CurrencyConversionService::class)->transactionValues(
+                    [...$validated, 'total_amount' => $totalAmount], 'total_amount', $tenantId
+                );
 
                 $creditNote = CreditNote::create([
                     'credit_note_date' => $validated['credit_note_date'],
@@ -192,6 +195,10 @@ class CreditNoteController extends Controller
                     'total_amount' => $totalAmount,
                     'applied_amount' => 0,
                     'balance_amount' => $totalAmount,
+                    'currency_code' => $currency['currency_code'],
+                    'base_currency_code' => $currency['base_currency_code'],
+                    'exchange_rate' => $currency['exchange_rate'],
+                    'base_amount' => $currency['base_amount'],
                     'notes' => $validated['notes'] ?? null,
                     'creator_id' => Auth::id(),
                     'created_by' => $tenantId,

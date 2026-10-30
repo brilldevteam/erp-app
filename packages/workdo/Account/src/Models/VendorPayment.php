@@ -18,6 +18,7 @@ class VendorPayment extends Model
         'reference_number',
         'payment_amount',
         'currency_code',
+        'base_currency_code',
         'exchange_rate',
         'base_amount',
         'status',
