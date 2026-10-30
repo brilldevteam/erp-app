@@ -75,6 +75,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Added the tenant-scoped Zoho migration workspace foundation with immutable accounting-mode configuration, private hashed uploads, conservative export-profile detection, durable staged source rows, dedicated permissions, and queued file inspection. This foundation does not create financial records.
 
 ### Fixed
+- Multi-currency invoice lists now fall back to the configured company base currency and saved exchange rate when legacy rows lack base-currency snapshot fields, keeping QAR on the main line with the selected foreign currency beneath it.
 - After a large upload, the page now updates on its own when validation finishes. The step previously left "processing" as soon as the file was read, so the page stopped refreshing and showed "Recheck corrections" until reloaded.
 - Expenses booked to an account that is also an internal clearing bank account (e.g. Salary Payable) now add that account's bank register line, so clearing account registers equal their ledger. Clearing accounts are created before any expense posts.
 - Validation of a step with several files no longer lets rows of one file overwrite rows of another that share a row number.

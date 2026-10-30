@@ -211,7 +211,7 @@ export default function Index() {
             key: 'total_amount',
             header: t('Total Amount'),
             sortable: true,
-            render: (value: number, invoice: SalesInvoice) => <DualCurrencyAmount baseFirst amount={value} currencyCode={invoice.currency_code} baseAmount={invoice.base_amount} baseCurrencyCode={invoice.base_currency_code} />
+            render: (value: number, invoice: SalesInvoice) => <DualCurrencyAmount baseFirst amount={value} currencyCode={invoice.currency_code} baseAmount={invoice.base_amount ?? Number(value) * Number(invoice.exchange_rate || 1)} baseCurrencyCode={invoice.base_currency_code} />
         },
         {
             key: 'balance_amount',
@@ -602,7 +602,7 @@ export default function Index() {
                                                         <div className="border-t mt-2 pt-2">
                                                             <div className="flex justify-between items-center">
                                                                 <span className="text-sm font-semibold text-gray-900">{t('Total Amount')}</span>
-                                                                <DualCurrencyAmount baseFirst className="text-lg font-bold text-gray-900" amount={invoice.total_amount} currencyCode={invoice.currency_code} baseAmount={invoice.base_amount} baseCurrencyCode={invoice.base_currency_code} />
+                                                                <DualCurrencyAmount baseFirst className="text-lg font-bold text-gray-900" amount={invoice.total_amount} currencyCode={invoice.currency_code} baseAmount={invoice.base_amount ?? Number(invoice.total_amount) * Number(invoice.exchange_rate || 1)} baseCurrencyCode={invoice.base_currency_code} />
                                                             </div>
                                                             <div className="flex justify-between items-center mt-1">
                                                                 <span className="text-xs text-gray-600">{t('Balance Due')}</span>

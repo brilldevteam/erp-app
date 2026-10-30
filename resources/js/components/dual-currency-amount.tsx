@@ -1,3 +1,4 @@
+import { usePage } from '@inertiajs/react';
 import { formatTransactionMoney } from '@/utils/transaction-money';
 
 type Props = {
@@ -10,8 +11,9 @@ type Props = {
 };
 
 export default function DualCurrencyAmount({ amount, currencyCode, baseAmount, baseCurrencyCode, className, baseFirst = false }: Props) {
-    const transactionCurrency = currencyCode || baseCurrencyCode || 'USD';
-    const baseCurrency = baseCurrencyCode || transactionCurrency;
+    const companyBaseCurrency = ((usePage().props as any).companyAllSetting?.defaultCurrency || 'QAR').toUpperCase();
+    const transactionCurrency = (currencyCode || baseCurrencyCode || companyBaseCurrency).toUpperCase();
+    const baseCurrency = (baseCurrencyCode || companyBaseCurrency).toUpperCase();
     const showBase = transactionCurrency !== baseCurrency && baseAmount !== null && baseAmount !== undefined;
     const primaryAmount = baseFirst && showBase ? baseAmount : amount;
     const primaryCurrency = baseFirst && showBase ? baseCurrency : transactionCurrency;
