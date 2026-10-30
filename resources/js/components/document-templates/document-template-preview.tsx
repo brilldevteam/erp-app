@@ -1,6 +1,7 @@
 import { lineDiscountLabel } from '@/utils/line-discount';
 import { DocumentTemplate, DocumentTemplateConfig, TemplateSampleDocument } from '@/types/document-template';
 import { formatCurrency, getImagePath } from '@/utils/helpers';
+import { formatTransactionMoney } from '@/utils/transaction-money';
 import { Globe2, Mail, MapPin, Phone } from 'lucide-react';
 import { useState } from 'react';
 import '@fontsource/noto-sans/400.css';
@@ -19,7 +20,10 @@ const labels: Record<string, string> = {
 // Slightly under a full A4 page: html2pdf rounds 297mm up past its own page height and emits a blank trailing page.
 const A4_PAGE_MIN_HEIGHT = 'calc(297mm - 4px)';
 
-const money = (value: number) => formatCurrency(value);
+// A foreign-currency document prints in its own currency; others use the company currency format.
+const documentMoney = (document: TemplateSampleDocument) => (value: number) => document.currency_code
+    ? formatTransactionMoney(value, document.currency_code)
+    : formatCurrency(value);
 const hasTax = (item: Record<string, any>) => Boolean(item.has_tax ?? Number(item.tax) > 0);
 
 const documentColumns = (columns: string[]) => {
@@ -56,6 +60,7 @@ export default function DocumentTemplatePreview({
     document: TemplateSampleDocument;
     compact?: boolean;
 }) {
+    const money = documentMoney(document);
     const config = template.config_json;
     const color = template.primary_color || '#10b981';
     const logo = template.logo_url || document.company.logo;
@@ -186,6 +191,7 @@ export default function DocumentTemplatePreview({
 }
 
 function PaymentTemplatePreview({ template, document, compact, logo, signature }: { template: Partial<DocumentTemplate> & { config_json: DocumentTemplateConfig }; document: TemplateSampleDocument; compact: boolean; logo?: string | null; signature?: string | null }) {
+    const money = documentMoney(document);
     const config = template.config_json;
     const amount = document.totals.grand_total || 600;
 
@@ -244,6 +250,7 @@ function ReferenceQuotationTemplate({
     document: TemplateSampleDocument;
     compact: boolean;
 }) {
+    const money = documentMoney(document);
     const [logoFailed, setLogoFailed] = useState(false);
     const config = template.config_json;
     const logo = template.logo_url || document.company.logo;
@@ -358,6 +365,7 @@ function ReferenceInvoiceTemplate({
     document: TemplateSampleDocument;
     compact: boolean;
 }) {
+    const money = documentMoney(document);
     const [logoFailed, setLogoFailed] = useState(false);
     const config = template.config_json;
     const logo = template.logo_url || document.company.logo;

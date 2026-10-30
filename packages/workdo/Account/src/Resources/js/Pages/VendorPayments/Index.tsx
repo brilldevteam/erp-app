@@ -202,11 +202,14 @@ export default function Index() {
                 const currency = payment.currency_code || baseCurrency;
                 return <div className="font-normal text-gray-900">
                     <div className="whitespace-nowrap" dir="ltr">{formatMoney(value, currency)}</div>
-                    {currency !== baseCurrency && payment.allocations?.length > 0 && (
-                        <div className="mt-0.5 whitespace-nowrap text-xs text-gray-500" dir="ltr">
-                            {t('Invoice')}: {payment.allocations.map((allocation) => formatMoney(allocation.allocated_amount, allocation.invoice?.currency_code || baseCurrency)).join(', ')}
-                        </div>
-                    )}
+                    {currency !== baseCurrency && (() => {
+                        // Base-currency amount actually settled: green for an exchange gain, red for a loss (paying a vendor more base currency than the bills were booked at is a loss).
+                        const difference = (payment.allocations || []).reduce((sum, allocation) => sum + Number(allocation.exchange_difference || 0), 0);
+                        const tone = Math.abs(difference) < 0.005 ? 'text-gray-500' : difference < 0 ? 'text-green-600' : 'text-red-600';
+                        return <div className={`mt-0.5 whitespace-nowrap text-xs font-medium ${tone}`} dir="ltr">
+                            {formatMoney(payment.base_amount ?? Number(value) * Number(payment.exchange_rate || 1), baseCurrency)}
+                        </div>;
+                    })()}
                 </div>;
             }
         },

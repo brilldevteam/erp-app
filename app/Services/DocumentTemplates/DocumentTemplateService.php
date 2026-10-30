@@ -344,6 +344,10 @@ class DocumentTemplateService
             'payment_terms' => $document->payment_terms,
             'subject' => $document->subject,
             'notes' => $document->notes,
+            // Amounts are in the document currency; a foreign-currency document is printed in that currency.
+            'currency_code' => $document->currency_code && $document->base_currency_code && strtoupper($document->currency_code) !== strtoupper($document->base_currency_code)
+                ? strtoupper($document->currency_code)
+                : null,
             'balance_due' => $type === DocumentTemplate::TYPE_INVOICE
                 ? (float) ($document->balance_amount ?? $document->total_amount)
                 : (float) $document->total_amount,

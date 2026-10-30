@@ -30,11 +30,13 @@ class BankTransactionsService
             return $existing;
         }
 
+        $amount = $this->amountInAccountCurrency($vendorPayment);
+
         // Get current running balance for the bank account
         $lastTransaction = BankTransaction::where('bank_account_id', $vendorPayment->bank_account_id)
             ->orderBy('id', 'desc')
             ->first();
-        $runningBalance = $lastTransaction ? $lastTransaction->running_balance - $vendorPayment->payment_amount : -$vendorPayment->payment_amount;
+        $runningBalance = $lastTransaction ? $lastTransaction->running_balance - $amount : -$amount;
 
         $bankTransaction = new BankTransaction();
         $bankTransaction->bank_account_id = $vendorPayment->bank_account_id;
@@ -46,7 +48,7 @@ class BankTransactionsService
         if ($mode) {
             $bankTransaction->description .= ' (' . $mode . ')';
         }
-        $bankTransaction->amount = $vendorPayment->payment_amount;
+        $bankTransaction->amount = $amount;
         $bankTransaction->running_balance = $runningBalance;
         $bankTransaction->transaction_status = 'cleared';
         $bankTransaction->reconciliation_status = 'unreconciled';
@@ -54,7 +56,7 @@ class BankTransactionsService
         $bankTransaction->save();
 
          // Update bank account balance
-        $this->updateBankBalance($vendorPayment->bank_account_id, -$vendorPayment->payment_amount);
+        $this->updateBankBalance($vendorPayment->bank_account_id, -$amount);
     }
 
     public function createCustomerPayment($customerPayment)
@@ -66,11 +68,13 @@ class BankTransactionsService
             return $existing;
         }
 
+        $amount = $this->amountInAccountCurrency($customerPayment);
+
         // Get current running balance for the bank account
         $lastTransaction = BankTransaction::where('bank_account_id', $customerPayment->bank_account_id)
             ->orderBy('id', 'desc')
             ->first();
-        $runningBalance = $lastTransaction ? $lastTransaction->running_balance + $customerPayment->payment_amount : $customerPayment->payment_amount;
+        $runningBalance = $lastTransaction ? $lastTransaction->running_balance + $amount : $amount;
 
         $bankTransaction = new BankTransaction();
         $bankTransaction->bank_account_id = $customerPayment->bank_account_id;
@@ -82,7 +86,7 @@ class BankTransactionsService
         if ($mode) {
             $bankTransaction->description .= ' (' . $mode . ')';
         }
-        $bankTransaction->amount = $customerPayment->payment_amount;
+        $bankTransaction->amount = $amount;
         $bankTransaction->running_balance = $runningBalance;
         $bankTransaction->transaction_status = 'cleared';
         $bankTransaction->reconciliation_status = 'unreconciled';
@@ -90,7 +94,7 @@ class BankTransactionsService
         $bankTransaction->save();
 
         // Update bank account balance
-        $this->updateBankBalance($customerPayment->bank_account_id, $customerPayment->payment_amount);
+        $this->updateBankBalance($customerPayment->bank_account_id, $amount);
     }
 
     public function createTransferBankTransactions($transfer)
@@ -148,6 +152,20 @@ class BankTransactionsService
             $chargesTransaction->created_by = creatorId();
             $chargesTransaction->save();
         }
+    }
+
+    /**
+     * A payment in a foreign currency may be received into or paid from a base-currency account: that account's register
+     * then moves by the base-currency equivalent, as when the bank converts the money.
+     */
+    private function amountInAccountCurrency($payment): float
+    {
+        $accountCurrency = strtoupper((string) (BankAccount::whereKey($payment->bank_account_id)->value('currency_code') ?: $payment->base_currency_code));
+        if (!$payment->currency_code || $accountCurrency === '' || $accountCurrency === strtoupper($payment->currency_code)) {
+            return (float) $payment->payment_amount;
+        }
+
+        return (float) ($payment->base_amount ?? round((float) $payment->payment_amount * (float) ($payment->exchange_rate ?: 1), 2));
     }
 
     public function updateBankBalance($bankAccountId, $amount) {

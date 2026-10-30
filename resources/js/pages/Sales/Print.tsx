@@ -4,6 +4,7 @@ import { Head, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import html2pdf from 'html2pdf.js';
 import { formatCurrency, formatDate, getCompanySetting } from '@/utils/helpers';
+import { formatTransactionMoney } from '@/utils/transaction-money';
 import { SalesInvoice } from './types';
 import { usePageButtons } from '@/hooks/usePageButtons';
 import { useFormFields } from '@/hooks/useFormFields';
@@ -22,6 +23,8 @@ interface PrintProps {
 export default function Print() {
     const { t } = useTranslation();
     const { invoice, documentTemplate, templateDocument } = usePage<PrintProps>().props;
+    const isForeignInvoice = Boolean(invoice.base_currency_code) && invoice.currency_code !== invoice.base_currency_code;
+    const money = (value: number | string) => isForeignInvoice ? formatTransactionMoney(value, invoice.currency_code) : formatCurrency(value);
     const [isDownloading, setIsDownloading] = useState(false);
     const [fieldsLoaded, setFieldsLoaded] = useState(false);
 
@@ -219,9 +222,9 @@ export default function Print() {
                                     {invoice.type === 'product' && (
                                         <td className="text-center py-4">{item.quantity}</td>
                                     )}
-                                    <td className="text-right py-4">{formatCurrency(item.unit_price)}</td>
+                                    <td className="text-right py-4">{money(item.unit_price)}</td>
                                     <td className="text-right py-4">
-                                        <div className="text-sm">{lineDiscountLabel(item) ?? '-'}</div>
+                                        <div className="text-sm">{lineDiscountLabel(item, money) ?? '-'}</div>
                                     </td>
                                     <td className="text-right py-4">
                                         {item.taxes && item.taxes.length > 0 ? (
@@ -229,16 +232,16 @@ export default function Print() {
                                                 {item.taxes.map((tax, taxIndex) => (
                                                     <div key={taxIndex} className="text-sm">{tax.tax_name} ({tax.tax_rate}%)</div>
                                                 ))}
-                                                <div className="text-sm font-medium">{formatCurrency(item.tax_amount)}</div>
+                                                <div className="text-sm font-medium">{money(item.tax_amount)}</div>
                                             </>
                                         ) : item.tax_percentage > 0 ? (
                                             <>
                                                 <div className="text-sm">{item.tax_percentage}%</div>
-                                                <div className="text-sm font-medium">{formatCurrency(item.tax_amount)}</div>
+                                                <div className="text-sm font-medium">{money(item.tax_amount)}</div>
                                             </>
                                         ) : '-'}
                                     </td>
-                                    <td className="text-right py-4 font-semibold">{formatCurrency(item.total_amount)}</td>
+                                    <td className="text-right py-4 font-semibold">{money(item.total_amount)}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -251,18 +254,18 @@ export default function Print() {
                             <div className="space-y-2">
                                 <div className="flex justify-between">
                                     <span>{t('Subtotal')}:</span>
-                                    <span>{formatCurrency(invoice.subtotal)}</span>
+                                    <span>{money(invoice.subtotal)}</span>
                                 </div>
                                 {invoice.discount_amount > 0 && (
                                     <div className="flex justify-between">
                                         <span>{t('Discount')}:</span>
-                                        <span>-{formatCurrency(invoice.discount_amount)}</span>
+                                        <span>-{money(invoice.discount_amount)}</span>
                                     </div>
                                 )}
                                 {invoice.tax_amount > 0 && (
                                     <div className="flex justify-between">
                                         <span>{t('Tax')}:</span>
-                                        <span>{formatCurrency(invoice.tax_amount)}</span>
+                                        <span>{money(invoice.tax_amount)}</span>
                                     </div>
                                 )}
                                 <div className="border-t border-gray-400 pt-2 mt-2">

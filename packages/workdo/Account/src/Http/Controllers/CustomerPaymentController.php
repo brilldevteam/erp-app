@@ -116,23 +116,21 @@ class CustomerPaymentController extends Controller
                 ->where('customer_id', $request->customer_id)
                 ->where('created_by', creatorId())
                 ->get()->keyBy('id');
-            $totalInvoiceBaseAmount = $allocations->sum(function ($allocation) use ($allocationInvoices) {
-                $invoice = $allocationInvoices->get($allocation['invoice_id']);
-                return (float) $allocation['amount'] * (float) ($invoice?->exchange_rate ?: 1);
-            });
-            $totalCreditNoteBaseAmount = $creditNotes->sum(function ($creditNote) use ($allocationCreditNotes) {
-                $note = $allocationCreditNotes->get($creditNote['credit_note_id']);
-                return (float) $creditNote['amount'] * (float) ($note?->exchange_rate ?: 1);
+            // Invoices must be in the payment currency, so allocations are compared in that currency: a rate that moved since
+            // the invoice changes only the base amounts (the exchange gain or loss), never how much of the invoice is paid.
+            $totalInvoiceAmount = (float) $allocations->sum(fn ($allocation) => (float) $allocation['amount']);
+            $totalCreditNoteAmount = (float) $creditNotes->sum(function ($creditNote) use ($allocationCreditNotes, $currency) {
+                return $this->inPaymentCurrency((float) $creditNote['amount'], $allocationCreditNotes->get($creditNote['credit_note_id']), $currency);
             });
 
             // Validate credit note amount doesn't exceed invoice allocation amount
             if ($creditNotes->isNotEmpty()) {
-                if ($totalCreditNoteBaseAmount > $totalInvoiceBaseAmount + 0.01) {
+                if ($totalCreditNoteAmount > $totalInvoiceAmount + 0.01) {
                     return back()->with('error', __('Credit note amount cannot exceed the total invoice allocation amount.'));
                 }
             }
 
-            if ($totalInvoiceBaseAmount > (float) $currency['base_amount'] + $totalCreditNoteBaseAmount + 0.01) {
+            if ($totalInvoiceAmount > (float) $request->payment_amount + $totalCreditNoteAmount + 0.01) {
                 return back()->with('error', __('Invoice allocations cannot exceed the payment and credit note total.'));
             }
 
@@ -146,8 +144,9 @@ class CustomerPaymentController extends Controller
                     $payment->reference_number = $request->reference_number;
                     $payment->payment_amount = $request->payment_amount;
                     $bankCurrency = BankAccount::whereKey($request->bank_account_id)->where('created_by', creatorId())->value('currency_code');
-                    if ($bankCurrency && strtoupper($bankCurrency) !== $currency['currency_code']) {
-                        throw ValidationException::withMessages(['bank_account_id' => __('Select a bank account in the payment currency.')]);
+                    // The account is in the payment currency, or in the base currency (its register then takes the base equivalent).
+                    if ($bankCurrency && !in_array(strtoupper($bankCurrency), [$currency['currency_code'], $currency['base_currency_code']], true)) {
+                        throw ValidationException::withMessages(['bank_account_id' => __('Select a bank account in the payment currency or the base currency.')]);
                     }
                     $payment->currency_code = $currency['currency_code'];
                     $payment->base_currency_code = $currency['base_currency_code'];
@@ -267,7 +266,7 @@ class CustomerPaymentController extends Controller
             ->where('balance_amount', '>', 0)
             ->whereIn('status', ['approved', 'partial'])
             ->where('created_by', creatorId())
-            ->get(['id', 'credit_note_number', 'balance_amount', 'total_amount', 'status', 'currency_code', 'exchange_rate']);
+            ->get(['id', 'credit_note_number', 'balance_amount', 'total_amount', 'status', 'currency_code', 'base_currency_code', 'exchange_rate']);
 
         return response()->json([
             'invoices' => $invoices,
@@ -455,5 +454,17 @@ class CustomerPaymentController extends Controller
         else{
             return back()->with('error', __('Permission denied'));
         }
+    }
+
+    /** A credit in the payment currency: as is when it shares that currency, otherwise through its base amount. */
+    private function inPaymentCurrency(float $amount, $note, array $currency): float
+    {
+        if (!$note || strtoupper((string) $note->currency_code) === $currency['currency_code']) {
+            return $amount;
+        }
+
+        $paymentRate = (float) $currency['exchange_rate'];
+
+        return $paymentRate > 0 ? $amount * (float) ($note->exchange_rate ?: 1) / $paymentRate : $amount;
     }
 }

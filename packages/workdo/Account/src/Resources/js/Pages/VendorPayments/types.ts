@@ -22,6 +22,7 @@ export interface PurchaseInvoice {
     balance_amount: number;
     status: string;
     currency_code?: string;
+    base_currency_code?: string | null;
     exchange_rate?: number;
 }
 
@@ -33,6 +34,7 @@ export interface DebitNote {
     balance_amount: number;
     status: string;
     currency_code?: string;
+    base_currency_code?: string | null;
     exchange_rate?: number;
 }
 
@@ -40,6 +42,7 @@ export interface VendorPaymentAllocation {
     id: number;
     invoice_id: number;
     allocated_amount: number;
+    exchange_difference?: number | string;
     invoice: PurchaseInvoice;
 }
 
@@ -66,6 +69,7 @@ export interface VendorPayment {
     reference_number?: string;
     payment_amount: number;
     currency_code?: string;
+    base_currency_code?: string | null;
     exchange_rate?: number;
     base_amount?: number;
     status: 'pending' | 'cleared' | 'cancelled';

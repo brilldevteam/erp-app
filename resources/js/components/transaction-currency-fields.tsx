@@ -22,6 +22,7 @@ export default function TransactionCurrencyFields({
     onRateChange,
     errors = {},
     disabled = false,
+    exchangeDifference = null,
 }: {
     currencyCode: string;
     exchangeRate: string | number;
@@ -31,6 +32,8 @@ export default function TransactionCurrencyFields({
     onRateChange: (value: string) => void;
     errors?: Record<string, string>;
     disabled?: boolean;
+    /** Base-currency gain (positive) or loss (negative) against the documents being settled, shown beside the equivalent. */
+    exchangeDifference?: number | null;
 }) {
     const { t } = useTranslation();
     const page = usePage().props as any;
@@ -44,7 +47,10 @@ export default function TransactionCurrencyFields({
     );
 
     useEffect(() => {
-        if (!multiCurrencyEnabled && currencyCode !== baseCurrency) {
+        // A foreign currency chosen by the form (a party's preferred currency, an invoice being paid) turns the section on.
+        if (currencyCode && currencyCode !== baseCurrency) {
+            setMultiCurrencyEnabled(true);
+        } else if (!multiCurrencyEnabled && currencyCode !== baseCurrency) {
             onCurrencyChange(baseCurrency);
             onRateChange('1.00');
         }
@@ -164,6 +170,11 @@ export default function TransactionCurrencyFields({
             </div>
             <div className="rounded border bg-muted/30 px-3 py-2 text-sm md:col-span-2">
                 {t('Base-currency equivalent')}: <strong>{baseCurrency} {converted.toFixed(2)}</strong>
+                {exchangeDifference !== null && Math.abs(exchangeDifference) >= 0.005 && Number(exchangeRate) > 0 && (
+                    <span className={`ml-4 font-semibold ${exchangeDifference > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {exchangeDifference > 0 ? t('Exchange gain') : t('Exchange loss')}: {baseCurrency} {Math.abs(exchangeDifference).toFixed(2)}
+                    </span>
+                )}
             </div>
         </div>}
     </div>;

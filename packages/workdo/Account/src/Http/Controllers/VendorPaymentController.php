@@ -118,13 +118,11 @@ class VendorPaymentController extends Controller
                 ->where('vendor_id', $request->vendor_id)
                 ->where('created_by', creatorId())
                 ->get()->keyBy('id');
-            $totalInvoiceBaseAmount = collect($request->allocations)->sum(function ($allocation) use ($allocationInvoices) {
-                $invoice = $allocationInvoices->get($allocation['invoice_id']);
-                return (float) $allocation['amount'] * (float) ($invoice?->exchange_rate ?: 1);
-            });
-            $totalDebitNoteBaseAmount = collect($request->debit_notes ?? [])->sum(function ($debitNote) use ($allocationDebitNotes) {
-                $note = $allocationDebitNotes->get($debitNote['debit_note_id']);
-                return (float) $debitNote['amount'] * (float) ($note?->exchange_rate ?: 1);
+            // Bills must be in the payment currency, so allocations are compared in that currency: a rate that moved since
+            // the bill changes only the base amounts (the exchange gain or loss), never how much of the bill is paid.
+            $totalInvoiceAmount = (float) collect($request->allocations)->sum(fn ($allocation) => (float) $allocation['amount']);
+            $totalDebitNoteAmount = (float) collect($request->debit_notes ?? [])->sum(function ($debitNote) use ($allocationDebitNotes, $currency) {
+                return $this->inPaymentCurrency((float) $debitNote['amount'], $allocationDebitNotes->get($debitNote['debit_note_id']), $currency);
             });
 
             // Every applied debit note must belong to this company and vendor.
@@ -134,12 +132,12 @@ class VendorPaymentController extends Controller
 
             // Validate debit note amount doesn't exceed invoice allocation amount
             if ($request->debit_notes) {
-                if ($totalDebitNoteBaseAmount > $totalInvoiceBaseAmount + 0.01) {
+                if ($totalDebitNoteAmount > $totalInvoiceAmount + 0.01) {
                     return back()->with('error', __('Debit note amount cannot exceed the total invoice allocation amount.'));
                 }
             }
 
-            if ($totalInvoiceBaseAmount > (float) $currency['base_amount'] + $totalDebitNoteBaseAmount + 0.01) {
+            if ($totalInvoiceAmount > (float) $request->payment_amount + $totalDebitNoteAmount + 0.01) {
                 return back()->with('error', __('Invoice allocations cannot exceed the payment and debit note total.'));
             }
 
@@ -152,8 +150,9 @@ class VendorPaymentController extends Controller
             $payment->reference_number = $request->reference_number;
             $payment->payment_amount = $request->payment_amount;
             $bankCurrency = BankAccount::whereKey($request->bank_account_id)->where('created_by', creatorId())->value('currency_code');
-            if ($bankCurrency && strtoupper($bankCurrency) !== $currency['currency_code']) {
-                throw ValidationException::withMessages(['bank_account_id' => __('Select a bank account in the payment currency.')]);
+            // The account is in the payment currency, or in the base currency (its register then takes the base equivalent).
+            if ($bankCurrency && !in_array(strtoupper($bankCurrency), [$currency['currency_code'], $currency['base_currency_code']], true)) {
+                throw ValidationException::withMessages(['bank_account_id' => __('Select a bank account in the payment currency or the base currency.')]);
             }
             $payment->currency_code = $currency['currency_code'];
             $payment->base_currency_code = $currency['base_currency_code'];
@@ -226,7 +225,7 @@ class VendorPaymentController extends Controller
             ->where('balance_amount', '>', 0)
             ->whereIn('status', ['approved', 'partial'])
             ->where('created_by', creatorId())
-            ->get(['id', 'debit_note_number', 'balance_amount', 'total_amount', 'status', 'currency_code', 'exchange_rate']);
+            ->get(['id', 'debit_note_number', 'balance_amount', 'total_amount', 'status', 'currency_code', 'base_currency_code', 'exchange_rate']);
 
         return response()->json([
             'invoices' => $invoices,
@@ -342,5 +341,17 @@ class VendorPaymentController extends Controller
         else{
             return back()->with('error', __('Permission denied'));
         }
+    }
+
+    /** A credit in the payment currency: as is when it shares that currency, otherwise through its base amount. */
+    private function inPaymentCurrency(float $amount, $note, array $currency): float
+    {
+        if (!$note || strtoupper((string) $note->currency_code) === $currency['currency_code']) {
+            return $amount;
+        }
+
+        $paymentRate = (float) $currency['exchange_rate'];
+
+        return $paymentRate > 0 ? $amount * (float) ($note->exchange_rate ?: 1) / $paymentRate : $amount;
     }
 }

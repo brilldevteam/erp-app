@@ -37,9 +37,10 @@ class SalesInvoiceService
                 $creatorId
             );
             $totals = $this->calculateTotals($items);
-            $currency = $this->currencies->transactionValues(
-                [...$data, 'total_amount' => $totals['total_amount']],
-                'total_amount',
+            $currency = $this->currencies->transactionValuesFromBase(
+                $data,
+                $totals['total_amount'],
+                $this->calculateTotals($data['items'])['total_amount'],
                 $creatorId
             );
 

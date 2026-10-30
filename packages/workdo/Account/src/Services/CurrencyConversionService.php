@@ -70,6 +70,22 @@ class CurrencyConversionService
         ];
     }
 
+    /**
+     * Currency values for a document whose amounts were entered in base currency and converted with lineItemsFromBase().
+     * The rate is the entered base total over the rounded transaction total, so the base amount stays exactly as entered
+     * (QAR 1,000 at 3.65 is USD 273.97, kept at rate 3.65003468 so it converts back to QAR 1,000.00, not 999.99).
+     */
+    public function transactionValuesFromBase(array $data, mixed $total, mixed $baseTotal, ?int $companyId = null): array
+    {
+        $values = $this->transactionValues([...$data, 'total_amount' => $total], 'total_amount', $companyId);
+        if ($values['currency_code'] !== $values['base_currency_code'] && (float) $total > 0 && (float) $baseTotal > 0) {
+            $values['exchange_rate'] = number_format((float) $baseTotal / (float) $total, 8, '.', '');
+            $values['base_amount'] = number_format(round((float) $baseTotal, 2), 2, '.', '');
+        }
+
+        return $values;
+    }
+
     public function lineItemsFromBase(array $items, string $currencyCode, mixed $exchangeRate, ?int $companyId = null): array
     {
         $currencyCode = strtoupper($currencyCode);

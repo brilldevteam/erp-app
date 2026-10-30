@@ -93,6 +93,7 @@ export interface TemplateSampleDocument {
     subject?: string;
     notes?: string;
     balance_due?: number;
+    currency_code?: string | null;
     items: Array<Record<string, any>>;
     totals: {
         subtotal: number;

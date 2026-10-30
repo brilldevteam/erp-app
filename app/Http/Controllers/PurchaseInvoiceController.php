@@ -218,9 +218,10 @@ class PurchaseInvoiceController extends Controller
                 creatorId()
             );
             $totals = $this->calculateTotals($items);
-            $currency = $currencyService->transactionValues(
-                [...$request->validated(), 'total_amount' => $totals['total_amount']],
-                'total_amount'
+            $currency = $currencyService->transactionValuesFromBase(
+                $request->validated(),
+                $totals['total_amount'],
+                $this->calculateTotals($request->items)['total_amount']
             );
 
             $invoice = new PurchaseInvoice();
@@ -366,9 +367,10 @@ class PurchaseInvoiceController extends Controller
                 creatorId()
             );
             $totals = $this->calculateTotals($items);
-            $currency = $currencyService->transactionValues(
-                [...$request->validated(), 'total_amount' => $totals['total_amount']],
-                'total_amount'
+            $currency = $currencyService->transactionValuesFromBase(
+                $request->validated(),
+                $totals['total_amount'],
+                $this->calculateTotals($request->items)['total_amount']
             );
 
             $purchaseInvoice->invoice_date = $request->invoice_date;

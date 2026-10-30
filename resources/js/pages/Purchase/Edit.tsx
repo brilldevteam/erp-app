@@ -57,8 +57,8 @@ export default function Edit() {
         notes: invoice.notes || '',
         attachments: [] as File[],
         items: (invoice.items || []).map(item => {
-            const baseUnitPrice = Number(item.unit_price) * (isForeignInvoice ? invoiceRate : 1);
-            const baseDiscountValue = Number(item.discount_value || 0) * (isForeignInvoice && item.discount_type === 'fixed' ? invoiceRate : 1);
+            const baseUnitPrice = Math.round(Number(item.unit_price) * (isForeignInvoice ? invoiceRate : 1) * 100) / 100;
+            const baseDiscountValue = Math.round(Number(item.discount_value || 0) * (isForeignInvoice && item.discount_type === 'fixed' ? invoiceRate : 1) * 100) / 100;
             const calculations = calculateLineItemAmounts(
                 item.quantity,
                 baseUnitPrice,

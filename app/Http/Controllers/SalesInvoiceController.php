@@ -310,9 +310,10 @@ class SalesInvoiceController extends Controller
                 creatorId()
             );
             $totals = $this->calculateTotals($items);
-            $currency = $currencyService->transactionValues(
-                [...$request->validated(), 'total_amount' => $totals['total_amount']],
-                'total_amount'
+            $currency = $currencyService->transactionValuesFromBase(
+                $request->validated(),
+                $totals['total_amount'],
+                $this->calculateTotals($request->items)['total_amount']
             );
 
             \Illuminate\Support\Facades\DB::transaction(function () use ($request, $salesInvoice, $totals, $currency, $items) {

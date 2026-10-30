@@ -20,6 +20,25 @@ class CurrencyConversionServiceTest extends TestCase
         $this->assertSame($expected, (new CurrencyConversionService())->toBase($amount, $rate));
     }
 
+    public function test_prices_entered_in_base_currency_keep_their_base_total(): void
+    {
+        $service = new class extends CurrencyConversionService {
+            public function baseCurrency(?int $companyId = null): string
+            {
+                return 'QAR';
+            }
+        };
+
+        $items = $service->lineItemsFromBase([['unit_price' => 1000, 'quantity' => 1]], 'USD', '3.65', 1);
+        $total = round($items[0]['unit_price'], 2);
+        $values = $service->transactionValuesFromBase(['currency_code' => 'USD', 'exchange_rate' => '3.65'], $total, 1000, 1);
+
+        $this->assertSame(273.97, $total);
+        $this->assertSame(['3.65003468', '1000.00'], [$values['exchange_rate'], $values['base_amount']]);
+        $this->assertSame('1000.00', $service->toBase($total, $values['exchange_rate']));
+        $this->assertSame('1.00000000', $service->transactionValuesFromBase(['currency_code' => 'QAR', 'exchange_rate' => 1], 1000, 1000, 1)['exchange_rate']);
+    }
+
     public static function conversionCases(): array
     {
         return [

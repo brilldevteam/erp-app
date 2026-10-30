@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { router, useForm } from '@inertiajs/react';
+import { router, useForm, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import InputError from '@/components/ui/input-error';
 import { Plus, Trash2 } from 'lucide-react';
 import { CreateVendorPaymentFormData, CreateVendorPaymentProps, PurchaseInvoice, DebitNote } from './types';
-import { formatCurrency } from '@/utils/helpers';
+import DualCurrencyAmount from '@/components/dual-currency-amount';
 import TransactionCurrencyFields from '@/components/transaction-currency-fields';
 import CreateVendor from '../Vendors/Create';
 
@@ -52,6 +52,18 @@ export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendo
                 if (userId) setData('vendor_id', String(userId));
             },
         });
+    };
+
+    const baseCurrency = ((usePage().props as any).companyAllSetting?.defaultCurrency || 'USD').toUpperCase();
+    const paymentCurrency = (data.currency_code || baseCurrency).toUpperCase();
+    const documentCurrency = (document: { currency_code?: string }) => (document.currency_code || baseCurrency).toUpperCase();
+    // Once an invoice is added, the others must share its currency (the payment is made in that currency).
+    const otherCurrency = (invoice: PurchaseInvoice) => selectedAllocations.length > 0 && documentCurrency(invoice) !== paymentCurrency;
+    // A credit in the payment currency: as is when it shares that currency, otherwise through its base amount.
+    const inPaymentCurrency = (amount: number, note?: { currency_code?: string; exchange_rate?: number | string }) => {
+        if (!note || documentCurrency(note) === paymentCurrency) return amount;
+        const paymentRate = Number(data.exchange_rate || 0);
+        return paymentRate > 0 ? amount * Number(note.exchange_rate || 1) / paymentRate : amount;
     };
 
     // Update form data when selections change
@@ -99,6 +111,13 @@ export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendo
         const existing = selectedAllocations.find(a => a.invoice_id === invoice.id);
         if (existing) return;
 
+        if (otherCurrency(invoice)) return;
+        // The payment is made in the invoice currency; its rate is entered for the payment day.
+        if (documentCurrency(invoice) !== paymentCurrency) {
+            const currency = documentCurrency(invoice);
+            setData((current) => ({ ...current, currency_code: currency, exchange_rate: currency === baseCurrency ? '1.00000000' : '' }));
+        }
+
         const newAllocation = {
             invoice_id: invoice.id,
             amount: invoice.balance_amount
@@ -123,20 +142,15 @@ export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendo
         updateTotalAmount(newAllocations, selectedDebitNotes);
     };
 
-    const updateTotalAmount = (allocations: {invoice_id: number; amount: number}[], debitNotes = selectedDebitNotes) => {
-        const allocationsBaseTotal = allocations.reduce((sum, allocation) => {
-            const invoice = outstandingInvoices.find(item => item.id === allocation.invoice_id);
-            return sum + Number(allocation.amount || 0) * Number(invoice?.exchange_rate || 1);
+    // Invoices share the payment currency, so the payment is their total in that currency. The exchange rate changes
+    // only the base-currency equivalent (and so the exchange gain or loss), never the amount paid.
+    const updateTotalAmount = (allocations: {invoice_id: number; amount: number}[], notes = selectedDebitNotes) => {
+        const allocationsTotal = allocations.reduce((sum, allocation) => sum + Number(allocation.amount || 0), 0);
+        const notesTotal = notes.reduce((sum, item) => {
+            const note = availableDebitNotes.find(candidate => candidate.id === item.debit_note_id);
+            return sum + inPaymentCurrency(Number(item.amount || 0), note);
         }, 0);
-        const debitNotesBaseTotal = debitNotes.reduce((sum, debitNote) => {
-            const note = availableDebitNotes.find(item => item.id === debitNote.debit_note_id);
-            return sum + Number(debitNote.amount || 0) * Number(note?.exchange_rate || 1);
-        }, 0);
-        const paymentRate = Number(data.exchange_rate || 1);
-        const paymentCurrencyTotal = paymentRate > 0
-            ? Math.max(0, allocationsBaseTotal - debitNotesBaseTotal) / paymentRate
-            : 0;
-        setData('payment_amount', paymentCurrencyTotal.toFixed(2));
+        setData('payment_amount', Math.max(0, allocationsTotal - notesTotal).toFixed(2));
     };
 
     useEffect(() => {
@@ -144,6 +158,15 @@ export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendo
             updateTotalAmount(selectedAllocations, selectedDebitNotes);
         }
     }, [data.exchange_rate]);
+
+    // Paying more base currency than the bills were booked at is a loss; the server books the same difference per allocation.
+    const paymentRate = Number(data.exchange_rate || 0);
+    const exchangeDifference = paymentCurrency !== baseCurrency && selectedAllocations.length > 0
+        ? selectedAllocations.reduce((sum, allocation) => {
+            const invoice = outstandingInvoices.find(item => item.id === allocation.invoice_id);
+            return sum + Math.round(Number(allocation.amount || 0) * (Number(invoice?.exchange_rate || 1) - paymentRate) * 100) / 100;
+        }, 0)
+        : null;
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -230,7 +253,7 @@ export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendo
                             <SelectContent>
                                 {bankAccounts?.map((account) => (
                                     <SelectItem key={account.id} value={account.id.toString()}>
-                                        {account.account_name} ({account.account_number})
+                                        {account.account_name}{account.account_number ? ` (${account.account_number})` : ''}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -264,14 +287,14 @@ export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendo
                                                 <div>
                                                     <span className="font-medium">{invoice.invoice_number}</span>
                                                     <span className="text-sm text-gray-500 ml-2">
-                                                        Balance: {formatCurrency(invoice.balance_amount)}
+                                                        Balance: <DualCurrencyAmount baseFirst className="inline-flex flex-col align-top" amount={invoice.balance_amount || 0} currencyCode={invoice.currency_code} baseAmount={Number(invoice.balance_amount || 0) * Number(invoice.exchange_rate || 1)} baseCurrencyCode={invoice.base_currency_code} />
                                                     </span>
                                                 </div>
                                                 <Button
                                                     type="button"
                                                     size="sm"
                                                     onClick={() => addAllocation(invoice)}
-                                                    disabled={selectedAllocations.some(a => a.invoice_id === invoice.id)}
+                                                    disabled={selectedAllocations.some(a => a.invoice_id === invoice.id) || otherCurrency(invoice)}
                                                 >
                                                     {t('Add')}
                                                 </Button>
@@ -298,7 +321,7 @@ export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendo
                                                 <div>
                                                     <span className="font-medium">{debitNote.debit_note_number}</span>
                                                     <span className="text-sm text-gray-500 ml-2">
-                                                        Balance: {formatCurrency(debitNote.balance_amount)}
+                                                        Balance: <DualCurrencyAmount baseFirst className="inline-flex flex-col align-top" amount={debitNote.balance_amount || 0} currencyCode={debitNote.currency_code} baseAmount={Number(debitNote.balance_amount || 0) * Number(debitNote.exchange_rate || 1)} baseCurrencyCode={debitNote.base_currency_code} />
                                                     </span>
                                                 </div>
                                                 <Button
@@ -349,7 +372,7 @@ export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendo
                                             <div className="flex-1">
                                                 <div className="font-medium">{invoice?.invoice_number}</div>
                                                 <div className="text-sm text-gray-500">
-                                                    {t('Balance')}: {formatCurrency(invoice?.balance_amount || 0)}
+                                                    {t('Balance')}: <DualCurrencyAmount baseFirst className="inline-flex flex-col align-top" amount={invoice?.balance_amount || 0} currencyCode={invoice?.currency_code} baseAmount={Number(invoice?.balance_amount || 0) * Number(invoice?.exchange_rate || 1)} baseCurrencyCode={invoice?.base_currency_code} />
                                                 </div>
                                             </div>
                                             <div className="w-32">
@@ -456,6 +479,7 @@ export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendo
                     onCurrencyChange={(value) => setData('currency_code', value)}
                     onRateChange={(value) => setData('exchange_rate', value)}
                     errors={errors as Record<string, string>}
+                    exchangeDifference={exchangeDifference}
                 />
 
                 <div>
