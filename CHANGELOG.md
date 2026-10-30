@@ -12,6 +12,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Company users can configure exchange gain and loss accounts from Currency Rates. Customer and vendor forms can set a preferred document currency.
 
 ### Changed
+- Sales and purchase invoice lists now show company base-currency amounts first and place the selected foreign document currency underneath in smaller text for multi-currency transactions.
 - Migration setup now requires the default warehouse's real address, city and postal code and accepts optional phone/email, matching normal warehouse creation instead of saving placeholder location text. Reusing a legacy placeholder warehouse repairs only its missing location fields.
 - Sales and purchase invoice line inputs remain in the company base currency; foreign-currency totals are derived by dividing by the entered historical rate, and the backend stores the converted document values while retaining the base snapshot.
 - QAR invoice amounts use the configured Qatari Riyal symbol instead of the `QAR` code, and base-equivalent hints are hidden when the transaction already uses the company base currency.
