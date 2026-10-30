@@ -302,13 +302,17 @@ class SalesInvoiceController extends Controller
             if ($salesInvoice->status != 'draft') {
                 return redirect()->route('sales-invoices.index')->with('error', __('Cannot update posted invoice.'));
             }
-            $totals = $this->calculateTotals($request->items);
-            $currency = app(\Workdo\Account\Services\CurrencyConversionService::class)->transactionValues(
+            $currencyService = app(\Workdo\Account\Services\CurrencyConversionService::class);
+            $items = $request->boolean('line_amounts_are_base_currency')
+                ? $currencyService->lineItemsFromBase($request->items, $request->currency_code, $request->exchange_rate, creatorId())
+                : $request->items;
+            $totals = $this->calculateTotals($items);
+            $currency = $currencyService->transactionValues(
                 [...$request->validated(), 'total_amount' => $totals['total_amount']],
                 'total_amount'
             );
 
-            \Illuminate\Support\Facades\DB::transaction(function () use ($request, $salesInvoice, $totals, $currency) {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($request, $salesInvoice, $totals, $currency, $items) {
             $salesInvoice->invoice_date = $request->invoice_date;
             $salesInvoice->sales_order_reference = $request->sales_order_reference;
             $salesInvoice->due_date = $request->due_date;
@@ -336,7 +340,7 @@ class SalesInvoiceController extends Controller
 
             // Delete existing items and recreate
             $salesInvoice->items()->delete();
-            $this->createInvoiceItems($salesInvoice->id, $request->items);
+            $this->createInvoiceItems($salesInvoice->id, $items);
             });
 
             // Dispatch event for packages to handle their fields

@@ -22,6 +22,7 @@ class StorePurchaseInvoiceRequest extends FormRequest
             'due_date' => 'required|date|after_or_equal:invoice_date',
             'currency_code' => 'required|string|size:3',
             'exchange_rate' => 'required|numeric|gt:0',
+            'line_amounts_are_base_currency' => 'sometimes|accepted',
             'supplier_invoice_number' => 'nullable|string|max:255',
             'purchase_order_number' => 'nullable|string|max:255',
             'vendor_id' => 'required|exists:users,id',

@@ -20,3 +20,18 @@ export function formatTransactionMoney(amount: number | string, currencyCode: st
         return `${currency} ${value.toFixed(2)}`;
     }
 }
+
+export function baseToTransactionAmount(
+    amount: number | string,
+    currencyCode: string,
+    baseCurrencyCode: string,
+    exchangeRate: number | string,
+): number {
+    const value = Number(amount) || 0;
+    if ((currencyCode || '').toUpperCase() === (baseCurrencyCode || '').toUpperCase()) {
+        return value;
+    }
+
+    const rate = Number(exchangeRate) || 0;
+    return rate > 0 ? value / rate : 0;
+}

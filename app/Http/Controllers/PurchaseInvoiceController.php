@@ -210,8 +210,12 @@ class PurchaseInvoiceController extends Controller
     public function store(StorePurchaseInvoiceRequest $request)
     {
         if(Auth::user()->can('create-purchase-invoices')){
-            $totals = $this->calculateTotals($request->items);
-            $currency = app(CurrencyConversionService::class)->transactionValues(
+            $currencyService = app(CurrencyConversionService::class);
+            $items = $request->boolean('line_amounts_are_base_currency')
+                ? $currencyService->lineItemsFromBase($request->items, $request->currency_code, $request->exchange_rate, creatorId())
+                : $request->items;
+            $totals = $this->calculateTotals($items);
+            $currency = $currencyService->transactionValues(
                 [...$request->validated(), 'total_amount' => $totals['total_amount']],
                 'total_amount'
             );
@@ -240,7 +244,7 @@ class PurchaseInvoiceController extends Controller
             $invoice->save();
 
             // Create invoice items
-            $this->createInvoiceItems($invoice->id, $request->items);
+            $this->createInvoiceItems($invoice->id, $items);
             $this->storeAttachments($invoice, $request);
 
             try {
@@ -351,8 +355,12 @@ class PurchaseInvoiceController extends Controller
             if ($purchaseInvoice->status != 'draft') {
                 return redirect()->route('purchase-invoices.index')->with('error', __('Cannot update posted invoice.'));
             }
-            $totals = $this->calculateTotals($request->items);
-            $currency = app(CurrencyConversionService::class)->transactionValues(
+            $currencyService = app(CurrencyConversionService::class);
+            $items = $request->boolean('line_amounts_are_base_currency')
+                ? $currencyService->lineItemsFromBase($request->items, $request->currency_code, $request->exchange_rate, creatorId())
+                : $request->items;
+            $totals = $this->calculateTotals($items);
+            $currency = $currencyService->transactionValues(
                 [...$request->validated(), 'total_amount' => $totals['total_amount']],
                 'total_amount'
             );
@@ -379,7 +387,7 @@ class PurchaseInvoiceController extends Controller
 
             // Delete existing items and recreate
             $purchaseInvoice->items()->delete();
-            $this->createInvoiceItems($purchaseInvoice->id, $request->items);
+            $this->createInvoiceItems($purchaseInvoice->id, $items);
             $this->storeAttachments($purchaseInvoice, $request);
 
             // Dispatch event for packages to handle their fields

@@ -10,7 +10,7 @@ import InvoiceItemsTable from './components/InvoiceItemsTable';
 import ProductPickerDialog, { QuotationProduct } from '@/components/product-picker-dialog';
 import { useTaxCalculator, calculateLineItemAmounts } from './components/TaxCalculator';
 import { formatCurrency } from '@/utils/helpers';
-import { formatTransactionMoney } from '@/utils/transaction-money';
+import { baseToTransactionAmount, formatTransactionMoney } from '@/utils/transaction-money';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -47,26 +47,34 @@ export default function Edit() {
     const [productsLoading, setProductsLoading] = useState(false);
 
     useFlashMessages();
+    const baseCurrency = invoice.base_currency_code || 'USD';
+    const invoiceRate = Number(invoice.exchange_rate) || 1;
+    const isForeignInvoice = invoice.currency_code !== baseCurrency;
 
     const { data, setData, put, processing, errors, clearErrors } = useForm({
         ...invoice,
         exchange_rate: String(invoice.exchange_rate),
+        line_amounts_are_base_currency: true,
         customer_id: invoice.customer_id.toString(),
         warehouse_id: invoice.warehouse_id?.toString() || '',
         document_template_id: invoice.document_template_id?.toString() || '',
         type: invoice.type || 'product',
         revenue_account_id: invoice.revenue_account_id?.toString() || defaultRevenueAccountId(revenueAccounts, invoice.type || 'product'),
         items: (invoice.items || []).map(item => {
+            const baseUnitPrice = Number(item.unit_price) * (isForeignInvoice ? invoiceRate : 1);
+            const baseDiscountValue = Number(item.discount_value || 0) * (isForeignInvoice && item.discount_type === 'fixed' ? invoiceRate : 1);
             const calculations = calculateLineItemAmounts(
                 item.quantity,
-                item.unit_price,
+                baseUnitPrice,
                 item.discount_percentage,
                 item.tax_percentage,
                 item.discount_type,
-                item.discount_value
+                baseDiscountValue
             );
             return {
                 ...item,
+                unit_price: baseUnitPrice,
+                discount_value: baseDiscountValue,
                 taxes: item.taxes || [],
                 discount_amount: calculations.discountAmount,
                 tax_amount: calculations.taxAmount,
@@ -376,7 +384,7 @@ export default function Edit() {
                         </CardContent>
                     </Card>
 
-                    <TransactionCurrencyFields currencyCode={data.currency_code} exchangeRate={data.exchange_rate} transactionDate={data.invoice_date} amount={totals.total} errors={errors} onCurrencyChange={value => setData('currency_code', value)} onRateChange={value => setData('exchange_rate', value)} />
+                    <TransactionCurrencyFields currencyCode={data.currency_code} exchangeRate={data.exchange_rate} transactionDate={data.invoice_date} amount={baseToTransactionAmount(totals.total, data.currency_code, baseCurrency, data.exchange_rate)} errors={errors} onCurrencyChange={value => setData('currency_code', value)} onRateChange={value => setData('exchange_rate', value)} />
 
                     <Card>
                         <CardHeader>
@@ -406,6 +414,8 @@ export default function Edit() {
                                 invoiceType={data.type}
                                 onClearError={(field) => clearErrors(field as any)}
                                 currencyCode={data.currency_code}
+                                baseCurrencyCode={baseCurrency}
+                                exchangeRate={data.exchange_rate}
                             />
 
                             <div className="mt-6 flex justify-end">
@@ -414,23 +424,23 @@ export default function Edit() {
                                     <div>
                                         <div className="flex justify-between text-sm">
                                             <span className="text-muted-foreground">{t('Subtotal')}</span>
-                                            <span className="font-medium">{formatTransactionMoney(totals.subtotal, data.currency_code)}</span>
+                                            <span className="font-medium">{formatTransactionMoney(baseToTransactionAmount(totals.subtotal, data.currency_code, baseCurrency, data.exchange_rate), data.currency_code)}</span>
                                         </div>
                                         <div className="flex justify-between text-sm">
                                             <span className="text-muted-foreground">{t('Discount')}</span>
-                                            <span className="font-medium text-red-600">-{formatTransactionMoney(totals.discountAmount, data.currency_code)}</span>
+                                            <span className="font-medium text-red-600">-{formatTransactionMoney(baseToTransactionAmount(totals.discountAmount, data.currency_code, baseCurrency, data.exchange_rate), data.currency_code)}</span>
                                         </div>
                                         <div className="flex justify-between text-sm">
                                             <span className="text-muted-foreground">{t('Tax')}</span>
-                                            <span className="font-medium">{formatTransactionMoney(totals.taxAmount, data.currency_code)}</span>
+                                            <span className="font-medium">{formatTransactionMoney(baseToTransactionAmount(totals.taxAmount, data.currency_code, baseCurrency, data.exchange_rate), data.currency_code)}</span>
                                         </div>
                                         <Separator className="my-2" />
                                         <div className="flex justify-between">
                                             <span className="font-semibold">{t('Total')}</span>
-                                            <span className="font-bold text-lg">{formatTransactionMoney(totals.total, data.currency_code)}</span>
+                                            <span className="font-bold text-lg">{formatTransactionMoney(baseToTransactionAmount(totals.total, data.currency_code, baseCurrency, data.exchange_rate), data.currency_code)}</span>
                                         </div>
-                                        {data.currency_code !== (invoice.base_currency_code || 'USD') && <div className="mt-1 text-right text-xs text-muted-foreground">
-                                            {t('Base-currency equivalent')}: {formatCurrency(totals.total * Number(data.exchange_rate || 0))}
+                                        {data.currency_code !== baseCurrency && <div className="mt-1 text-right text-xs text-muted-foreground">
+                                            {t('Base-currency equivalent')}: {formatCurrency(totals.total)}
                                         </div>}
                                     </div>
                                 </div>

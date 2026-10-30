@@ -69,4 +69,23 @@ class CurrencyConversionService
             'base_amount' => $this->toBase($data[$amountKey] ?? 0, $rate),
         ];
     }
+
+    public function lineItemsFromBase(array $items, string $currencyCode, mixed $exchangeRate, ?int $companyId = null): array
+    {
+        $currencyCode = strtoupper($currencyCode);
+        if ($currencyCode === $this->baseCurrency($companyId)) {
+            return $items;
+        }
+
+        $rate = (float) $this->validateRate($currencyCode, $exchangeRate, $companyId);
+
+        return array_map(function (array $item) use ($rate): array {
+            $item['unit_price'] = round((float) ($item['unit_price'] ?? 0) / $rate, 6);
+            if (($item['discount_type'] ?? 'percentage') === 'fixed') {
+                $item['discount_value'] = round((float) ($item['discount_value'] ?? 0) / $rate, 6);
+            }
+
+            return $item;
+        }, $items);
+    }
 }

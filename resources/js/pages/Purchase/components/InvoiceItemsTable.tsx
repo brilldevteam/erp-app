@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { InputError } from '@/components/ui/input-error';
 import { Trash2 } from 'lucide-react';
-import { formatTransactionMoney } from '@/utils/transaction-money';
+import { baseToTransactionAmount, formatTransactionMoney } from '@/utils/transaction-money';
 import SalesLineDiscount from '@/components/sales-line-discount';
 
 interface Props {
@@ -19,9 +19,11 @@ interface Props {
     accounts?: BillAccountOption[];
     showAddButton?: boolean;
     currencyCode?: string;
+    baseCurrencyCode?: string;
+    exchangeRate?: string | number;
 }
 
-export default function InvoiceItemsTable({ items, onChange, errors, products = [], accounts = [], showAddButton = true, currencyCode = 'USD' }: Props) {
+export default function InvoiceItemsTable({ items, onChange, errors, products = [], accounts = [], showAddButton = true, currencyCode = 'USD', baseCurrencyCode = 'USD', exchangeRate = 1 }: Props) {
     const { t } = useTranslation();
     const inventoryAccountId = accounts.find(account => account.account_code === '1200')?.id ?? null;
     const addItem = () => {
@@ -137,7 +139,7 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                 {t('Qty')} <span className="text-red-500">*</span>
                             </th>
                             <th className="px-2 py-3 text-left text-sm font-semibold text-foreground">
-                                {t('Unit Price')} <span className="text-red-500">*</span>
+                                {t('Unit Price')} ({baseCurrencyCode}) <span className="text-red-500">*</span>
                             </th>
                             <th className="px-2 py-3 text-left text-sm font-semibold text-foreground">
                                 {t('Discount')}
@@ -235,7 +237,7 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                 </td>
                                 <td className="px-2 py-4">
                                     <span className="text-sm font-medium whitespace-nowrap">
-                                        {formatTransactionMoney(item.total_amount, currencyCode)}
+                                        {formatTransactionMoney(baseToTransactionAmount(item.total_amount, currencyCode, baseCurrencyCode, exchangeRate), currencyCode)}
                                     </span>
                                 </td>
                                 <td className="px-2 py-4 text-center">

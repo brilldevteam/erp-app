@@ -12,6 +12,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Company users can configure exchange gain and loss accounts from Currency Rates. Customer and vendor forms can set a preferred document currency.
 
 ### Changed
+- Sales and purchase invoice line inputs remain in the company base currency; foreign-currency totals are derived by dividing by the entered historical rate, and the backend stores the converted document values while retaining the base snapshot.
 - QAR invoice amounts use the configured Qatari Riyal symbol instead of the `QAR` code, and base-equivalent hints are hidden when the transaction already uses the company base currency.
 - Sales and purchase invoice line totals and create/edit summaries now use the selected transaction currency, with the base-currency equivalent shown separately beneath the total.
 - Purchase invoice line controls now align to the top of each row, matching sales invoices when an item description makes the row taller.
