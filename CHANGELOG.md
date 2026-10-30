@@ -12,6 +12,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Company users can configure exchange gain and loss accounts from Currency Rates. Customer and vendor forms can set a preferred document currency.
 
 ### Changed
+- Purchase invoice line controls now align to the top of each row, matching sales invoices when an item description makes the row taller.
 - Renamed the visible Double Entry module label, headings and breadcrumbs to Reports while retaining all internal routes, permissions and technical accounting names.
 - Bulk Import upload guide (`ZohoUploadGuide`): every upload step lists the file it takes, with where to export it in Zoho Books and what to watch for. Steps that take several files (Credit applications, Final reconciliation) list them in order, marked required or optional, and show which are attached. Choosing a file first opens this guide; the file picker opens from it.
 - Files can be removed from a step before it is imported (new `DELETE zoho-migrations/{batch}/files/{file}` route, with confirmation). The file, its rows and its issues are deleted, and the step's other files are checked again. Removing a newer export of an imported Expenses step returns the step to its import. Removal is refused for imported files, imported steps, and while a check or import is running. An imported step no longer offers an upload, except Expenses.

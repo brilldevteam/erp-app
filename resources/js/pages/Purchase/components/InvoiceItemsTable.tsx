@@ -154,7 +154,7 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                     </thead>
                     <tbody className="divide-y divide-border">
                         {items.map((item, index) => (
-                            <tr key={index}>
+                            <tr key={index} className="[&>td]:align-top">
                                 <td className="px-2 py-4 min-w-[200px]">
                                     <ProductSelector
                                         products={products}
