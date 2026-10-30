@@ -5,6 +5,7 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Added
+- Multi-currency transaction forms now provide a searchable currency picker that filters by currency name or ISO code.
 - Completed multi-currency accounting for sales and purchase documents, receipts, payments, credit notes and debit notes: immutable base/transaction currency snapshots, party preferred currencies, mandatory manual foreign rates, currency-matched allocations and bank accounts, realized exchange gain/loss posting, allocation carrying/settlement values, and dual-currency document totals. Existing posted ledger values are preserved, and Zoho imports retain their historical currency snapshots without manufacturing settlement differences.
 - Purchase invoices now keep a free-text description per line plus optional Supplier Invoice Number and Purchase Order Number references; sales invoices now keep an optional Sales Order Reference. The fields flow through editing, searching, views, PDFs, duplication and imports.
 - Added independent Download sales invoice and Download purchase invoice permissions. Download controls and direct PDF routes now enforce these permissions while allowing authorized downloads in every document status.
