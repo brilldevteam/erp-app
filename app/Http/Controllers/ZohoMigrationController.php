@@ -71,6 +71,11 @@ class ZohoMigrationController extends Controller
             'source_date_format' => ['required', Rule::in(['dd/MM/yyyy', 'MM/dd/yyyy', 'yyyy-MM-dd', 'dd-MM-yyyy'])],
             'inventory_cutover_at' => ['required', 'date'],
             'default_warehouse_name' => ['required', 'string', 'max:255'],
+            'default_warehouse_address' => ['required', 'string', 'max:1000'],
+            'default_warehouse_city' => ['required', 'string', 'max:255'],
+            'default_warehouse_zip_code' => ['required', 'string', 'max:20'],
+            'default_warehouse_phone' => ['nullable', 'string', 'regex:/^\+\d{1,3}\d{9,13}$/'],
+            'default_warehouse_email' => ['nullable', 'email', 'max:255'],
             'duplicate_strategy' => ['required', Rule::in(ZohoMigrationBatch::DUPLICATE_STRATEGIES)],
             'ai_enabled' => ['sometimes', 'boolean'],
         ]);
@@ -84,16 +89,37 @@ class ZohoMigrationController extends Controller
                 abort_unless($request->user()->can('create-warehouses'), 403, 'You need permission to create the default warehouse.');
                 $warehouse = Warehouse::create([
                     'name' => $warehouseName,
-                    'address' => 'Not provided during migration setup',
-                    'city' => 'Not specified',
-                    'zip_code' => 'N/A',
+                    'address' => trim($validated['default_warehouse_address']),
+                    'city' => trim($validated['default_warehouse_city']),
+                    'zip_code' => trim($validated['default_warehouse_zip_code']),
+                    'phone' => $validated['default_warehouse_phone'] ?? null,
+                    'email' => $validated['default_warehouse_email'] ?? null,
                     'is_active' => true,
                     'creator_id' => $request->user()->id,
                     'created_by' => $tenantId,
                 ]);
+            } elseif (
+                $warehouse->address === 'Not provided during migration setup'
+                || $warehouse->city === 'Not specified'
+                || $warehouse->zip_code === 'N/A'
+            ) {
+                $warehouse->update([
+                    'address' => trim($validated['default_warehouse_address']),
+                    'city' => trim($validated['default_warehouse_city']),
+                    'zip_code' => trim($validated['default_warehouse_zip_code']),
+                    'phone' => $validated['default_warehouse_phone'] ?? $warehouse->phone,
+                    'email' => $validated['default_warehouse_email'] ?? $warehouse->email,
+                ]);
             }
 
-            unset($validated['default_warehouse_name']);
+            unset(
+                $validated['default_warehouse_name'],
+                $validated['default_warehouse_address'],
+                $validated['default_warehouse_city'],
+                $validated['default_warehouse_zip_code'],
+                $validated['default_warehouse_phone'],
+                $validated['default_warehouse_email'],
+            );
             $batch = ZohoMigrationBatch::create([
                 ...$validated,
                 'default_warehouse_id' => $warehouse->id,
