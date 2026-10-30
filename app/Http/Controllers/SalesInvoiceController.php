@@ -303,9 +303,12 @@ class SalesInvoiceController extends Controller
                 return redirect()->route('sales-invoices.index')->with('error', __('Cannot update posted invoice.'));
             }
             $currencyService = app(\Workdo\Account\Services\CurrencyConversionService::class);
-            $items = $request->boolean('line_amounts_are_base_currency')
-                ? $currencyService->lineItemsFromBase($request->items, $request->currency_code, $request->exchange_rate, creatorId())
-                : $request->items;
+            $items = $currencyService->lineItemsFromBase(
+                $request->items,
+                $request->currency_code,
+                $request->exchange_rate,
+                creatorId()
+            );
             $totals = $this->calculateTotals($items);
             $currency = $currencyService->transactionValues(
                 [...$request->validated(), 'total_amount' => $totals['total_amount']],

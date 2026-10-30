@@ -30,9 +30,12 @@ class SalesInvoiceService
                 $creatorId,
                 $data['document_template_id'] ?? null
             );
-            $items = !empty($data['line_amounts_are_base_currency'])
-                ? $this->currencies->lineItemsFromBase($data['items'], $data['currency_code'], $data['exchange_rate'], $creatorId)
-                : $data['items'];
+            $items = $this->currencies->lineItemsFromBase(
+                $data['items'],
+                $data['currency_code'],
+                $data['exchange_rate'],
+                $creatorId
+            );
             $totals = $this->calculateTotals($items);
             $currency = $this->currencies->transactionValues(
                 [...$data, 'total_amount' => $totals['total_amount']],
