@@ -11,13 +11,15 @@ class ZohoStageCatalogTest extends TestCase
     {
         $stages = (new ZohoStageCatalog())->all();
 
-        $this->assertCount(24, $stages);
-        $this->assertSame(range(1, 24), array_column($stages, 'position'));
+        $this->assertCount(23, $stages);
+        $this->assertSame(range(1, 23), array_column($stages, 'position'));
         $this->assertSame('configuration', $stages[0]['key']);
         $this->assertSame('chart_of_accounts', $stages[1]['key']);
-        $this->assertSame('reconciliation', $stages[23]['key']);
+        $this->assertSame(['taxes', 'categories_units', 'items'], array_column(array_slice($stages, 2, 3), 'key'));
+        $this->assertSame('categories_units', $stages[4]['previous_key']);
+        $this->assertSame('reconciliation', $stages[22]['key']);
         $this->assertSame('configuration', $stages[1]['previous_key']);
-        $this->assertSame('accounting', $stages[23]['previous_key']);
+        $this->assertSame('accounting', $stages[22]['previous_key']);
     }
 
     public function test_only_verified_profiles_are_enabled(): void
@@ -34,6 +36,12 @@ class ZohoStageCatalogTest extends TestCase
     {
         $catalog = new ZohoStageCatalog();
 
+        foreach (['taxes', 'categories_units', 'warehouses'] as $stageKey) {
+            $this->assertTrue($catalog->find($stageKey)['supported']);
+            $this->assertTrue($catalog->find($stageKey)['manual_entry']);
+        }
+        $this->assertNull($catalog->find('units'));
+        $this->assertNull($catalog->find('categories'));
         $this->assertTrue($catalog->find('items')['supported']);
         $this->assertTrue($catalog->find('items')['manual_entry']);
         $this->assertTrue($catalog->find('inventory_cutover')['supported']);

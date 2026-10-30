@@ -23,7 +23,13 @@ use Illuminate\Database\QueryException;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Workdo\ProductService\Models\ProductServiceCategory;
+use Workdo\ProductService\Models\ProductServiceItem;
+use Workdo\ProductService\Models\ProductServiceTax;
+use Workdo\ProductService\Models\ProductServiceUnit;
+use Workdo\ProductService\Models\WarehouseStock;
 
 class ZohoMigrationController extends Controller
 {
@@ -132,6 +138,26 @@ class ZohoMigrationController extends Controller
         return response()->json($this->payload($zohoMigration->load(['files', 'stages', 'issues', 'events'])));
     }
 
+    public function referenceData(Request $request, ZohoMigrationBatch $zohoMigration): JsonResponse
+    {
+        $this->authorizeBatch($request, $zohoMigration, 'view-zoho-migrations');
+        $tenantId = $zohoMigration->tenant_id;
+
+        return response()->json([
+            'categories' => ProductServiceCategory::where('created_by', $tenantId)->orderBy('name')->pluck('name'),
+            'units' => ProductServiceUnit::where('created_by', $tenantId)->orderBy('unit_name')->pluck('unit_name'),
+            'taxes' => ProductServiceTax::where('created_by', $tenantId)->orderBy('tax_name')->get(['tax_name', 'rate']),
+            // Warehouse stock step: services hold no stock.
+            'stock_items' => ProductServiceItem::where('created_by', $tenantId)->where('type', '!=', 'service')->orderBy('name')->get(['sku', 'name']),
+            'warehouses' => Warehouse::where('created_by', $tenantId)->orderBy('name')->pluck('name'),
+            'stock' => WarehouseStock::query()
+                ->join('product_service_items as i', 'i.id', '=', 'warehouse_stocks.product_id')
+                ->join('warehouses as w', 'w.id', '=', 'warehouse_stocks.warehouse_id')
+                ->where('i.created_by', $tenantId)->where('w.created_by', $tenantId)
+                ->get(['i.sku', 'w.name as warehouse', 'warehouse_stocks.quantity']),
+        ]);
+    }
+
     public function upload(Request $request, ZohoMigrationBatch $zohoMigration): JsonResponse
     {
         $this->authorizeBatch($request, $zohoMigration, 'upload-zoho-migration-files');
@@ -149,19 +175,21 @@ class ZohoMigrationController extends Controller
         abort_unless($stage['supported'], 422, 'This Zoho dataset is not yet supported.');
         abort_if($stage['key'] === 'configuration', 422, 'Configuration does not accept a source file.');
         $this->ensureStageIsAvailable($zohoMigration, $stage);
+        // A top-up stage takes a newer full export after its import; rows imported earlier are skipped.
         abort_if(
-            $zohoMigration->stages()->where('stage_key', $stage['key'])->where('status', 'completed')->exists(),
+            !($stage['top_up'] ?? false) && $zohoMigration->stages()->where('stage_key', $stage['key'])->where('status', 'completed')->exists(),
             409,
             'This stage is already imported and cannot have its source replaced.'
         );
 
         $uploaded = $validated['file'];
         $sha256 = hash_file('sha256', $uploaded->getRealPath());
-        $file = $zohoMigration->files()->where('sha256', $sha256)->first();
+        // The same export may feed several stages (e.g. the Chart of Accounts export also feeds bank accounts),
+        // so a re-selected file is matched within this stage only.
+        $file = $zohoMigration->files()->where('stage_key', $stage['key'])->where('sha256', $sha256)->first();
         $isRetry = $file !== null;
 
         if ($file) {
-            abort_unless($file->stage_key === $stage['key'], 422, 'This exact source file is already attached to another migration stage.');
             $file->update([
                 'uploaded_by' => $request->user()->id,
                 'original_filename' => $uploaded->getClientOriginalName(),
@@ -188,7 +216,7 @@ class ZohoMigrationController extends Controller
                 ]);
             } catch (QueryException $exception) {
                 Storage::disk('local')->delete($path);
-                if ($zohoMigration->files()->where('sha256', $sha256)->exists()) {
+                if ($zohoMigration->files()->where('stage_key', $stage['key'])->where('sha256', $sha256)->exists()) {
                     return response()->json(['message' => 'This source file was attached by another request. Select it again to retry.'], 409);
                 }
 
@@ -196,13 +224,17 @@ class ZohoMigrationController extends Controller
             }
         }
 
-        $zohoMigration->files()
-            ->where('stage_key', $stage['key'])
-            ->whereKeyNot($file->id)
-            ->whereIn('status', ['uploaded', 'detecting', 'staged', 'review_required'])
-            ->update(['status' => 'superseded']);
+        // A stage that takes several kinds of file replaces only the file of the same kind, once inspection knows it.
+        if (!($stage['multi_source'] ?? false)) {
+            $zohoMigration->files()
+                ->where('stage_key', $stage['key'])
+                ->whereKeyNot($file->id)
+                ->whereIn('status', ['uploaded', 'detecting', 'staged', 'review_required'])
+                ->update(['status' => 'superseded']);
+        }
 
         InspectZohoMigrationFile::dispatch($file->id);
+        $topUp = $zohoMigration->stages()->where('stage_key', $stage['key'])->where('status', 'completed')->exists();
         $zohoMigration->stages()->where('stage_key', $stage['key'])->update([
             'status' => 'processing',
             'accepted_count' => 0,
@@ -218,11 +250,13 @@ class ZohoMigrationController extends Controller
             'user_id' => $request->user()->id,
             'stage_key' => $stage['key'],
             'event_type' => 'file_uploaded',
-            'message' => $isRetry
+            'message' => $topUp
+                ? 'Newer export uploaded for inspection; records imported earlier will be checked and skipped.'
+                : ($isRetry
                 ? 'Existing unimported source selected again; inspection restarted.'
                 : ($zohoMigration->files()->where('stage_key', $stage['key'])->where('status', 'superseded')->exists()
                     ? 'Previous unimported source replaced; new file uploaded for inspection.'
-                    : 'Source file uploaded for inspection.'),
+                    : 'Source file uploaded for inspection.')),
             'metadata' => ['file_id' => $file->id, 'filename' => $file->original_filename],
         ]);
 
@@ -243,7 +277,8 @@ class ZohoMigrationController extends Controller
     {
         $this->authorizeBatch($request, $zohoMigration, 'execute-zoho-migrations');
         $stage = $this->stages->find($stageKey);
-        abort_unless($stage && $stageKey === 'chart_of_accounts', 422, 'This migration stage is not executable yet.');
+        abort_unless($stage && ($stage['executable'] ?? false), 422, 'This migration stage is not executable yet.');
+        $this->ensureStageIsAvailable($zohoMigration, $stage);
         $state = $zohoMigration->stages()->where('stage_key', $stageKey)->firstOrFail();
         abort_unless($state->status === 'ready' && $state->rejected_count === 0, 409, 'Resolve validation issues before importing.');
 
@@ -266,18 +301,74 @@ class ZohoMigrationController extends Controller
         $this->ensureStageIsAvailable($zohoMigration, $stage);
 
         $validated = $request->validate([
-            'pasted_data' => ['required', 'string', 'max:2000000'],
+            'pasted_data' => ['nullable', 'string', 'max:2000000', 'required_unless:no_records_used,true'],
+            'no_records_used' => ['sometimes', 'boolean'],
             'accuracy_confirmed' => ['accepted'],
         ], [
             'accuracy_confirmed.accepted' => 'Confirm that every pasted value has been checked. Later document imports depend on this data.',
         ]);
 
+        if (($validated['no_records_used'] ?? false) === true) {
+            return response()->json($manualPrerequisites->completeWithoutRows($zohoMigration, $stageKey, $request->user()->id));
+        }
+
         return response()->json($manualPrerequisites->import(
             $zohoMigration,
             $stageKey,
-            $validated['pasted_data'],
+            (string) $validated['pasted_data'],
             $request->user()->id
         ));
+    }
+
+    public function manualTemplate(
+        Request $request,
+        ZohoMigrationBatch $zohoMigration,
+        string $stageKey,
+        ZohoManualPrerequisiteService $manualPrerequisites
+    ): BinaryFileResponse {
+        $this->authorizeBatch($request, $zohoMigration, 'view-zoho-migrations');
+        $format = $request->query('format', 'xlsx');
+        abort_unless(in_array($format, ['xlsx', 'csv'], true), 404);
+        $path = $manualPrerequisites->uploadTemplate($zohoMigration, $stageKey, $format);
+
+        return response()->download($path, "{$stageKey}-import-template.{$format}")->deleteFileAfterSend();
+    }
+
+    public function uploadManualPrerequisite(
+        Request $request,
+        ZohoMigrationBatch $zohoMigration,
+        string $stageKey,
+        ZohoManualPrerequisiteService $manualPrerequisites
+    ): JsonResponse {
+        $this->authorizeBatch($request, $zohoMigration, 'upload-zoho-migration-files');
+        abort_if($zohoMigration->configuration_locked_at, 409, 'This migration configuration is locked.');
+        $stage = $this->stages->find($stageKey);
+        abort_unless($stage && ($stage['manual_entry'] ?? false), 422, 'This stage does not accept spreadsheet uploads.');
+        $this->ensureStageIsAvailable($zohoMigration, $stage);
+
+        $validated = $request->validate([
+            'file' => ['required', 'file', 'max:10240', new SpreadsheetUpload()],
+            'dry_run' => ['required', 'boolean'],
+        ]);
+        $dryRun = filter_var($validated['dry_run'], FILTER_VALIDATE_BOOLEAN);
+        if (!$dryRun) {
+            $request->validate(['accuracy_confirmed' => ['accepted']], [
+                'accuracy_confirmed.accepted' => 'Confirm that every value in the file has been checked. Later document imports depend on this data.',
+            ]);
+        }
+
+        // The spreadsheet reader picks its format from the file extension, so keep it on the temporary copy.
+        $file = $validated['file'];
+        $path = $file->storeAs('zoho-migrations/uploads', Str::uuid().'.'.strtolower($file->getClientOriginalExtension()), 'local');
+        try {
+            $absolutePath = Storage::disk('local')->path($path);
+
+            return response()->json($dryRun
+                ? $manualPrerequisites->previewUpload($zohoMigration, $stageKey, $absolutePath)
+                : $manualPrerequisites->importUpload($zohoMigration, $stageKey, $absolutePath, $file->getClientOriginalName(), $request->user()->id));
+        } finally {
+            Storage::disk('local')->delete($path);
+        }
     }
 
     public function source(Request $request, ZohoMigrationBatch $zohoMigration, ZohoMigrationFile $file): StreamedResponse
@@ -286,6 +377,53 @@ class ZohoMigrationController extends Controller
         abort_unless($file->batch_id === $zohoMigration->id && $file->tenant_id === $zohoMigration->tenant_id, 404);
 
         return Storage::disk($file->disk)->download($file->path, $file->original_filename);
+    }
+
+    /** Removes a file attached by mistake, before it is imported; the step's other files are checked again. */
+    public function destroyFile(Request $request, ZohoMigrationBatch $zohoMigration, ZohoMigrationFile $file, ZohoMigrationValidator $validator): JsonResponse
+    {
+        $this->authorizeBatch($request, $zohoMigration, 'upload-zoho-migration-files');
+        abort_if($zohoMigration->configuration_locked_at, 409, 'This migration configuration is locked.');
+        abort_unless($file->batch_id === $zohoMigration->id && $file->tenant_id === $zohoMigration->tenant_id, 404);
+        abort_if($file->status === 'superseded', 409, 'This file was already replaced by a newer one.');
+        $state = $zohoMigration->stages()->where('stage_key', $file->stage_key)->first();
+        abort_if($state?->status === 'completed', 409, 'This step is already imported; its files cannot be removed.');
+        abort_if($state?->status === 'processing', 409, 'The file is still being checked or imported. Remove it once that has finished.');
+        abort_if($file->stagedRows()->where('status', 'imported')->exists(), 409, 'This file is already imported and cannot be removed.');
+
+        DB::transaction(function () use ($request, $zohoMigration, $file): void {
+            ZohoMigrationEvent::create([
+                'batch_id' => $zohoMigration->id,
+                'tenant_id' => $zohoMigration->tenant_id,
+                'user_id' => $request->user()->id,
+                'stage_key' => $file->stage_key,
+                'event_type' => 'file_removed',
+                'message' => "{$file->original_filename} was removed before import.",
+                'metadata' => ['file_id' => $file->id, 'filename' => $file->original_filename],
+            ]);
+            // Staged rows and their issues go with the file.
+            $file->delete();
+        });
+        Storage::disk($file->disk)->delete($file->path);
+
+        $stageKey = (string) $file->stage_key;
+        if ($zohoMigration->files()->where('stage_key', $stageKey)->where('status', 'staged')->exists()) {
+            $validator->validate($zohoMigration, $stageKey, $request->user()->id);
+        } elseif ($imported = $zohoMigration->events()->where('stage_key', $stageKey)->where('event_type', 'stage_imported')->latest('id')->first()) {
+            // A newer export of an imported step was removed: the step is back to its completed import.
+            $zohoMigration->issues()->where('stage_key', $stageKey)->delete();
+            $zohoMigration->stages()->where('stage_key', $stageKey)->update([
+                'status' => 'completed', 'completed_at' => $imported->created_at, 'completed_by' => $imported->user_id,
+                'summary' => json_encode($imported->metadata), 'rejected_count' => 0,
+            ]);
+        } else {
+            $zohoMigration->issues()->where('stage_key', $stageKey)->delete();
+            $zohoMigration->stages()->where('stage_key', $stageKey)->update([
+                'status' => 'not_started', 'accepted_count' => 0, 'rejected_count' => 0, 'warning_count' => 0, 'summary' => null,
+            ]);
+        }
+
+        return response()->json(['message' => 'File removed.']);
     }
 
     public function issueReport(Request $request, ZohoMigrationBatch $zohoMigration, string $stageKey): StreamedResponse
@@ -401,7 +539,16 @@ class ZohoMigrationController extends Controller
             return;
         }
 
-        $previous = $batch->stages()->where('stage_key', $stage['previous_key'])->first();
+        // Unsupported stages cannot be completed, so gate on the nearest supported one (matches stagePayloads).
+        $previousStage = $this->stages->find($stage['previous_key']);
+        while ($previousStage && !$previousStage['supported']) {
+            $previousStage = $previousStage['previous_key'] ? $this->stages->find($previousStage['previous_key']) : null;
+        }
+        if (!$previousStage) {
+            return;
+        }
+
+        $previous = $batch->stages()->where('stage_key', $previousStage['key'])->first();
         abort_unless($previous?->status === 'completed', 409, 'Complete the previous migration stage first.');
     }
 

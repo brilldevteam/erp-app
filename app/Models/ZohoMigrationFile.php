@@ -11,7 +11,7 @@ class ZohoMigrationFile extends Model
     protected $fillable = [
         'batch_id', 'tenant_id', 'stage_key', 'uploaded_by', 'original_filename', 'disk', 'path',
         'sha256', 'size_bytes', 'mime_type', 'status', 'dataset_type', 'profile_key',
-        'detection_confidence', 'headers', 'row_count', 'failure_message',
+        'detection_confidence', 'headers', 'report_title', 'row_count', 'failure_message',
     ];
 
     protected function casts(): array

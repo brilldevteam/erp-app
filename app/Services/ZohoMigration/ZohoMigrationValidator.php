@@ -2,7 +2,6 @@
 
 namespace App\Services\ZohoMigration;
 
-use App\Models\Warehouse;
 use App\Models\ZohoMigrationBatch;
 use App\Models\ZohoMigrationEvent;
 use App\Models\ZohoMigrationIssue;
@@ -10,15 +9,28 @@ use App\Models\ZohoMigrationStagedRow;
 use App\Services\BulkImport\Definitions\ChartOfAccountDefinition;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
-use Workdo\Account\Models\Customer;
-use Workdo\Account\Models\Vendor;
-use Workdo\ProductService\Models\ProductServiceItem;
 
 class ZohoMigrationValidator
 {
     public function __construct(
         private readonly ZohoProfileCatalog $profiles,
         private readonly ZohoChartOfAccountsService $chartOfAccounts,
+        private readonly ZohoCustomerService $customers,
+        private readonly ZohoVendorService $vendors,
+        private readonly ZohoBankAccountService $bankAccounts,
+        private readonly ZohoIncomeExpenseCategoryService $incomeExpenseCategories,
+        private readonly ZohoQuotationService $quotations,
+        private readonly ZohoSalesInvoiceService $salesInvoices,
+        private readonly ZohoBillService $bills,
+        private readonly ZohoCustomerCreditService $customerCredits,
+        private readonly ZohoVendorCreditService $vendorCredits,
+        private readonly ZohoCustomerPaymentService $customerPayments,
+        private readonly ZohoVendorPaymentService $vendorPayments,
+        private readonly ZohoExpenseService $expenses,
+        private readonly ZohoBankActivityService $bankActivity,
+        private readonly ZohoManualJournalService $manualJournals,
+        private readonly ZohoCreditApplicationService $creditApplications,
+        private readonly ZohoReconciliationService $reconciliation,
     )
     {
     }
@@ -34,6 +46,7 @@ class ZohoMigrationValidator
             $batch->issues()->where('stage_key', $stageKey)->delete();
             $accepted = 0;
             $rejected = 0;
+            $skipped = 0;
             $sourceAccounts = $stageKey === 'chart_of_accounts'
                 ? $files->flatMap(fn ($file) => $file->stagedRows()->get())->map(fn ($row) => $this->chartOfAccounts->prepare($row->original_values))
                 : collect();
@@ -42,20 +55,69 @@ class ZohoMigrationValidator
                 mb_strtolower((string) $row['account_name']),
             ])->filter()->all();
             $seenAccountCodes = [];
+            $seenContacts = [];
+            $seenChartRows = [];
+            // Document checks compare each document's lines with its Zoho total, so all lines are prepared first.
+            $documents = match ($stageKey) {
+                'quotations' => $this->quotations,
+                'sales_invoices' => $this->salesInvoices,
+                'purchase_invoices' => $this->bills,
+                'credit_notes' => $this->customerCredits,
+                'vendor_credits' => $this->vendorCredits,
+                'customer_payments' => $this->customerPayments,
+                'vendor_payments' => $this->vendorPayments,
+                'income_expenses' => $this->expenses,
+                'bank_activity' => $this->bankActivity,
+                'accounting' => $this->manualJournals,
+                'credit_applications' => $this->creditApplications,
+                'reconciliation' => $this->reconciliation,
+                default => null,
+            };
+            $documentContext = $documents
+                ? $documents->context($files->flatMap(fn ($file) => $file->stagedRows()->get())
+                    // Rows of different files (a stage taking several kinds of file) can share row numbers.
+                    ->mapWithKeys(fn ($row) => [($files->count() > 1 ? $row->file_id.':' : '').$row->source_row_number => $documents->prepare($row->original_values, $batch)])
+                    ->filter(fn (array $row) => $row['include'] ?? true))
+                : [];
+            $contacts = match ($stageKey) {
+                'customers' => $this->customers,
+                'vendors' => $this->vendors,
+                default => null,
+            };
 
             foreach ($files as $file) {
                 foreach ($file->stagedRows()->orderBy('source_row_number')->cursor() as $row) {
-                    $normalized = $stageKey === 'chart_of_accounts'
-                        ? $this->chartOfAccounts->prepare($row->original_values)
-                        : $this->normalize($row->original_values);
-                    $issues = $stageKey === 'chart_of_accounts'
-                        ? $this->chartAccountIssues($normalized, $batch->tenant_id, $sourceAccountKeys, $seenAccountCodes)
-                        : $this->rowIssues($batch->tenant_id, $stageKey, $normalized);
+                    $normalized = match (true) {
+                        $stageKey === 'chart_of_accounts' => $this->chartOfAccounts->prepare($row->original_values),
+                        $stageKey === 'payment_accounts' => $this->bankAccounts->prepare($row->original_values, (string) $batch->base_currency),
+                        $stageKey === 'income_expense_categories' => $this->incomeExpenseCategories->prepare($row->original_values),
+                        $documents !== null => $documents->prepare($row->original_values, $batch),
+                        $contacts !== null => $contacts->prepare($row->original_values, (string) $batch->base_currency),
+                        default => $this->normalize($row->original_values),
+                    };
+                    // Rows the stage deliberately leaves out (other chart account types, void invoices) are skipped, not errors.
+                    if (in_array($stageKey, ['payment_accounts', 'income_expense_categories', 'sales_invoices', 'purchase_invoices', 'credit_notes', 'vendor_credits', 'bank_activity', 'accounting', 'reconciliation'], true) && !$normalized['include']) {
+                        $row->update(['status' => 'skipped', 'validation_errors' => null, 'normalized_values' => $normalized]);
+                        continue;
+                    }
+                    $issues = match (true) {
+                        $stageKey === 'chart_of_accounts' => $this->chartAccountIssues($normalized, $batch->tenant_id, $sourceAccountKeys, $seenAccountCodes),
+                        $stageKey === 'payment_accounts' => $this->bankAccounts->issues($normalized, $batch, (int) $row->source_row_number, $seenChartRows),
+                        $stageKey === 'income_expense_categories' => $this->incomeExpenseCategories->issues($normalized, $batch, (int) $row->source_row_number, $seenChartRows),
+                        $documents !== null => $documents->issues($normalized, $batch, (int) $row->source_row_number, $documentContext),
+                        $contacts !== null => $contacts->issues($normalized, $batch, (int) $row->source_row_number, $seenContacts),
+                        // Stages without an importer yet only check that the file is readable.
+                        default => [],
+                    };
                     $row->normalized_values = $normalized;
                     if ($issues) {
                         $rejected++;
                         $this->storeIssues($batch, $row, $stageKey, $issues);
                         $row->update(['status' => 'invalid', 'validation_errors' => array_column($issues, 'message'), 'normalized_values' => $normalized]);
+                    } elseif ($documents !== null && method_exists($documents, 'alreadyImported') && $documents->alreadyImported($normalized, $batch, (int) $row->source_row_number, $documentContext)) {
+                        // A newer export of a step imported before: rows already in ERP (and unchanged) are skipped.
+                        $skipped++;
+                        $row->update(['status' => 'skipped', 'validation_errors' => null, 'normalized_values' => $normalized]);
                     } else {
                         $accepted++;
                         $row->update(['status' => 'validated', 'validation_errors' => null, 'normalized_values' => $normalized]);
@@ -69,7 +131,7 @@ class ZohoMigrationValidator
                 'accepted_count' => $accepted,
                 'rejected_count' => $rejected,
                 'warning_count' => 0,
-                'summary' => json_encode(['create' => $accepted, 'link' => 0, 'skip' => 0, 'update' => 0, 'reject' => $rejected]),
+                'summary' => json_encode(['create' => $accepted, 'link' => 0, 'skip' => $skipped, 'update' => 0, 'reject' => $rejected]),
                 'updated_at' => now(),
             ]);
 
@@ -81,8 +143,8 @@ class ZohoMigrationValidator
                 'event_type' => 'stage_validated',
                 'message' => $rejected > 0
                     ? "Validation found {$rejected} rows requiring master-data correction."
-                    : "Validation passed for {$accepted} source rows.",
-                'metadata' => ['accepted' => $accepted, 'rejected' => $rejected],
+                    : "Validation passed for {$accepted} source rows.".($skipped ? " {$skipped} rows were imported earlier and are skipped." : ''),
+                'metadata' => ['accepted' => $accepted, 'rejected' => $rejected, 'skipped' => $skipped],
             ]);
 
             return ['accepted' => $accepted, 'rejected' => $rejected, 'warnings' => 0, 'issues' => $rejected];
@@ -115,57 +177,6 @@ class ZohoMigrationValidator
         ], array_values(array_unique($errors)));
     }
 
-    private function rowIssues(int $tenantId, string $stageKey, array $row): array
-    {
-        $issues = [];
-        if ($stageKey === 'sales_invoices') {
-            $customer = $this->value($row, ['customer name', 'customer']);
-            if (!$customer || !Customer::where('created_by', $tenantId)->where(function ($query) use ($customer) {
-                $query->whereRaw('LOWER(company_name) = ?', [mb_strtolower($customer)])
-                    ->orWhereRaw('LOWER(contact_person_name) = ?', [mb_strtolower($customer)])
-                    ->orWhereHas('user', fn ($user) => $user->whereRaw('LOWER(name) = ?', [mb_strtolower($customer)]));
-            })->exists()) {
-                $issues[] = $this->missing('customer', $customer, 'Customer was not found for this company.', 'account.customers.index');
-            }
-            $issues = [...$issues, ...$this->itemAndWarehouseIssues($tenantId, $row)];
-        }
-
-        if ($stageKey === 'purchase_invoices') {
-            $vendor = $this->value($row, ['vendor name', 'vendor']);
-            if (!$vendor || !Vendor::where('created_by', $tenantId)->where(function ($query) use ($vendor) {
-                $query->whereRaw('LOWER(company_name) = ?', [mb_strtolower($vendor)])
-                    ->orWhereRaw('LOWER(contact_person_name) = ?', [mb_strtolower($vendor)])
-                    ->orWhereHas('user', fn ($user) => $user->whereRaw('LOWER(name) = ?', [mb_strtolower($vendor)]));
-            })->exists()) {
-                $issues[] = $this->missing('vendor', $vendor, 'Vendor was not found for this company.', 'account.vendors.index');
-            }
-            $issues = [...$issues, ...$this->itemAndWarehouseIssues($tenantId, $row)];
-        }
-
-        return $issues;
-    }
-
-    private function itemAndWarehouseIssues(int $tenantId, array $row): array
-    {
-        $issues = [];
-        $sku = $this->value($row, ['sku', 'item sku', 'product id']);
-        $itemName = $this->value($row, ['item name', 'product name']);
-        $itemQuery = ProductServiceItem::where('created_by', $tenantId);
-        $itemFound = $sku
-            ? (clone $itemQuery)->whereRaw('LOWER(sku) = ?', [mb_strtolower($sku)])->exists()
-            : ($itemName ? (clone $itemQuery)->whereRaw('LOWER(name) = ?', [mb_strtolower($itemName)])->exists() : false);
-        if (!$itemFound) {
-            $issues[] = $this->missing('item', $sku ?: $itemName, 'Product or service was not found for this company.', 'product-service.items.index');
-        }
-
-        $warehouse = $this->value($row, ['warehouse name', 'warehouse']);
-        if ($warehouse && !Warehouse::where('created_by', $tenantId)->whereRaw('LOWER(name) = ?', [mb_strtolower($warehouse)])->exists()) {
-            $issues[] = $this->missing('warehouse', $warehouse, 'Warehouse was not found for this company.', 'warehouses.index');
-        }
-
-        return $issues;
-    }
-
     private function normalize(array $values): array
     {
         $normalized = [];
@@ -174,22 +185,6 @@ class ZohoMigrationValidator
         }
 
         return $normalized;
-    }
-
-    private function value(array $row, array $keys): ?string
-    {
-        foreach ($keys as $key) {
-            if (($row[$key] ?? '') !== '') {
-                return $row[$key];
-            }
-        }
-
-        return null;
-    }
-
-    private function missing(string $field, ?string $value, string $message, string $route): array
-    {
-        return ['type' => 'missing_master', 'field' => $field, 'source_value' => $value, 'message' => $message, 'resolution_url' => Route::has($route) ? route($route) : null];
     }
 
     private function storeIssues(ZohoMigrationBatch $batch, ZohoMigrationStagedRow $row, string $stageKey, array $issues): void

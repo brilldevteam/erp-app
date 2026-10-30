@@ -30,6 +30,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth.session.current' => \App\Http\Middleware\EnsureAuthSessionIsCurrent::class,
         ]);
 
+        // Pasted spreadsheet rows end in a tab when their last cell is empty; the import trims each cell itself.
+        $middleware->trimStrings(except: ['pasted_data']);
+
         $middleware->validateCsrfTokens(
             except: [
                 'aamarpay/*',

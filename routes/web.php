@@ -51,11 +51,15 @@ Route::middleware(['auth', 'auth.session.current', 'verified', 'PlanModuleCheck'
         Route::get('/', [ZohoMigrationController::class, 'index'])->name('index');
         Route::post('/', [ZohoMigrationController::class, 'store'])->name('store');
         Route::get('{zohoMigration}', [ZohoMigrationController::class, 'show'])->name('show');
+        Route::get('{zohoMigration}/reference-data', [ZohoMigrationController::class, 'referenceData'])->name('reference-data');
         Route::post('{zohoMigration}/files', [ZohoMigrationController::class, 'upload'])->name('files.store');
         Route::get('{zohoMigration}/files/{file}/source', [ZohoMigrationController::class, 'source'])->name('files.source');
+        Route::delete('{zohoMigration}/files/{file}', [ZohoMigrationController::class, 'destroyFile'])->name('files.destroy');
         Route::post('{zohoMigration}/stages/{stageKey}/validate', [ZohoMigrationController::class, 'validateStage'])->name('stages.validate');
         Route::post('{zohoMigration}/stages/{stageKey}/execute', [ZohoMigrationController::class, 'executeStage'])->name('stages.execute');
         Route::post('{zohoMigration}/stages/{stageKey}/manual-prerequisite', [ZohoMigrationController::class, 'importManualPrerequisite'])->name('stages.manual-prerequisite');
+        Route::get('{zohoMigration}/stages/{stageKey}/manual-template', [ZohoMigrationController::class, 'manualTemplate'])->name('stages.manual-template');
+        Route::post('{zohoMigration}/stages/{stageKey}/manual-upload', [ZohoMigrationController::class, 'uploadManualPrerequisite'])->name('stages.manual-upload');
         Route::get('{zohoMigration}/stages/{stageKey}/issues', [ZohoMigrationController::class, 'issueReport'])->name('stages.issues');
     });
 
