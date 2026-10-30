@@ -429,9 +429,9 @@ export default function Edit() {
                                             <span className="font-semibold">{t('Total')}</span>
                                             <span className="font-bold text-lg">{formatTransactionMoney(totals.total, data.currency_code)}</span>
                                         </div>
-                                        <div className="mt-1 text-right text-xs text-muted-foreground">
+                                        {data.currency_code !== (invoice.base_currency_code || 'USD') && <div className="mt-1 text-right text-xs text-muted-foreground">
                                             {t('Base-currency equivalent')}: {formatCurrency(totals.total * Number(data.exchange_rate || 0))}
-                                        </div>
+                                        </div>}
                                     </div>
                                 </div>
                             </div>

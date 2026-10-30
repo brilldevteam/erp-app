@@ -68,7 +68,8 @@ interface CreateProps {
 
 export default function Create() {
     const { t } = useTranslation();
-    const { customers, taxes = [], warehouses, documentTemplates = [], productCatalog, revenueAccounts = [], auth, initialInvoice, initialProducts = [] } = usePage<CreateProps>().props;
+    const { customers, taxes = [], warehouses, documentTemplates = [], productCatalog, revenueAccounts = [], auth, initialInvoice, initialProducts = [], companyAllSetting } = usePage<CreateProps>().props;
+    const baseCurrency = companyAllSetting?.defaultCurrency || 'USD';
     const [availableProducts, setAvailableProducts] = useState<QuotationProduct[]>(initialProducts);
     const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
     const [productsLoading, setProductsLoading] = useState(false);
@@ -572,9 +573,9 @@ export default function Create() {
                                             <span className="font-semibold">{t('Total')}</span>
                                             <span className="font-bold text-lg">{formatTransactionMoney(totals.total, data.currency_code)}</span>
                                         </div>
-                                        <div className="mt-1 text-right text-xs text-muted-foreground">
+                                        {data.currency_code !== baseCurrency && <div className="mt-1 text-right text-xs text-muted-foreground">
                                             {t('Base-currency equivalent')}: {formatCurrency(totals.total * Number(data.exchange_rate || 0))}
-                                        </div>
+                                        </div>}
                                     </div>
                                 </div>
                             </div>

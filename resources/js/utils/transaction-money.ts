@@ -1,6 +1,12 @@
+import { formatCurrency } from '@/utils/helpers';
+
 export function formatTransactionMoney(amount: number | string, currencyCode: string): string {
     const value = Number(amount) || 0;
     const currency = (currencyCode || 'USD').toUpperCase();
+
+    if (currency === 'QAR') {
+        return formatCurrency(value);
+    }
 
     try {
         return new Intl.NumberFormat('en-US', {
