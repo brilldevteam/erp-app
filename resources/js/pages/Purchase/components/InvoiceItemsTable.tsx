@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { InputError } from '@/components/ui/input-error';
 import { Trash2 } from 'lucide-react';
-import { formatCurrency } from '@/utils/helpers';
+import { formatTransactionMoney } from '@/utils/transaction-money';
 import SalesLineDiscount from '@/components/sales-line-discount';
 
 interface Props {
@@ -18,9 +18,10 @@ interface Props {
     products?: Array<{id: number; name: string; purchase_price: number; unit?: string; type?: string; taxes?: Array<{id: number; tax_name: string; rate: number}>}>;
     accounts?: BillAccountOption[];
     showAddButton?: boolean;
+    currencyCode?: string;
 }
 
-export default function InvoiceItemsTable({ items, onChange, errors, products = [], accounts = [], showAddButton = true }: Props) {
+export default function InvoiceItemsTable({ items, onChange, errors, products = [], accounts = [], showAddButton = true, currencyCode = 'USD' }: Props) {
     const { t } = useTranslation();
     const inventoryAccountId = accounts.find(account => account.account_code === '1200')?.id ?? null;
     const addItem = () => {
@@ -234,7 +235,7 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                 </td>
                                 <td className="px-2 py-4">
                                     <span className="text-sm font-medium whitespace-nowrap">
-                                        {formatCurrency(item.total_amount)}
+                                        {formatTransactionMoney(item.total_amount, currencyCode)}
                                     </span>
                                 </td>
                                 <td className="px-2 py-4 text-center">

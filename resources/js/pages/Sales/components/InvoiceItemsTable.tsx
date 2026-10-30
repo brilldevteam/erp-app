@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { InputError } from '@/components/ui/input-error';
 import { Trash2 } from 'lucide-react';
-import { formatCurrency } from '@/utils/helpers';
+import { formatTransactionMoney } from '@/utils/transaction-money';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Props {
@@ -21,9 +21,10 @@ interface Props {
     showAddButton?: boolean;
     invoiceType?: string;
     onClearError?: (field: string) => void;
+    currencyCode?: string;
 }
 
-export default function InvoiceItemsTable({ items, onChange, errors, products = [], taxTypes = [], showAddButton = true, invoiceType = 'product', onClearError }: Props) {
+export default function InvoiceItemsTable({ items, onChange, errors, products = [], taxTypes = [], showAddButton = true, invoiceType = 'product', onClearError, currencyCode = 'USD' }: Props) {
     const { t } = useTranslation();
 
     const addItem = () => {
@@ -274,7 +275,7 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                 </td>
                                 <td className="px-4 py-4">
                                     <span className="text-sm font-medium">
-                                        {formatCurrency(item.total_amount)}
+                                        {formatTransactionMoney(item.total_amount, currencyCode)}
                                     </span>
                                 </td>
                                 <td className="px-4 py-4 text-center">

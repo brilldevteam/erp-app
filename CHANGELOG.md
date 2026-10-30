@@ -12,6 +12,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Company users can configure exchange gain and loss accounts from Currency Rates. Customer and vendor forms can set a preferred document currency.
 
 ### Changed
+- Sales and purchase invoice line totals and create/edit summaries now use the selected transaction currency, with the base-currency equivalent shown separately beneath the total.
 - Purchase invoice line controls now align to the top of each row, matching sales invoices when an item description makes the row taller.
 - Renamed the visible Double Entry module label, headings and breadcrumbs to Reports while retaining all internal routes, permissions and technical accounting names.
 - Bulk Import upload guide (`ZohoUploadGuide`): every upload step lists the file it takes, with where to export it in Zoho Books and what to watch for. Steps that take several files (Credit applications, Final reconciliation) list them in order, marked required or optional, and show which are attached. Choosing a file first opens this guide; the file picker opens from it.

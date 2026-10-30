@@ -8,6 +8,7 @@ import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import InvoiceItemsTable from './components/InvoiceItemsTable';
 import { useTaxCalculator } from './components/TaxCalculator';
 import { formatCurrency } from '@/utils/helpers';
+import { formatTransactionMoney } from '@/utils/transaction-money';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -346,6 +347,7 @@ export default function Create() {
                                 products={products}
                                 accounts={billAccounts || []}
                                 showAddButton={false}
+                                currencyCode={data.currency_code}
                             />
 
                             {/* Invoice Summary - Bottom of Items */}
@@ -355,20 +357,23 @@ export default function Create() {
                                     <div>
                                         <div className="flex justify-between text-sm">
                                             <span className="text-muted-foreground">{t('Subtotal')}</span>
-                                            <span className="font-medium">{formatCurrency(totals.subtotal)}</span>
+                                            <span className="font-medium">{formatTransactionMoney(totals.subtotal, data.currency_code)}</span>
                                         </div>
                                         <div className="flex justify-between text-sm">
                                             <span className="text-muted-foreground">{t('Discount')}</span>
-                                            <span className="font-medium text-red-600">-{formatCurrency(totals.discountAmount)}</span>
+                                            <span className="font-medium text-red-600">-{formatTransactionMoney(totals.discountAmount, data.currency_code)}</span>
                                         </div>
                                         <div className="flex justify-between text-sm">
                                             <span className="text-muted-foreground">{t('Tax')}</span>
-                                            <span className="font-medium">{formatCurrency(totals.taxAmount)}</span>
+                                            <span className="font-medium">{formatTransactionMoney(totals.taxAmount, data.currency_code)}</span>
                                         </div>
                                         <Separator className="my-2" />
                                         <div className="flex justify-between">
                                             <span className="font-semibold">{t('Total')}</span>
-                                            <span className="font-bold text-lg">{formatCurrency(totals.total)}</span>
+                                            <span className="font-bold text-lg">{formatTransactionMoney(totals.total, data.currency_code)}</span>
+                                        </div>
+                                        <div className="mt-1 text-right text-xs text-muted-foreground">
+                                            {t('Base-currency equivalent')}: {formatCurrency(totals.total * Number(data.exchange_rate || 0))}
                                         </div>
                                     </div>
                                 </div>
