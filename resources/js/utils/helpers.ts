@@ -189,7 +189,8 @@ const formatCurrency = (amount: number | string, pageProps?: any): string => {
     const symbol = getCurrencySymbol(pageProps);
     const space = currencySymbolSpace ? ' ' : '';
 
-    return currencySymbolPosition === 'before'
+    // Older settings store the position as left/right instead of before/after.
+    return ['before', 'left'].includes(currencySymbolPosition)
       ? `${symbol}${space}${formattedNumber}`
       : `${formattedNumber}${space}${symbol}`;
   } catch {
@@ -218,7 +219,8 @@ const formatAdminCurrency = (amount: number | string, pageProps?: any): string =
     const symbol = getAdminSetting('currencySymbol', pageProps) || '$';
     const space = currencySymbolSpace ? ' ' : '';
 
-    return currencySymbolPosition === 'before'
+    // Older settings store the position as left/right instead of before/after.
+    return ['before', 'left'].includes(currencySymbolPosition)
       ? `${symbol}${space}${formattedNumber}`
       : `${formattedNumber}${space}${symbol}`;
   } catch {

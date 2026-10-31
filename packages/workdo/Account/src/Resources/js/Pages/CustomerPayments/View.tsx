@@ -15,7 +15,8 @@ import { formatDate, formatCurrency, getCurrencySymbolForCode } from '@/utils/he
 export default function View({ payment, canApplyDeposit = false, onApplied }: CustomerPaymentViewProps) {
     const { t } = useTranslation();
     const page = usePage().props as any;
-    const baseCurrency = page.companyAllSetting?.defaultCurrency || 'USD';
+    // The payment's own base currency; the company setting only when the payment has none.
+    const baseCurrency = (payment.base_currency_code || page.companyAllSetting?.defaultCurrency || 'USD').toUpperCase();
     const paymentCurrency = payment.currency_code || baseCurrency;
     const formatMoney = (amount: number | string, currency: string) =>
         `${getCurrencySymbolForCode(currency, page)} ${Number(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

@@ -38,6 +38,8 @@ export default function Index() {
     const pageProps = usePage<CustomerPaymentsIndexProps>().props as CustomerPaymentsIndexProps & { companyAllSetting?: { defaultCurrency?: string } };
     const { payments, customers, bankAccounts, filters: initialFilters, auth } = pageProps;
     const baseCurrency = pageProps.companyAllSetting?.defaultCurrency || 'USD';
+    // Each payment's own base currency decides whether a second (base) amount is shown.
+    const baseOf = (payment: { base_currency_code?: string | null }) => (payment.base_currency_code || baseCurrency).toUpperCase();
     const formatMoney = (amount: number | string, currency: string) =>
         `${getCurrencySymbolForCode(currency, pageProps)} ${Number(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const urlParams = new URLSearchParams(window.location.search);
@@ -179,12 +181,12 @@ export default function Index() {
                 const currency = payment.currency_code || baseCurrency;
                 return <div className="font-normal text-gray-900">
                     <div className="whitespace-nowrap" dir="ltr">{formatMoney(value, currency)}</div>
-                    {currency !== baseCurrency && (() => {
+                    {currency !== baseOf(payment) && (() => {
                         // Base-currency amount actually settled: green for an exchange gain, red for a loss (a customer paying more base currency than the invoices were booked at is a gain).
                         const difference = (payment.allocations || []).reduce((sum, allocation) => sum + Number(allocation.exchange_difference || 0), 0);
                         const tone = Math.abs(difference) < 0.005 ? 'text-gray-500' : difference > 0 ? 'text-green-600' : 'text-red-600';
                         return <div className={`mt-0.5 whitespace-nowrap text-xs font-medium ${tone}`} dir="ltr">
-                            {formatMoney(payment.base_amount ?? Number(value) * Number(payment.exchange_rate || 1), baseCurrency)}
+                            {formatMoney(payment.base_amount ?? Number(value) * Number(payment.exchange_rate || 1), baseOf(payment))}
                         </div>;
                     })()}
                 </div>;
@@ -485,7 +487,7 @@ export default function Index() {
                                                             <span className="text-sm font-semibold text-gray-900">{t('Amount')}</span>
                                                             <div className="text-end">
                                                                 <div className="text-lg font-bold text-green-600">{formatMoney(payment.payment_amount, payment.currency_code || baseCurrency)}</div>
-                                                                {(payment.currency_code || baseCurrency) !== baseCurrency && <div className="text-xs text-gray-500">{formatMoney(payment.base_amount || 0, baseCurrency)}</div>}
+                                                                {(payment.currency_code || baseCurrency) !== baseOf(payment) && <div className="text-xs text-gray-500">{formatMoney(payment.base_amount || 0, baseOf(payment))}</div>}
                                                             </div>
                                                         </div>
                                                         {Number(payment.available_deposit) > 0 && (
@@ -493,7 +495,7 @@ export default function Index() {
                                                                 <span className="text-xs text-gray-600">{t('Available Deposit')}</span>
                                                                 <div className="text-end">
                                                                     <div className="text-sm font-semibold text-blue-600">{formatMoney(payment.available_deposit, payment.currency_code || baseCurrency)}</div>
-                                                                    {(payment.currency_code || baseCurrency) !== baseCurrency && <div className="text-xs text-gray-500">{formatMoney(payment.available_deposit_base || 0, baseCurrency)}</div>}
+                                                                    {(payment.currency_code || baseCurrency) !== baseOf(payment) && <div className="text-xs text-gray-500">{formatMoney(payment.available_deposit_base || 0, baseOf(payment))}</div>}
                                                                 </div>
                                                             </div>
                                                         )}

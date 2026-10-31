@@ -40,7 +40,7 @@ export default function CurrencySettings({ userSettings = {}, auth }: CurrencySe
         thousandsSeparator: userSettings?.thousandsSeparator || ',',
         floatNumber: userSettings?.floatNumber === '0' ? false : true,
         currencySymbolSpace: userSettings?.currencySymbolSpace === '1',
-        currencySymbolPosition: userSettings?.currencySymbolPosition || 'before',
+        currencySymbolPosition: ({ left: 'before', right: 'after' } as Record<string, string>)[userSettings?.currencySymbolPosition] || userSettings?.currencySymbolPosition || 'before',
         currencySymbol: userSettings?.currencySymbol || '$',
         currencyName: ''
     });
@@ -73,7 +73,7 @@ export default function CurrencySettings({ userSettings = {}, auth }: CurrencySe
             thousandsSeparator: userSettings?.thousandsSeparator || ',',
             floatNumber: userSettings?.floatNumber === '0' ? false : true,
             currencySymbolSpace: userSettings?.currencySymbolSpace === '1',
-            currencySymbolPosition: userSettings?.currencySymbolPosition || 'before',
+            currencySymbolPosition: ({ left: 'before', right: 'after' } as Record<string, string>)[userSettings?.currencySymbolPosition] || userSettings?.currencySymbolPosition || 'before',
             currencySymbol: userSettings?.currencySymbol || '$',
             currencyName: ''
         });

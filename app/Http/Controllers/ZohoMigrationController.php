@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Database\QueryException;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -76,7 +77,24 @@ class ZohoMigrationController extends Controller
             'ai_enabled' => ['sometimes', 'boolean'],
         ]);
 
-        $batch = DB::transaction(function () use ($validated, $tenantId, $request): ZohoMigrationBatch {
+        // The migration's base currency becomes the company's currency. A company that already has accounting
+        // entries keeps its currency: its migration must use that currency instead.
+        $baseCurrency = strtoupper($validated['base_currency']);
+        $companyCurrency = strtoupper((string) company_setting('defaultCurrency', $tenantId));
+        if ($companyCurrency !== $baseCurrency && DB::table('journal_entries')->where('created_by', $tenantId)->exists()) {
+            throw ValidationException::withMessages([
+                'base_currency' => "This company already has accounting entries in {$companyCurrency}. Use {$companyCurrency} as the base currency.",
+            ]);
+        }
+
+        $batch = DB::transaction(function () use ($validated, $tenantId, $request, $baseCurrency, $companyCurrency): ZohoMigrationBatch {
+            if ($companyCurrency !== $baseCurrency) {
+                $currency = collect(config('default_currency.currencies', []))->firstWhere('code', $baseCurrency);
+                setSetting('defaultCurrency', $baseCurrency, $tenantId);
+                setSetting('currencySymbol', $currency['symbol'] ?? $baseCurrency, $tenantId);
+                setSetting('currencyName', $currency['name'] ?? $baseCurrency, $tenantId);
+            }
+
             $batch = ZohoMigrationBatch::create([
                 ...$validated,
                 'default_warehouse_id' => null,

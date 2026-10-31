@@ -1,10 +1,12 @@
-import { formatCurrency } from '@/utils/helpers';
+import { formatCurrency, getCompanySetting } from '@/utils/helpers';
 
 export function formatTransactionMoney(amount: number | string, currencyCode: string): string {
     const value = Number(amount) || 0;
-    const currency = (currencyCode || 'USD').toUpperCase();
+    const companyCurrency = String(getCompanySetting('defaultCurrency') || 'QAR').toUpperCase();
+    const currency = (currencyCode || companyCurrency).toUpperCase();
 
-    if (currency === 'QAR') {
+    // The company's own currency uses its saved symbol and format; any other currency shows its code.
+    if (currency === companyCurrency) {
         return formatCurrency(value);
     }
 
