@@ -89,6 +89,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Added the tenant-scoped Zoho migration workspace foundation with immutable accounting-mode configuration, private hashed uploads, conservative export-profile detection, durable staged source rows, dedicated permissions, and queued file inspection. This foundation does not create financial records.
 
 ### Fixed
+- Product and service import templates now populate their example row with category, unit and tax names from the current company instead of fixed placeholder names that could fail validation.
 - Sales and purchase invoice create/update now always treat line prices as company base-currency inputs and convert them to the selected foreign document currency before persistence, preventing QAR 1,000 at 3.65 from being stored as USD 1,000 / QAR 3,650.
 - Multi-currency invoice lists now fall back to the configured company base currency and saved exchange rate when legacy rows lack base-currency snapshot fields, keeping QAR on the main line with the selected foreign currency beneath it.
 - After a large upload, the page now updates on its own when validation finishes. The step previously left "processing" as soon as the file was read, so the page stopped refreshing and showed "Recheck corrections" until reloaded.

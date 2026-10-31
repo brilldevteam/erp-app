@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `release/zoho-and-security` | Product/service spreadsheet template tenant-aware example category, unit and tax; focused upload regression test, changelog and push. | 2026-10-31 | Released - committed in this handoff changeset |
 | Codex | `release/zoho-and-security` | Restore Categories and Units to manual-entry-only by removing the spreadsheet import option and its supporting changes. | 2026-10-31 | Released - committed in this handoff changeset |
 | Codex | `release/zoho-and-security` | Remove default-warehouse fields and setup-time creation from migration workspace configuration; preserve Step 6 warehouse workflow, controller/UI/changelog verification, push. | 2026-10-31 | Released - committed in this handoff changeset |
 | Codex | `release/zoho-and-security` | Make migration default warehouse optional as a complete section while preserving conditional warehouse validation/creation; controller, migration UI/types, changelog, focused verification, push. | 2026-10-31 | Released - committed in this handoff changeset |
@@ -231,6 +232,12 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-10-31 Asia/Colombo - Codex - Tenant-aware product import template
+
+- Branch: `release/zoho-and-security`.
+- Changed: product/service XLSX and CSV templates now use the current company's first category, unit and tax in the example row instead of fixed `General` and `Pcs` placeholders that may not exist.
+- Verification: PHP syntax and scoped whitespace checks passed; `ZohoManualProductUploadTest` passed (4 tests, 16 assertions). Generated `public/build`, the unrelated payload test change, and other local artifacts remain excluded.
 
 ### 2026-10-31 Asia/Colombo - Codex - Restore manual-only categories and units
 

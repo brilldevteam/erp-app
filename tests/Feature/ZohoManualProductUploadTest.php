@@ -98,6 +98,7 @@ class ZohoManualProductUploadTest extends TestCase
         $workbook = IOFactory::load($path);
         $this->assertSame(['Import', 'Instructions', 'ERP names'], $workbook->getSheetNames());
         $this->assertSame(['name', 'sku', 'type', 'category', 'unit', 'taxes', 'sale_price', 'purchase_price', 'description'], $workbook->getSheet(0)->rangeToArray('A1:I1')[0]);
+        $this->assertSame(['General', 'Pcs', null], $workbook->getSheet(0)->rangeToArray('D2:F2')[0]);
         $this->assertSame([['category', 'unit', 'taxes'], ['General', 'Pcs', null]], $workbook->getSheetByName('ERP names')->toArray());
     }
 

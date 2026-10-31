@@ -143,8 +143,12 @@ class ZohoManualPrerequisiteService
         for ($index = 0; $index < max(array_map('count', $names)); $index++) {
             $referenceRows[] = array_map(fn (array $list) => $list[$index] ?? '', $names);
         }
+        $example = $definition['example'];
+        $example[3] = $names[0][0] ?? '';
+        $example[4] = $names[1][0] ?? '';
+        $example[5] = $names[2][0] ?? '';
 
-        return $this->spreadsheets->template($definition['headers'], $definition['example'], [
+        return $this->spreadsheets->template($definition['headers'], $example, [
             'Fill one row per product or service. Delete the example row before uploading.',
             'Keep the column names in the first row; column order does not matter.',
             'type is product, service or part. Services need no unit; products and parts do.',
