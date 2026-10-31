@@ -39,11 +39,6 @@ class ZohoManualPrerequisiteService
             'profile' => 'manual.categories_units.v1',
             'filename' => 'manual-categories-units.csv',
             'headers' => ['record_type', 'name', 'color'],
-            'example' => [
-                ['category', 'Example Category', '#10B981'],
-                ['unit', 'Pcs', ''],
-            ],
-            'optional_columns' => ['color'],
         ],
         'warehouses' => [
             'dataset' => 'warehouses',
@@ -103,13 +98,8 @@ class ZohoManualPrerequisiteService
     {
         $definition = $this->definition($stageKey, true);
         $prepared = $this->prepare($stageKey, $this->readUpload($path, $definition), $batch);
-        $results = array_map(function (array $row) use ($batch, $stageKey): array {
-            $existing = false;
-            if (!$row['errors']) {
-                $existing = $stageKey === 'items'
-                    ? $this->products->duplicate($row['values'], $batch->tenant_id)
-                    : ($row['list']['definition'] ?? null)?->duplicate($row['record'] ?? [], $batch->tenant_id);
-            }
+        $results = array_map(function (array $row) use ($batch): array {
+            $existing = !$row['errors'] && $this->products->duplicate($row['values'], $batch->tenant_id);
 
             return [
                 'row_number' => $row['source_row_number'],
@@ -143,15 +133,6 @@ class ZohoManualPrerequisiteService
     public function uploadTemplate(ZohoMigrationBatch $batch, string $stageKey, string $format): string
     {
         $definition = $this->definition($stageKey, true);
-        if ($stageKey === 'categories_units') {
-            return $this->spreadsheets->template($definition['headers'], $definition['example'], [
-                'Use record_type category for category rows and unit for unit rows.',
-                'name is required. color is optional and applies only to categories.',
-                'Delete both example rows before uploading your own data.',
-                'Keep the first-row column names. Column order does not matter.',
-                'Files may contain at most '.SpreadsheetService::MAX_ROWS.' data rows.',
-            ], $format);
-        }
         $tenantId = $batch->tenant_id;
         $names = [
             ProductServiceCategory::where('created_by', $tenantId)->orderBy('name')->pluck('name')->all(),
