@@ -70,7 +70,7 @@ type Batch = {
     base_currency: string;
     source_date_format: string;
     inventory_cutover_at: string;
-    default_warehouse_id: number;
+    default_warehouse_id: number | null;
     duplicate_strategy: string;
     ai_enabled: boolean;
     stages: Stage[];
@@ -280,12 +280,12 @@ export default function ZohoMigrations({ batches: initialBatches, permissions }:
                             <Field label="Zoho date format"><NativeSelect name="source_date_format" options={[["dd/MM/yyyy", 'DD/MM/YYYY'], ["MM/dd/yyyy", 'MM/DD/YYYY'], ["yyyy-MM-dd", 'YYYY-MM-DD'], ["dd-MM-yyyy", 'DD-MM-YYYY']]} /></Field>
                             <Field label="Inventory cutover"><Input name="inventory_cutover_at" type="date" required /></Field>
                             <Field label="Default warehouse">
-                                <Input name="default_warehouse_name" required placeholder="Main Warehouse" />
-                                <p className="text-xs text-slate-500">An exact existing name is reused; otherwise a new active warehouse is added.</p>
+                                <Input name="default_warehouse_name" placeholder="Optional" />
+                                <p className="text-xs text-slate-500">Leave blank when no default warehouse is needed. An exact existing name is reused.</p>
                             </Field>
-                            <Field label="Warehouse address"><Input name="default_warehouse_address" required placeholder="Building, street, area" /></Field>
-                            <Field label="Warehouse city"><Input name="default_warehouse_city" required placeholder="Doha" /></Field>
-                            <Field label="Warehouse zip code"><Input name="default_warehouse_zip_code" required placeholder="00000" /></Field>
+                            <Field label="Warehouse address"><Input name="default_warehouse_address" placeholder="Required only when adding a warehouse" /></Field>
+                            <Field label="Warehouse city"><Input name="default_warehouse_city" placeholder="Required only when adding a warehouse" /></Field>
+                            <Field label="Warehouse zip code"><Input name="default_warehouse_zip_code" placeholder="Required only when adding a warehouse" /></Field>
                             <Field label="Warehouse phone"><Input name="default_warehouse_phone" type="tel" placeholder="Optional, e.g. +97455550000" /></Field>
                             <Field label="Warehouse email"><Input name="default_warehouse_email" type="email" placeholder="Optional" /></Field>
                             <input type="hidden" name="duplicate_strategy" value="block" />

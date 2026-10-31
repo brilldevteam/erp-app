@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `release/zoho-and-security` | Make migration default warehouse optional as a complete section while preserving conditional warehouse validation/creation; controller, migration UI/types, changelog, focused verification, push. | 2026-10-31 | Released - committed in this handoff changeset |
 | Codex | `release/zoho-and-security` | Replace the migration base-currency free-text input with the shared searchable currency dropdown in `resources/js/pages/zoho-migrations/index.tsx`; changelog, TypeScript verification, push. | 2026-10-31 | Released - committed in this handoff changeset |
 | Codex | `release/zoho-and-security` | Remove the vendor name from the visible full-ledger accounting-mode option in `resources/js/pages/zoho-migrations/index.tsx`; changelog and focused TypeScript verification. | 2026-10-31 | Released - committed in this handoff changeset |
 | Codex | `zoho-import-redesign` | Enforce base-to-transaction conversion for sales/purchase invoice create/update line amounts, focused regression verification, `CHANGELOG.md`. | 2026-10-30 | Released - committed `e65fd6d8` |
@@ -228,6 +229,12 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-10-31 Asia/Colombo - Codex - Optional migration default warehouse
+
+- Branch: `release/zoho-and-security`.
+- Changed: migration workspace creation accepts a completely blank default-warehouse section and stores no warehouse assignment; supplying a warehouse name conditionally requires address, city, and postal code and retains exact-name reuse, creation permission checks, and legacy placeholder repair.
+- Verification: controller PHP syntax, TypeScript no-emit compilation, and whitespace verification passed. The existing nullable `default_warehouse_id` database constraint required no migration. Generated `public/build` and unrelated local artifacts remain excluded.
 
 ### 2026-10-31 Asia/Colombo - Codex - Searchable migration base-currency selector
 
