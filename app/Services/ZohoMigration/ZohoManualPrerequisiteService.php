@@ -400,6 +400,7 @@ class ZohoManualPrerequisiteService
         return array_map(function (array $row) use ($batch, &$seen): array {
             $original = $row['values'];
             $values = $this->products->prepare($row['values']);
+            $values = $this->repairLegacyProductTemplateNames($values, $batch->tenant_id);
             $sku = mb_strtolower(trim((string) ($values['sku'] ?? '')));
             $errors = $this->products->validate($values, $batch->tenant_id);
             foreach (['type', 'category', 'unit', 'sale_price', 'purchase_price'] as $requiredField) {
@@ -423,6 +424,31 @@ class ZohoManualPrerequisiteService
 
             return $row + ['values' => $values, 'errors' => array_values(array_unique($errors))];
         }, $rows);
+    }
+
+    /**
+     * Early templates used General/Pcs placeholders. Resolve only those known placeholders, and only
+     * when the tenant has exactly one possible replacement, so genuine source mappings stay strict.
+     */
+    private function repairLegacyProductTemplateNames(array $values, int $tenantId): array
+    {
+        if (mb_strtolower(trim((string) ($values['category'] ?? ''))) === 'general'
+            && !ProductServiceCategory::where('created_by', $tenantId)->whereRaw('LOWER(name) = ?', ['general'])->exists()) {
+            $categories = ProductServiceCategory::where('created_by', $tenantId)->limit(2)->pluck('name');
+            if ($categories->count() === 1) {
+                $values['category'] = $categories->first();
+            }
+        }
+
+        if (mb_strtolower(trim((string) ($values['unit'] ?? ''))) === 'pcs'
+            && !ProductServiceUnit::where('created_by', $tenantId)->whereRaw('LOWER(unit_name) = ?', ['pcs'])->exists()) {
+            $units = ProductServiceUnit::where('created_by', $tenantId)->limit(2)->pluck('unit_name');
+            if ($units->count() === 1) {
+                $values['unit'] = $units->first();
+            }
+        }
+
+        return $values;
     }
 
     private function prepareSimpleList(array $rows, ZohoMigrationBatch $batch, string $stageKey): array

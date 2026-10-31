@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `release/zoho-and-security` | Backward-compatible product upload repair for old generated `General`/`Pcs` placeholders when the company has one category/unit; regression tests, changelog and push. | 2026-10-31 | Released - committed in this handoff changeset |
 | Codex | `release/zoho-and-security` | Product/service spreadsheet template tenant-aware example category, unit and tax; focused upload regression test, changelog and push. | 2026-10-31 | Released - committed in this handoff changeset |
 | Codex | `release/zoho-and-security` | Restore Categories and Units to manual-entry-only by removing the spreadsheet import option and its supporting changes. | 2026-10-31 | Released - committed in this handoff changeset |
 | Codex | `release/zoho-and-security` | Remove default-warehouse fields and setup-time creation from migration workspace configuration; preserve Step 6 warehouse workflow, controller/UI/changelog verification, push. | 2026-10-31 | Released - committed in this handoff changeset |
@@ -232,6 +233,12 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-10-31 Asia/Colombo - Codex - Repair old product import templates
+
+- Branch: `release/zoho-and-security`.
+- Changed: old generated product CSV/XLSX files containing `General` and `Pcs` now resolve those known placeholders to the company's sole category and unit when the replacement is unambiguous. Other category and unit values remain strictly validated.
+- Verification: PHP syntax and scoped whitespace passed; `ZohoManualProductUploadTest` passed (5 tests, 18 assertions), including the reported `Promotion reels` / `SKU-1793280989075` case. Generated build and unrelated local changes remain excluded.
 
 ### 2026-10-31 Asia/Colombo - Codex - Tenant-aware product import template
 

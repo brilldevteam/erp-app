@@ -102,6 +102,22 @@ class ZohoManualProductUploadTest extends TestCase
         $this->assertSame([['category', 'unit', 'taxes'], ['General', 'Pcs', null]], $workbook->getSheetByName('ERP names')->toArray());
     }
 
+    public function test_old_template_placeholders_resolve_when_there_is_one_company_choice(): void
+    {
+        [$company, $batch] = $this->productsBatch();
+        ProductServiceCategory::where('created_by', $company->id)->update(['name' => 'Miscellaneous Items']);
+        ProductServiceUnit::where('created_by', $company->id)->update(['unit_name' => 'Each']);
+
+        $preview = app(ZohoManualPrerequisiteService::class)->previewUpload(
+            $batch,
+            'items',
+            $this->csv("name,sku,type,category,unit,sale_price,purchase_price\nPromotion reels,SKU-1793280989075,product,General,Pcs,100,0\n")
+        );
+
+        $this->assertSame(1, $preview['valid']);
+        $this->assertSame(0, $preview['invalid']);
+    }
+
     private function productsBatch(): array
     {
         $company = User::factory()->create(['type' => 'company', 'created_by' => null]);
