@@ -12,13 +12,14 @@ class PartyPayloadHardeningTest extends TestCase
         string $path,
         string $partyScope,
         string $permission,
-        string $documentFields
+        string $documentFields,
+        string $partyFields = "->get(['id', 'name'])"
     ): void {
         $source = $this->source($path);
 
         $this->assertStringContainsString($partyScope, $source);
         $this->assertStringContainsString("->where('created_by', creatorId())", $source);
-        $this->assertStringContainsString("->get(['id', 'name'])", $source);
+        $this->assertStringContainsString($partyFields, $source);
         $this->assertStringContainsString("abort_unless(Auth::user()->can('{$permission}'), 403)", $source);
         $this->assertStringContainsString($documentFields, $source);
         $this->assertStringContainsString("bankAccount:id,account_name,account_number", $source);
@@ -33,13 +34,15 @@ class PartyPayloadHardeningTest extends TestCase
                 'packages/workdo/Account/src/Http/Controllers/CustomerPaymentController.php',
                 '->accountingCustomers(creatorId())',
                 'create-customer-payments',
-                "->get(['id', 'invoice_number', 'invoice_date', 'total_amount', 'balance_amount', 'status', 'currency_code', 'exchange_rate'])",
+                "->get(['id', 'invoice_number', 'invoice_date', 'total_amount', 'balance_amount', 'status', 'currency_code', 'base_currency_code', 'exchange_rate'])",
+                "->get(['id', 'name', 'preferred_currency_code'])",
             ],
             'vendor payments' => [
                 'packages/workdo/Account/src/Http/Controllers/VendorPaymentController.php',
                 "->where('type', 'vendor')",
                 'create-vendor-payments',
-                "->get(['id', 'invoice_number', 'invoice_date', 'total_amount', 'balance_amount', 'status', 'currency_code', 'exchange_rate'])",
+                "->get(['id', 'invoice_number', 'invoice_date', 'total_amount', 'balance_amount', 'status', 'currency_code', 'base_currency_code', 'exchange_rate'])",
+                "->get(['id', 'name', 'preferred_currency_code'])",
             ],
             'retainer payments' => [
                 'packages/workdo/Retainer/src/Http/Controllers/RetainerPaymentController.php',
