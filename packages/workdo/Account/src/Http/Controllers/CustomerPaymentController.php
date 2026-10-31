@@ -38,7 +38,7 @@ class CustomerPaymentController extends Controller
     public function index(Request $request)
     {
         if(Auth::user()->can('manage-customer-payments')){
-            $query = CustomerPayment::with(['customer', 'customerDetails', 'bankAccount', 'allocations.invoice', 'creditNoteApplications.creditNote'])
+            $query = CustomerPayment::with($this->paymentRelations())
                 ->where(function($q) {
                     if(Auth::user()->can('manage-any-customer-payments')) {
                         $q->where('created_by', creatorId());
@@ -83,9 +83,15 @@ class CustomerPaymentController extends Controller
             $query->orderBy($sortField, $sortDirection);
 
             $payments = $query->paginate($request->get('per_page', 10));
-            $customers = User::where('type', 'client')->where('created_by', creatorId())->get();
+            $customers = User::query()
+                ->accountingCustomers(creatorId())
+                ->orderBy('name')
+                ->get(['id', 'name', 'preferred_currency_code']);
 
-            $bankAccounts = BankAccount::where('is_active', true)->where('created_by', creatorId())->get();
+            $bankAccounts = BankAccount::where('is_active', true)
+                ->where('created_by', creatorId())
+                ->orderBy('account_name')
+                ->get(['id', 'account_name', 'account_number']);
 
             return Inertia::render('Account/CustomerPayments/Index', [
                 'payments' => $payments,
@@ -116,6 +122,24 @@ class CustomerPaymentController extends Controller
                 ->where('customer_id', $request->customer_id)
                 ->where('created_by', creatorId())
                 ->get()->keyBy('id');
+
+            foreach ($allocations->groupBy('invoice_id') as $invoiceId => $invoiceAllocations) {
+                $invoice = $allocationInvoices->get($invoiceId);
+                if (!$invoice || $invoiceAllocations->sum('amount') > (float) $invoice->balance_amount + 0.01) {
+                    throw ValidationException::withMessages([
+                        'allocations' => __('Invoice allocations cannot exceed the invoice balance.'),
+                    ]);
+                }
+            }
+
+            foreach ($creditNotes->groupBy('credit_note_id') as $creditNoteId => $noteApplications) {
+                $creditNote = $allocationCreditNotes->get($creditNoteId);
+                if (!$creditNote || $noteApplications->sum('amount') > (float) $creditNote->balance_amount + 0.01) {
+                    throw ValidationException::withMessages([
+                        'credit_notes' => __('Credit note applications cannot exceed the available balance.'),
+                    ]);
+                }
+            }
             // Invoices must be in the payment currency, so allocations are compared in that currency: a rate that moved since
             // the invoice changes only the base amounts (the exchange gain or loss), never how much of the invoice is paid.
             $totalInvoiceAmount = (float) $allocations->sum(fn ($allocation) => (float) $allocation['amount']);
@@ -256,11 +280,19 @@ class CustomerPaymentController extends Controller
 
     public function getOutstandingInvoices($customerId)
     {
+        abort_unless(Auth::user()->can('create-customer-payments'), 403);
+
+        $customerExists = User::query()
+            ->accountingCustomers(creatorId())
+            ->whereKey($customerId)
+            ->exists();
+        abort_unless($customerExists, 404);
+
         $invoices = SalesInvoice::where('customer_id', $customerId)
             ->where('balance_amount', '>', 0)
             ->whereNotIn('status', ['draft', 'cancelled'])
             ->where('created_by', creatorId())
-            ->get();
+            ->get(['id', 'invoice_number', 'invoice_date', 'total_amount', 'balance_amount', 'status', 'currency_code', 'base_currency_code', 'exchange_rate']);
 
         $creditNotes = CreditNote::where('customer_id', $customerId)
             ->where('balance_amount', '>', 0)
@@ -426,7 +458,7 @@ class CustomerPaymentController extends Controller
             return back()->with('error', __('Permission denied'));
         }
 
-        $customerPayment->load(['customer', 'customerDetails', 'bankAccount', 'allocations.invoice', 'creditNoteApplications.creditNote']);
+        $customerPayment->load($this->paymentRelations(includePortalEmail: true));
 
         $paymentTemplate = DocumentTemplate::query()
             ->forCompany((int) $customerPayment->created_by)
@@ -466,5 +498,18 @@ class CustomerPaymentController extends Controller
         $paymentRate = (float) $currency['exchange_rate'];
 
         return $paymentRate > 0 ? $amount * (float) ($note->exchange_rate ?: 1) / $paymentRate : $amount;
+    }
+
+    private function paymentRelations(bool $includePortalEmail = false): array
+    {
+        return [
+            $includePortalEmail ? 'customer:id,name,email' : 'customer:id,name',
+            'customerDetails:user_id,company_name,contact_person_name,contact_person_email',
+            'bankAccount:id,account_name,account_number',
+            'allocations:id,payment_id,invoice_id,allocated_amount,carrying_base_amount,settlement_base_amount,exchange_difference',
+            'allocations.invoice:id,invoice_number,invoice_date,total_amount,balance_amount,currency_code,exchange_rate',
+            'creditNoteApplications:id,payment_id,credit_note_id,applied_amount,application_date',
+            'creditNoteApplications.creditNote:id,credit_note_number,currency_code',
+        ];
     }
 }

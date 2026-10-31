@@ -4,6 +4,8 @@ namespace Workdo\Account\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Validation\Rule;
+use App\Rules\TenantAccountingCustomer;
 
 class StoreCustomerPaymentRequest extends FormRequest
 {
@@ -16,7 +18,7 @@ class StoreCustomerPaymentRequest extends FormRequest
     {
         return [
             'payment_date' => 'required|date|before_or_equal:today',
-            'customer_id' => 'required|exists:users,id',
+            'customer_id' => ['required', 'integer', new TenantAccountingCustomer(creatorId())],
             'bank_account_id' => ['required', \Illuminate\Validation\Rule::exists('bank_accounts', 'id')->where('created_by', creatorId())->where('is_active', true)],
             'payment_mode' => 'required|in:cash,bank_transfer,cheque',
             'reference_number' => 'required_if:payment_mode,cheque|nullable|string|max:100',
@@ -25,10 +27,10 @@ class StoreCustomerPaymentRequest extends FormRequest
             'exchange_rate' => 'required|numeric|gt:0',
             'notes' => 'nullable|string',
             'allocations' => 'nullable|array',
-            'allocations.*.invoice_id' => 'required|exists:sales_invoices,id',
+            'allocations.*.invoice_id' => ['required', 'integer', Rule::exists('sales_invoices', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
             'allocations.*.amount' => 'required|numeric|min:0.01',
             'credit_notes' => 'nullable|array',
-            'credit_notes.*.credit_note_id' => 'required|exists:credit_notes,id',
+            'credit_notes.*.credit_note_id' => ['required', 'integer', Rule::exists('credit_notes', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
             'credit_notes.*.amount' => 'required|numeric|min:0.01'
         ];
     }

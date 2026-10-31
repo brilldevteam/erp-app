@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Mail, Save, Send, Server, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { Mail, Save, Send, Server, Lock, User, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { router } from '@inertiajs/react';
 
@@ -16,6 +16,7 @@ interface EmailSettings {
   port: string;
   username: string;
   password: string;
+  clear_password: boolean;
   encryption: string;
   fromAddress: string;
 }
@@ -38,7 +39,8 @@ const getInitialSettings = (userSettings?: Record<string, string>): EmailSetting
   host: userSettings?.email_host || 'smtp.example.com',
   port: userSettings?.email_port || '587',
   username: userSettings?.email_username || 'user@example.com',
-  password: userSettings?.email_password || '',
+  password: '',
+  clear_password: false,
   encryption: userSettings?.email_encryption || 'tls',
   fromAddress: userSettings?.email_fromAddress || 'noreply@example.com'
 });
@@ -233,29 +235,50 @@ export default function EmailSettings({ userSettings, auth, emailProviders = {} 
 
                   <div className="space-y-1.5">
                     <Label htmlFor="password" className="font-medium">{t("SMTP Password")}</Label>
-                    <div className="relative">
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        value={settings.password}
-                        onChange={(e) => handleChange('password', e.target.value)}
-                        disabled={!canEdit}
-                        placeholder="••••••••••••"
-                        className="pr-10"
-                      />
-                      {canEdit && (
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          value={settings.password}
+                          onChange={(e) => setSettings(prev => ({ ...prev, password: e.target.value, clear_password: false }))}
+                          disabled={!canEdit || settings.clear_password}
+                          placeholder={settings.clear_password
+                            ? t('Credential will be cleared')
+                            : userSettings?.email_password_configured
+                              ? t('Configured - leave blank to keep')
+                              : t('Enter SMTP password')}
+                          className="pr-10"
+                        />
+                        {canEdit && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            onClick={() => setShowPassword(!showPassword)}
+                            disabled={settings.clear_password}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <Eye className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                      {canEdit && userSettings?.email_password_configured && (
                         <Button
                           type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                          onClick={() => setShowPassword(!showPassword)}
+                          variant={settings.clear_password ? 'destructive' : 'outline'}
+                          onClick={() => setSettings(prev => ({
+                            ...prev,
+                            password: '',
+                            clear_password: !prev.clear_password
+                          }))}
                         >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <Eye className="h-4 w-4 text-muted-foreground" />
-                          )}
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          {settings.clear_password ? t('Will clear') : t('Clear')}
                         </Button>
                       )}
                     </div>

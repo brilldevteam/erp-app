@@ -3,12 +3,13 @@
 namespace Workdo\Paypal\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 
 class UpdatePaypalSettingsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return Auth::check() && Auth::user()->can('edit-paypal-settings');
     }
 
     public function rules(): array
@@ -16,7 +17,8 @@ class UpdatePaypalSettingsRequest extends FormRequest
         return [
             'settings.paypal_enabled' => 'required|string|in:on,off',
             'settings.paypal_client_id' => 'required_if:settings.paypal_enabled,on|nullable|string',
-            'settings.paypal_secret_key' => 'required_if:settings.paypal_enabled,on|nullable|string',
+            'settings.paypal_secret_key' => 'nullable|string',
+            'settings.clear_paypal_secret_key' => 'nullable|boolean',
             'settings.paypal_mode' => 'required_if:settings.paypal_enabled,on|string|in:sandbox,live',
         ];
     }

@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Rules\ValidProjectContractForVendor;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use App\Http\Requests\Concerns\ValidatesBillLines;
 
 class StorePurchaseInvoiceRequest extends FormRequest
@@ -25,13 +26,13 @@ class StorePurchaseInvoiceRequest extends FormRequest
             'line_amounts_are_base_currency' => 'sometimes|accepted',
             'supplier_invoice_number' => 'nullable|string|max:255',
             'purchase_order_number' => 'nullable|string|max:255',
-            'vendor_id' => 'required|exists:users,id',
+            'vendor_id' => ['required', 'integer', Rule::exists('users', 'id')->where(fn ($query) => $query->where('created_by', creatorId())->where('type', 'vendor'))],
             'project_contract_id' => ['nullable', 'integer', new ValidProjectContractForVendor($this->input('vendor_id'))],
-            'warehouse_id' => 'nullable|exists:warehouses,id',
+            'warehouse_id' => ['nullable', 'integer', Rule::exists('warehouses', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
             'payment_terms' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'nullable|integer|min:1|exists:product_service_items,id',
+            'items.*.product_id' => ['nullable', 'integer', 'min:1', Rule::exists('product_service_items', 'id')->where(fn ($query) => $query->where('created_by', creatorId())->where('is_active', true))],
             'items.*.description' => 'required_without:items.*.product_id|nullable|string|max:20000',
             'items.*.unit' => 'nullable|string|max:50',
 

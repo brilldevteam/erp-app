@@ -35,8 +35,7 @@ class SalesInvoiceController extends Controller
     {
         return User::query()
             ->leftJoin('customers', 'customers.user_id', '=', 'users.id')
-            ->where('users.type', 'client')
-            ->where('users.created_by', creatorId())
+            ->accountingCustomers(creatorId())
             ->select(
                 'users.id',
                 'users.name',

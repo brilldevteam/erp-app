@@ -3,12 +3,13 @@
 namespace Workdo\Stripe\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 
 class UpdateStripeSettingsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return Auth::check() && Auth::user()->can('edit-stripe-settings');
     }
 
     public function rules(): array
@@ -16,7 +17,8 @@ class UpdateStripeSettingsRequest extends FormRequest
         return [
             'settings.stripe_enabled' => 'required|string|in:on,off',
             'settings.stripe_key' => 'required_if:settings.stripe_enabled,on|nullable|string',
-            'settings.stripe_secret' => 'required_if:settings.stripe_enabled,on|nullable|string',
+            'settings.stripe_secret' => 'nullable|string',
+            'settings.clear_stripe_secret' => 'nullable|boolean',
         ];
     }
 

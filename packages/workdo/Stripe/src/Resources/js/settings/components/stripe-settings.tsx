@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { CreditCard, Save, Eye, EyeOff } from 'lucide-react';
+import { CreditCard, Save, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { router } from '@inertiajs/react';
 import { Switch } from '@/components/ui/switch';
@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 interface StripeSettings {
   stripe_key: string;
   stripe_secret: string;
+  clear_stripe_secret: boolean;
   stripe_enabled: string;
   [key: string]: any;
 }
@@ -28,7 +29,8 @@ export default function StripeSettings({ userSettings, auth }: StripeSettingsPro
   const canEdit = auth?.user?.permissions?.includes('edit-stripe-settings');
   const [settings, setSettings] = useState<StripeSettings>({
     stripe_key: userSettings?.stripe_key || '',
-    stripe_secret: userSettings?.stripe_secret || '',
+    stripe_secret: '',
+    clear_stripe_secret: false,
     stripe_enabled: userSettings?.stripe_enabled || 'off',
   });
 
@@ -36,7 +38,8 @@ export default function StripeSettings({ userSettings, auth }: StripeSettingsPro
     if (userSettings) {
       setSettings({
         stripe_key: userSettings?.stripe_key || '',
-        stripe_secret: userSettings?.stripe_secret || '',
+        stripe_secret: '',
+        clear_stripe_secret: false,
         stripe_enabled: userSettings?.stripe_enabled || 'off',
       });
     }
@@ -150,26 +153,51 @@ export default function StripeSettings({ userSettings, auth }: StripeSettingsPro
                   {/* Stripe Secret Key */}
                   <div className="space-y-3">
                     <Label htmlFor="stripe_secret">{t('Stripe Secret Key')}</Label>
-                    <div className="relative">
-                      <Input
-                        id="stripe_secret"
-                        name="stripe_secret"
-                        type={showSecret ? 'text' : 'password'}
-                        value={settings.stripe_secret}
-                        onChange={handleInputChange}
-                        placeholder={t('Enter Stripe secret key')}
-                        disabled={!canEdit}
-                        className="pr-10"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowSecret(!showSecret)}
-                      >
-                        {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Input
+                          id="stripe_secret"
+                          name="stripe_secret"
+                          type={showSecret ? 'text' : 'password'}
+                          value={settings.stripe_secret}
+                          onChange={(event) => setSettings(previous => ({
+                            ...previous,
+                            stripe_secret: event.target.value,
+                            clear_stripe_secret: false,
+                          }))}
+                          placeholder={settings.clear_stripe_secret
+                            ? t('Credential will be cleared')
+                            : userSettings?.stripe_secret_configured
+                              ? t('Configured - leave blank to keep')
+                              : t('Enter Stripe secret key')}
+                          disabled={!canEdit || settings.clear_stripe_secret}
+                          className="pr-10"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowSecret(!showSecret)}
+                          disabled={!canEdit || settings.clear_stripe_secret}
+                        >
+                          {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                      {canEdit && userSettings?.stripe_secret_configured && (
+                        <Button
+                          type="button"
+                          variant={settings.clear_stripe_secret ? 'destructive' : 'outline'}
+                          onClick={() => setSettings(previous => ({
+                            ...previous,
+                            stripe_secret: '',
+                            clear_stripe_secret: !previous.clear_stripe_secret,
+                          }))}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          {settings.clear_stripe_secret ? t('Will clear') : t('Clear')}
+                        </Button>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {t('Stripe secret key for server-side integration')}

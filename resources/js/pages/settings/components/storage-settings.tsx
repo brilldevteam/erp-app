@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Save, HardDrive, Search } from 'lucide-react';
+import { Save, HardDrive, Search, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { router } from '@inertiajs/react';
 
@@ -18,12 +18,14 @@ interface StorageSettings {
   maxUploadSize: string;
   awsAccessKeyId: string;
   awsSecretAccessKey: string;
+  clearAwsSecretAccessKey: boolean;
   awsDefaultRegion: string;
   awsBucket: string;
   awsUrl: string;
   awsEndpoint: string;
   wasabiAccessKey: string;
   wasabiSecretKey: string;
+  clearWasabiSecretKey: boolean;
   wasabiRegion: string;
   wasabiBucket: string;
   wasabiUrl: string;
@@ -50,13 +52,15 @@ export default function StorageSettings({ userSettings, auth }: StorageSettingsP
     allowedFileTypes: userSettings?.allowedFileTypes || 'jpg,png,webp,gif',
     maxUploadSize: userSettings?.maxUploadSize || '2048',
     awsAccessKeyId: userSettings?.awsAccessKeyId || '',
-    awsSecretAccessKey: userSettings?.awsSecretAccessKey || '',
+    awsSecretAccessKey: '',
+    clearAwsSecretAccessKey: false,
     awsDefaultRegion: userSettings?.awsDefaultRegion || 'us-east-1',
     awsBucket: userSettings?.awsBucket || '',
     awsUrl: userSettings?.awsUrl || '',
     awsEndpoint: userSettings?.awsEndpoint || '',
     wasabiAccessKey: userSettings?.wasabiAccessKey || '',
-    wasabiSecretKey: userSettings?.wasabiSecretKey || '',
+    wasabiSecretKey: '',
+    clearWasabiSecretKey: false,
     wasabiRegion: userSettings?.wasabiRegion || 'us-east-1',
     wasabiBucket: userSettings?.wasabiBucket || '',
     wasabiUrl: userSettings?.wasabiUrl || '',
@@ -71,7 +75,7 @@ export default function StorageSettings({ userSettings, auth }: StorageSettingsP
     }
   }, [userSettings]);
 
-  const handleInputChange = (field: keyof StorageSettings, value: string) => {
+  const handleInputChange = (field: keyof StorageSettings, value: string | boolean) => {
     setSettings(prev => ({ ...prev, [field]: value }));
   };
 
@@ -217,14 +221,34 @@ export default function StorageSettings({ userSettings, auth }: StorageSettingsP
         
         <div className="space-y-2">
           <Label htmlFor="awsSecretAccessKey">{t("AWS Secret Access Key")}</Label>
-          <Input
-            id="awsSecretAccessKey"
-            type="password"
-            value={settings.awsSecretAccessKey}
-            onChange={(e) => handleInputChange('awsSecretAccessKey', e.target.value)}
-            placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-            disabled={!canEdit}
-          />
+            <div className="flex gap-2">
+              <Input
+                id="awsSecretAccessKey"
+                type="password"
+                value={settings.awsSecretAccessKey}
+                onChange={(e) => setSettings(prev => ({ ...prev, awsSecretAccessKey: e.target.value, clearAwsSecretAccessKey: false }))}
+                placeholder={settings.clearAwsSecretAccessKey
+                  ? t('Credential will be cleared')
+                  : userSettings?.awsSecretAccessKey_configured
+                    ? t('Configured - leave blank to keep')
+                    : t('Enter AWS secret access key')}
+                disabled={!canEdit || settings.clearAwsSecretAccessKey}
+              />
+              {canEdit && userSettings?.awsSecretAccessKey_configured && (
+                <Button
+                  type="button"
+                  variant={settings.clearAwsSecretAccessKey ? 'destructive' : 'outline'}
+                  onClick={() => setSettings(prev => ({
+                    ...prev,
+                    awsSecretAccessKey: '',
+                    clearAwsSecretAccessKey: !prev.clearAwsSecretAccessKey
+                  }))}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {settings.clearAwsSecretAccessKey ? t('Will clear') : t('Clear')}
+                </Button>
+              )}
+            </div>
         </div>
         
         <div className="space-y-2">
@@ -305,14 +329,34 @@ export default function StorageSettings({ userSettings, auth }: StorageSettingsP
         
         <div className="space-y-2">
           <Label htmlFor="wasabiSecretKey">{t("Wasabi Secret Key")}</Label>
-          <Input
-            id="wasabiSecretKey"
-            type="password"
-            value={settings.wasabiSecretKey}
-            onChange={(e) => handleInputChange('wasabiSecretKey', e.target.value)}
-            placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-            disabled={!canEdit}
-          />
+            <div className="flex gap-2">
+              <Input
+                id="wasabiSecretKey"
+                type="password"
+                value={settings.wasabiSecretKey}
+                onChange={(e) => setSettings(prev => ({ ...prev, wasabiSecretKey: e.target.value, clearWasabiSecretKey: false }))}
+                placeholder={settings.clearWasabiSecretKey
+                  ? t('Credential will be cleared')
+                  : userSettings?.wasabiSecretKey_configured
+                    ? t('Configured - leave blank to keep')
+                    : t('Enter Wasabi secret key')}
+                disabled={!canEdit || settings.clearWasabiSecretKey}
+              />
+              {canEdit && userSettings?.wasabiSecretKey_configured && (
+                <Button
+                  type="button"
+                  variant={settings.clearWasabiSecretKey ? 'destructive' : 'outline'}
+                  onClick={() => setSettings(prev => ({
+                    ...prev,
+                    wasabiSecretKey: '',
+                    clearWasabiSecretKey: !prev.clearWasabiSecretKey
+                  }))}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {settings.clearWasabiSecretKey ? t('Will clear') : t('Clear')}
+                </Button>
+              )}
+            </div>
         </div>
         
         <div className="space-y-2">

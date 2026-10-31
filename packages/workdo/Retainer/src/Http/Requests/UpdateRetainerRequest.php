@@ -3,6 +3,7 @@
 namespace Workdo\Retainer\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateRetainerRequest extends FormRequest
 {
@@ -16,12 +17,12 @@ class UpdateRetainerRequest extends FormRequest
         return [
             'retainer_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:retainer_date',
-            'customer_id' => 'required|exists:users,id',
-            'warehouse_id' => 'nullable|exists:warehouses,id',
+            'customer_id' => ['required', 'integer', Rule::exists('users', 'id')->where(fn ($query) => $query->where('created_by', creatorId())->where('type', 'client'))],
+            'warehouse_id' => ['nullable', 'integer', Rule::exists('warehouses', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
             'payment_terms' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|numeric|min:1',
+            'items.*.product_id' => ['required', 'integer', 'min:1', Rule::exists('product_service_items', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
             'items.*.quantity' => 'required|numeric|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.discount_percentage' => 'nullable|numeric|min:0|max:100',

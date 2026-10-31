@@ -3,6 +3,7 @@
 namespace Workdo\Retainer\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreSalesRetainerPaymentRequest extends FormRequest
 {
@@ -15,14 +16,14 @@ class StoreSalesRetainerPaymentRequest extends FormRequest
     {
         return [
             'payment_date' => 'required|date|before_or_equal:today',
-            'customer_id' => 'required|exists:users,id',
-            'retainer_id' => 'nullable|exists:sales_retainers,id',
-            'bank_account_id' => 'required|exists:bank_accounts,id',
+            'customer_id' => ['required', 'integer', Rule::exists('users', 'id')->where(fn ($query) => $query->where('created_by', creatorId())->where('type', 'client'))],
+            'retainer_id' => ['nullable', 'integer', Rule::exists('sales_retainers', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
+            'bank_account_id' => ['required', 'integer', Rule::exists('bank_accounts', 'id')->where(fn ($query) => $query->where('created_by', creatorId())->where('is_active', true))],
             'payment_amount' => 'required|numeric|min:0.01',
             'reference_number' => 'nullable|string|max:100',
             'notes' => 'nullable|string',
             'allocations' => 'nullable|array',
-            'allocations.*.retainer_id' => 'required|exists:sales_retainers,id',
+            'allocations.*.retainer_id' => ['required', 'integer', Rule::exists('sales_retainers', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
             'allocations.*.amount' => 'required|numeric|min:0.01'
         ];
     }

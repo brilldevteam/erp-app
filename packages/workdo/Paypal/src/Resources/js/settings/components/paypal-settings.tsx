@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { CreditCard, Save, Eye, EyeOff } from 'lucide-react';
+import { CreditCard, Save, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { router } from '@inertiajs/react';
 import { Switch } from '@/components/ui/switch';
@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 interface PaypalSettings {
   paypal_client_id: string;
   paypal_secret_key: string;
+  clear_paypal_secret_key: boolean;
   paypal_enabled: string;
   paypal_mode: string;
   [key: string]: any;
@@ -30,7 +31,8 @@ export default function PaypalSettings({ userSettings, auth }: PaypalSettingsPro
   const canEdit = auth?.user?.permissions?.includes('edit-paypal-settings');
   const [settings, setSettings] = useState<PaypalSettings>({
     paypal_client_id: userSettings?.paypal_client_id || '',
-    paypal_secret_key: userSettings?.paypal_secret_key || '',
+    paypal_secret_key: '',
+    clear_paypal_secret_key: false,
     paypal_enabled: userSettings?.paypal_enabled || 'off',
     paypal_mode: userSettings?.paypal_mode || 'sandbox',
   });
@@ -39,7 +41,8 @@ export default function PaypalSettings({ userSettings, auth }: PaypalSettingsPro
     if (userSettings) {
       setSettings({
         paypal_client_id: userSettings?.paypal_client_id || '',
-        paypal_secret_key: userSettings?.paypal_secret_key || '',
+        paypal_secret_key: '',
+        clear_paypal_secret_key: false,
         paypal_enabled: userSettings?.paypal_enabled || 'off',
         paypal_mode: userSettings?.paypal_mode || 'sandbox',
       });
@@ -180,26 +183,51 @@ export default function PaypalSettings({ userSettings, auth }: PaypalSettingsPro
                   {/* PayPal Secret Key */}
                   <div className="space-y-3">
                     <Label htmlFor="paypal_secret_key">{t('PayPal Secret Key')}</Label>
-                    <div className="relative">
-                      <Input
-                        id="paypal_secret_key"
-                        name="paypal_secret_key"
-                        type={showSecret ? 'text' : 'password'}
-                        value={settings.paypal_secret_key}
-                        onChange={handleInputChange}
-                        placeholder={t('Enter PayPal secret key')}
-                        disabled={!canEdit}
-                        className="pr-10"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowSecret(!showSecret)}
-                      >
-                        {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Input
+                          id="paypal_secret_key"
+                          name="paypal_secret_key"
+                          type={showSecret ? 'text' : 'password'}
+                          value={settings.paypal_secret_key}
+                          onChange={(event) => setSettings(previous => ({
+                            ...previous,
+                            paypal_secret_key: event.target.value,
+                            clear_paypal_secret_key: false,
+                          }))}
+                          placeholder={settings.clear_paypal_secret_key
+                            ? t('Credential will be cleared')
+                            : userSettings?.paypal_secret_key_configured
+                              ? t('Configured - leave blank to keep')
+                              : t('Enter PayPal secret key')}
+                          disabled={!canEdit || settings.clear_paypal_secret_key}
+                          className="pr-10"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowSecret(!showSecret)}
+                          disabled={!canEdit || settings.clear_paypal_secret_key}
+                        >
+                          {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                      {canEdit && userSettings?.paypal_secret_key_configured && (
+                        <Button
+                          type="button"
+                          variant={settings.clear_paypal_secret_key ? 'destructive' : 'outline'}
+                          onClick={() => setSettings(previous => ({
+                            ...previous,
+                            paypal_secret_key: '',
+                            clear_paypal_secret_key: !previous.clear_paypal_secret_key,
+                          }))}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          {settings.clear_paypal_secret_key ? t('Will clear') : t('Clear')}
+                        </Button>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {t('PayPal secret key for secure API communication')}

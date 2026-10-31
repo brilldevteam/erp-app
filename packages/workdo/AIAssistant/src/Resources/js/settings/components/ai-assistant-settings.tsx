@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Bot, Save, Eye, EyeOff } from 'lucide-react';
+import { Bot, Save, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { router } from '@inertiajs/react';
 
@@ -29,14 +29,16 @@ export default function AIAssistantSettings({ userSettings = {}, auth }: AIAssis
     const [aiSettings, setAiSettings] = useState({
         ai_provider: userSettings?.ai_provider || '',
         ai_model: userSettings?.ai_model || '',
-        ai_api_key: userSettings?.ai_api_key || ''
+        ai_api_key: '',
+        clear_ai_api_key: false
     });
 
     useEffect(() => {
         setAiSettings({
             ai_provider: userSettings?.ai_provider || '',
             ai_model: userSettings?.ai_model || '',
-            ai_api_key: userSettings?.ai_api_key || ''
+            ai_api_key: '',
+            clear_ai_api_key: false
         });
     }, [userSettings]);
 
@@ -162,14 +164,19 @@ export default function AIAssistantSettings({ userSettings = {}, auth }: AIAssis
                     {/* API Key */}
                     <div className="space-y-3">
                         <Label htmlFor="ai_api_key">{t('API Key')}</Label>
-                        <div className="relative">
+                        <div className="flex gap-2">
+                            <div className="relative flex-1">
                             <Input
                                 id="ai_api_key"
                                 type={showApiKey ? 'text' : 'password'}
                                 value={aiSettings.ai_api_key}
-                                onChange={(e) => handleSettingsChange('ai_api_key', e.target.value)}
-                                placeholder={t('Enter API Key')}
-                                disabled={!canEdit}
+                                onChange={(e) => setAiSettings(prev => ({ ...prev, ai_api_key: e.target.value, clear_ai_api_key: false }))}
+                                placeholder={aiSettings.clear_ai_api_key
+                                    ? t('Credential will be cleared')
+                                    : userSettings?.ai_api_key_configured
+                                        ? t('Configured - leave blank to keep')
+                                        : t('Enter API Key')}
+                                disabled={!canEdit || aiSettings.clear_ai_api_key}
                                 className="pr-10"
                             />
                             <Button
@@ -178,7 +185,7 @@ export default function AIAssistantSettings({ userSettings = {}, auth }: AIAssis
                                 size="sm"
                                 className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                                 onClick={() => setShowApiKey(!showApiKey)}
-                                disabled={!canEdit}
+                                disabled={!canEdit || aiSettings.clear_ai_api_key}
                             >
                                 {showApiKey ? (
                                     <EyeOff className="h-4 w-4 text-gray-500" />
@@ -186,6 +193,21 @@ export default function AIAssistantSettings({ userSettings = {}, auth }: AIAssis
                                     <Eye className="h-4 w-4 text-gray-500" />
                                 )}
                             </Button>
+                            </div>
+                            {canEdit && userSettings?.ai_api_key_configured && (
+                                <Button
+                                    type="button"
+                                    variant={aiSettings.clear_ai_api_key ? 'destructive' : 'outline'}
+                                    onClick={() => setAiSettings(prev => ({
+                                        ...prev,
+                                        ai_api_key: '',
+                                        clear_ai_api_key: !prev.clear_ai_api_key
+                                    }))}
+                                >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    {aiSettings.clear_ai_api_key ? t('Will clear') : t('Clear')}
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </div>
