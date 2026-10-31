@@ -490,7 +490,6 @@ const rowEntryConfigs: Record<string, RowEntryConfig> = {
         ],
         noun: 'warehouse',
         nounPlural: 'warehouses',
-        none: { title: 'Only the warehouses already in ERP are used', text: 'No new warehouses will be created. The default warehouse from the migration setup stays available.', button: 'Continue with existing warehouses', toast: 'Existing warehouses confirmed successfully' },
         confirmText: 'I checked every warehouse name and address against the approved source.',
     },
 };
