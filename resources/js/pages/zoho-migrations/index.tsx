@@ -279,15 +279,6 @@ export default function ZohoMigrations({ batches: initialBatches, permissions }:
                             <Field label="Zoho organization ID"><Input name="zoho_organization_id" placeholder="Optional" /></Field>
                             <Field label="Zoho date format"><NativeSelect name="source_date_format" options={[["dd/MM/yyyy", 'DD/MM/YYYY'], ["MM/dd/yyyy", 'MM/DD/YYYY'], ["yyyy-MM-dd", 'YYYY-MM-DD'], ["dd-MM-yyyy", 'DD-MM-YYYY']]} /></Field>
                             <Field label="Inventory cutover"><Input name="inventory_cutover_at" type="date" required /></Field>
-                            <Field label="Default warehouse">
-                                <Input name="default_warehouse_name" placeholder="Optional" />
-                                <p className="text-xs text-slate-500">Leave blank when no default warehouse is needed. An exact existing name is reused.</p>
-                            </Field>
-                            <Field label="Warehouse address"><Input name="default_warehouse_address" placeholder="Required only when adding a warehouse" /></Field>
-                            <Field label="Warehouse city"><Input name="default_warehouse_city" placeholder="Required only when adding a warehouse" /></Field>
-                            <Field label="Warehouse zip code"><Input name="default_warehouse_zip_code" placeholder="Required only when adding a warehouse" /></Field>
-                            <Field label="Warehouse phone"><Input name="default_warehouse_phone" type="tel" placeholder="Optional, e.g. +97455550000" /></Field>
-                            <Field label="Warehouse email"><Input name="default_warehouse_email" type="email" placeholder="Optional" /></Field>
                             <input type="hidden" name="duplicate_strategy" value="block" />
                             <input type="hidden" name="ai_enabled" value="0" />
                         </div>

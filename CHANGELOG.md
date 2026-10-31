@@ -18,6 +18,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Company users can configure exchange gain and loss accounts from Currency Rates. Customer and vendor forms can set a preferred document currency.
 
 ### Changed
+- Removed default-warehouse fields and warehouse creation from initial migration workspace setup; warehouse entry and no-warehouse confirmation now belong exclusively to Step 6.
 - Migration workspace setup now allows the complete default-warehouse section to remain blank; warehouse location fields are required only when a warehouse name is supplied.
 - Migration setup now uses the shared searchable currency dropdown for base currency instead of accepting an unrestricted three-letter text value.
 - Renamed the visible migration accounting-mode option from `Full Zoho ledger history` to `Full ledger history`; its internal value and behavior are unchanged.

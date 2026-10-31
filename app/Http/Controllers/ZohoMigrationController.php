@@ -70,62 +70,14 @@ class ZohoMigrationController extends Controller
             'base_currency' => ['required', 'string', 'size:3'],
             'source_date_format' => ['required', Rule::in(['dd/MM/yyyy', 'MM/dd/yyyy', 'yyyy-MM-dd', 'dd-MM-yyyy'])],
             'inventory_cutover_at' => ['required', 'date'],
-            'default_warehouse_name' => ['nullable', 'string', 'max:255'],
-            'default_warehouse_address' => ['nullable', 'required_with:default_warehouse_name', 'string', 'max:1000'],
-            'default_warehouse_city' => ['nullable', 'required_with:default_warehouse_name', 'string', 'max:255'],
-            'default_warehouse_zip_code' => ['nullable', 'required_with:default_warehouse_name', 'string', 'max:20'],
-            'default_warehouse_phone' => ['nullable', 'string', 'regex:/^\+\d{1,3}\d{9,13}$/'],
-            'default_warehouse_email' => ['nullable', 'email', 'max:255'],
             'duplicate_strategy' => ['required', Rule::in(ZohoMigrationBatch::DUPLICATE_STRATEGIES)],
             'ai_enabled' => ['sometimes', 'boolean'],
         ]);
 
         $batch = DB::transaction(function () use ($validated, $tenantId, $request): ZohoMigrationBatch {
-            $warehouse = null;
-            $warehouseName = trim($validated['default_warehouse_name'] ?? '');
-            if ($warehouseName !== '') {
-                $warehouse = Warehouse::where('created_by', $tenantId)
-                    ->whereRaw('LOWER(name) = ?', [mb_strtolower($warehouseName)])
-                    ->first();
-                if (!$warehouse) {
-                    abort_unless($request->user()->can('create-warehouses'), 403, 'You need permission to create the default warehouse.');
-                    $warehouse = Warehouse::create([
-                        'name' => $warehouseName,
-                        'address' => trim($validated['default_warehouse_address']),
-                        'city' => trim($validated['default_warehouse_city']),
-                        'zip_code' => trim($validated['default_warehouse_zip_code']),
-                        'phone' => $validated['default_warehouse_phone'] ?? null,
-                        'email' => $validated['default_warehouse_email'] ?? null,
-                        'is_active' => true,
-                        'creator_id' => $request->user()->id,
-                        'created_by' => $tenantId,
-                    ]);
-                } elseif (
-                    $warehouse->address === 'Not provided during migration setup'
-                    || $warehouse->city === 'Not specified'
-                    || $warehouse->zip_code === 'N/A'
-                ) {
-                    $warehouse->update([
-                        'address' => trim($validated['default_warehouse_address']),
-                        'city' => trim($validated['default_warehouse_city']),
-                        'zip_code' => trim($validated['default_warehouse_zip_code']),
-                        'phone' => $validated['default_warehouse_phone'] ?? $warehouse->phone,
-                        'email' => $validated['default_warehouse_email'] ?? $warehouse->email,
-                    ]);
-                }
-            }
-
-            unset(
-                $validated['default_warehouse_name'],
-                $validated['default_warehouse_address'],
-                $validated['default_warehouse_city'],
-                $validated['default_warehouse_zip_code'],
-                $validated['default_warehouse_phone'],
-                $validated['default_warehouse_email'],
-            );
             $batch = ZohoMigrationBatch::create([
                 ...$validated,
-                'default_warehouse_id' => $warehouse?->id,
+                'default_warehouse_id' => null,
                 'base_currency' => strtoupper($validated['base_currency']),
                 'tenant_id' => $tenantId,
                 'created_by' => $request->user()->id,

@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `release/zoho-and-security` | Remove default-warehouse fields and setup-time creation from migration workspace configuration; preserve Step 6 warehouse workflow, controller/UI/changelog verification, push. | 2026-10-31 | Released - committed in this handoff changeset |
 | Codex | `release/zoho-and-security` | Make migration default warehouse optional as a complete section while preserving conditional warehouse validation/creation; controller, migration UI/types, changelog, focused verification, push. | 2026-10-31 | Released - committed in this handoff changeset |
 | Codex | `release/zoho-and-security` | Replace the migration base-currency free-text input with the shared searchable currency dropdown in `resources/js/pages/zoho-migrations/index.tsx`; changelog, TypeScript verification, push. | 2026-10-31 | Released - committed in this handoff changeset |
 | Codex | `release/zoho-and-security` | Remove the vendor name from the visible full-ledger accounting-mode option in `resources/js/pages/zoho-migrations/index.tsx`; changelog and focused TypeScript verification. | 2026-10-31 | Released - committed in this handoff changeset |
@@ -229,6 +230,12 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-10-31 Asia/Colombo - Codex - Remove warehouse fields from migration setup
+
+- Branch: `release/zoho-and-security`.
+- Changed: removed all default-warehouse inputs and setup-time warehouse creation from initial migration workspace setup. New batches start without a default warehouse; Step 6 remains the single place for warehouse entry or no-warehouse confirmation.
+- Verification: controller PHP syntax, TypeScript no-emit compilation, and scoped whitespace checks passed. `ZohoManualWarehouseImportTest` ran 3 tests: 1 passed and 2 errored because the shared `erp_live_copy` database deadlocked while inserting test migration-file rows outside the changed setup code. Generated `public/build` and unrelated local artifacts remain excluded.
 
 ### 2026-10-31 Asia/Colombo - Codex - Optional migration default warehouse
 
