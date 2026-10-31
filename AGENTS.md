@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `release/zoho-and-security` | Replace the migration base-currency free-text input with the shared searchable currency dropdown in `resources/js/pages/zoho-migrations/index.tsx`; changelog, TypeScript verification, push. | 2026-10-31 | Released - committed in this handoff changeset |
 | Codex | `release/zoho-and-security` | Remove the vendor name from the visible full-ledger accounting-mode option in `resources/js/pages/zoho-migrations/index.tsx`; changelog and focused TypeScript verification. | 2026-10-31 | Released - committed in this handoff changeset |
 | Codex | `zoho-import-redesign` | Enforce base-to-transaction conversion for sales/purchase invoice create/update line amounts, focused regression verification, `CHANGELOG.md`. | 2026-10-30 | Released - committed `e65fd6d8` |
 | Codex | `zoho-import-redesign` | Correct invoice-list base-currency fallback for legacy/missing snapshots: shared dual-currency renderer, sales/purchase total fallbacks, focused frontend verification, `CHANGELOG.md`. | 2026-10-30 | Released - committed `e3fc821f` |
@@ -227,6 +228,12 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-10-31 Asia/Colombo - Codex - Searchable migration base-currency selector
+
+- Branch: `release/zoho-and-security`.
+- Changed: migration workspace setup now uses the shared searchable currency select for `base_currency`, showing currency names and ISO codes while retaining QAR as the default and the existing backend field contract.
+- Verification: TypeScript no-emit compilation and whitespace verification passed. Generated `public/build` and unrelated local artifacts remain excluded.
 
 ### 2026-10-31 Asia/Colombo - Codex - Generic full-ledger accounting-mode label
 

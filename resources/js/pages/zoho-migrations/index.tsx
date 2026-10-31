@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
@@ -275,7 +275,7 @@ export default function ZohoMigrations({ batches: initialBatches, permissions }:
                             <Field label="Migration name"><Input name="name" required placeholder="Company data migration" /></Field>
                             <Field label="Workflow"><NativeSelect name="workflow_mode" options={[['full', 'Full guided migration'], ['standalone', 'Standalone imports']]} /></Field>
                             <Field label="Accounting mode"><NativeSelect name="accounting_mode" options={[['rebuild', 'Rebuild from documents'], ['full_history', 'Full ledger history']]} /></Field>
-                            <Field label="Base currency"><Input name="base_currency" required maxLength={3} defaultValue="QAR" /></Field>
+                            <Field label="Base currency"><BaseCurrencySelect name="base_currency" defaultValue="QAR" /></Field>
                             <Field label="Zoho organization ID"><Input name="zoho_organization_id" placeholder="Optional" /></Field>
                             <Field label="Zoho date format"><NativeSelect name="source_date_format" options={[["dd/MM/yyyy", 'DD/MM/YYYY'], ["MM/dd/yyyy", 'MM/DD/YYYY'], ["yyyy-MM-dd", 'YYYY-MM-DD'], ["dd-MM-yyyy", 'DD-MM-YYYY']]} /></Field>
                             <Field label="Inventory cutover"><Input name="inventory_cutover_at" type="date" required /></Field>
@@ -1121,5 +1121,19 @@ function FilePreview({ file }: { file: MigrationFile }) {
 function Metric({ label, value, accent = 'text-slate-950' }: { label: string; value: string; accent?: string }) { return <div className="bg-white px-5 py-4"><p className="text-xs font-medium uppercase text-slate-500">{label}</p><p className={`mt-1 text-xl font-semibold ${accent}`}>{value}</p></div>; }
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return <div className="space-y-1.5"><Label>{label}</Label>{children}</div>; }
 function NativeSelect({ name, options }: { name: string; options: Array<[string, string]> }) { return <select name={name} required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">{options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>; }
+function BaseCurrencySelect({ name, defaultValue }: { name: string; defaultValue: string }) {
+    const currencies = ((usePage().props as any).currencies || []) as Array<{ code: string; name: string }>;
+    const [value, setValue] = useState(defaultValue);
+
+    return <>
+        <input type="hidden" name={name} value={value} />
+        <Select value={value} onValueChange={setValue}>
+            <SelectTrigger><SelectValue placeholder="Select currency" /></SelectTrigger>
+            <SelectContent searchable>
+                {currencies.map(currency => <SelectItem key={currency.code} value={currency.code}>{currency.name} ({currency.code})</SelectItem>)}
+            </SelectContent>
+        </Select>
+    </>;
+}
 function Notice({ icon: Icon, title, text }: { icon: typeof Circle; title: string; text: string }) { return <div className="mt-6 flex gap-3 border-l-4 border-slate-300 bg-white px-4 py-4"><Icon className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" /><div><h3 className="text-sm font-semibold text-slate-900">{title}</h3><p className="mt-1 text-sm text-slate-600">{text}</p></div></div>; }
 function SectionTitle({ icon: Icon, title }: { icon: typeof Circle; title: string }) { return <div className="flex items-center gap-2"><Icon className="h-4 w-4 text-slate-500" /><h3 className="text-sm font-semibold text-slate-900">{title}</h3></div>; }
