@@ -274,7 +274,7 @@ export default function ZohoMigrations({ batches: initialBatches, permissions }:
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                             <Field label="Migration name"><Input name="name" required placeholder="Company data migration" /></Field>
                             <Field label="Workflow"><NativeSelect name="workflow_mode" options={[['full', 'Full guided migration'], ['standalone', 'Standalone imports']]} /></Field>
-                            <Field label="Accounting mode"><NativeSelect name="accounting_mode" options={[['rebuild', 'Rebuild from documents'], ['full_history', 'Full Zoho ledger history']]} /></Field>
+                            <Field label="Accounting mode"><NativeSelect name="accounting_mode" options={[['rebuild', 'Rebuild from documents'], ['full_history', 'Full ledger history']]} /></Field>
                             <Field label="Base currency"><Input name="base_currency" required maxLength={3} defaultValue="QAR" /></Field>
                             <Field label="Zoho organization ID"><Input name="zoho_organization_id" placeholder="Optional" /></Field>
                             <Field label="Zoho date format"><NativeSelect name="source_date_format" options={[["dd/MM/yyyy", 'DD/MM/YYYY'], ["MM/dd/yyyy", 'MM/DD/YYYY'], ["yyyy-MM-dd", 'YYYY-MM-DD'], ["dd-MM-yyyy", 'DD-MM-YYYY']]} /></Field>
