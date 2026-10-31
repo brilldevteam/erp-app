@@ -24,7 +24,8 @@ class ZohoManualSpreadsheet
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Import');
         $sheet->fromArray($headers, null, 'A1');
-        $sheet->fromArray($example, null, 'A2');
+        $exampleRows = isset($example[0]) && is_array($example[0]) ? $example : [$example];
+        $sheet->fromArray($exampleRows, null, 'A2');
         $sheet->getStyle('A1:'.$sheet->getHighestDataColumn().'1')->getFont()->setBold(true);
         $sheet->freezePane('A2');
         foreach (range('A', $sheet->getHighestDataColumn()) as $column) {

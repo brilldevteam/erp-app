@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `release/zoho-and-security` | Categories and units spreadsheet template/upload workflow in the migration UI, manual prerequisite spreadsheet service/controller coverage, focused tests, changelog and push. | 2026-10-31 | Released - committed in this handoff changeset |
 | Codex | `release/zoho-and-security` | Remove default-warehouse fields and setup-time creation from migration workspace configuration; preserve Step 6 warehouse workflow, controller/UI/changelog verification, push. | 2026-10-31 | Released - committed in this handoff changeset |
 | Codex | `release/zoho-and-security` | Make migration default warehouse optional as a complete section while preserving conditional warehouse validation/creation; controller, migration UI/types, changelog, focused verification, push. | 2026-10-31 | Released - committed in this handoff changeset |
 | Codex | `release/zoho-and-security` | Replace the migration base-currency free-text input with the shared searchable currency dropdown in `resources/js/pages/zoho-migrations/index.tsx`; changelog, TypeScript verification, push. | 2026-10-31 | Released - committed in this handoff changeset |
@@ -230,6 +231,12 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-10-31 Asia/Colombo - Codex - Categories and units spreadsheet import
+
+- Branch: `release/zoho-and-security`.
+- Changed: added manual-entry and file-import modes to Categories and Units. Users can download XLSX/CSV templates, upload up to 10,000 rows, preview validation and duplicates, download row errors, confirm accuracy, and import through the existing guarded prerequisite service.
+- Verification: PHP syntax passed, TypeScript no-emit compilation passed, and `ZohoManualPrerequisiteServiceTest` passed (8 tests, 21 assertions). Generated `public/build` and unrelated local artifacts remain excluded.
 
 ### 2026-10-31 Asia/Colombo - Codex - Remove warehouse fields from migration setup
 

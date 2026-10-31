@@ -386,7 +386,7 @@ function StagePanel({ stage, batch, permissions, busy, error, uploadProgress, fi
 
         {stage.manual_entry && !stage.locked && permissions.upload && (
             rowEntry ? <RowEntryPanel key={stage.key} config={rowEntry} busy={busy} onImport={onManualImport} />
-            : stage.key === 'categories_units' ? <CategoriesUnitsPanel key={stage.key} busy={busy} onImport={onManualImport} />
+            : stage.key === 'categories_units' ? <CategoriesUnitsPanel key={stage.key} batchId={batch.id} busy={busy} onImport={onManualImport} onUpload={onManualUpload} />
             : stage.key === 'items' ? <ProductEntryPanel key={stage.key} batchId={batch.id} busy={busy} onImport={onManualImport} onUpload={onManualUpload} />
             : <ManualPrerequisitePanel key={stage.key} stage={stage} batchId={batch.id} busy={busy} onImport={onManualImport} />
         )}
@@ -627,7 +627,8 @@ function RowEntryPanel({ config, busy, onImport }: { config: RowEntryConfig; bus
     </div>;
 }
 
-function CategoriesUnitsPanel({ busy, onImport }: { busy: boolean; onImport: ManualImport }) {
+function CategoriesUnitsPanel({ batchId, busy, onImport, onUpload }: { batchId: number; busy: boolean; onImport: ManualImport; onUpload: ManualUpload }) {
+    const [mode, setMode] = useState<'form' | 'upload'>('form');
     const [categories, setCategories] = useState<EntryRow[]>([emptyEntryRow(categoryFields)]);
     const [units, setUnits] = useState<EntryRow[]>([emptyEntryRow(unitFields)]);
     const [confirmed, setConfirmed] = useState(false);
@@ -660,7 +661,13 @@ function CategoriesUnitsPanel({ busy, onImport }: { busy: boolean; onImport: Man
         }
     };
 
-    return <div className="mt-6 border-y border-slate-200 bg-white px-4 py-5">
+    return <>
+    <div className="mt-6 flex gap-2 px-4">
+        <Button type="button" variant={mode === 'form' ? 'default' : 'outline'} onClick={() => setMode('form')}>Enter manually</Button>
+        <Button type="button" variant={mode === 'upload' ? 'default' : 'outline'} onClick={() => setMode('upload')}><Upload className="mr-2 h-4 w-4" />Import file</Button>
+    </div>
+    {mode === 'upload' && <SpreadsheetUploadPanel batchId={batchId} busy={busy} onUpload={onUpload} stageKey="categories_units" noun="row" description="Download the template, add one row per category or unit, then upload the completed CSV or XLSX file." confirmation="I checked every category and unit in this file against the approved source." />}
+    {mode === 'form' && <div className="mt-4 border-y border-slate-200 bg-white px-4 py-5">
         <RowEditor title="Categories" noun="category" fields={categoryFields} rows={categories} onChange={next => { setCategories(next); setConfirmed(false); }} />
         <div className="mt-6 border-t border-slate-200 pt-5">
             <RowEditor title="Units" noun="unit" fields={unitFields} rows={units} onChange={next => { setUnits(next); setConfirmed(false); }} />
@@ -670,7 +677,8 @@ function CategoriesUnitsPanel({ busy, onImport }: { busy: boolean; onImport: Man
         {localError && <p className="mt-3 text-sm font-medium text-red-700">{localError}</p>}
         <SubmitButton disabled={busy || !confirmed} busy={busy || localBusy} onClick={submit}
             label={useExisting ? 'Continue with existing categories and units' : `Import ${plural(filledCategories.length, 'category', 'categories')} and ${plural(filledUnits.length, 'unit', 'units')}`} />
-    </div>;
+    </div>}
+    </>;
 }
 
 type ProductEntry = { type: string; name: string; sku: string; tax: string; category: string; unit: string; sale_price: string; purchase_price: string; description: string };
@@ -693,7 +701,7 @@ function FormField({ label, htmlFor, required, children }: { label: string; html
 }
 
 // Mirrors the ERP Items import: template, upload, validation counts and row results, then import.
-function ProductUploadPanel({ batchId, busy, onUpload }: { batchId: number; busy: boolean; onUpload: ManualUpload }) {
+function SpreadsheetUploadPanel({ batchId, busy, onUpload, stageKey = 'items', noun = 'item', description = 'Download the template, fill one row per product or service, then upload it. The template lists the categories, units and taxes already in ERP. Files may contain up to 10,000 rows.', confirmation = 'I checked every item, price, category, unit and tax in this file against the approved source.' }: { batchId: number; busy: boolean; onUpload: ManualUpload; stageKey?: string; noun?: string; description?: string; confirmation?: string }) {
     const [file, setFile] = useState<File | null>(null);
     const [inputKey, setInputKey] = useState(0);
     const [preview, setPreview] = useState<UploadPreview | null>(null);
@@ -739,29 +747,29 @@ function ProductUploadPanel({ batchId, busy, onUpload }: { batchId: number; busy
         const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
         const link = document.createElement('a');
         link.href = url;
-        link.download = 'products-services-errors.csv';
+        link.download = `${stageKey}-errors.csv`;
         link.click();
         URL.revokeObjectURL(url);
     };
-    const templateUrl = (format: 'xlsx' | 'csv') => route('zoho-migrations.stages.manual-template', { zohoMigration: batchId, stageKey: 'items', format });
+    const templateUrl = (format: 'xlsx' | 'csv') => route('zoho-migrations.stages.manual-template', { zohoMigration: batchId, stageKey, format });
     const sortedRows = preview ? [...preview.rows].sort((a, b) => Number(b.result === 'invalid') - Number(a.result === 'invalid')).slice(0, 100) : [];
 
     return <div className="mt-4 border-y border-slate-200 bg-white px-4 py-5">
         {result && <div className={`mb-4 border p-3 text-sm ${result.rejected > 0 ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
             {result.rejected > 0
                 ? `${result.rejected} rows failed validation, so nothing was imported. See the issues below.`
-                : `Imported ${result.imported}, updated ${result.updated} and linked ${result.linked} existing items.`}
+                : `Imported ${result.imported}, updated ${result.updated} and linked ${result.linked} existing records.`}
         </div>}
 
         {!preview && <>
-            <p className="text-sm text-slate-600">Download the template, fill one row per product or service, then upload it. The template lists the categories, units and taxes already in ERP. Files may contain up to 10,000 rows.</p>
+            <p className="text-sm text-slate-600">{description}</p>
             <div className="mt-3 flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" asChild><a href={templateUrl('xlsx')}><Download className="mr-2 h-4 w-4" />XLSX Template</a></Button>
                 <Button variant="outline" size="sm" asChild><a href={templateUrl('csv')}><Download className="mr-2 h-4 w-4" />CSV Template</a></Button>
             </div>
             <div className="mt-4 max-w-md">
-                <Label htmlFor="items-upload-file" className="mb-1.5 block text-sm font-medium text-slate-800">CSV or XLSX file</Label>
-                <Input key={inputKey} id="items-upload-file" type="file" accept=".csv,.xlsx" onChange={event => { setFile(event.target.files?.[0] ?? null); setLocalError(null); }} />
+                <Label htmlFor={`${stageKey}-upload-file`} className="mb-1.5 block text-sm font-medium text-slate-800">CSV or XLSX file</Label>
+                <Input key={inputKey} id={`${stageKey}-upload-file`} type="file" accept=".csv,.xlsx" onChange={event => { setFile(event.target.files?.[0] ?? null); setLocalError(null); }} />
             </div>
             <SubmitButton disabled={busy || !file} busy={localBusy} onClick={() => run(true)} label="Validate File" />
         </>}
@@ -783,17 +791,17 @@ function ProductUploadPanel({ batchId, busy, onUpload }: { batchId: number; busy
                 </table>
             </div>
             {preview.rows.length > sortedRows.length && <p className="mt-2 text-xs text-slate-500">Showing the first {sortedRows.length} rows, invalid rows first.</p>}
-            {preview.existing > 0 && <p className="mt-3 text-xs text-slate-500">Existing SKUs follow this migration's duplicate setting.</p>}
+            {preview.existing > 0 && <p className="mt-3 text-xs text-slate-500">Existing records follow this migration's duplicate setting.</p>}
 
             {preview.invalid > 0
                 ? <div className="mt-4 border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
                     Fix the {preview.invalid} invalid {preview.invalid === 1 ? 'row' : 'rows'} in your file, then choose it again. Nothing is imported while errors remain.
                     <div className="mt-2"><Button variant="outline" size="sm" onClick={downloadErrorReport}><Download className="mr-2 h-4 w-4" />Download Error Report</Button></div>
                 </div>
-                : <ConfirmCheckbox checked={confirmed} onChange={setConfirmed} text="I checked every item, price, category, unit and tax in this file against the approved source." />}
+                : <ConfirmCheckbox checked={confirmed} onChange={setConfirmed} text={confirmation} />}
             {localError && <p className="mt-3 text-sm font-medium text-red-700">{localError}</p>}
             <div className="flex flex-wrap gap-2">
-                {preview.invalid === 0 && <SubmitButton disabled={busy || !confirmed || preview.valid === 0} busy={localBusy} onClick={() => run(false)} label={`Import ${preview.valid} ${preview.valid === 1 ? 'item' : 'items'}`} />}
+                {preview.invalid === 0 && <SubmitButton disabled={busy || !confirmed || preview.valid === 0} busy={localBusy} onClick={() => run(false)} label={`Import ${preview.valid} ${preview.valid === 1 ? noun : `${noun}s`}`} />}
                 <Button type="button" variant="outline" className="mt-4" onClick={reset}>Choose Another File</Button>
             </div>
         </div>}
@@ -853,7 +861,7 @@ function ProductEntryPanel({ batchId, busy, onImport, onUpload }: { batchId: num
             <Button type="button" variant={mode === 'upload' ? 'default' : 'outline'} onClick={() => setMode('upload')}><Upload className="mr-2 h-4 w-4" />Upload Excel file</Button>
         </div>
 
-        {mode === 'upload' && <ProductUploadPanel batchId={batchId} busy={busy} onUpload={onUpload} />}
+        {mode === 'upload' && <SpreadsheetUploadPanel batchId={batchId} busy={busy} onUpload={onUpload} />}
 
         {mode === 'form' && <div className="mt-4 border-y border-slate-200 bg-white px-4 py-5">
             {referenceError && <p className="mb-4 text-sm font-medium text-red-700">{referenceError}</p>}
