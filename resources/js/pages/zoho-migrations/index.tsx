@@ -36,6 +36,7 @@ type UploadGuideFile = {
     where: string[];
     note?: string;
     optional?: boolean;
+    template?: string;
 };
 type UploadGuide = { files: UploadGuideFile[]; tips: string[] };
 
@@ -403,7 +404,7 @@ function StagePanel({ stage, batch, permissions, busy, error, uploadProgress, fi
             </div>
         )}
 
-        {guide && <UploadGuideDialog open={guideOpen} onOpenChange={setGuideOpen} stage={stage} guide={guide} files={currentFiles} topUp={topUp} onChoose={() => { setGuideOpen(false); fileInput.current?.click(); }} />}
+        {guide && <UploadGuideDialog open={guideOpen} onOpenChange={setGuideOpen} batchId={batch.id} stage={stage} guide={guide} files={currentFiles} topUp={topUp} onChoose={() => { setGuideOpen(false); fileInput.current?.click(); }} />}
         <ConfirmationDialog
             open={removing !== null}
             onOpenChange={open => !open && setRemoving(null)}
@@ -1053,8 +1054,9 @@ function UploadChecklist({ guide, files, multiple, completed }: { guide: UploadG
     </div>;
 }
 
-function UploadGuideDialog({ open, onOpenChange, stage, guide, files, topUp, onChoose }: { open: boolean; onOpenChange: (open: boolean) => void; stage: Stage; guide: UploadGuide; files: MigrationFile[]; topUp: boolean; onChoose: () => void }) {
+function UploadGuideDialog({ open, onOpenChange, batchId, stage, guide, files, topUp, onChoose }: { open: boolean; onOpenChange: (open: boolean) => void; batchId: number; stage: Stage; guide: UploadGuide; files: MigrationFile[]; topUp: boolean; onChoose: () => void }) {
     const multiple = guide.files.length > 1;
+    const templateUrl = (template: string, format: 'xlsx' | 'csv') => route('zoho-migrations.stages.export-template', { zohoMigration: batchId, stageKey: stage.key, template, format });
     const next = guide.files.find(entry => !attachedFor(entry, files));
     // Wide enough to show the files side by side, so the whole guide and its buttons fit without scrolling.
     const width = guide.files.length > 2 ? 'sm:max-w-5xl' : multiple ? 'sm:max-w-3xl' : 'sm:max-w-xl';
@@ -1084,6 +1086,13 @@ function UploadGuideDialog({ open, onOpenChange, stage, guide, files, topUp, onC
                             {attached && <p className="mt-1 inline-flex items-center gap-1 truncate text-xs font-medium text-emerald-700"><Check className="h-3 w-3 shrink-0" />{attached.original_filename}</p>}
                             <ol className="mt-2 list-decimal space-y-0.5 pl-4 text-xs text-slate-700">{entry.where.map(step => <li key={step}>{step}</li>)}</ol>
                             {entry.note && <p className="mt-2 flex gap-1.5 text-xs text-slate-500"><Info className="mt-0.5 h-3 w-3 shrink-0" />{entry.note}</p>}
+                            {entry.template && <div className="mt-3 border-t border-slate-200 pt-3">
+                                <p className="text-xs text-slate-600">No Zoho export to hand? Download the template: it has the same columns as Zoho's {entry.title}. Fill it in, then upload it.{entry.title.endsWith(' report') && ' Set the report dates in row 1.'}</p>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                    <Button variant="outline" size="sm" asChild><a href={templateUrl(entry.template, 'xlsx')}><Download className="mr-2 h-4 w-4" />XLSX Template</a></Button>
+                                    <Button variant="outline" size="sm" asChild><a href={templateUrl(entry.template, 'csv')}><Download className="mr-2 h-4 w-4" />CSV Template</a></Button>
+                                </div>
+                            </div>}
                         </li>;
                     })}
                 </ol>

@@ -12,6 +12,7 @@ class ZohoUploadGuide
     private const CHART_FILE = [
         'datasets' => ['chart_of_accounts'],
         'title' => 'Chart of Accounts export',
+        'template' => 'chart_of_accounts',
         'where' => ['Accountant → Chart of Accounts', '⋯ menu (top right) → Export Chart of Accounts', 'Format: XLSX or CSV'],
     ];
 
@@ -23,6 +24,7 @@ class ZohoUploadGuide
             'files' => [[
                 'datasets' => ['contacts'],
                 'title' => 'Customers export',
+                'template' => 'customers',
                 'where' => ['Sales → Customers', '⋯ menu → Export Customers', 'Choose all customers, format XLSX or CSV'],
                 'note' => 'Include inactive customers: their old invoices are imported too.',
             ]],
@@ -31,6 +33,7 @@ class ZohoUploadGuide
             'files' => [[
                 'datasets' => ['contacts'],
                 'title' => 'Vendors export',
+                'template' => 'vendors',
                 'where' => ['Purchases → Vendors', '⋯ menu → Export Vendors', 'Choose all vendors, format XLSX or CSV'],
                 'note' => 'Include inactive vendors: their old bills are imported too.',
             ]],
@@ -45,6 +48,7 @@ class ZohoUploadGuide
             'files' => [[
                 'datasets' => ['quotations'],
                 'title' => 'Quotes export',
+                'template' => 'quotations',
                 'where' => ['Sales → Quotes', '⋯ menu → Export Quotes', 'All statuses, format XLSX or CSV'],
                 'note' => self::ALL_DATES,
             ]],
@@ -53,6 +57,7 @@ class ZohoUploadGuide
             'files' => [[
                 'datasets' => ['sales_invoices'],
                 'title' => 'Invoices export',
+                'template' => 'sales_invoices',
                 'where' => ['Sales → Invoices', '⋯ menu → Export Invoices', 'All statuses, format XLSX or CSV'],
                 'note' => self::ALL_DATES,
             ]],
@@ -61,6 +66,7 @@ class ZohoUploadGuide
             'files' => [[
                 'datasets' => ['purchase_invoices'],
                 'title' => 'Bills export',
+                'template' => 'purchase_invoices',
                 'where' => ['Purchases → Bills', '⋯ menu → Export Bills', 'All statuses, format XLSX or CSV'],
                 'note' => self::ALL_DATES,
             ]],
@@ -69,6 +75,7 @@ class ZohoUploadGuide
             'files' => [[
                 'datasets' => ['credit_notes'],
                 'title' => 'Credit Notes export',
+                'template' => 'credit_notes',
                 'where' => ['Sales → Credit Notes', '⋯ menu → Export Credit Notes', 'All statuses, format XLSX or CSV'],
                 'note' => self::ALL_DATES,
             ]],
@@ -77,6 +84,7 @@ class ZohoUploadGuide
             'files' => [[
                 'datasets' => ['vendor_credits'],
                 'title' => 'Vendor Credits export',
+                'template' => 'vendor_credits',
                 'where' => ['Purchases → Vendor Credits', '⋯ menu → Export Vendor Credits', 'All statuses, format XLSX or CSV'],
                 'note' => self::ALL_DATES,
             ]],
@@ -85,6 +93,7 @@ class ZohoUploadGuide
             'files' => [[
                 'datasets' => ['customer_payments', 'customer_payment_allocations'],
                 'title' => 'Payments Received export',
+                'template' => 'customer_payments',
                 'where' => ['Sales → Payments Received', '⋯ menu → Export Payments Received', 'Format XLSX or CSV'],
                 'note' => self::ALL_DATES.' The export lists each payment with the invoices it paid.',
             ]],
@@ -93,6 +102,7 @@ class ZohoUploadGuide
             'files' => [[
                 'datasets' => ['vendor_payments', 'vendor_payment_allocations'],
                 'title' => 'Payments Made export',
+                'template' => 'vendor_payments',
                 'where' => ['Purchases → Payments Made', '⋯ menu → Export Payments Made', 'Format XLSX or CSV'],
                 'note' => self::ALL_DATES.' The export lists each payment with the bills it paid.',
             ]],
@@ -108,6 +118,7 @@ class ZohoUploadGuide
                 [
                     'datasets' => ['credit_note_applications'],
                     'title' => 'Credit split sheet',
+                    'template' => 'credit_note_applications',
                     'optional' => true,
                     'where' => ['Make it in Excel with three columns: Credit Note Number, Invoice Number, Amount Credited', 'Copy the amounts from the credit note in Zoho (its list of credited invoices)'],
                     'note' => 'Only for a credit note applied to several invoices when the step asks for it. Zoho has no export of this split.',
@@ -118,6 +129,7 @@ class ZohoUploadGuide
             'files' => [[
                 'datasets' => ['expenses'],
                 'title' => 'Expenses export',
+                'template' => 'expenses',
                 'where' => ['Purchases → Expenses', '⋯ menu → Export Expenses', 'All dates, format XLSX or CSV'],
                 'note' => 'Export it on the same day as the other files, so no recent expense is missing. After the import, a newer full export can still be uploaded: only new expenses are added.',
             ]],
@@ -126,6 +138,7 @@ class ZohoUploadGuide
             'files' => [[
                 'datasets' => ['general_ledger'],
                 'title' => 'Detailed General Ledger report',
+                'template' => 'general_ledger',
                 'where' => ['Reports → Accountant → Detailed General Ledger', 'Date range: from the first transaction to today, all accounts', 'Export → XLSX'],
                 'note' => 'Upload it exactly as exported: the title row with the dates must stay.',
             ]],
@@ -142,6 +155,7 @@ class ZohoUploadGuide
                 [
                     'datasets' => ['trial_balance'],
                     'title' => 'Trial Balance report',
+                    'template' => 'trial_balance',
                     'where' => ['Reports → Accountant → Trial Balance', 'Report basis: Accrual', 'Date: from the first transaction to the cut-off date, or "As of" the cut-off date', 'Export → XLSX'],
                     'note' => 'Upload it exactly as exported: the title row gives the date.',
                 ],

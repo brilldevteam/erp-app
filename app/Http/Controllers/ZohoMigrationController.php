@@ -13,6 +13,8 @@ use App\Rules\SpreadsheetUpload;
 use App\Services\ZohoMigration\ZohoStageCatalog;
 use App\Services\ZohoMigration\ZohoManualPrerequisiteService;
 use App\Services\ZohoMigration\ZohoMigrationValidator;
+use App\Services\ZohoMigration\ZohoExportTemplate;
+use App\Services\ZohoMigration\ZohoUploadGuide;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -313,6 +315,18 @@ class ZohoMigrationController extends Controller
         $path = $manualPrerequisites->uploadTemplate($zohoMigration, $stageKey, $format);
 
         return response()->download($path, "{$stageKey}-import-template.{$format}")->deleteFileAfterSend();
+    }
+
+    public function exportTemplate(Request $request, ZohoMigrationBatch $zohoMigration, string $stageKey, string $template): BinaryFileResponse
+    {
+        $this->authorizeBatch($request, $zohoMigration, 'view-zoho-migrations');
+        $format = $request->query('format', 'xlsx');
+        abort_unless(in_array($format, ['xlsx', 'csv'], true), 404);
+        // Only the templates this step's upload guide offers.
+        $offered = array_column(ZohoUploadGuide::for($stageKey)['files'] ?? [], 'template');
+        abort_unless(in_array($template, $offered, true) && ZohoExportTemplate::exists($template), 404);
+
+        return response()->download(app(ZohoExportTemplate::class)->write($template, $format), "zoho-{$template}-template.{$format}")->deleteFileAfterSend();
     }
 
     public function uploadManualPrerequisite(
