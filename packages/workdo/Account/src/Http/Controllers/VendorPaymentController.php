@@ -10,6 +10,7 @@ use Workdo\Account\Models\DebitNoteApplication;
 use Workdo\Account\Http\Requests\StoreVendorPaymentRequest;
 use Workdo\Account\Services\JournalService;
 use Workdo\Account\Services\BankTransactionsService;
+use Workdo\Account\Services\OutstandingDocumentService;
 use App\Models\User;
 use App\Models\PurchaseInvoice;
 use Illuminate\Routing\Controller;
@@ -108,11 +109,13 @@ class VendorPaymentController extends Controller
 
             $currency = app(\Workdo\Account\Services\CurrencyConversionService::class)
                 ->transactionValues($request->validated(), 'payment_amount');
-            $allocationInvoices = PurchaseInvoice::query()
+            $allocationInvoiceQuery = PurchaseInvoice::query()
                 ->whereIn('id', collect($request->allocations)->pluck('invoice_id'))
                 ->where('vendor_id', $request->vendor_id)
-                ->where('created_by', creatorId())
-                ->get()->keyBy('id');
+                ->where('created_by', creatorId());
+            $allocationInvoices = OutstandingDocumentService::apply($allocationInvoiceQuery)
+                ->get()
+                ->keyBy('id');
             $allocationDebitNotes = DebitNote::query()
                 ->whereIn('id', collect($request->debit_notes ?? [])->pluck('debit_note_id'))
                 ->where('vendor_id', $request->vendor_id)
@@ -124,6 +127,21 @@ class VendorPaymentController extends Controller
             $totalDebitNoteAmount = (float) collect($request->debit_notes ?? [])->sum(function ($debitNote) use ($allocationDebitNotes, $currency) {
                 return $this->inPaymentCurrency((float) $debitNote['amount'], $allocationDebitNotes->get($debitNote['debit_note_id']), $currency);
             });
+
+            $requestedInvoiceIds = collect($request->allocations)->pluck('invoice_id')->unique();
+            if ($requestedInvoiceIds->count() !== $allocationInvoices->count()) {
+                throw ValidationException::withMessages([
+                    'allocations' => __('Select valid outstanding bills for this vendor.'),
+                ]);
+            }
+
+            foreach (collect($request->allocations)->groupBy('invoice_id') as $invoiceId => $allocations) {
+                if ((float) $allocations->sum('amount') > (float) $allocationInvoices->get($invoiceId)->balance_amount + 0.01) {
+                    throw ValidationException::withMessages([
+                        'allocations' => __('Bill allocation cannot exceed the outstanding bill balance.'),
+                    ]);
+                }
+            }
 
             // Every applied debit note must belong to this company and vendor.
             if (collect($request->debit_notes ?? [])->pluck('debit_note_id')->unique()->count() !== $allocationDebitNotes->count()) {
@@ -215,10 +233,9 @@ class VendorPaymentController extends Controller
 
     public function getOutstandingInvoices($vendorId)
     {
-        $invoices = PurchaseInvoice::where('vendor_id', $vendorId)
-            ->where('balance_amount', '>', 0)
-            ->whereIn('status', ['posted', 'partial'])
-            ->where('created_by', creatorId())
+        $invoiceQuery = PurchaseInvoice::where('vendor_id', $vendorId)
+            ->where('created_by', creatorId());
+        $invoices = OutstandingDocumentService::apply($invoiceQuery)
             ->get();
 
         $debitNotes = \Workdo\Account\Models\DebitNote::where('vendor_id', $vendorId)
@@ -248,13 +265,12 @@ class VendorPaymentController extends Controller
                     foreach ($vendorPayment->allocations as $allocation) {
                         $invoice = $allocation->invoice;
                         $invoice->paid_amount += $allocation->allocated_amount;
-                        $invoice->balance_amount = $invoice->total_amount - $invoice->paid_amount;
-
-                        if ($invoice->balance_amount == 0) {
-                            $invoice->status = 'paid';
-                        } elseif ($invoice->paid_amount > 0) {
-                            $invoice->status = 'partial';
-                        }
+                        $state = OutstandingDocumentService::paymentState(
+                            (float) $invoice->total_amount,
+                            (float) $invoice->paid_amount
+                        );
+                        $invoice->balance_amount = $state['balance_amount'];
+                        $invoice->status = $state['status'];
                         $invoice->save();
                     }
                 }

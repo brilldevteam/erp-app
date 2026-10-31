@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-26 - Account dashboard bank balance
+
+- Changed the Account Dashboard bank balance to use the current posted-ledger balances of active checking and savings accounts linked to chart-of-account records.
+- Prevented duplicate bank records linked to the same GL account from counting that ledger balance more than once.
+- Kept stored bank-account balances as a compatibility fallback only for legacy bank records that do not yet have a linked GL account.
+
 All notable changes to the Wazely ERP application are documented here.
 
 ## [Unreleased]
@@ -95,6 +101,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Made HRM plan initialization idempotent and faster by synchronizing the HR role's permissions in one operation, preventing repeated company plan assignment from timing out or failing on duplicate permission links.
 - Shortened the purchase-order invoice-link unique index name so clean MySQL installations complete without exceeding the 64-character identifier limit, including safe recovery when the table was created before the original migration failed.
 - Accepted genuine Excel imports even when PHP detects an XLSX workbook as a ZIP container or the workbook uses another Excel-readable format, while continuing to reject arbitrary renamed or unreadable files.
+- Included overdue bills in vendor-payment selection and validated allocations against the selected vendor, company, payable status, and outstanding balance. Invoice and bill aging, tax reports, summaries, and statements now include overdue documents instead of silently omitting them.
 - Showed line discounts the same way everywhere: a fixed (cash) discount shows only its amount and a percentage discount shows only its percentage, on invoices, quotations, proposals, retainers, bills, credit and debit notes, sales and purchase returns, their print pages and template PDFs. Imported invoice lines that stored a discount amount with 0% are now marked as fixed-amount discounts of the same amount, so they no longer show "0.00%" and keep their discount when edited or returned (amounts and totals unchanged).
 - Removed the extra blank trailing page from quotation and invoice PDF downloads that use document templates.
 - Fixed the Assets list: searching no longer fails with a server error (it now matches name, serial code, location and category), the default order is newest purchase first with a stable tie-breaker so pages never shuffle, and Category, Purchase Date, Serial Code, Quantity, Unit Price and Purchase Cost can be sorted.
