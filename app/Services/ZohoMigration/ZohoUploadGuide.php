@@ -112,6 +112,7 @@ class ZohoUploadGuide
                 [
                     'datasets' => ['credit_refunds'],
                     'title' => 'Refund History report',
+                    'template' => 'credit_refunds',
                     'where' => ['Reports → Refund History', 'Date range: from the first transaction to today', 'Export → XLSX'],
                     'note' => 'Needed even if there are few refunds: it shows which credits were paid back instead of applied.',
                 ],
@@ -147,6 +148,7 @@ class ZohoUploadGuide
             'files' => [[
                 'datasets' => ['manual_journals'],
                 'title' => 'Manual Journals export',
+                'template' => 'manual_journals',
                 'where' => ['Accountant → Manual Journals', '⋯ menu → Export Journals', 'All dates, format XLSX or CSV'],
             ]],
         ],
@@ -162,6 +164,7 @@ class ZohoUploadGuide
                 [
                     'datasets' => ['ar_aging'],
                     'title' => 'AR Aging Summary report',
+                    'template' => 'ar_aging',
                     'optional' => true,
                     'where' => ['Reports → Receivables → AR Aging Summary', 'As of the same cut-off date', 'Export → XLSX'],
                     'note' => 'Checks every customer balance.',
@@ -169,6 +172,7 @@ class ZohoUploadGuide
                 [
                     'datasets' => ['ap_aging'],
                     'title' => 'AP Aging Summary report',
+                    'template' => 'ap_aging',
                     'optional' => true,
                     'where' => ['Reports → Payables → AP Aging Summary', 'As of the same cut-off date', 'Export → XLSX'],
                     'note' => 'Checks every vendor balance.',
@@ -184,8 +188,16 @@ class ZohoUploadGuide
             return null;
         }
 
+        $guide['files'] = array_map(function (array $file): array {
+            if (isset($file['template']) && ZohoExportTemplate::exists($file['template'])) {
+                $file['columns'] = ZohoExportTemplate::headers($file['template']);
+            }
+
+            return $file;
+        }, $guide['files']);
+
         return $guide + ['tips' => [
-            'Upload the file exactly as Zoho exported it: do not rename columns, delete rows or copy it into another sheet.',
+            'Use an unchanged Zoho export, or copy data from another system into the downloadable Wazely structure without renaming its columns.',
             'XLSX or CSV, up to 10 MB and 10,000 rows.',
         ]];
     }

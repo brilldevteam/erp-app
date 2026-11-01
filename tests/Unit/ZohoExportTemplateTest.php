@@ -53,4 +53,15 @@ class ZohoExportTemplateTest extends TestCase
 
         return $cases;
     }
+
+    public function test_every_file_based_upload_guide_offers_a_template_and_visible_columns(): void
+    {
+        foreach ((new ZohoStageCatalog())->all() as $stage) {
+            foreach (ZohoUploadGuide::for($stage['key'])['files'] ?? [] as $entry) {
+                self::assertArrayHasKey('template', $entry, "{$stage['key']} {$entry['title']} template");
+                self::assertArrayHasKey('columns', $entry, "{$stage['key']} {$entry['title']} columns");
+                self::assertNotEmpty($entry['columns']);
+            }
+        }
+    }
 }

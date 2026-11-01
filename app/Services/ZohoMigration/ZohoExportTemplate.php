@@ -127,6 +127,10 @@ class ZohoExportTemplate
         'credit_note_applications' => ['sheet' => 'Credit split', 'headers' => [
             'Credit Note Number', 'Invoice Number', 'Amount Credited',
         ]],
+        'credit_refunds' => ['sheet' => 'Refund History', 'report' => 'Refund History', 'headers' => [
+            'refund_id', 'entity_number', 'entity_type', 'date', 'customer_name', 'refund_mode', 'reference_number',
+            'refund_from_account_name', 'refund_from_account_id', 'description', 'bcy_amount', 'fcy_amount', 'currency_code',
+        ]],
         'expenses' => ['sheet' => 'Expense', 'headers' => [
             'Expense Date', 'Expense Description', 'Expense Account', 'Expense Account Code', 'Paid Through', 'Paid Through Account Code', 'Vendor',
             'Project Name', 'Entry Number', 'Currency Code', 'Exchange Rate', 'Is Inclusive Tax', 'Mileage Rate', 'Mileage Unit', 'Distance',
@@ -139,8 +143,17 @@ class ZohoExportTemplate
             'transaction_type', 'reference_number', 'entity_number', 'debit', 'credit', 'net_amount', 'contact_id', 'account_id', 'project_ids',
             'running_balance', 'currency_code', 'account_group', 'account_type',
         ]],
+        'manual_journals' => ['sheet' => 'Manual Journals', 'headers' => [
+            'Journal ID', 'Journal Number', 'Journal Date', 'Account', 'Account Code', 'Debit', 'Credit', 'Notes', 'Reference Number',
+        ]],
         'trial_balance' => ['sheet' => 'Trial Balance', 'report' => 'Trial Balance', 'headers' => [
             'Account ', 'Account Code ', 'Opening Balance ', 'Net Debit ', 'Net Credit ', 'Closing Balance ',
+        ]],
+        'ar_aging' => ['sheet' => 'AR Aging Summary', 'report' => 'AR Aging Summary', 'headers' => [
+            'Customer Name', 'Current', '1-30 Days', '31-60 Days', '61-90 Days', 'Over 90 Days', 'Total',
+        ]],
+        'ap_aging' => ['sheet' => 'AP Aging Summary', 'report' => 'AP Aging Summary', 'headers' => [
+            'Vendor Name', 'Current', '1-30 Days', '31-60 Days', '61-90 Days', 'Over 90 Days', 'Total',
         ]],
     ];
 

@@ -344,7 +344,7 @@ class ZohoMigrationController extends Controller
         $offered = array_column(ZohoUploadGuide::for($stageKey)['files'] ?? [], 'template');
         abort_unless(in_array($template, $offered, true) && ZohoExportTemplate::exists($template), 404);
 
-        return response()->download(app(ZohoExportTemplate::class)->write($template, $format), "zoho-{$template}-template.{$format}")->deleteFileAfterSend();
+        return response()->download(app(ZohoExportTemplate::class)->write($template, $format), "wazely-{$template}-import-template.{$format}")->deleteFileAfterSend();
     }
 
     public function uploadManualPrerequisite(

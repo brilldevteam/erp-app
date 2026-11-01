@@ -37,6 +37,7 @@ type UploadGuideFile = {
     note?: string;
     optional?: boolean;
     template?: string;
+    columns?: string[];
 };
 type UploadGuide = { files: UploadGuideFile[]; tips: string[] };
 
@@ -395,7 +396,7 @@ function StagePanel({ stage, batch, permissions, busy, error, uploadProgress, fi
         {canUpload && (
             <div className="mt-6 border border-dashed border-slate-300 bg-white p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div><h3 className="text-sm font-semibold">Upload original Zoho export</h3><p className="mt-1 text-xs text-slate-500">CSV or XLSX, up to 10 MB and 10,000 rows.{guide && <> <button type="button" className="font-medium text-sky-700 hover:underline" onClick={() => setGuideOpen(true)}>Which file do I need?</button></>}</p>{stage.top_up && stage.status === 'completed' ? <p className="mt-1 text-xs font-medium text-amber-700">Already imported. To add newer records, upload a new full export: records imported earlier are checked and skipped, and only the new ones are imported.</p> : latestFile && <p className="mt-1 text-xs font-medium text-amber-700">{stage.multi_source ? 'This step takes more than one file. Adding a file of the same kind replaces the earlier one; the others stay.' : 'Choosing another file replaces the current unimported source and restarts validation.'}</p>}</div>
+                    <div><h3 className="text-sm font-semibold">Add import file</h3><p className="mt-1 text-xs text-slate-500">Upload an original Zoho export, or fill the Wazely XLSX/CSV template for data from another ERP.{guide && <> <button type="button" className="ml-1 font-medium text-sky-700 hover:underline" onClick={() => setGuideOpen(true)}>View columns and templates</button></>}</p>{stage.top_up && stage.status === 'completed' ? <p className="mt-1 text-xs font-medium text-amber-700">Already imported. To add newer records, upload a new full export: records imported earlier are checked and skipped, and only the new ones are imported.</p> : latestFile && <p className="mt-1 text-xs font-medium text-amber-700">{stage.multi_source ? 'This step takes more than one file. Adding a file of the same kind replaces the earlier one; the others stay.' : 'Choosing another file replaces the current unimported source and restarts validation.'}</p>}</div>
                     <div><input ref={fileInput} className="hidden" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={event => event.target.files?.[0] && onUpload(event.target.files[0])} /><Button disabled={busy} onClick={chooseFile}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}{stage.top_up && stage.status === 'completed' ? 'Upload newer export' : latestFile ? (stage.multi_source ? 'Add file' : 'Replace file') : 'Choose file'}</Button></div>
                 </div>
                 {guide && <UploadChecklist guide={guide} files={currentFiles} multiple={Boolean(stage.multi_source)} completed={stage.status === 'completed'} />}
@@ -1068,7 +1069,7 @@ function UploadGuideDialog({ open, onOpenChange, batchId, stage, guide, files, t
                 <DialogDescription>
                     {topUp ? 'This step is already imported. Upload a newer full export only to add records created since; records imported earlier are checked and skipped.'
                         : multiple ? 'This step takes more than one file. Add them one at a time, in this order. Each file is recognised automatically, and a file of the same kind replaces the earlier one.'
-                        : 'Export this file from Zoho Books and upload it unchanged.'}
+                        : 'Use an unchanged Zoho Books export, or download the Wazely structure and move data into it from any other ERP.'}
                 </DialogDescription>
             </DialogHeader>
             <div className="!py-2">
@@ -1087,11 +1088,13 @@ function UploadGuideDialog({ open, onOpenChange, batchId, stage, guide, files, t
                             <ol className="mt-2 list-decimal space-y-0.5 pl-4 text-xs text-slate-700">{entry.where.map(step => <li key={step}>{step}</li>)}</ol>
                             {entry.note && <p className="mt-2 flex gap-1.5 text-xs text-slate-500"><Info className="mt-0.5 h-3 w-3 shrink-0" />{entry.note}</p>}
                             {entry.template && <div className="mt-3 border-t border-slate-200 pt-3">
-                                <p className="text-xs text-slate-600">No Zoho export to hand? Download the template: it has the same columns as Zoho's {entry.title}. Fill it in, then upload it.{entry.title.endsWith(' report') && ' Set the report dates in row 1.'}</p>
+                                <p className="text-xs font-medium text-slate-800">Coming from another ERP?</p>
+                                <p className="mt-1 text-xs text-slate-600">Download the Wazely structure, keep its column names, paste or export your data into it, then upload it here.{entry.title.endsWith(' report') && ' Set the report dates in row 1.'}</p>
                                 <div className="mt-2 flex flex-wrap gap-2">
                                     <Button variant="outline" size="sm" asChild><a href={templateUrl(entry.template, 'xlsx')}><Download className="mr-2 h-4 w-4" />XLSX Template</a></Button>
                                     <Button variant="outline" size="sm" asChild><a href={templateUrl(entry.template, 'csv')}><Download className="mr-2 h-4 w-4" />CSV Template</a></Button>
                                 </div>
+                                {entry.columns && <details className="mt-2 text-xs text-slate-600"><summary className="cursor-pointer font-medium text-sky-700">View accepted columns ({entry.columns.length})</summary><div className="mt-2 flex max-h-28 flex-wrap gap-1 overflow-y-auto">{entry.columns.map(column => <code key={column} className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-700">{column.trim()}</code>)}</div></details>}
                             </div>}
                         </li>;
                     })}
