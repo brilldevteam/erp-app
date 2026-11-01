@@ -54,6 +54,23 @@ class PurchaseOrderCreateTest extends TestCase
         }
     }
 
+    public function test_the_lpo_page_opens_for_the_owner_only(): void
+    {
+        [$company, $data] = $this->company();
+        Gate::before(fn () => true);
+        $order = app(PurchaseOrderService::class)->create($data, $company->id, $company->id);
+
+        $this->assertInstanceOf(\Inertia\Response::class, app(PurchaseOrderController::class)->print($order->fresh()));
+
+        Auth::login(User::factory()->create(['type' => 'company', 'created_by' => null]));
+        try {
+            app(PurchaseOrderController::class)->print($order->fresh());
+            $this->fail('Another company must not open this LPO.');
+        } catch (HttpException $exception) {
+            $this->assertSame(403, $exception->getStatusCode());
+        }
+    }
+
     private function company(): array
     {
         $company = User::factory()->create(['type' => 'company', 'created_by' => null]);
