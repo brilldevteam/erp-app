@@ -191,6 +191,7 @@ class ZohoUploadGuide
         $guide['files'] = array_map(function (array $file): array {
             if (isset($file['template']) && ZohoExportTemplate::exists($file['template'])) {
                 $file['columns'] = ZohoExportTemplate::headers($file['template']);
+                $file['column_usage'] = ZohoExportTemplate::usage($file['template']);
             }
 
             return $file;

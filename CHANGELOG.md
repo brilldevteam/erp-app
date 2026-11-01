@@ -11,6 +11,7 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Fixed
+- Audited every downloadable migration-template column against the actual import mappings. XLSX templates now mark required fields pale green, supported optional fields white, and genuinely ignored fields light red with a "leave blank" note; the on-screen guide provides the same classification for XLSX and CSV. The Manual Journals template now includes the status, totals, currency, description and contact fields required by its importer instead of silently skipping completed rows.
 - Fixed the Purchases > Payments Made page returning a server error by limiting its vendor-details query to columns that exist in the vendor table.
 
 ### Added

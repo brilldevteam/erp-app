@@ -5,6 +5,7 @@ namespace App\Services\ZohoMigration;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Writer\Csv;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -144,7 +145,8 @@ class ZohoExportTemplate
             'running_balance', 'currency_code', 'account_group', 'account_type',
         ]],
         'manual_journals' => ['sheet' => 'Manual Journals', 'headers' => [
-            'Journal ID', 'Journal Number', 'Journal Date', 'Account', 'Account Code', 'Debit', 'Credit', 'Notes', 'Reference Number',
+            'Journal ID', 'Journal Number', 'Journal Date', 'Status', 'Journal Type', 'Total', 'Currency', 'Exchange Rate',
+            'Account', 'Account Code', 'Debit', 'Credit', 'Description', 'Notes', 'Reference Number', 'Contact Name', 'Contact Type',
         ]],
         'trial_balance' => ['sheet' => 'Trial Balance', 'report' => 'Trial Balance', 'headers' => [
             'Account ', 'Account Code ', 'Opening Balance ', 'Net Debit ', 'Net Credit ', 'Closing Balance ',
@@ -157,6 +159,50 @@ class ZohoExportTemplate
         ]],
     ];
 
+    /** Headers the current importers actually read. Anything else is deliberately marked "do not fill". */
+    private const SUPPORTED_HEADERS = [
+        'customers' => ['Contact ID', 'Contact Name', 'Display Name', 'Contact Type', 'Salutation', 'First Name', 'Last Name', 'EmailID', 'Phone', 'MobilePhone', 'Currency Code', 'Notes', 'Website', 'Status', 'Payment Terms Label', 'Billing Attention', 'Billing Address', 'Billing Street2', 'Billing City', 'Billing State', 'Billing Country', 'Billing Code', 'Billing Phone', 'Shipping Attention', 'Shipping Address', 'Shipping Street2', 'Shipping City', 'Shipping State', 'Shipping Country', 'Shipping Code'],
+        'vendors' => ['Contact ID', 'Contact Name', 'Display Name', 'Contact Type', 'Salutation', 'First Name', 'Last Name', 'EmailID', 'Phone', 'MobilePhone', 'Currency Code', 'Notes', 'Website', 'Status', 'Payment Terms Label', 'Billing Attention', 'Billing Address', 'Billing Street2', 'Billing City', 'Billing State', 'Billing Country', 'Billing Code', 'Billing Phone', 'Shipping Attention', 'Shipping Address', 'Shipping Street2', 'Shipping City', 'Shipping State', 'Shipping Country', 'Shipping Code'],
+        'chart_of_accounts' => ['Account ID', 'Account Name', 'Account Code', 'Description', 'Account Type', 'Account Status', 'Parent Account'],
+        'quotations' => ['Estimate Date', 'Estimate ID', 'Estimate Number', 'Estimate Status', 'Customer Name', 'Expiry Date', 'Currency Code', 'Exchange Rate', 'Total', 'Notes', 'Terms & Conditions', 'Subject', 'Item Name', 'Item Desc', 'Quantity', 'Item Total', 'Item Price'],
+        'sales_invoices' => ['Invoice Date', 'Invoice ID', 'Invoice Number', 'Invoice Status', 'Customer Name', 'Due Date', 'Currency Code', 'Exchange Rate', 'Payment Terms Label', 'Notes', 'Terms & Conditions', 'Total', 'Item Name', 'Item Desc', 'Quantity', 'Item Total', 'Item Price', 'Estimate Number', 'Subject', 'Account', 'Account Code'],
+        'purchase_invoices' => ['Bill Date', 'Due Date', 'Bill ID', 'Vendor Name', 'Payment Terms Label', 'Bill Number', 'PurchaseOrder', 'Currency Code', 'Exchange Rate', 'Total', 'Vendor Notes', 'Terms & Conditions', 'Bill Status', 'Item Name', 'Account', 'Account Code', 'Description', 'Quantity', 'Usage unit', 'Tax Amount', 'Item Total', 'Rate', 'Purchase Order Number'],
+        'credit_notes' => ['Credit Note Date', 'CreditNotes ID', 'Credit Note Number', 'Credit Note Status', 'Customer Name', 'Currency Code', 'Exchange Rate', 'Total', 'Notes', 'Terms & Conditions', 'Subject', 'Item Name', 'Item Desc', 'Quantity', 'Item Total', 'Applied Invoice Number', 'Item Price', 'Account', 'Account Code'],
+        'vendor_credits' => ['Vendor Credit Date', 'Vendor Credit ID', 'Vendor Credit Number', 'Vendor Credit Status', 'Vendor Name', 'Associated Bill Number', 'Currency Code', 'Exchange Rate', 'Account', 'Account Code', 'Item Name', 'Item Desc', 'Quantity', 'Item Price', 'Item Tax Amount', 'Item Total', 'Total', 'Notes'],
+        'customer_payments' => ['Payment Number', 'CustomerPayment ID', 'Mode', 'Description', 'Exchange Rate', 'Amount', 'Unused Amount', 'Bank Charges', 'Reference Number', 'Currency Code', 'Customer Name', 'Date', 'Deposit To', 'Deposit To Account Code', 'Payment Status', 'Amount Applied to Invoice', 'Invoice Number'],
+        'vendor_payments' => ['Payment Number', 'VendorPayment ID', 'Mode', 'Description', 'Exchange Rate', 'Amount', 'Unused Amount', 'Reference Number', 'Currency Code', 'Bank Charges', 'Payment Status', 'Date', 'Vendor Name', 'Paid Through', 'Paid Through Account Code', 'Bill Amount', 'Bill Number'],
+        'credit_note_applications' => ['Credit Note Number', 'Invoice Number', 'Amount Credited'],
+        'credit_refunds' => ['refund_id', 'entity_number', 'entity_type', 'date', 'customer_name', 'refund_mode', 'reference_number', 'refund_from_account_name', 'refund_from_account_id', 'description', 'bcy_amount', 'currency_code'],
+        'expenses' => ['Expense Date', 'Expense Description', 'Expense Account', 'Expense Account Code', 'Paid Through', 'Paid Through Account Code', 'Entry Number', 'Currency Code', 'Exchange Rate', 'Tax Amount', 'Expense Amount', 'Total', 'Reference#', 'Is Billable', 'Customer Name', 'Expense Reference ID'],
+        'general_ledger' => ['date', 'account_name', 'transaction_details', 'transaction_id', 'transaction_type', 'reference_number', 'debit', 'credit', 'account_id', 'currency_code'],
+        'manual_journals' => ['Journal ID', 'Journal Number', 'Journal Date', 'Status', 'Journal Type', 'Total', 'Currency', 'Exchange Rate', 'Account', 'Account Code', 'Debit', 'Credit', 'Description', 'Notes', 'Reference Number', 'Contact Name', 'Contact Type'],
+        'trial_balance' => ['Account ', 'Account Code ', 'Net Debit ', 'Net Credit ', 'Closing Balance '],
+        'ar_aging' => ['Customer Name', 'Current', 'Total'],
+        'ap_aging' => ['Vendor Name', 'Current', 'Total'],
+    ];
+
+    /** Fields needed either to recognize the file or to successfully import a normal row. */
+    private const REQUIRED_HEADERS = [
+        'customers' => ['Contact ID', 'Display Name'],
+        'vendors' => ['Contact ID', 'Display Name'],
+        'chart_of_accounts' => ['Account ID', 'Account Name', 'Account Code', 'Account Type'],
+        'quotations' => ['Estimate Date', 'Estimate ID', 'Estimate Number', 'Estimate Status', 'Customer Name', 'Total', 'Quantity', 'Item Total', 'Item Price'],
+        'sales_invoices' => ['Invoice Date', 'Invoice ID', 'Invoice Number', 'Invoice Status', 'Customer Name', 'Total', 'Quantity', 'Item Total', 'Item Price', 'Account'],
+        'purchase_invoices' => ['Bill Date', 'Bill ID', 'Bill Number', 'Bill Status', 'Vendor Name', 'Total', 'Quantity', 'Item Total', 'Rate', 'Account'],
+        'credit_notes' => ['Credit Note Date', 'CreditNotes ID', 'Credit Note Number', 'Credit Note Status', 'Customer Name', 'Total', 'Quantity', 'Item Total', 'Item Price', 'Account'],
+        'vendor_credits' => ['Vendor Credit Date', 'Vendor Credit ID', 'Vendor Credit Number', 'Vendor Credit Status', 'Vendor Name', 'Total', 'Quantity', 'Item Total', 'Item Price', 'Account'],
+        'customer_payments' => ['Payment Number', 'CustomerPayment ID', 'Amount', 'Customer Name', 'Date', 'Deposit To', 'Payment Status', 'Amount Applied to Invoice', 'Invoice Number'],
+        'vendor_payments' => ['Payment Number', 'VendorPayment ID', 'Amount', 'Vendor Name', 'Date', 'Paid Through', 'Payment Status', 'Bill Amount', 'Bill Number'],
+        'credit_note_applications' => ['Credit Note Number', 'Invoice Number', 'Amount Credited'],
+        'credit_refunds' => ['refund_id', 'entity_number', 'entity_type', 'date', 'refund_from_account_name', 'bcy_amount'],
+        'expenses' => ['Expense Reference ID', 'Entry Number', 'Expense Date', 'Expense Account', 'Paid Through', 'Expense Amount'],
+        'general_ledger' => ['date', 'account_name', 'transaction_id', 'transaction_type', 'debit', 'credit', 'account_id'],
+        'manual_journals' => ['Journal ID', 'Journal Number', 'Journal Date', 'Status', 'Total', 'Account', 'Debit', 'Credit'],
+        'trial_balance' => ['Account ', 'Account Code ', 'Net Debit ', 'Net Credit '],
+        'ar_aging' => ['Customer Name', 'Current', 'Total'],
+        'ap_aging' => ['Vendor Name', 'Current', 'Total'],
+    ];
+
     public static function exists(string $key): bool
     {
         return isset(self::TEMPLATES[$key]);
@@ -165,6 +211,22 @@ class ZohoExportTemplate
     public static function headers(string $key): array
     {
         return self::TEMPLATES[$key]['headers'];
+    }
+
+    public static function usage(string $key): array
+    {
+        $headers = self::headers($key);
+        $supported = self::SUPPORTED_HEADERS[$key] ?? $headers;
+        $required = self::REQUIRED_HEADERS[$key] ?? [];
+        $normalize = fn (string $header): string => mb_strtolower(trim($header));
+        $supportedKeys = array_flip(array_map($normalize, $supported));
+        $requiredKeys = array_flip(array_map($normalize, $required));
+
+        return [
+            'required' => array_values(array_filter($headers, fn (string $header) => isset($requiredKeys[$normalize($header)]))),
+            'optional' => array_values(array_filter($headers, fn (string $header) => isset($supportedKeys[$normalize($header)]) && !isset($requiredKeys[$normalize($header)]))),
+            'ignored' => array_values(array_filter($headers, fn (string $header) => !isset($supportedKeys[$normalize($header)]))),
+        ];
     }
 
     /** Zoho's report title: company line, report name, basis and a "From … To …" period that the user sets. */
@@ -193,7 +255,22 @@ class ZohoExportTemplate
             $sheet->setCellValueExplicit($column.$headerRow, $header, DataType::TYPE_STRING);
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
-        $sheet->getStyle('A'.$headerRow.':'.Coordinate::stringFromColumnIndex(count($template['headers'])).$headerRow)->getFont()->setBold(true);
+        $lastColumn = Coordinate::stringFromColumnIndex(count($template['headers']));
+        $sheet->getStyle('A'.$headerRow.':'.$lastColumn.$headerRow)->getFont()->setBold(true);
+        if ($format === 'xlsx') {
+            $usage = self::usage($key);
+            foreach ($template['headers'] as $index => $header) {
+                $cell = Coordinate::stringFromColumnIndex($index + 1).$headerRow;
+                if (in_array($header, $usage['ignored'], true)) {
+                    $sheet->getStyle($cell)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFF4CCCC');
+                    $sheet->getStyle($cell)->getFont()->getColor()->setARGB('FF9C0006');
+                    $sheet->getComment($cell)->getText()->createTextRun('Not imported by Wazely. Leave this column blank.');
+                } elseif (in_array($header, $usage['required'], true)) {
+                    $sheet->getStyle($cell)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFD9EAD3');
+                    $sheet->getComment($cell)->getText()->createTextRun('Required. Keep this column and enter a value for each applicable row.');
+                }
+            }
+        }
         $sheet->freezePane('A'.($headerRow + 1));
 
         $temporary = tempnam(sys_get_temp_dir(), 'zoho-export-template-');

@@ -6,7 +6,9 @@ use App\Services\ZohoMigration\ZohoExportTemplate;
 use App\Services\ZohoMigration\ZohoProfileCatalog;
 use App\Services\ZohoMigration\ZohoStageCatalog;
 use App\Services\ZohoMigration\ZohoUploadGuide;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -60,8 +62,40 @@ class ZohoExportTemplateTest extends TestCase
             foreach (ZohoUploadGuide::for($stage['key'])['files'] ?? [] as $entry) {
                 self::assertArrayHasKey('template', $entry, "{$stage['key']} {$entry['title']} template");
                 self::assertArrayHasKey('columns', $entry, "{$stage['key']} {$entry['title']} columns");
+                self::assertArrayHasKey('column_usage', $entry, "{$stage['key']} {$entry['title']} usage");
                 self::assertNotEmpty($entry['columns']);
+                $classified = array_merge(...array_values($entry['column_usage']));
+                sort($classified);
+                $columns = $entry['columns'];
+                sort($columns);
+                self::assertSame($columns, $classified);
             }
         }
+    }
+
+    public function test_expense_xlsx_marks_only_ignored_columns_red_and_required_columns_green(): void
+    {
+        $path = (new ZohoExportTemplate())->write('expenses', 'xlsx');
+        try {
+            $sheet = IOFactory::load($path)->getActiveSheet();
+            $headers = array_flip(ZohoExportTemplate::headers('expenses'));
+            $cell = fn (string $header): string => Coordinate::stringFromColumnIndex($headers[$header] + 1).'1';
+            $fill = fn (string $header): string => $sheet->getStyle($cell($header))->getFill()->getStartColor()->getARGB();
+
+            self::assertSame('FFF4CCCC', $fill('Vehicle Name'));
+            self::assertSame('FFD9EAD3', $fill('Expense Date'));
+            self::assertSame(Fill::FILL_NONE, $sheet->getStyle($cell('Expense Description'))->getFill()->getFillType());
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function test_manual_journal_template_contains_fields_needed_to_import_rows(): void
+    {
+        self::assertContains('Status', ZohoExportTemplate::headers('manual_journals'));
+        self::assertContains('Total', ZohoExportTemplate::headers('manual_journals'));
+        self::assertContains('Currency', ZohoExportTemplate::headers('manual_journals'));
+        self::assertContains('Contact Type', ZohoExportTemplate::headers('manual_journals'));
+        self::assertNotContains('Status', ZohoExportTemplate::usage('manual_journals')['ignored']);
     }
 }

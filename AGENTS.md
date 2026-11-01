@@ -64,7 +64,8 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
-| Codex | `release/zoho-and-security` | Generic ERP migration templates for every file-based journey step: visible accepted columns, XLSX/CSV downloads, upload-guide wording, focused tests and changelog. | 2026-11-01 | Complete - ready to commit and push |
+| Codex | `release/zoho-and-security` | Audit every migration-template column against actual import mappings; classify required/supported/ignored fields, color XLSX headers safely, repair manual-journal template completeness, update UI/tests/changelog. | 2026-11-01 | Complete - ready to commit and push |
+| Codex | `release/zoho-and-security` | Generic ERP migration templates for every file-based journey step: visible accepted columns, XLSX/CSV downloads, upload-guide wording, focused tests and changelog. | 2026-11-01 | Released - pushed `4d12b100` |
 | Codex | current workspace | Knowledge-base redesign refresh: sanitized ERP screenshots, updated menu paths, guided Bulk Import documentation, and local link/privacy verification under `knowledge-base/`. | 2026-11-01 | Complete - local files updated and verified; not committed |
 | Codex | `release/zoho-and-security` | Fix Payments Made index 500 caused by selecting nonexistent `vendors.primary_email`; controller relation, focused regression test, changelog, and verification. | 2026-11-01 | Released - pushed `b2f53743` |
 | Codex | `release/zoho-and-security` | Backward-compatible product upload repair for old generated `General`/`Pcs` placeholders when the company has one category/unit; regression tests, changelog and push. | 2026-10-31 | Released - committed in this handoff changeset |
@@ -239,6 +240,14 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-11-01 Asia/Colombo - Codex - Audit migration template columns
+
+- Branch: `release/zoho-and-security`; ready to commit and push on top of `4d12b100`.
+- Audited: all 18 generated file structures against their concrete `prepare`, validation and reconciliation paths. Raw `original_values` preservation was not treated as importer support.
+- Changed: XLSX required/recognition headers are pale green with a comment, supported optional headers remain white, and ignored headers are light red with a leave-blank comment. The upload guide shows the same Required / Supported optional / Do not fill groups and explains that CSV cannot retain colors.
+- Fixed: the generated Manual Journals structure now includes Status, Journal Type, Total, Currency, Exchange Rate, Description and contact fields read by the importer. Without Status, a template-filled row was recognized but skipped.
+- Verification: `ZohoExportTemplateTest` passed 23 tests / 228 assertions on PHP 8.5.7; `npx tsc --noEmit -p .` passed; changed backend PHP syntax passed.
 
 ### 2026-11-01 Asia/Colombo - Codex - Generic ERP migration templates
 
