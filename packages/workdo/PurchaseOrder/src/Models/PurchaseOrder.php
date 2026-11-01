@@ -33,4 +33,11 @@ class PurchaseOrder extends Model
     public function invoiceLinks() { return $this->hasMany(PurchaseOrderInvoiceLink::class); }
 
     public function isEditable(): bool { return $this->order_status === 'draft'; }
+
+    /** A draft, or a cancelled order that was never billed or linked to a bill. */
+    public function isDeletable(): bool
+    {
+        return $this->order_status === 'draft'
+            || ($this->order_status === 'cancelled' && $this->billing_status === 'unbilled' && !$this->invoiceLinks()->exists());
+    }
 }
