@@ -163,7 +163,7 @@ class ZohoExportTemplate
     private const SUPPORTED_HEADERS = [
         'customers' => ['Contact ID', 'Contact Name', 'Display Name', 'Contact Type', 'Salutation', 'First Name', 'Last Name', 'EmailID', 'Phone', 'MobilePhone', 'Currency Code', 'Notes', 'Website', 'Status', 'Payment Terms Label', 'Billing Attention', 'Billing Address', 'Billing Street2', 'Billing City', 'Billing State', 'Billing Country', 'Billing Code', 'Billing Phone', 'Shipping Attention', 'Shipping Address', 'Shipping Street2', 'Shipping City', 'Shipping State', 'Shipping Country', 'Shipping Code'],
         'vendors' => ['Contact ID', 'Contact Name', 'Display Name', 'Contact Type', 'Salutation', 'First Name', 'Last Name', 'EmailID', 'Phone', 'MobilePhone', 'Currency Code', 'Notes', 'Website', 'Status', 'Payment Terms Label', 'Billing Attention', 'Billing Address', 'Billing Street2', 'Billing City', 'Billing State', 'Billing Country', 'Billing Code', 'Billing Phone', 'Shipping Attention', 'Shipping Address', 'Shipping Street2', 'Shipping City', 'Shipping State', 'Shipping Country', 'Shipping Code'],
-        'chart_of_accounts' => ['Account ID', 'Account Name', 'Account Code', 'Description', 'Account Type', 'Account Status', 'Parent Account'],
+        'chart_of_accounts' => ['Account ID', 'Account Name', 'Account Code', 'Description', 'Account Type', 'Account # ', 'Account Status', 'Currency', 'Parent Account'],
         'quotations' => ['Estimate Date', 'Estimate ID', 'Estimate Number', 'Estimate Status', 'Customer Name', 'Expiry Date', 'Currency Code', 'Exchange Rate', 'Total', 'Notes', 'Terms & Conditions', 'Subject', 'Item Name', 'Item Desc', 'Quantity', 'Item Total', 'Item Price'],
         'sales_invoices' => ['Invoice Date', 'Invoice ID', 'Invoice Number', 'Invoice Status', 'Customer Name', 'Due Date', 'Currency Code', 'Exchange Rate', 'Payment Terms Label', 'Notes', 'Terms & Conditions', 'Total', 'Item Name', 'Item Desc', 'Quantity', 'Item Total', 'Item Price', 'Estimate Number', 'Subject', 'Account', 'Account Code'],
         'purchase_invoices' => ['Bill Date', 'Due Date', 'Bill ID', 'Vendor Name', 'Payment Terms Label', 'Bill Number', 'PurchaseOrder', 'Currency Code', 'Exchange Rate', 'Total', 'Vendor Notes', 'Terms & Conditions', 'Bill Status', 'Item Name', 'Account', 'Account Code', 'Description', 'Quantity', 'Usage unit', 'Tax Amount', 'Item Total', 'Rate', 'Purchase Order Number'],
@@ -192,15 +192,65 @@ class ZohoExportTemplate
         'credit_notes' => ['Credit Note Date', 'CreditNotes ID', 'Credit Note Number', 'Credit Note Status', 'Customer Name', 'Total', 'Quantity', 'Item Total', 'Item Price', 'Account'],
         'vendor_credits' => ['Vendor Credit Date', 'Vendor Credit ID', 'Vendor Credit Number', 'Vendor Credit Status', 'Vendor Name', 'Total', 'Quantity', 'Item Total', 'Item Price', 'Account'],
         'customer_payments' => ['Payment Number', 'CustomerPayment ID', 'Amount', 'Customer Name', 'Date', 'Deposit To', 'Payment Status', 'Amount Applied to Invoice', 'Invoice Number'],
-        'vendor_payments' => ['Payment Number', 'VendorPayment ID', 'Amount', 'Vendor Name', 'Date', 'Paid Through', 'Payment Status', 'Bill Amount', 'Bill Number'],
+        'vendor_payments' => ['Payment Number', 'VendorPayment ID', 'Amount', 'Vendor Name', 'Date', 'Paid Through', 'Payment Status'],
         'credit_note_applications' => ['Credit Note Number', 'Invoice Number', 'Amount Credited'],
         'credit_refunds' => ['refund_id', 'entity_number', 'entity_type', 'date', 'refund_from_account_name', 'bcy_amount'],
-        'expenses' => ['Expense Reference ID', 'Entry Number', 'Expense Date', 'Expense Account', 'Paid Through', 'Expense Amount'],
+        'expenses' => ['Expense Reference ID', 'Entry Number', 'Expense Date', 'Expense Account', 'Paid Through', 'Expense Amount', 'Total'],
         'general_ledger' => ['date', 'account_name', 'transaction_id', 'transaction_type', 'debit', 'credit', 'account_id'],
-        'manual_journals' => ['Journal ID', 'Journal Number', 'Journal Date', 'Status', 'Total', 'Account', 'Debit', 'Credit'],
+        'manual_journals' => ['Journal ID', 'Journal Number', 'Journal Date', 'Status', 'Total', 'Account', 'Account Code', 'Debit', 'Credit'],
         'trial_balance' => ['Account ', 'Account Code ', 'Net Debit ', 'Net Credit '],
         'ar_aging' => ['Customer Name', 'Current', 'Total'],
         'ap_aging' => ['Vendor Name', 'Current', 'Total'],
+    ];
+
+    /** Details that prevent users from treating fallback or conditional columns as independent requirements. */
+    private const COLUMN_NOTES = [
+        'customers' => [
+            'Display Name' => 'Display Name or Contact Name is required; Display Name is used first.',
+            'Contact Name' => 'Fallback when Display Name is blank.',
+        ],
+        'vendors' => [
+            'Display Name' => 'Display Name or Contact Name is required; Display Name is used first.',
+            'Contact Name' => 'Fallback when Display Name is blank.',
+        ],
+        'sales_invoices' => [
+            'Account' => 'Account or Account Code is required; Account Code is used first.',
+            'Account Code' => 'Preferred when both Account and Account Code are filled.',
+        ],
+        'purchase_invoices' => [
+            'Account' => 'Account or Account Code is required; Account Code is used first.',
+            'Account Code' => 'Preferred when both Account and Account Code are filled.',
+        ],
+        'credit_notes' => [
+            'Account' => 'Account or Account Code is required; Account Code is used first.',
+            'Account Code' => 'Preferred when both Account and Account Code are filled.',
+        ],
+        'vendor_credits' => [
+            'Account' => 'Account or Account Code is required; Account Code is used first.',
+            'Account Code' => 'Preferred when both Account and Account Code are filled.',
+        ],
+        'customer_payments' => [
+            'Deposit To' => 'Deposit To or Deposit To Account Code is required; the code is used first.',
+            'Deposit To Account Code' => 'Preferred when both payment-account fields are filled.',
+        ],
+        'vendor_payments' => [
+            'Paid Through' => 'Paid Through or Paid Through Account Code is required; the code is used first.',
+            'Paid Through Account Code' => 'Preferred when both payment-account fields are filled.',
+            'Bill Number' => 'Required only when this payment pays a bill; leave blank for an unapplied advance.',
+            'Bill Amount' => 'Required only when this payment pays a bill; leave blank for an unapplied advance.',
+        ],
+        'expenses' => [
+            'Expense Account' => 'Expense Account or Expense Account Code is required; the code is used first.',
+            'Expense Account Code' => 'Preferred when both expense-account fields are filled.',
+            'Paid Through' => 'Paid Through or Paid Through Account Code is required; the code is used first.',
+            'Paid Through Account Code' => 'Preferred when both payment-account fields are filled.',
+        ],
+        'manual_journals' => [
+            'Contact Type' => 'Enter vendor for vendor contacts. A blank value is treated as customer.',
+        ],
+        'trial_balance' => [
+            'Closing Balance ' => 'When filled, Closing Balance overrides Net Debit minus Net Credit.',
+        ],
     ];
 
     public static function exists(string $key): bool
@@ -227,6 +277,11 @@ class ZohoExportTemplate
             'optional' => array_values(array_filter($headers, fn (string $header) => isset($supportedKeys[$normalize($header)]) && !isset($requiredKeys[$normalize($header)]))),
             'ignored' => array_values(array_filter($headers, fn (string $header) => !isset($supportedKeys[$normalize($header)]))),
         ];
+    }
+
+    public static function columnNotes(string $key): array
+    {
+        return self::COLUMN_NOTES[$key] ?? [];
     }
 
     /** Zoho's report title: company line, report name, basis and a "From … To …" period that the user sets. */
@@ -259,6 +314,7 @@ class ZohoExportTemplate
         $sheet->getStyle('A'.$headerRow.':'.$lastColumn.$headerRow)->getFont()->setBold(true);
         if ($format === 'xlsx') {
             $usage = self::usage($key);
+            $notes = self::columnNotes($key);
             foreach ($template['headers'] as $index => $header) {
                 $cell = Coordinate::stringFromColumnIndex($index + 1).$headerRow;
                 if (in_array($header, $usage['ignored'], true)) {
@@ -268,6 +324,13 @@ class ZohoExportTemplate
                 } elseif (in_array($header, $usage['required'], true)) {
                     $sheet->getStyle($cell)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFD9EAD3');
                     $sheet->getComment($cell)->getText()->createTextRun('Required. Keep this column and enter a value for each applicable row.');
+                }
+                if (isset($notes[$header])) {
+                    $comment = $sheet->getComment($cell)->getText();
+                    if ($comment->getPlainText() !== '') {
+                        $comment->createText("\n");
+                    }
+                    $comment->createTextRun($notes[$header]);
                 }
             }
         }

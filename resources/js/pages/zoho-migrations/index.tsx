@@ -39,6 +39,7 @@ type UploadGuideFile = {
     template?: string;
     columns?: string[];
     column_usage?: { required: string[]; optional: string[]; ignored: string[] };
+    column_notes?: Record<string, string>;
 };
 type UploadGuide = { files: UploadGuideFile[]; tips: string[] };
 
@@ -1095,7 +1096,7 @@ function UploadGuideDialog({ open, onOpenChange, batchId, stage, guide, files, t
                                     <Button variant="outline" size="sm" asChild><a href={templateUrl(entry.template, 'xlsx')}><Download className="mr-2 h-4 w-4" />XLSX Template</a></Button>
                                     <Button variant="outline" size="sm" asChild><a href={templateUrl(entry.template, 'csv')}><Download className="mr-2 h-4 w-4" />CSV Template</a></Button>
                                 </div>
-                                {entry.column_usage && <details className="mt-2 text-xs text-slate-600"><summary className="cursor-pointer font-medium text-sky-700">View column guide ({entry.columns?.length ?? 0})</summary><div className="mt-2 max-h-48 space-y-2 overflow-y-auto pr-1"><ColumnGuide label="Required / keep" tone="bg-emerald-100 text-emerald-900" columns={entry.column_usage.required} /><ColumnGuide label="Supported optional" tone="bg-slate-100 text-slate-700" columns={entry.column_usage.optional} /><ColumnGuide label="Do not fill" tone="bg-red-100 text-red-900" columns={entry.column_usage.ignored} /></div><p className="mt-2 text-[11px] text-slate-500">XLSX headers use the same green, white and light-red guide. CSV files cannot store colors, so use this list when filling a CSV.</p></details>}
+                                {entry.column_usage && <details className="mt-2 text-xs text-slate-600"><summary className="cursor-pointer font-medium text-sky-700">View column guide ({entry.columns?.length ?? 0})</summary><div className="mt-2 max-h-48 space-y-2 overflow-y-auto pr-1"><ColumnGuide label="Required / keep" tone="bg-emerald-100 text-emerald-900" columns={entry.column_usage.required} notes={entry.column_notes} /><ColumnGuide label="Supported optional" tone="bg-slate-100 text-slate-700" columns={entry.column_usage.optional} notes={entry.column_notes} /><ColumnGuide label="Do not fill" tone="bg-red-100 text-red-900" columns={entry.column_usage.ignored} notes={entry.column_notes} /></div><p className="mt-2 text-[11px] text-slate-500">XLSX headers use the same green, white and light-red guide. CSV files cannot store colors, so use this list when filling a CSV.</p></details>}
                             </div>}
                         </li>;
                     })}
@@ -1110,9 +1111,9 @@ function UploadGuideDialog({ open, onOpenChange, batchId, stage, guide, files, t
     </Dialog>;
 }
 
-function ColumnGuide({ label, tone, columns }: { label: string; tone: string; columns: string[] }) {
+function ColumnGuide({ label, tone, columns, notes = {} }: { label: string; tone: string; columns: string[]; notes?: Record<string, string> }) {
     if (columns.length === 0) return null;
-    return <div><p className="mb-1 font-medium text-slate-700">{label}</p><div className="flex flex-wrap gap-1">{columns.map(column => <code key={column} className={`rounded px-1.5 py-0.5 text-[11px] ${tone}`}>{column.trim()}</code>)}</div></div>;
+    return <div><p className="mb-1 font-medium text-slate-700">{label}</p><div className="flex flex-wrap gap-1">{columns.map((column, index) => <code key={`${column}-${index}`} title={notes[column]} className={`rounded px-1.5 py-0.5 text-[11px] ${tone}`}>{column.trim()}{notes[column] && <span className="font-sans"> — {notes[column]}</span>}</code>)}</div></div>;
 }
 
 function FilePreview({ file }: { file: MigrationFile }) {

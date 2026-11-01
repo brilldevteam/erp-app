@@ -192,6 +192,7 @@ class ZohoUploadGuide
             if (isset($file['template']) && ZohoExportTemplate::exists($file['template'])) {
                 $file['columns'] = ZohoExportTemplate::headers($file['template']);
                 $file['column_usage'] = ZohoExportTemplate::usage($file['template']);
+                $file['column_notes'] = ZohoExportTemplate::columnNotes($file['template']);
             }
 
             return $file;

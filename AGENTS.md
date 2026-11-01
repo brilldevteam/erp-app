@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `release/zoho-and-security` | Claude follow-up audit fixes for migration template colours and alternative/conditional column guidance; focused tests, changelog and handoff only. | 2026-11-01 | Complete - ready to commit and push |
 | Codex | `release/zoho-and-security` | Audit every migration-template column against actual import mappings; classify required/supported/ignored fields, color XLSX headers safely, repair manual-journal template completeness, update UI/tests/changelog. | 2026-11-01 | Complete - ready to commit and push |
 | Codex | `release/zoho-and-security` | Generic ERP migration templates for every file-based journey step: visible accepted columns, XLSX/CSV downloads, upload-guide wording, focused tests and changelog. | 2026-11-01 | Released - pushed `4d12b100` |
 | Codex | current workspace | Knowledge-base redesign refresh: sanitized ERP screenshots, updated menu paths, guided Bulk Import documentation, and local link/privacy verification under `knowledge-base/`. | 2026-11-01 | Complete - local files updated and verified; not committed |
@@ -240,6 +241,14 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-11-01 Asia/Colombo - Codex - Correct audited migration column guidance
+
+- Branch: `release/zoho-and-security`; no PR; ready to commit and push.
+- Corrected: Expenses `Total` and Manual Journals `Account Code` are required; Chart of Accounts `Account # ` and `Currency` are supported optional fields because the Payment accounts step reads them.
+- Clarified: name/code alternatives now explain that code wins; contact Display Name fallback, vendor-contact type, conditional vendor bill allocations, and Trial Balance Closing Balance precedence appear in XLSX comments and the on-screen guide. Duplicate column names use stable indexed React keys.
+- Preserved: unchanged Zoho exports and importer detection behavior; vendor-payment unapplied advances remain supported. No `public/build` or `public/hot` file was edited or staged.
+- Verification: `ZohoExportTemplateTest` passed 25 tests / 237 assertions on PHP 8.5.7; `npx tsc --noEmit -p .` passed; `git -c core.whitespace=cr-at-eol diff --check` passed.
 
 ### 2026-11-01 Asia/Colombo - Codex - Audit migration template columns
 

@@ -98,4 +98,21 @@ class ZohoExportTemplateTest extends TestCase
         self::assertContains('Contact Type', ZohoExportTemplate::headers('manual_journals'));
         self::assertNotContains('Status', ZohoExportTemplate::usage('manual_journals')['ignored']);
     }
+
+    public function test_audited_import_dependencies_have_the_correct_usage(): void
+    {
+        self::assertContains('Total', ZohoExportTemplate::usage('expenses')['required']);
+        self::assertContains('Account Code', ZohoExportTemplate::usage('manual_journals')['required']);
+        self::assertNotContains('Account # ', ZohoExportTemplate::usage('chart_of_accounts')['ignored']);
+        self::assertNotContains('Currency', ZohoExportTemplate::usage('chart_of_accounts')['ignored']);
+    }
+
+    public function test_vendor_bill_allocations_are_conditional_and_alternatives_are_explained(): void
+    {
+        self::assertContains('Bill Number', ZohoExportTemplate::usage('vendor_payments')['optional']);
+        self::assertContains('Bill Amount', ZohoExportTemplate::usage('vendor_payments')['optional']);
+        self::assertStringContainsString('unapplied advance', ZohoExportTemplate::columnNotes('vendor_payments')['Bill Number']);
+        self::assertStringContainsString('code is used first', mb_strtolower(ZohoExportTemplate::columnNotes('sales_invoices')['Account']));
+        self::assertStringContainsString('treated as customer', ZohoExportTemplate::columnNotes('manual_journals')['Contact Type']);
+    }
 }
