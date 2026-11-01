@@ -19,11 +19,7 @@ class PurchaseOrderService
         return DB::transaction(function () use ($data, $userId, $companyId) {
             $totals = $this->calculator->calculate($data);
             $attributes = $this->attributes($data, $totals);
-            $attributes = array_merge($attributes, $this->currency->transactionValues(
-                [...$data, 'total_amount' => $totals['total_amount']],
-                'total_amount',
-                $companyId,
-            ));
+            $attributes = array_merge($attributes, $this->currencyValues($data, $totals, $companyId));
             $attributes['purchase_order_number'] = $this->nextNumber($companyId);
             $attributes['creator_id'] = $userId;
             $attributes['created_by'] = $companyId;
@@ -43,7 +39,7 @@ class PurchaseOrderService
     public function update(PurchaseOrder $order,array $data): PurchaseOrder
     {
         abort_unless($order->isEditable(),422,__('Only draft purchase orders can be edited.'));
-        return DB::transaction(function()use($order,$data){$totals=$this->calculator->calculate($data);$attributes=$this->attributes($data,$totals);$attributes=array_merge($attributes,$this->currency->transactionValues([...$data,'total_amount'=>$totals['total_amount']],'total_amount',$order->created_by));$order->update($attributes);$order->items()->delete();$this->replaceItems($order,$totals['items']);return $order;});
+        return DB::transaction(function()use($order,$data){$totals=$this->calculator->calculate($data);$attributes=$this->attributes($data,$totals);$attributes=array_merge($attributes,$this->currencyValues($data,$totals,$order->created_by));$order->update($attributes);$order->items()->delete();$this->replaceItems($order,$totals['items']);return $order;});
     }
 
     private function attributes(array $d,array $t): array
@@ -83,6 +79,15 @@ class PurchaseOrderService
     private function replaceItems(PurchaseOrder $order,array $items): void
     {
         foreach($items as $line){$taxes=$line['taxes'];unset($line['taxes']);$item=$order->items()->create(collect($line)->only(['product_id','item_name','description','unit','quantity','unit_price','discount_type','discount_value','discount_amount','subtotal','tax_amount','total_amount','line_order'])->all());foreach($taxes as $tax)$item->taxes()->create(collect($tax)->only(['tax_id','tax_name','tax_rate','tax_amount'])->all());}
+    }
+
+    /** Only the currency fields a purchase order stores (it keeps no base currency code). */
+    private function currencyValues(array $data, array $totals, int $companyId): array
+    {
+        return array_intersect_key(
+            $this->currency->transactionValues([...$data, 'total_amount' => $totals['total_amount']], 'total_amount', $companyId),
+            array_flip(['currency_code', 'exchange_rate', 'base_amount'])
+        );
     }
 
     private function nextNumber(int $companyId): string
