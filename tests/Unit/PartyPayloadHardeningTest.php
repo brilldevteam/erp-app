@@ -110,6 +110,20 @@ class PartyPayloadHardeningTest extends TestCase
         $this->assertStringContainsString("pluck('retainer_id')->unique()->count() !== \$retainers->count()", $retainerPayments);
     }
 
+    public function test_vendor_payment_relations_only_select_existing_vendor_columns(): void
+    {
+        $vendorPayments = $this->source('packages/workdo/Account/src/Http/Controllers/VendorPaymentController.php');
+
+        $this->assertStringContainsString(
+            'vendorDetails:user_id,company_name,contact_person_name,contact_person_email',
+            $vendorPayments
+        );
+        $this->assertStringNotContainsString(
+            'vendorDetails:user_id,company_name,contact_person_name,contact_person_email,primary_email',
+            $vendorPayments
+        );
+    }
+
     private function source(string $path): string
     {
         $source = file_get_contents(dirname(__DIR__, 2).DIRECTORY_SEPARATOR.$path);

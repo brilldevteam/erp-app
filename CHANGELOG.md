@@ -10,6 +10,9 @@ All notable changes to the Wazely ERP application are documented here.
 
 ## [Unreleased]
 
+### Fixed
+- Fixed the Purchases > Payments Made page returning a server error by limiting its vendor-details query to columns that exist in the vendor table.
+
 ### Added
 - Multi-currency transaction forms now provide a searchable currency picker that filters by currency name or ISO code.
 - Completed multi-currency accounting for sales and purchase documents, receipts, payments, credit notes and debit notes: immutable base/transaction currency snapshots, party preferred currencies, mandatory manual foreign rates, currency-matched allocations and bank accounts, realized exchange gain/loss posting, allocation carrying/settlement values, and dual-currency document totals. Existing posted ledger values are preserved, and Zoho imports retain their historical currency snapshots without manufacturing settlement differences.

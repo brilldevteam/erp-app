@@ -418,7 +418,7 @@ class VendorPaymentController extends Controller
     {
         return [
             $includePortalEmail ? 'vendor:id,name,email' : 'vendor:id,name',
-            'vendorDetails:user_id,company_name,contact_person_name,contact_person_email,primary_email',
+            'vendorDetails:user_id,company_name,contact_person_name,contact_person_email',
             'bankAccount:id,account_name,account_number',
             'allocations:id,payment_id,invoice_id,allocated_amount,carrying_base_amount,settlement_base_amount,exchange_difference',
             'allocations.invoice:id,invoice_number,invoice_date,total_amount,balance_amount,currency_code,exchange_rate',
