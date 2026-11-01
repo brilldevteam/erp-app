@@ -220,7 +220,7 @@ class VendorPaymentController extends Controller
             if ($request->allocations) {
                 foreach ($request->allocations as $allocation) {
                     $invoice = $allocationInvoices->get($allocation['invoice_id']);
-                    if (!$invoice || strtoupper((string) $invoice->currency_code) !== $currency['currency_code']) {
+                    if (!$invoice || $this->documentCurrency($invoice, $currency) !== $currency['currency_code']) {
                         throw ValidationException::withMessages([
                             'allocations' => __('All bills must use the payment currency.'),
                         ]);
@@ -402,10 +402,16 @@ class VendorPaymentController extends Controller
         }
     }
 
+    /** A document's currency. Documents saved before multi-currency have none: they are in their base currency. */
+    private function documentCurrency($document, array $currency): string
+    {
+        return strtoupper((string) ($document->currency_code ?: ($document->base_currency_code ?: $currency['base_currency_code'])));
+    }
+
     /** A credit in the payment currency: as is when it shares that currency, otherwise through its base amount. */
     private function inPaymentCurrency(float $amount, $note, array $currency): float
     {
-        if (!$note || strtoupper((string) $note->currency_code) === $currency['currency_code']) {
+        if (!$note || $this->documentCurrency($note, $currency) === $currency['currency_code']) {
             return $amount;
         }
 

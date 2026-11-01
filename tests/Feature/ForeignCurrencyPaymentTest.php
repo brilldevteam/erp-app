@@ -50,6 +50,21 @@ class ForeignCurrencyPaymentTest extends TestCase
         $this->assertSame(1273.96, (float) $qarBank->fresh()->current_balance);
     }
 
+    public function test_an_invoice_saved_before_multi_currency_is_paid_in_the_base_currency(): void
+    {
+        [$invoice, $usdBank] = $this->usdInvoice();
+        // Invoices created before multi-currency have no currency_code: they are base-currency (QAR) invoices.
+        $invoice->forceFill(['currency_code' => null, 'exchange_rate' => 1, 'base_amount' => 273.97])->save();
+        $qarBank = $usdBank->replicate()->fill(['account_name' => 'QIB', 'currency_code' => 'QAR']);
+        $qarBank->save();
+
+        $this->pay($invoice, $qarBank, '1', 'QAR');
+
+        // Accepted, not refused with "All invoices must use the payment currency".
+        $this->assertSame('273.97', (string) CustomerPaymentAllocation::where('invoice_id', $invoice->id)->sole()->allocated_amount);
+        $this->assertSame('QAR', CustomerPayment::where('bank_account_id', $qarBank->id)->sole()->currency_code);
+    }
+
     private function usdInvoice(): array
     {
         Gate::before(fn () => true);
@@ -65,11 +80,11 @@ class ForeignCurrencyPaymentTest extends TestCase
         return [$invoice, $bank];
     }
 
-    private function pay(SalesInvoice $invoice, BankAccount $bank, string $rate): void
+    private function pay(SalesInvoice $invoice, BankAccount $bank, string $rate, string $currencyCode = 'USD'): void
     {
         $request = StoreCustomerPaymentRequest::create('/', 'POST', [
             'payment_date' => now()->toDateString(), 'customer_id' => $invoice->customer_id, 'bank_account_id' => $bank->id, 'payment_mode' => 'bank_transfer',
-            'payment_amount' => '273.97', 'currency_code' => 'USD', 'exchange_rate' => $rate,
+            'payment_amount' => '273.97', 'currency_code' => $currencyCode, 'exchange_rate' => $rate,
             'allocations' => [['invoice_id' => $invoice->id, 'amount' => 273.97]],
         ]);
         $request->setContainer(app())->setRedirector(app('redirect'))->setUserResolver(fn () => Auth::user());
