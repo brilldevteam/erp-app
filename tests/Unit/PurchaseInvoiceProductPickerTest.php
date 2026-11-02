@@ -42,6 +42,17 @@ class PurchaseInvoiceProductPickerTest extends TestCase
         $this->assertStringContainsString('props.requireAvailableStock !== false', $source);
     }
 
+    public function test_shared_picker_has_no_category_filter_but_product_creation_keeps_category_assignment(): void
+    {
+        $source = $this->source('resources/js/components/product-picker-dialog.tsx');
+
+        $this->assertStringNotContainsString("const [category, setCategory]", $source);
+        $this->assertStringNotContainsString("t('All Categories')", $source);
+        $this->assertStringContainsString("placeholder={t('Search by product name or SKU')}", $source);
+        $this->assertStringContainsString("<Field label={t('Category')}", $source);
+        $this->assertStringContainsString('props.categories.map', $source);
+    }
+
     public function test_purchase_multi_currency_controls_are_contained_in_expandable_cards(): void
     {
         foreach (['Create.tsx', 'Edit.tsx'] as $file) {

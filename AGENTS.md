@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `release/zoho-and-security` | Remove category filtering from the shared Add Products browser everywhere it is used; preserve product-creation category assignment, focused test/build, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Transaction-currency line entry and dynamic currency-symbol Unit Price headings across Sales Invoice, Purchase Invoice and Quotation create/edit; backward-compatible server handling, tests, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Normalize the Unit Price heading in Sales Invoice, Purchase Invoice, and Quotation create/edit forms; focused frontend verification, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Purchase Invoice multi-currency layout: contain collapsed/expanded currency controls in a white card on create/edit, focused regression coverage, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
@@ -247,6 +248,14 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-11-02 Asia/Colombo - Codex - Add Products category-filter removal
+
+- Branch: `release/zoho-and-security`; no PR; locally verified and ready to commit and push.
+- Changed: removed the `All Categories` dropdown and category-based filtering from the shared Add Products browser. Product name/SKU search now spans the full dialog width.
+- Scope: the shared browser is used by Sales Invoice and Purchase Invoice create/edit screens, so all four occurrences receive the change. Quotation does not currently use this exact popup and was not changed.
+- Preserved: the Category field remains in the permission-controlled Create New Product form because saved products still require category assignment.
+- Verification: `PurchaseInvoiceProductPickerTest` passed 5 tests / 42 assertions on PHP 8.5; `npm run build` passed; `git diff --check` passed. Generated `public/build` output remains excluded.
 
 ### 2026-11-02 Asia/Colombo - Codex - Direct transaction-currency line entry
 

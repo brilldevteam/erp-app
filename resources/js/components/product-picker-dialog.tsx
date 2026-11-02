@@ -57,7 +57,6 @@ const initialProduct = {
 export default function ProductPickerDialog(props: Props) {
     const { t } = useTranslation();
     const [search, setSearch] = useState('');
-    const [category, setCategory] = useState('all');
     const [selected, setSelected] = useState<number[]>([]);
     const [creating, setCreating] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -69,17 +68,15 @@ export default function ProductPickerDialog(props: Props) {
         const needle = normalize(search);
         return props.products.filter(product => {
             const searchableText = normalize(`${product.name || ''} ${product.sku || ''}`);
-            const matchesSearch = !needle || searchableText.includes(needle);
-            return matchesSearch && (category === 'all' || String(product.category_id) === category);
+            return !needle || searchableText.includes(needle);
         });
-    }, [props.products, search, category]);
+    }, [props.products, search]);
 
     const close = () => {
         props.onOpenChange(false);
         setSelected([]);
         setCreating(false);
         setSearch('');
-        setCategory('all');
     };
 
     const addSelected = () => {
@@ -213,10 +210,7 @@ export default function ProductPickerDialog(props: Props) {
                     </form>
                 ) : (
                     <>
-                        <div className="flex flex-col gap-3 sm:flex-row">
-                            <div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('Search by product name or SKU')} /></div>
-                            <Select value={category} onValueChange={setCategory}><SelectTrigger className="sm:w-56"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t('All Categories')}</SelectItem>{props.categories.map(option => <SelectItem key={option.id} value={String(option.id)}>{option.name}</SelectItem>)}</SelectContent></Select>
-                        </div>
+                        <div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('Search by product name or SKU')} /></div>
                         <div className="max-h-[50vh] overflow-auto rounded border">
                             {props.loading ? <div className="flex items-center justify-center p-10 text-muted-foreground"><Loader2 className="mr-2 h-5 w-5 animate-spin" />{t('Loading products...')}</div> : filtered.length ? (
                                 <table className="w-full min-w-[680px] text-sm"><thead className="sticky top-0 bg-muted"><tr><th className="w-12 p-3"></th><th className="p-3 text-left">{t('Product')}</th><th className="p-3 text-left">{t('SKU')}</th><th className="p-3 text-left">{t('Unit')}</th><th className="p-3 text-right">{t(props.priceMode === 'purchase' ? 'Purchase Price' : 'Selling Price')}</th><th className="p-3 text-right">{t('Availability')}</th></tr></thead><tbody className="divide-y">{filtered.map(product => {
