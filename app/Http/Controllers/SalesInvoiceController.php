@@ -226,7 +226,12 @@ class SalesInvoiceController extends Controller
                     }
                 }
             } catch (\Throwable $th) {
-                return back()->with('error', $th->getMessage());
+                report($th);
+
+                return redirect()
+                    ->route('sales-invoices.index')
+                    ->with('success', __('The sales invoice has been created successfully.'))
+                    ->with('error', __('The invoice was created, but a notification or integration could not be completed.'));
             }
 
 

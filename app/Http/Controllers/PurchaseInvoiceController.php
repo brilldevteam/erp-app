@@ -271,7 +271,12 @@ class PurchaseInvoiceController extends Controller
                     }
                 }
             } catch (\Throwable $th) {
-                return back()->with('error', $th->getMessage());
+                report($th);
+
+                return redirect()
+                    ->route('purchase-invoices.index')
+                    ->with('success', __('The purchase invoice has been created successfully.'))
+                    ->with('error', __('The purchase invoice was created, but a notification or integration could not be completed.'));
             }
 
             return redirect()->route('purchase-invoices.index')->with('success', __('The purchase invoice has been created successfully.'));

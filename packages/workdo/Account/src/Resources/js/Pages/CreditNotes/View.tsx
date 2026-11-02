@@ -142,11 +142,7 @@ function View() {
                                             {creditNote.status === 'draft' && auth.user?.permissions?.includes('approve-credit-notes') && (
                                                 <Button
                                                     size="sm"
-                                                    onClick={() => router.post(route('account.credit-notes.approve', creditNote.id), {}, {
-                                                        onSuccess: () => {
-                                                            router.reload();
-                                                        }
-                                                    })}
+                                                    onClick={() => router.post(route('account.credit-notes.approve', creditNote.id))}
                                                 >
                                                     <CheckCircle className="h-4 w-4 mr-2" />
                                                     {t('Approve Credit Note')}

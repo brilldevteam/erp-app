@@ -285,13 +285,16 @@ class CreditNoteController extends Controller
                     ];
                     $message = EmailTemplate::sendEmailTemplate('Credit Note Approval', [$creditNote->customer->email ?? null], $emailData);
                     if($message['is_success'] == false && !empty($message['error'])) {
-                        return back()
+                        return redirect()
+                            ->route('account.credit-notes.show', $creditNote)
                             ->with('success', __('Credit note approved successfully.'))
                             ->with('error', $message['error']);
                     }
                 }
 
-                return back()->with('success', __('Credit note approved successfully.'));
+                return redirect()
+                    ->route('account.credit-notes.show', $creditNote)
+                    ->with('success', __('Credit note approved successfully.'));
             } catch (\Exception $e) {
                 return back()->with('error', $e->getMessage());
             }

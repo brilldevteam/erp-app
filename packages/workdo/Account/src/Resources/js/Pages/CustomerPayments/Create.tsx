@@ -19,6 +19,7 @@ import CreateCustomer from '../Customers/Create';
 
 export default function Create({ customers, bankAccounts, onSuccess, defaultCustomerId, defaultInvoiceId, defaultInvoiceBalance, returnTo }: CreateCustomerPaymentProps) {
     const { t } = useTranslation();
+    const baseCurrency = ((usePage().props as any).companyAllSetting?.defaultCurrency || 'USD').toUpperCase();
     const [outstandingInvoices, setOutstandingInvoices] = useState<SalesInvoice[]>([]);
     const [availableCreditNotes, setAvailableCreditNotes] = useState<CreditNote[]>([]);
     const [selectedAllocations, setSelectedAllocations] = useState<{invoice_id: number; amount: number}[]>([]);
@@ -36,7 +37,7 @@ export default function Create({ customers, bankAccounts, onSuccess, defaultCust
         payment_mode: '',
         reference_number: '',
         payment_amount: defaultInvoiceBalance ? Number(defaultInvoiceBalance).toFixed(2) : '',
-        currency_code: '',
+        currency_code: baseCurrency,
         exchange_rate: '1.00000000',
         notes: '',
         allocations: [],
@@ -56,7 +57,6 @@ export default function Create({ customers, bankAccounts, onSuccess, defaultCust
         });
     };
 
-    const baseCurrency = ((usePage().props as any).companyAllSetting?.defaultCurrency || 'USD').toUpperCase();
     const paymentCurrency = (data.currency_code || baseCurrency).toUpperCase();
     const documentCurrency = (document: { currency_code?: string }) => (document.currency_code || baseCurrency).toUpperCase();
     // Once an invoice is added, the others must share its currency (the payment is made in that currency).
@@ -473,6 +473,7 @@ export default function Create({ customers, bankAccounts, onSuccess, defaultCust
                         </CardContent>
                     </Card>
                 )}
+                <InputError message={(errors as Record<string, string>).allocations} />
 
                 <div>
                     <CurrencyInput

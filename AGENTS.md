@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `release/zoho-and-security` | Live security smoke-test follow-up: customer/vendor dashboard scoping, quotation-conversion feedback, credit-note/purchase-invoice refresh behavior, purchase-invoice currency defaults, vendor-payment submission/partial allocations, focused tests and changelog. Generated `public/build`, `public/hot`, and unrelated workspace changes excluded. | 2026-11-02 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Claude follow-up audit fixes for migration template colours and alternative/conditional column guidance; focused tests, changelog and handoff only. | 2026-11-01 | Complete - ready to commit and push |
 | Codex | `release/zoho-and-security` | Audit every migration-template column against actual import mappings; classify required/supported/ignored fields, color XLSX headers safely, repair manual-journal template completeness, update UI/tests/changelog. | 2026-11-01 | Complete - ready to commit and push |
 | Codex | `release/zoho-and-security` | Generic ERP migration templates for every file-based journey step: visible accepted columns, XLSX/CSV downloads, upload-guide wording, focused tests and changelog. | 2026-11-01 | Released - pushed `4d12b100` |
@@ -241,6 +242,14 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-11-02 Asia/Colombo - Codex - Live security smoke-test follow-up
+
+- Branch: `release/zoho-and-security`; no PR; locally verified and ready to commit and push.
+- Fixed: customer and vendor portal dashboard totals are scoped to the signed-in party's non-draft documents instead of company-wide revenue/expense; purchase invoices use the shared company currency and no longer automatically enable multi-currency from the vendor preference.
+- Fixed: customer and vendor payment forms initialize the company currency, surface allocation validation errors, and retain editable allocation amounts for partial payments; successful invoice creation and credit-note approval now redirect to fresh records even when a follow-up notification or integration reports an error.
+- Preserved: an approved sales return creates a credit note but does not silently settle the original invoice; the credit is applied explicitly in Customer Payment to preserve the accounting audit trail. No `public/build` or `public/hot` output is included.
+- Verification: `LiveSecuritySmokeRegressionTest` and `PartyPayloadHardeningTest` passed 17 tests / 105 assertions on PHP 8.5; changed PHP files passed syntax checks; `npm run build` passed; `git diff --check` passed.
 
 ### 2026-11-01 Asia/Colombo - Codex - Correct audited migration column guidance
 

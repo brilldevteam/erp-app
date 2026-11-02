@@ -19,6 +19,7 @@ import CreateVendor from '../Vendors/Create';
 
 export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendorPaymentProps) {
     const { t } = useTranslation();
+    const baseCurrency = ((usePage().props as any).companyAllSetting?.defaultCurrency || 'USD').toUpperCase();
     const [outstandingInvoices, setOutstandingInvoices] = useState<PurchaseInvoice[]>([]);
     const [availableDebitNotes, setAvailableDebitNotes] = useState<DebitNote[]>([]);
     const [selectedAllocations, setSelectedAllocations] = useState<{invoice_id: number; amount: number}[]>([]);
@@ -35,7 +36,7 @@ export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendo
         bank_account_id: '',
         reference_number: '',
         payment_amount: '',
-        currency_code: '',
+        currency_code: baseCurrency,
         exchange_rate: '1.00000000',
         notes: '',
         allocations: [],
@@ -54,7 +55,6 @@ export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendo
         });
     };
 
-    const baseCurrency = ((usePage().props as any).companyAllSetting?.defaultCurrency || 'USD').toUpperCase();
     const paymentCurrency = (data.currency_code || baseCurrency).toUpperCase();
     const documentCurrency = (document: { currency_code?: string }) => (document.currency_code || baseCurrency).toUpperCase();
     // Once an invoice is added, the others must share its currency (the payment is made in that currency).
@@ -453,6 +453,7 @@ export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendo
                         </CardContent>
                     </Card>
                 )}
+                <InputError message={(errors as Record<string, string>).allocations} />
 
                 <div>
                     <CurrencyInput

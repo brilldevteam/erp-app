@@ -146,12 +146,10 @@ export default function Edit() {
                                         {t('Vendor')}
                                     </Label>
                                     <Select value={data.vendor_id} onValueChange={(value) => {
-                                        const preferredCurrency = vendors.find((vendor) => String(vendor.id) === value)?.preferred_currency_code;
                                         setData((current) => ({
                                             ...current,
                                             vendor_id: value,
                                             project_contract_id: '',
-                                            ...(preferredCurrency ? { currency_code: preferredCurrency, exchange_rate: '' } : {}),
                                         }));
                                     }}>
                                         <SelectTrigger>

@@ -3,6 +3,8 @@
 namespace Workdo\Account\Http\Controllers;
 
 use App\Models\SalesInvoiceReturn;
+use App\Models\SalesInvoice;
+use App\Models\PurchaseInvoice;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -148,7 +150,10 @@ class DashboardController extends Controller
         $user = Auth::user();
 
         $totalPayments = VendorPayment::where('vendor_id', $user->id)->sum('payment_amount');
-        $totalExpenses = Expense::where('created_by', $user->created_by)->sum('amount');
+        $totalExpenses = PurchaseInvoice::where('vendor_id', $user->id)
+            ->where('created_by', $user->created_by)
+            ->whereNotIn('status', ['draft', 'cancelled'])
+            ->sum('total_amount');
         $paymentCount = VendorPayment::where('vendor_id', $user->id)->count();
 
         $monthlyPayments = [];
@@ -221,7 +226,10 @@ class DashboardController extends Controller
         $user = Auth::user();
 
         $totalPayments = CustomerPayment::where('customer_id', $user->id)->sum('payment_amount');
-        $totalRevenues = Revenue::where('created_by', $user->created_by)->sum('amount');
+        $totalRevenues = SalesInvoice::where('customer_id', $user->id)
+            ->where('created_by', $user->created_by)
+            ->whereNotIn('status', ['draft', 'cancelled'])
+            ->sum('total_amount');
         $paymentCount = CustomerPayment::where('customer_id', $user->id)->count();
 
         $monthlyPayments = [];
