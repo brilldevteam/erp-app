@@ -1,6 +1,7 @@
 import SalesLineDiscount from '@/components/sales-line-discount';
 import { Textarea } from '@/components/ui/textarea';
 import React from 'react';
+import { usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { QuotationItem } from '../types';
 import ProductSelector from './ProductSelector';
@@ -9,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { InputError } from '@/components/ui/input-error';
 import { Trash2 } from 'lucide-react';
-import { formatCurrency } from '@/utils/helpers';
+import { getCurrencySymbolForCode } from '@/utils/helpers';
+import { baseToTransactionAmount, formatTransactionMoney } from '@/utils/transaction-money';
 
 interface Props {
     items: QuotationItem[];
@@ -18,10 +20,14 @@ interface Props {
     products?: Array<{id: number; name: string; sale_price: number; unit?: string; stock_quantity?: number; taxes?: Array<{id: number; tax_name: string; rate: number}>}>;
     showAddButton?: boolean;
     onClearError?: (field: string) => void;
+    currencyCode?: string;
+    baseCurrencyCode?: string;
+    exchangeRate?: string | number;
 }
 
-export default function QuotationItemsTable({ items, onChange, errors, products = [], showAddButton = true, onClearError }: Props) {
+export default function QuotationItemsTable({ items, onChange, errors, products = [], showAddButton = true, onClearError, currencyCode = 'USD', baseCurrencyCode = 'USD', exchangeRate = 1 }: Props) {
     const { t } = useTranslation();
+    const currencySymbol = getCurrencySymbolForCode(currencyCode, usePage().props);
 
     const addItem = () => {
         const newItem: QuotationItem = {
@@ -101,7 +107,7 @@ export default function QuotationItemsTable({ items, onChange, errors, products 
             ...newItems[index],
             product_id: productId,
             description: product?.description || '',
-            unit_price: Number(product?.sale_price) || 0,
+            unit_price: baseToTransactionAmount(Number(product?.sale_price) || 0, currencyCode, baseCurrencyCode, exchangeRate),
             tax_percentage: Number(totalTaxRate) || 0,
             taxes: taxes
         };
@@ -142,7 +148,7 @@ export default function QuotationItemsTable({ items, onChange, errors, products 
                                 {t('Qty')} <span className="text-red-500">*</span>
                             </th>
                             <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                                {t('Unit Price')} <span className="text-red-500">*</span>
+                                {t('Unit Price')} ({currencySymbol}) <span className="text-red-500">*</span>
                             </th>
                             <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
                                 {t('Discount')}
@@ -234,7 +240,7 @@ export default function QuotationItemsTable({ items, onChange, errors, products 
                                 </td>
                                 <td className="px-4 py-4">
                                     <span className="text-sm font-medium">
-                                        {formatCurrency(item.total_amount)}
+                                        {formatTransactionMoney(item.total_amount, currencyCode)}
                                     </span>
                                 </td>
                                 <td className="px-4 py-4 text-center">

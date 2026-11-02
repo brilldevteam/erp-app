@@ -307,18 +307,14 @@ class SalesInvoiceController extends Controller
                 return redirect()->route('sales-invoices.index')->with('error', __('Cannot update posted invoice.'));
             }
             $currencyService = app(\Workdo\Account\Services\CurrencyConversionService::class);
-            $items = $currencyService->lineItemsFromBase(
-                $request->items,
-                $request->currency_code,
-                $request->exchange_rate,
-                creatorId()
-            );
+            $lineAmountsAreBase = $request->boolean('line_amounts_are_base_currency');
+            $items = $lineAmountsAreBase
+                ? $currencyService->lineItemsFromBase($request->items, $request->currency_code, $request->exchange_rate, creatorId())
+                : $request->items;
             $totals = $this->calculateTotals($items);
-            $currency = $currencyService->transactionValuesFromBase(
-                $request->validated(),
-                $totals['total_amount'],
-                $this->calculateTotals($request->items)['total_amount']
-            );
+            $currency = $lineAmountsAreBase
+                ? $currencyService->transactionValuesFromBase($request->validated(), $totals['total_amount'], $this->calculateTotals($request->items)['total_amount'])
+                : $currencyService->transactionValues([...$request->validated(), 'total_amount' => $totals['total_amount']], 'total_amount');
 
             \Illuminate\Support\Facades\DB::transaction(function () use ($request, $salesInvoice, $totals, $currency, $items) {
             $salesInvoice->invoice_date = $request->invoice_date;

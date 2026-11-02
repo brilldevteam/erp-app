@@ -50,7 +50,6 @@ export default function Create() {
         due_date: '',
         currency_code: baseCurrency,
         exchange_rate: '1.00000000',
-        line_amounts_are_base_currency: true,
         supplier_invoice_number: '',
         purchase_order_number: '',
         vendor_id: '',
@@ -87,7 +86,7 @@ export default function Create() {
     const addProducts = (selectedProducts: QuotationProduct[]) => {
         const selectedItems = selectedProducts.map(product => {
             const taxPercentage = product.taxes?.reduce((sum, tax) => sum + Number(tax.rate), 0) || 0;
-            const price = Number(product.purchase_price) || 0;
+            const price = baseToTransactionAmount(Number(product.purchase_price) || 0, data.currency_code, baseCurrency, data.exchange_rate);
             const amounts = calculateLineItemAmounts(1, price, 0, taxPercentage, 'percentage', 0);
             return {
                 product_id: product.id,
@@ -300,7 +299,7 @@ export default function Create() {
 
                     <Card>
                         <CardContent className="pt-6">
-                            <TransactionCurrencyFields currencyCode={data.currency_code} exchangeRate={data.exchange_rate} transactionDate={data.invoice_date} amount={baseToTransactionAmount(totals.total, data.currency_code, baseCurrency, data.exchange_rate)} errors={errors} onCurrencyChange={value => setData('currency_code', value)} onRateChange={value => setData('exchange_rate', value)} />
+                            <TransactionCurrencyFields currencyCode={data.currency_code} exchangeRate={data.exchange_rate} transactionDate={data.invoice_date} amount={totals.total} errors={errors} onCurrencyChange={value => setData('currency_code', value)} onRateChange={value => setData('exchange_rate', value)} />
                         </CardContent>
                     </Card>
 
@@ -397,23 +396,23 @@ export default function Create() {
                                     <div>
                                         <div className="flex justify-between text-sm">
                                             <span className="text-muted-foreground">{t('Subtotal')}</span>
-                                            <span className="font-medium">{formatTransactionMoney(baseToTransactionAmount(totals.subtotal, data.currency_code, baseCurrency, data.exchange_rate), data.currency_code)}</span>
+                                            <span className="font-medium">{formatTransactionMoney(totals.subtotal, data.currency_code)}</span>
                                         </div>
                                         <div className="flex justify-between text-sm">
                                             <span className="text-muted-foreground">{t('Discount')}</span>
-                                            <span className="font-medium text-red-600">-{formatTransactionMoney(baseToTransactionAmount(totals.discountAmount, data.currency_code, baseCurrency, data.exchange_rate), data.currency_code)}</span>
+                                            <span className="font-medium text-red-600">-{formatTransactionMoney(totals.discountAmount, data.currency_code)}</span>
                                         </div>
                                         <div className="flex justify-between text-sm">
                                             <span className="text-muted-foreground">{t('Tax')}</span>
-                                            <span className="font-medium">{formatTransactionMoney(baseToTransactionAmount(totals.taxAmount, data.currency_code, baseCurrency, data.exchange_rate), data.currency_code)}</span>
+                                            <span className="font-medium">{formatTransactionMoney(totals.taxAmount, data.currency_code)}</span>
                                         </div>
                                         <Separator className="my-2" />
                                         <div className="flex justify-between">
                                             <span className="font-semibold">{t('Total')}</span>
-                                            <span className="font-bold text-lg">{formatTransactionMoney(baseToTransactionAmount(totals.total, data.currency_code, baseCurrency, data.exchange_rate), data.currency_code)}</span>
+                                            <span className="font-bold text-lg">{formatTransactionMoney(totals.total, data.currency_code)}</span>
                                         </div>
                                         {data.currency_code !== baseCurrency && <div className="mt-1 text-right text-xs text-muted-foreground">
-                                            {t('Base-currency equivalent')}: {formatCurrency(totals.total)}
+                                            {t('Base-currency equivalent')}: {formatCurrency(totals.total * (Number(data.exchange_rate) || 0))}
                                         </div>}
                                     </div>
                                 </div>

@@ -30,19 +30,14 @@ class SalesInvoiceService
                 $creatorId,
                 $data['document_template_id'] ?? null
             );
-            $items = $this->currencies->lineItemsFromBase(
-                $data['items'],
-                $data['currency_code'],
-                $data['exchange_rate'],
-                $creatorId
-            );
+            $lineAmountsAreBase = filter_var($data['line_amounts_are_base_currency'] ?? false, FILTER_VALIDATE_BOOL);
+            $items = $lineAmountsAreBase
+                ? $this->currencies->lineItemsFromBase($data['items'], $data['currency_code'], $data['exchange_rate'], $creatorId)
+                : $data['items'];
             $totals = $this->calculateTotals($items);
-            $currency = $this->currencies->transactionValuesFromBase(
-                $data,
-                $totals['total_amount'],
-                $this->calculateTotals($data['items'])['total_amount'],
-                $creatorId
-            );
+            $currency = $lineAmountsAreBase
+                ? $this->currencies->transactionValuesFromBase($data, $totals['total_amount'], $this->calculateTotals($data['items'])['total_amount'], $creatorId)
+                : $this->currencies->transactionValues([...$data, 'total_amount' => $totals['total_amount']], 'total_amount', $creatorId);
 
             $invoice = new SalesInvoice();
             $invoice->quotation_id = $quotation?->id;

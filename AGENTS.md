@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `release/zoho-and-security` | Transaction-currency line entry and dynamic currency-symbol Unit Price headings across Sales Invoice, Purchase Invoice and Quotation create/edit; backward-compatible server handling, tests, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Normalize the Unit Price heading in Sales Invoice, Purchase Invoice, and Quotation create/edit forms; focused frontend verification, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Purchase Invoice multi-currency layout: contain collapsed/expanded currency controls in a white card on create/edit, focused regression coverage, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Purchase Invoice product-picker parity: shared product browser/create flow in create/edit, purchase-price and replenishment behavior, controller catalogue payload, focused tests, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
@@ -246,6 +247,14 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-11-02 Asia/Colombo - Codex - Direct transaction-currency line entry
+
+- Branch: `release/zoho-and-security`; no PR; locally verified and ready to commit and push.
+- Changed: Sales Invoice, Purchase Invoice and Quotation create/edit line-item headings dynamically show the selected currency symbol, such as `$`, `€` or the configured QAR symbol. Unit prices, fixed discounts, line totals and summaries are entered and calculated directly in the selected transaction currency.
+- Conversion behavior: catalogue prices are stored in company currency and converted when inserted into a foreign-currency document; the document base equivalent is calculated as transaction total multiplied by the entered exchange rate. Editing an existing foreign document keeps its saved transaction-currency line values unchanged.
+- Compatibility: current forms no longer send the legacy base-line flag. Sales and Purchase server paths still honor an explicit `line_amounts_are_base_currency` flag for older clients, while direct transaction amounts are now the default. Quotation-to-invoice conversion no longer applies a second line conversion.
+- Verification: PHP 8.5 PHPUnit passed 17 tests / 115 assertions (`TransactionCurrencyLineEntryTest`, `CurrencyConversionServiceTest`, `PurchaseInvoiceProductPickerTest`, `LiveSecuritySmokeRegressionTest`); `npm run build` passed; changed PHP files passed syntax checks; `git diff --check` passed. Generated `public/build` output remains excluded.
 
 ### 2026-11-02 Asia/Colombo - Codex - Invoice and quotation Unit Price heading
 

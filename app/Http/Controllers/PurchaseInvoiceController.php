@@ -234,18 +234,14 @@ class PurchaseInvoiceController extends Controller
     {
         if(Auth::user()->can('create-purchase-invoices')){
             $currencyService = app(CurrencyConversionService::class);
-            $items = $currencyService->lineItemsFromBase(
-                $request->items,
-                $request->currency_code,
-                $request->exchange_rate,
-                creatorId()
-            );
+            $lineAmountsAreBase = $request->boolean('line_amounts_are_base_currency');
+            $items = $lineAmountsAreBase
+                ? $currencyService->lineItemsFromBase($request->items, $request->currency_code, $request->exchange_rate, creatorId())
+                : $request->items;
             $totals = $this->calculateTotals($items);
-            $currency = $currencyService->transactionValuesFromBase(
-                $request->validated(),
-                $totals['total_amount'],
-                $this->calculateTotals($request->items)['total_amount']
-            );
+            $currency = $lineAmountsAreBase
+                ? $currencyService->transactionValuesFromBase($request->validated(), $totals['total_amount'], $this->calculateTotals($request->items)['total_amount'])
+                : $currencyService->transactionValues([...$request->validated(), 'total_amount' => $totals['total_amount']], 'total_amount');
 
             $invoice = new PurchaseInvoice();
             $invoice->invoice_date = $request->invoice_date;
@@ -370,18 +366,14 @@ class PurchaseInvoiceController extends Controller
                 return redirect()->route('purchase-invoices.index')->with('error', __('Cannot update posted invoice.'));
             }
             $currencyService = app(CurrencyConversionService::class);
-            $items = $currencyService->lineItemsFromBase(
-                $request->items,
-                $request->currency_code,
-                $request->exchange_rate,
-                creatorId()
-            );
+            $lineAmountsAreBase = $request->boolean('line_amounts_are_base_currency');
+            $items = $lineAmountsAreBase
+                ? $currencyService->lineItemsFromBase($request->items, $request->currency_code, $request->exchange_rate, creatorId())
+                : $request->items;
             $totals = $this->calculateTotals($items);
-            $currency = $currencyService->transactionValuesFromBase(
-                $request->validated(),
-                $totals['total_amount'],
-                $this->calculateTotals($request->items)['total_amount']
-            );
+            $currency = $lineAmountsAreBase
+                ? $currencyService->transactionValuesFromBase($request->validated(), $totals['total_amount'], $this->calculateTotals($request->items)['total_amount'])
+                : $currencyService->transactionValues([...$request->validated(), 'total_amount' => $totals['total_amount']], 'total_amount');
 
             $purchaseInvoice->invoice_date = $request->invoice_date;
             $purchaseInvoice->supplier_invoice_number = $request->supplier_invoice_number;

@@ -7,7 +7,6 @@ import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import QuotationItemsTable from './components/QuotationItemsTable';
 import ProductPickerDialog, { QuotationProduct } from '@/components/product-picker-dialog';
 import { useTaxCalculator } from './components/TaxCalculator';
-import { formatCurrency } from '@/utils/helpers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,6 +21,7 @@ import { CalendarDays, Package } from 'lucide-react';
 import CreateCustomer from '../../../../../../Account/src/Resources/js/Pages/Customers/Create';
 import CreateWarehouse from '@/pages/warehouses/create';
 import TransactionCurrencyFields from '@/components/transaction-currency-fields';
+import { baseToTransactionAmount, formatTransactionMoney } from '@/utils/transaction-money';
 
 interface CreateProps {
     customers: Array<{id: number; name: string; email?: string | null}>;
@@ -43,6 +43,7 @@ interface CreateProps {
 export default function Create() {
     const { t } = useTranslation();
     const { customers, warehouses, documentTemplates = [], productCatalog, auth, settings } = usePage<CreateProps>().props;
+    const baseCurrency = settings?.defaultCurrency || 'USD';
     const [availableProducts, setAvailableProducts] = useState<QuotationProduct[]>([]);
     const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
     const [productsLoading, setProductsLoading] = useState(false);
@@ -111,15 +112,16 @@ export default function Create() {
     const addProducts = (products: QuotationProduct[]) => {
         const selectedItems = products.map(product => {
             const taxPercentage = product.taxes?.reduce((sum, tax) => sum + Number(tax.rate), 0) || 0;
+            const price = baseToTransactionAmount(Number(product.sale_price) || 0, data.currency_code, baseCurrency, data.exchange_rate);
             return {
                 ...emptyItem(),
                 product_id: product.id,
                 description: product.description || '',
-                unit_price: Number(product.sale_price) || 0,
+                unit_price: price,
                 tax_percentage: taxPercentage,
                 taxes: product.taxes?.map(tax => ({ tax_name: tax.tax_name, tax_rate: Number(tax.rate) })) || [],
-                tax_amount: (Number(product.sale_price) || 0) * taxPercentage / 100,
-                total_amount: (Number(product.sale_price) || 0) * (1 + taxPercentage / 100),
+                tax_amount: price * taxPercentage / 100,
+                total_amount: price * (1 + taxPercentage / 100),
             } as QuotationItem;
         });
         setData(current => ({
@@ -368,6 +370,9 @@ export default function Create() {
                                 products={availableProducts}
                                 showAddButton={false}
                                 onClearError={(field) => clearErrors(field as any)}
+                                currencyCode={data.currency_code}
+                                baseCurrencyCode={baseCurrency}
+                                exchangeRate={data.exchange_rate}
                             />
 
                             <div className="mt-6 flex justify-end">
@@ -376,20 +381,20 @@ export default function Create() {
                                     <div>
                                         <div className="flex justify-between text-sm">
                                             <span className="text-muted-foreground">{t('Subtotal')}</span>
-                                            <span className="font-medium">{formatCurrency(totals.subtotal)}</span>
+                                            <span className="font-medium">{formatTransactionMoney(totals.subtotal, data.currency_code)}</span>
                                         </div>
                                         <div className="flex justify-between text-sm">
                                             <span className="text-muted-foreground">{t('Discount')}</span>
-                                            <span className="font-medium text-red-600">-{formatCurrency(totals.discountAmount)}</span>
+                                            <span className="font-medium text-red-600">-{formatTransactionMoney(totals.discountAmount, data.currency_code)}</span>
                                         </div>
                                         <div className="flex justify-between text-sm">
                                             <span className="text-muted-foreground">{t('Tax')}</span>
-                                            <span className="font-medium">{formatCurrency(totals.taxAmount)}</span>
+                                            <span className="font-medium">{formatTransactionMoney(totals.taxAmount, data.currency_code)}</span>
                                         </div>
                                         <Separator className="my-2" />
                                         <div className="flex justify-between">
                                             <span className="font-semibold">{t('Total')}</span>
-                                            <span className="font-bold text-lg">{formatCurrency(totals.total)}</span>
+                                            <span className="font-bold text-lg">{formatTransactionMoney(totals.total, data.currency_code)}</span>
                                         </div>
                                     </div>
                                 </div>

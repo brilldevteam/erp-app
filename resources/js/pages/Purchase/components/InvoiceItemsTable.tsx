@@ -1,4 +1,5 @@
 import React from 'react';
+import { usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { BillAccountOption, PurchaseInvoiceItem } from '../types';
 import ProductSelector from './ProductSelector';
@@ -10,6 +11,7 @@ import { InputError } from '@/components/ui/input-error';
 import { Trash2 } from 'lucide-react';
 import { baseToTransactionAmount, formatTransactionMoney } from '@/utils/transaction-money';
 import SalesLineDiscount from '@/components/sales-line-discount';
+import { getCurrencySymbolForCode } from '@/utils/helpers';
 
 interface Props {
     items: PurchaseInvoiceItem[];
@@ -25,6 +27,7 @@ interface Props {
 
 export default function InvoiceItemsTable({ items, onChange, errors, products = [], accounts = [], showAddButton = true, currencyCode = 'USD', baseCurrencyCode = 'USD', exchangeRate = 1 }: Props) {
     const { t } = useTranslation();
+    const currencySymbol = getCurrencySymbolForCode(currencyCode, usePage().props);
     const inventoryAccountId = accounts.find(account => account.account_code === '1200')?.id ?? null;
     const addItem = () => {
         const newItem: PurchaseInvoiceItem = {
@@ -97,7 +100,7 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
             product_id: productId,
             // Stock products are bought into Inventory unless another account is chosen; services keep the chosen account
             account_id: product?.type === 'product' ? (newItems[index].account_id || inventoryAccountId) : (newItems[index].account_id ?? null),
-            unit_price: Number(product?.purchase_price) || 0,
+            unit_price: baseToTransactionAmount(Number(product?.purchase_price) || 0, currencyCode, baseCurrencyCode, exchangeRate),
             unit: product?.unit || newItems[index].unit,
             tax_percentage: Number(totalTaxRate) || 0,
             taxes: taxes
@@ -139,7 +142,7 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                 {t('Qty')} <span className="text-red-500">*</span>
                             </th>
                             <th className="px-2 py-3 text-left text-sm font-semibold text-foreground">
-                                {t('Unit Price')} <span className="text-red-500">*</span>
+                                {t('Unit Price')} ({currencySymbol}) <span className="text-red-500">*</span>
                             </th>
                             <th className="px-2 py-3 text-left text-sm font-semibold text-foreground">
                                 {t('Discount')}
@@ -237,7 +240,7 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                 </td>
                                 <td className="px-2 py-4">
                                     <span className="text-sm font-medium whitespace-nowrap">
-                                        {formatTransactionMoney(baseToTransactionAmount(item.total_amount, currencyCode, baseCurrencyCode, exchangeRate), currencyCode)}
+                                        {formatTransactionMoney(item.total_amount, currencyCode)}
                                     </span>
                                 </td>
                                 <td className="px-2 py-4 text-center">

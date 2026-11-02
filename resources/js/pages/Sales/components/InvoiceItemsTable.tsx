@@ -1,6 +1,7 @@
 import SalesLineDiscount from '@/components/sales-line-discount';
 import { Textarea } from '@/components/ui/textarea';
 import React from 'react';
+import { usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { InvoiceTaxOption, SalesInvoiceItem } from '../types';
 import ProductSelector from './ProductSelector';
@@ -10,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { InputError } from '@/components/ui/input-error';
 import { Trash2 } from 'lucide-react';
 import { baseToTransactionAmount, formatTransactionMoney } from '@/utils/transaction-money';
+import { getCurrencySymbolForCode } from '@/utils/helpers';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Props {
@@ -28,6 +30,7 @@ interface Props {
 
 export default function InvoiceItemsTable({ items, onChange, errors, products = [], taxTypes = [], showAddButton = true, invoiceType = 'product', onClearError, currencyCode = 'USD', baseCurrencyCode = 'USD', exchangeRate = 1 }: Props) {
     const { t } = useTranslation();
+    const currencySymbol = getCurrencySymbolForCode(currencyCode, usePage().props);
 
     const addItem = () => {
         const newItem: SalesInvoiceItem = {
@@ -138,7 +141,7 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
             ...newItems[index],
             product_id: productId,
             description: product?.description || '',
-            unit_price: Number(product?.sale_price) || 0,
+            unit_price: baseToTransactionAmount(Number(product?.sale_price) || 0, currencyCode, baseCurrencyCode, exchangeRate),
             tax_percentage: Number(totalTaxRate) || 0,
             taxes: taxes
         };
@@ -181,7 +184,7 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                 </th>
                             )}
                             <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                                {t('Unit Price')} <span className="text-red-500">*</span>
+                                {t('Unit Price')} ({currencySymbol}) <span className="text-red-500">*</span>
                             </th>
                             <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
                                 {t('Discount')}
@@ -277,7 +280,7 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                 </td>
                                 <td className="px-4 py-4">
                                     <span className="text-sm font-medium">
-                                        {formatTransactionMoney(baseToTransactionAmount(item.total_amount, currencyCode, baseCurrencyCode, exchangeRate), currencyCode)}
+                                        {formatTransactionMoney(item.total_amount, currencyCode)}
                                     </span>
                                 </td>
                                 <td className="px-4 py-4 text-center">
