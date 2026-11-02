@@ -16,6 +16,7 @@ export interface QuotationProduct {
     sku?: string;
     description?: string;
     sale_price: number;
+    purchase_price?: number;
     unit?: string;
     unit_name?: string;
     type?: string;
@@ -40,6 +41,8 @@ interface Props {
     warehouseId?: string;
     defaultProductType?: 'product' | 'service';
     catalogMode?: 'all' | 'stock' | 'service';
+    priceMode?: 'sale' | 'purchase';
+    requireAvailableStock?: boolean;
     canCreateProduct: boolean;
     loading?: boolean;
     onAdd: (products: QuotationProduct[]) => void;
@@ -80,7 +83,9 @@ export default function ProductPickerDialog(props: Props) {
     };
 
     const addSelected = () => {
-        const chosen = props.products.filter(product => selected.includes(product.id) && (product.type === 'service' || Number(product.stock_quantity) > 0));
+        const chosen = props.products.filter(product => selected.includes(product.id) && (
+            props.requireAvailableStock === false || product.type === 'service' || Number(product.stock_quantity) > 0
+        ));
         if (!chosen.length) return;
         props.onAdd(chosen);
         close();
@@ -95,7 +100,7 @@ export default function ProductPickerDialog(props: Props) {
 
     const toggleProduct = (productId: number) => {
         const product = props.products.find(item => item.id === productId);
-        if (product?.type !== 'service' && Number(product?.stock_quantity) <= 0) return;
+        if (props.requireAvailableStock !== false && product?.type !== 'service' && Number(product?.stock_quantity) <= 0) return;
         setSelected(current => current.includes(productId)
             ? current.filter(id => id !== productId)
             : [...current, productId]);
@@ -196,6 +201,7 @@ export default function ProductPickerDialog(props: Props) {
                                 <Select value={form.category_id} onValueChange={value => setForm({ ...form, category_id: value })}><SelectTrigger><SelectValue placeholder={t('Select Category')} /></SelectTrigger><SelectContent>{props.categories.map(option => <SelectItem key={option.id} value={String(option.id)}>{option.name}</SelectItem>)}</SelectContent></Select>
                             </Field>
                             <Field label={t('Selling Price')} error={formErrors.sale_price?.[0]}><Input type="number" min="0" step="0.01" value={form.sale_price} onChange={e => setForm({ ...form, sale_price: e.target.value })} required /></Field>
+                            <Field label={t('Purchase Price')} error={formErrors.purchase_price?.[0]}><Input type="number" min="0" step="0.01" value={form.purchase_price} onChange={e => setForm({ ...form, purchase_price: e.target.value })} required={props.priceMode === 'purchase'} /></Field>
                             {form.type !== 'service' && <Field label={t('Unit')} error={formErrors.unit?.[0]}><Select value={form.unit} onValueChange={value => setForm({ ...form, unit: value })}><SelectTrigger><SelectValue placeholder={t('Select Unit')} /></SelectTrigger><SelectContent>{props.units.map(option => <SelectItem key={option.id} value={String(option.id)}>{option.unit_name}</SelectItem>)}</SelectContent></Select></Field>}
                             {form.type !== 'service' && <Field label={t('Warehouse')} error={formErrors.warehouse_id?.[0]}><Select value={form.warehouse_id} onValueChange={value => setForm({ ...form, warehouse_id: value })} disabled={Boolean(props.warehouseId)}><SelectTrigger><SelectValue placeholder={t('Select Warehouse')} /></SelectTrigger><SelectContent>{props.warehouses.map(warehouse => <SelectItem key={warehouse.id} value={String(warehouse.id)}>{warehouse.name}</SelectItem>)}</SelectContent></Select></Field>}
                             {form.type !== 'service' && <Field label={t('Opening Stock')} error={formErrors.quantity?.[0]}><Input type="number" min={props.catalogMode === 'stock' ? 1 : 0} step="1" value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} /></Field>}
@@ -213,9 +219,9 @@ export default function ProductPickerDialog(props: Props) {
                         </div>
                         <div className="max-h-[50vh] overflow-auto rounded border">
                             {props.loading ? <div className="flex items-center justify-center p-10 text-muted-foreground"><Loader2 className="mr-2 h-5 w-5 animate-spin" />{t('Loading products...')}</div> : filtered.length ? (
-                                <table className="w-full min-w-[680px] text-sm"><thead className="sticky top-0 bg-muted"><tr><th className="w-12 p-3"></th><th className="p-3 text-left">{t('Product')}</th><th className="p-3 text-left">{t('SKU')}</th><th className="p-3 text-left">{t('Unit')}</th><th className="p-3 text-right">{t('Selling Price')}</th><th className="p-3 text-right">{t('Availability')}</th></tr></thead><tbody className="divide-y">{filtered.map(product => {
+                                <table className="w-full min-w-[680px] text-sm"><thead className="sticky top-0 bg-muted"><tr><th className="w-12 p-3"></th><th className="p-3 text-left">{t('Product')}</th><th className="p-3 text-left">{t('SKU')}</th><th className="p-3 text-left">{t('Unit')}</th><th className="p-3 text-right">{t(props.priceMode === 'purchase' ? 'Purchase Price' : 'Selling Price')}</th><th className="p-3 text-right">{t('Availability')}</th></tr></thead><tbody className="divide-y">{filtered.map(product => {
                                     const isSelected = selected.includes(product.id);
-                                    const isUnavailable = product.type !== 'service' && Number(product.stock_quantity) <= 0;
+                                    const isUnavailable = props.requireAvailableStock !== false && product.type !== 'service' && Number(product.stock_quantity) <= 0;
                                     return <tr
                                         key={product.id}
                                         role="checkbox"
@@ -230,7 +236,7 @@ export default function ProductPickerDialog(props: Props) {
                                             }
                                         }}
                                         className={`${isUnavailable ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-muted/60'} transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${isSelected ? 'bg-primary/10' : ''}`}
-                                    ><td className="p-3 text-center" onClick={event => event.stopPropagation()}><Checkbox checked={isSelected} disabled={isUnavailable} onCheckedChange={() => toggleProduct(product.id)} aria-label={t('Select {{product}}', { product: product.name })} /></td><td className="p-3"><div className="font-medium">{product.name}</div>{product.description && <div className="max-w-md truncate text-xs text-muted-foreground">{product.description}</div>}</td><td className="p-3">{product.sku || '-'}</td><td className="p-3">{product.unit_name || product.unit || '-'}</td><td className="p-3 text-right">{formatCurrency(Number(product.sale_price || 0))}</td><td className="p-3 text-right">{product.type === 'service' ? t('Service') : `${t('Stock')}: ${product.stock_quantity ?? 0}`}</td></tr>;
+                                    ><td className="p-3 text-center" onClick={event => event.stopPropagation()}><Checkbox checked={isSelected} disabled={isUnavailable} onCheckedChange={() => toggleProduct(product.id)} aria-label={t('Select {{product}}', { product: product.name })} /></td><td className="p-3"><div className="font-medium">{product.name}</div>{product.description && <div className="max-w-md truncate text-xs text-muted-foreground">{product.description}</div>}</td><td className="p-3">{product.sku || '-'}</td><td className="p-3">{product.unit_name || product.unit || '-'}</td><td className="p-3 text-right">{formatCurrency(Number(props.priceMode === 'purchase' ? product.purchase_price : product.sale_price) || 0)}</td><td className="p-3 text-right">{product.type === 'service' ? t('Service') : `${t('Stock')}: ${product.stock_quantity ?? 0}`}</td></tr>;
                                 })}</tbody></table>
                             ) : <div className="p-10 text-center text-muted-foreground"><p>{t('No products found.')}</p>{props.canCreateProduct && <Button type="button" variant="link" onClick={beginCreate}>{t('Create your first product')}</Button>}</div>}
                         </div>

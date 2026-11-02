@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
@@ -6,6 +6,7 @@ import { useFormFields } from '@/hooks/useFormFields';
 import { InvoiceVendorOption, ProjectContractOption, PurchaseInvoice, BillAccountOption, PurchaseInvoiceItem } from './types';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import InvoiceItemsTable from './components/InvoiceItemsTable';
+import ProductPickerDialog, { QuotationProduct } from '@/components/product-picker-dialog';
 import { useTaxCalculator, calculateLineItemAmounts } from './components/TaxCalculator';
 import { formatCurrency } from '@/utils/helpers';
 import { baseToTransactionAmount, formatTransactionMoney } from '@/utils/transaction-money';
@@ -24,16 +25,24 @@ import TransactionCurrencyFields from '@/components/transaction-currency-fields'
 interface EditProps {
     invoice: PurchaseInvoice;
     vendors: InvoiceVendorOption[];
-    products: Array<{id: number; name: string; sku: string; purchase_price: number; unit: string; type: string; taxes: Array<{id: number; tax_name: string; rate: number}>}>;
+    products: QuotationProduct[];
     warehouses: Array<{id: number; name: string; address: string}>;
     projectContracts: ProjectContractOption[];
     billAccounts: BillAccountOption[];
+    productCatalog: {
+        categories: Array<{ id: number; name: string }>;
+        units: Array<{ id: number; unit_name: string }>;
+        taxes: Array<{ id: number; tax_name: string; rate: number }>;
+    };
+    auth: { user: { permissions?: string[] } };
     [key: string]: any;
 }
 
 export default function Edit() {
     const { t } = useTranslation();
-    const { invoice, vendors, products, warehouses, projectContracts, billAccounts } = usePage<EditProps>().props;
+    const { invoice, vendors, products, warehouses, projectContracts, billAccounts, productCatalog, auth } = usePage<EditProps>().props;
+    const [availableProducts, setAvailableProducts] = useState<QuotationProduct[]>(products);
+    const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
 
     useFlashMessages();
     const baseCurrency = invoice.base_currency_code || 'USD';
@@ -87,6 +96,30 @@ export default function Edit() {
     };
 
     const totals = useTaxCalculator(data.items);
+
+    const addProducts = (selectedProducts: QuotationProduct[]) => {
+        const selectedItems = selectedProducts.map(product => {
+            const taxPercentage = product.taxes?.reduce((sum, tax) => sum + Number(tax.rate), 0) || 0;
+            const price = Number(product.purchase_price) || 0;
+            const amounts = calculateLineItemAmounts(1, price, 0, taxPercentage, 'percentage', 0);
+            return {
+                product_id: product.id,
+                description: product.description || '',
+                account_id: null,
+                quantity: 1,
+                unit_price: price,
+                discount_type: 'percentage' as const,
+                discount_value: 0,
+                discount_percentage: 0,
+                discount_amount: amounts.discountAmount,
+                tax_percentage: taxPercentage,
+                tax_amount: amounts.taxAmount,
+                total_amount: amounts.totalAmount,
+                taxes: product.taxes?.map(tax => ({ id: tax.id, tax_name: tax.tax_name, tax_rate: Number(tax.rate) })) || [],
+            } as PurchaseInvoiceItem;
+        });
+        setData('items', [...data.items.filter(item => item.product_id > 0), ...selectedItems]);
+    };
 
     // Recurring fields hook
     const recurringFields = useFormFields('purchaseInvoiceEditFields', data, setData, errors, 'edit', invoice);
@@ -340,27 +373,11 @@ export default function Edit() {
                                 </CardTitle>
                                 <Button
                                     type="button"
-                                    onClick={() => {
-                                        const newItem = {
-                                            product_id: 0,
-                                            account_id: null,
-                                            quantity: 1,
-                                            unit_price: 0,
-                                            discount_type: 'percentage' as const,
-                                            discount_value: 0,
-                                            discount_percentage: 0,
-                                            discount_amount: 0,
-                                            tax_percentage: 0,
-                                            tax_amount: 0,
-                                            total_amount: 0,
-                                            taxes: []
-                                        };
-                                        setData('items', [...data.items, newItem]);
-                                    }}
+                                    onClick={() => setIsProductPickerOpen(true)}
                                     variant="default"
                                     size="sm"
                                 >
-                                    + {t('Add Item')}
+                                    + {t('Add Product')}
                                 </Button>
                             </div>
                         </CardHeader>
@@ -369,12 +386,29 @@ export default function Edit() {
                                 items={data.items}
                                 onChange={(items) => setData('items', items)}
                                 errors={errors}
-                                products={products}
+                                products={availableProducts}
                                 accounts={billAccounts || []}
                                 showAddButton={false}
                                 currencyCode={data.currency_code}
                                 baseCurrencyCode={baseCurrency}
                                 exchangeRate={data.exchange_rate}
+                            />
+
+                            <ProductPickerDialog
+                                open={isProductPickerOpen}
+                                onOpenChange={setIsProductPickerOpen}
+                                products={availableProducts}
+                                categories={productCatalog?.categories || []}
+                                units={productCatalog?.units || []}
+                                taxes={productCatalog?.taxes || []}
+                                warehouses={warehouses}
+                                warehouseId={data.warehouse_id}
+                                catalogMode="all"
+                                priceMode="purchase"
+                                requireAvailableStock={false}
+                                canCreateProduct={auth.user.permissions?.includes('create-product-service-item') || false}
+                                onAdd={addProducts}
+                                onProductCreated={product => setAvailableProducts(current => [...current, product])}
                             />
 
                             {/* Invoice Summary */}

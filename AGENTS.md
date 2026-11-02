@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `release/zoho-and-security` | Purchase Invoice product-picker parity: shared product browser/create flow in create/edit, purchase-price and replenishment behavior, controller catalogue payload, focused tests, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Vendor Payment creation follow-up: preserve a valid base-currency exchange rate when selecting a vendor, verify full and partial bill allocations, focused regression test, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Live security smoke-test follow-up: customer/vendor dashboard scoping, quotation-conversion feedback, credit-note/purchase-invoice refresh behavior, purchase-invoice currency defaults, vendor-payment submission/partial allocations, focused tests and changelog. Generated `public/build`, `public/hot`, and unrelated workspace changes excluded. | 2026-11-02 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Claude follow-up audit fixes for migration template colours and alternative/conditional column guidance; focused tests, changelog and handoff only. | 2026-11-01 | Complete - ready to commit and push |
@@ -243,6 +244,14 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-11-02 Asia/Colombo - Codex - Purchase Invoice product picker parity
+
+- Branch: `release/zoho-and-security`; no PR; locally verified and ready to commit and push.
+- Added: Purchase Invoice create and edit use the shared Sales Invoice product browser with search, category filtering, multi-select, permission-controlled quick product creation, and immediate insertion into invoice lines.
+- Purchase behavior: the picker displays and applies purchase prices, carries descriptions/taxes/units, and permits out-of-stock products because purchases replenish stock. Sales Invoice retains its existing selling-price display and out-of-stock restriction.
+- Accounting boundary: newly selected lines leave Account blank for explicit user selection; no expense account is guessed from product data.
+- Verification: `PurchaseInvoiceProductPickerTest` and `LiveSecuritySmokeRegressionTest` passed 9 tests / 56 assertions on PHP 8.5; PurchaseInvoiceController syntax passed; `npm run build` passed; `git diff --check` passed. Generated `public/build` output remains excluded.
 
 ### 2026-11-02 Asia/Colombo - Codex - Vendor Payment submission follow-up
 

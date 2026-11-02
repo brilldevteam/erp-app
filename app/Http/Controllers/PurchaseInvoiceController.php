@@ -11,6 +11,9 @@ use App\Models\Warehouse;
 use App\Http\Requests\StorePurchaseInvoiceRequest;
 use App\Http\Requests\UpdatePurchaseInvoiceRequest;
 use Workdo\ProductService\Models\ProductServiceItem;
+use Workdo\ProductService\Models\ProductServiceCategory;
+use Workdo\ProductService\Models\ProductServiceTax;
+use Workdo\ProductService\Models\ProductServiceUnit;
 use Illuminate\Http\Request;
 use Workdo\Account\Models\ChartOfAccount;
 use Illuminate\Support\Facades\Auth;
@@ -30,6 +33,44 @@ use Workdo\Account\Services\CurrencyConversionService;
 
 class PurchaseInvoiceController extends Controller
 {
+    private function purchaseProducts()
+    {
+        return ProductServiceItem::query()
+            ->with(['category:id,name', 'unitRelation:id,unit_name'])
+            ->withSum('warehouseStocks as stock_quantity', 'quantity')
+            ->where('is_active', true)
+            ->where('created_by', creatorId())
+            ->get(['id', 'name', 'sku', 'description', 'sale_price', 'purchase_price', 'tax_ids', 'category_id', 'unit', 'type'])
+            ->map(fn ($product) => [
+                'id' => $product->id,
+                'name' => $product->name,
+                'sku' => $product->sku,
+                'description' => $product->description,
+                'sale_price' => $product->sale_price,
+                'purchase_price' => $product->purchase_price,
+                'category_id' => $product->category_id,
+                'category_name' => $product->category?->name,
+                'unit' => $product->unit,
+                'unit_name' => $product->unitRelation?->unit_name,
+                'type' => $product->type,
+                'stock_quantity' => (float) ($product->stock_quantity ?? 0),
+                'taxes' => $product->taxes->map(fn ($tax) => [
+                    'id' => $tax->id,
+                    'tax_name' => $tax->tax_name,
+                    'rate' => $tax->rate,
+                ]),
+            ]);
+    }
+
+    private function productCatalog(): array
+    {
+        return [
+            'categories' => ProductServiceCategory::where('created_by', creatorId())->orderBy('name')->get(['id', 'name']),
+            'units' => ProductServiceUnit::where('created_by', creatorId())->orderBy('unit_name')->get(['id', 'unit_name']),
+            'taxes' => ProductServiceTax::where('created_by', creatorId())->orderBy('tax_name')->get(['id', 'tax_name', 'rate']),
+        ];
+    }
+
     private function invoiceVendors()
     {
         return User::query()
@@ -171,32 +212,14 @@ class PurchaseInvoiceController extends Controller
     {
         if(Auth::user()->can('create-purchase-invoices')){
             $vendors = $this->invoiceVendors();
-            $products = ProductServiceItem::select('id', 'name', 'sku', 'purchase_price', 'tax_ids', 'unit', 'type')
-            ->where('is_active', true)->where('created_by', creatorId())
-            ->get()
-            ->map(function ($product) {
-                return [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'sku' => $product->sku,
-                    'purchase_price' => $product->purchase_price,
-                    'unit' => $product->unit,
-                    'type' => $product->type,
-                    'taxes' => $product->taxes->map(function ($tax) {
-                        return [
-                            'id' => $tax->id,
-                            'tax_name' => $tax->tax_name,
-                            'rate' => $tax->rate
-                        ];
-                    })
-                ];
-            });
+            $products = $this->purchaseProducts();
 
             $warehouses = Warehouse::where('is_active', true)->select('id', 'name', 'address')->where('created_by', creatorId())->get();
 
             return Inertia::render('Purchase/Create', [
                 'vendors' => $vendors,
                 'products' => $products,
+                'productCatalog' => $this->productCatalog(),
                 'billAccounts' => ChartOfAccount::billAccountOptions(creatorId()),
                 'warehouses' => $warehouses,
                 'projectContracts' => $this->projectContractOptions(),
@@ -321,26 +344,7 @@ class PurchaseInvoiceController extends Controller
             EditPurchaseInvoice::dispatch($purchaseInvoice);
 
             $vendors = $this->invoiceVendors();
-            $products = ProductServiceItem::select('id', 'name', 'sku', 'purchase_price', 'tax_ids', 'unit', 'type')
-                ->where('is_active', true)->where('created_by', creatorId())
-                ->get()
-                ->map(function ($product) {
-                    return [
-                        'id' => $product->id,
-                        'name' => $product->name,
-                        'sku' => $product->sku,
-                        'purchase_price' => $product->purchase_price,
-                        'unit' => $product->unit,
-                        'type' => $product->type,
-                        'taxes' => $product->taxes->map(function ($tax) {
-                            return [
-                                'id' => $tax->id,
-                                'tax_name' => $tax->tax_name,
-                                'rate' => $tax->rate
-                            ];
-                        })
-                    ];
-                });
+            $products = $this->purchaseProducts();
 
             $warehouses = Warehouse::where('is_active', true)->select('id', 'name', 'address')->where('created_by', creatorId())->get();
 
@@ -348,6 +352,7 @@ class PurchaseInvoiceController extends Controller
                 'invoice' => $purchaseInvoice,
                 'vendors' => $vendors,
                 'products' => $products,
+                'productCatalog' => $this->productCatalog(),
                 'billAccounts' => ChartOfAccount::billAccountOptions(creatorId()),
                 'warehouses' => $warehouses,
                 'projectContracts' => $this->projectContractOptions(),

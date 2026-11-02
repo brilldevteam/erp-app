@@ -15,7 +15,7 @@ interface Props {
     items: PurchaseInvoiceItem[];
     onChange: (items: PurchaseInvoiceItem[]) => void;
     errors: any;
-    products?: Array<{id: number; name: string; purchase_price: number; unit?: string; type?: string; taxes?: Array<{id: number; tax_name: string; rate: number}>}>;
+    products?: Array<{id: number; name: string; purchase_price?: number; unit?: string; type?: string; taxes?: Array<{id: number; tax_name: string; rate: number}>}>;
     accounts?: BillAccountOption[];
     showAddButton?: boolean;
     currencyCode?: string;
