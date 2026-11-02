@@ -404,7 +404,7 @@ export default function Create() {
                                 </div>
                             </div>
 
-                            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div className="my-4 grid grid-cols-1 gap-4 py-3 md:grid-cols-2">
                                 <TransactionCurrencyFields
                                     currencyCode={data.currency_code}
                                     exchangeRate={data.exchange_rate}

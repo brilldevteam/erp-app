@@ -210,7 +210,10 @@ export default function ProductPickerDialog(props: Props) {
                     </form>
                 ) : (
                     <>
-                        <div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('Search by product name or SKU')} /></div>
+                        <div className="flex h-10 items-center gap-2 rounded-lg border border-input bg-white px-3 shadow-[0_1px_2px_rgba(15,23,42,0.03)] focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 dark:bg-slate-950">
+                            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            <Input className="h-auto border-0 bg-transparent p-0 shadow-none focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('Search by product name or SKU')} />
+                        </div>
                         <div className="max-h-[50vh] overflow-auto rounded border">
                             {props.loading ? <div className="flex items-center justify-center p-10 text-muted-foreground"><Loader2 className="mr-2 h-5 w-5 animate-spin" />{t('Loading products...')}</div> : filtered.length ? (
                                 <table className="w-full min-w-[680px] text-sm"><thead className="sticky top-0 bg-muted"><tr><th className="w-12 p-3"></th><th className="p-3 text-left">{t('Product')}</th><th className="p-3 text-left">{t('SKU')}</th><th className="p-3 text-left">{t('Unit')}</th><th className="p-3 text-right">{t(props.priceMode === 'purchase' ? 'Purchase Price' : 'Selling Price')}</th><th className="p-3 text-right">{t('Availability')}</th></tr></thead><tbody className="divide-y">{filtered.map(product => {

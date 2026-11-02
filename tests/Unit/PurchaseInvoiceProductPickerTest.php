@@ -49,8 +49,19 @@ class PurchaseInvoiceProductPickerTest extends TestCase
         $this->assertStringNotContainsString("const [category, setCategory]", $source);
         $this->assertStringNotContainsString("t('All Categories')", $source);
         $this->assertStringContainsString("placeholder={t('Search by product name or SKU')}", $source);
+        $this->assertStringContainsString('flex h-10 items-center gap-2 rounded-lg border', $source);
+        $this->assertStringContainsString('h-4 w-4 shrink-0 text-muted-foreground', $source);
         $this->assertStringContainsString("<Field label={t('Category')}", $source);
         $this->assertStringContainsString('props.categories.map', $source);
+    }
+
+    public function test_sales_invoice_multi_currency_controls_have_balanced_vertical_spacing(): void
+    {
+        $create = $this->source('resources/js/pages/Sales/Create.tsx');
+        $edit = $this->source('resources/js/pages/Sales/Edit.tsx');
+
+        $this->assertStringContainsString('className="my-4 grid grid-cols-1 gap-4 py-3 md:grid-cols-2"', $create);
+        $this->assertStringContainsString('<div className="py-3">', $edit);
     }
 
     public function test_purchase_multi_currency_controls_are_contained_in_expandable_cards(): void
