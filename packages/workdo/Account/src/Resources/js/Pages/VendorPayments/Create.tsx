@@ -211,8 +211,7 @@ export default function Create({ vendors, bankAccounts, onSuccess }: CreateVendo
                         <Label htmlFor="vendor_id" required>{t('Vendor')}</Label>
                         <Select value={data.vendor_id} onValueChange={(value) => {
                             if (value === 'create-vendor') { setIsVendorDialogOpen(true); return; }
-                            const currency = vendorOptions.find((vendor) => String(vendor.id) === value)?.preferred_currency_code;
-                            setData((current) => ({ ...current, vendor_id: value, ...(currency ? { currency_code: currency, exchange_rate: '' } : {}) }));
+                            setData('vendor_id', value);
                         }}>
                             <SelectTrigger>
                                 <SelectValue placeholder={t('Select Vendor')} />

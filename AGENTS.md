@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `release/zoho-and-security` | Vendor Payment creation follow-up: preserve a valid base-currency exchange rate when selecting a vendor, verify full and partial bill allocations, focused regression test, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Live security smoke-test follow-up: customer/vendor dashboard scoping, quotation-conversion feedback, credit-note/purchase-invoice refresh behavior, purchase-invoice currency defaults, vendor-payment submission/partial allocations, focused tests and changelog. Generated `public/build`, `public/hot`, and unrelated workspace changes excluded. | 2026-11-02 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Claude follow-up audit fixes for migration template colours and alternative/conditional column guidance; focused tests, changelog and handoff only. | 2026-11-01 | Complete - ready to commit and push |
 | Codex | `release/zoho-and-security` | Audit every migration-template column against actual import mappings; classify required/supported/ignored fields, color XLSX headers safely, repair manual-journal template completeness, update UI/tests/changelog. | 2026-11-01 | Complete - ready to commit and push |
@@ -242,6 +243,13 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-11-02 Asia/Colombo - Codex - Vendor Payment submission follow-up
+
+- Branch: `release/zoho-and-security`; no PR; locally verified and ready to commit and push.
+- Root cause: choosing a vendor with a preferred currency replaced the valid base-currency rate with an empty rate. Base-currency forms hide the rate control, so both full and partial payments failed validation without giving the user a field they could correct.
+- Fixed: vendor selection now changes only the vendor. Adding a foreign-currency bill still switches the payment to that bill's currency and requests its rate; base-currency payments retain rate `1.00000000`. Editable bill allocation amounts and automatic payment-total recalculation continue to support partial payments.
+- Verification: `LiveSecuritySmokeRegressionTest` and `PartyPayloadHardeningTest` passed 18 tests / 108 assertions on PHP 8.5; `npm run build` passed; `git diff --check` passed. Generated `public/build` output remains excluded.
 
 ### 2026-11-02 Asia/Colombo - Codex - Live security smoke-test follow-up
 

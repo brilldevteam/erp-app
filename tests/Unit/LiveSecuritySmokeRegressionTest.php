@@ -49,6 +49,14 @@ class LiveSecuritySmokeRegressionTest extends TestCase
         }
     }
 
+    public function test_vendor_selection_preserves_the_valid_payment_exchange_rate(): void
+    {
+        $source = $this->source('packages/workdo/Account/src/Resources/js/Pages/VendorPayments/Create.tsx');
+
+        $this->assertStringContainsString("setData('vendor_id', value);", $source);
+        $this->assertStringNotContainsString('preferred_currency_code;', $source);
+    }
+
     public function test_created_invoices_redirect_with_success_when_follow_up_integration_fails(): void
     {
         $sales = $this->source('app/Http/Controllers/SalesInvoiceController.php');
