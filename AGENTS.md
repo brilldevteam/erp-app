@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `release/zoho-and-security` | Purchase Invoice multi-currency layout: contain collapsed/expanded currency controls in a white card on create/edit, focused regression coverage, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Purchase Invoice product-picker parity: shared product browser/create flow in create/edit, purchase-price and replenishment behavior, controller catalogue payload, focused tests, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Vendor Payment creation follow-up: preserve a valid base-currency exchange rate when selecting a vendor, verify full and partial bill allocations, focused regression test, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Live security smoke-test follow-up: customer/vendor dashboard scoping, quotation-conversion feedback, credit-note/purchase-invoice refresh behavior, purchase-invoice currency defaults, vendor-payment submission/partial allocations, focused tests and changelog. Generated `public/build`, `public/hot`, and unrelated workspace changes excluded. | 2026-11-02 | Complete - locally verified; ready to commit and push |
@@ -244,6 +245,13 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-11-02 Asia/Colombo - Codex - Purchase Invoice multi-currency card
+
+- Branch: `release/zoho-and-security`; no PR; locally verified and ready to commit and push.
+- Changed: the Purchase Invoice multi-currency component is contained in a dedicated white card on both create and edit pages, aligned with the surrounding page sections.
+- Behavior preserved: the collapsed card shows the Multi-Currency Transaction control; enabling it expands the same card to show currency and exchange-rate fields. Currency calculation and submission logic are unchanged.
+- Verification: `PurchaseInvoiceProductPickerTest` passed 4 tests / 36 assertions on PHP 8.5; `npm run build` passed; `git diff --check` passed. Generated `public/build` output remains excluded.
 
 ### 2026-11-02 Asia/Colombo - Codex - Purchase Invoice product picker parity
 

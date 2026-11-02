@@ -11,6 +11,7 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Fixed
+- Purchase Invoice multi-currency controls now sit inside a dedicated white card on create and edit; the card stays compact while disabled and expands with the currency and exchange-rate controls when enabled.
 - Fixed Vendor Payment creation for both full and partial bill allocations by preserving the valid company-currency exchange rate when a vendor is selected; base-currency payments no longer fail on a hidden empty exchange-rate field.
 - Fixed live security smoke-test regressions: customer and vendor dashboards now calculate totals only from that portal party's posted documents; converted sales and purchase invoices return a clear success even when a follow-up integration fails; credit-note approval refreshes the approved record; purchase invoices default to the company currency without automatically enabling multi-currency from a vendor preference; and customer/vendor payment forms submit the company currency and expose allocation validation errors.
 - Corrected the audited migration-template guide: expense Total and manual-journal Account Code are now required; Chart of Accounts bank number and currency remain supported; vendor-payment bill allocation fields are conditional; account/name alternatives, contact fallback behavior and Trial Balance precedence are explained in both XLSX comments and the on-screen guide. Duplicate template headers now render with stable React keys.

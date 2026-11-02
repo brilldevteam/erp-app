@@ -42,6 +42,21 @@ class PurchaseInvoiceProductPickerTest extends TestCase
         $this->assertStringContainsString('props.requireAvailableStock !== false', $source);
     }
 
+    public function test_purchase_multi_currency_controls_are_contained_in_expandable_cards(): void
+    {
+        foreach (['Create.tsx', 'Edit.tsx'] as $file) {
+            $source = $this->source("resources/js/pages/Purchase/{$file}");
+            $currencyFields = strpos($source, '<TransactionCurrencyFields');
+
+            $this->assertNotFalse($currencyFields, $file);
+            $cardStart = strrpos(substr($source, 0, $currencyFields), '<Card>');
+            $cardEnd = strpos($source, '</Card>', $currencyFields);
+            $this->assertNotFalse($cardStart, $file);
+            $this->assertNotFalse($cardEnd, $file);
+            $this->assertStringContainsString('<CardContent className="pt-6">', substr($source, $cardStart, $cardEnd - $cardStart), $file);
+        }
+    }
+
     private function source(string $path): string
     {
         $source = file_get_contents(dirname(__DIR__, 2).DIRECTORY_SEPARATOR.$path);
