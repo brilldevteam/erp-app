@@ -28,6 +28,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Company users can configure exchange gain and loss accounts from Currency Rates. Customer and vendor forms can set a preferred document currency.
 
 ### Changed
+- Standardized the line-item heading to `Unit Price` across Sales Invoice, Purchase Invoice, and Quotation create/edit forms; the currency code is no longer appended to that label.
 - Removed default-warehouse fields and warehouse creation from initial migration workspace setup; warehouse entry and no-warehouse confirmation now belong exclusively to Step 6.
 - Migration workspace setup now allows the complete default-warehouse section to remain blank; warehouse location fields are required only when a warehouse name is supplied.
 - Migration setup now uses the shared searchable currency dropdown for base currency instead of accepting an unrestricted three-letter text value.

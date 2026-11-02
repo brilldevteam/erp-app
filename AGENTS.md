@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `release/zoho-and-security` | Normalize the Unit Price heading in Sales Invoice, Purchase Invoice, and Quotation create/edit forms; focused frontend verification, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Purchase Invoice multi-currency layout: contain collapsed/expanded currency controls in a white card on create/edit, focused regression coverage, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Purchase Invoice product-picker parity: shared product browser/create flow in create/edit, purchase-price and replenishment behavior, controller catalogue payload, focused tests, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Vendor Payment creation follow-up: preserve a valid base-currency exchange rate when selecting a vendor, verify full and partial bill allocations, focused regression test, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
@@ -245,6 +246,13 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-11-02 Asia/Colombo - Codex - Invoice and quotation Unit Price heading
+
+- Branch: `release/zoho-and-security`; no PR; locally verified and ready to commit and push.
+- Changed: Sales Invoice and Purchase Invoice create/edit line-item tables now show `Unit Price` without appending the base-currency code. Quotation create/edit already used the requested label and was verified unchanged.
+- Scope: only these three document flows were audited; returns, purchase orders, credits, retainers, POS and other modules were not changed. Currency conversion, amount formatting and submission behavior remain unchanged.
+- Verification: focused source search confirmed all three shared item-table headings render `Unit Price`; `npm run build` passed. Generated `public/build` output remains excluded.
 
 ### 2026-11-02 Asia/Colombo - Codex - Purchase Invoice multi-currency card
 
