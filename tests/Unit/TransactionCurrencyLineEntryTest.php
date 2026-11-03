@@ -38,7 +38,7 @@ class TransactionCurrencyLineEntryTest extends TestCase
         }
     }
 
-    public function test_all_three_document_forms_use_separate_multi_currency_cards(): void
+    public function test_all_three_document_forms_keep_multi_currency_inside_the_details_card(): void
     {
         foreach ([
             'resources/js/pages/Sales/Create.tsx',
@@ -49,16 +49,18 @@ class TransactionCurrencyLineEntryTest extends TestCase
             'packages/workdo/Quotation/src/Resources/js/Pages/Quotations/Edit.tsx',
         ] as $path) {
             $source = $this->source($path);
+            $detailsCardStart = strpos($source, '<Card>');
+            $detailsCardEnd = strpos($source, '</Card>', $detailsCardStart);
             $currencyFields = strpos($source, '<TransactionCurrencyFields');
 
+            $this->assertNotFalse($detailsCardStart, $path);
+            $this->assertNotFalse($detailsCardEnd, $path);
             $this->assertNotFalse($currencyFields, $path);
-            $cardStart = strrpos(substr($source, 0, $currencyFields), '<Card>');
-            $cardEnd = strpos($source, '</Card>', $currencyFields);
-            $this->assertNotFalse($cardStart, $path);
-            $this->assertNotFalse($cardEnd, $path);
+            $this->assertGreaterThan($detailsCardStart, $currencyFields, $path);
+            $this->assertLessThan($detailsCardEnd, $currencyFields, $path);
             $this->assertStringContainsString(
-                '<CardContent className="pt-6">',
-                substr($source, $cardStart, $cardEnd - $cardStart),
+                'className="mt-6 border-t pt-6"',
+                substr($source, $detailsCardStart, $detailsCardEnd - $detailsCardStart),
                 $path,
             );
         }

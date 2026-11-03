@@ -55,27 +55,29 @@ class PurchaseInvoiceProductPickerTest extends TestCase
         $this->assertStringContainsString('props.categories.map', $source);
     }
 
-    public function test_sales_invoice_multi_currency_controls_use_separate_cards(): void
+    public function test_sales_invoice_multi_currency_controls_stay_inside_details_cards(): void
     {
         $create = $this->source('resources/js/pages/Sales/Create.tsx');
         $edit = $this->source('resources/js/pages/Sales/Edit.tsx');
 
-        $this->assertStringContainsString('<CardContent className="pt-6">', $create);
-        $this->assertStringContainsString('<CardContent className="pt-6">', $edit);
+        $this->assertStringContainsString('className="mt-6 border-t pt-6"', $create);
+        $this->assertStringContainsString('className="mt-6 border-t pt-6"', $edit);
     }
 
-    public function test_purchase_multi_currency_controls_are_contained_in_expandable_cards(): void
+    public function test_purchase_multi_currency_controls_stay_inside_details_cards(): void
     {
         foreach (['Create.tsx', 'Edit.tsx'] as $file) {
             $source = $this->source("resources/js/pages/Purchase/{$file}");
             $currencyFields = strpos($source, '<TransactionCurrencyFields');
 
             $this->assertNotFalse($currencyFields, $file);
-            $cardStart = strrpos(substr($source, 0, $currencyFields), '<Card>');
-            $cardEnd = strpos($source, '</Card>', $currencyFields);
+            $cardStart = strpos($source, '<Card>');
+            $cardEnd = strpos($source, '</Card>', $cardStart);
             $this->assertNotFalse($cardStart, $file);
             $this->assertNotFalse($cardEnd, $file);
-            $this->assertStringContainsString('<CardContent className="pt-6">', substr($source, $cardStart, $cardEnd - $cardStart), $file);
+            $this->assertGreaterThan($cardStart, $currencyFields, $file);
+            $this->assertLessThan($cardEnd, $currencyFields, $file);
+            $this->assertStringContainsString('className="mt-6 border-t pt-6"', substr($source, $cardStart, $cardEnd - $cardStart), $file);
         }
     }
 

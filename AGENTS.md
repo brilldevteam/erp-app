@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `release/zoho-and-security` | Move Sales Invoice, Purchase Invoice and Quotation multi-currency controls into their upper details cards on create/edit; preserve currency behavior, focused tests/build, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Normalize legacy base-currency edit state and standardize separate white multi-currency cards across Sales Invoice, Purchase Invoice and Quotation create/edit; shared picker behavior, tests, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Correct Add Products search-icon containment and add balanced vertical spacing to Sales Invoice multi-currency controls; focused tests/build, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Remove category filtering from the shared Add Products browser everywhere it is used; preserve product-creation category assignment, focused test/build, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
@@ -250,6 +251,13 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-11-03 Asia/Colombo - Codex - Multi-currency controls inside document details
+
+- Branch: `release/zoho-and-security`; no PR; locally verified and ready to commit and push.
+- Layout: moved the Multi-Currency Transaction controls from separate cards into the bottom of the upper details card on Sales Invoice, Purchase Invoice and Quotation create/edit forms. A divider and balanced spacing keep the currency controls visually distinct without creating another page section.
+- Behavior preserved: the collapsed state remains compact; enabling multi-currency expands the same upper details card to show Currency, Exchange Rate and the base-currency equivalent. Currency selection, legacy-document handling, calculations and submission behavior are unchanged.
+- Verification: PHP 8.5 PHPUnit passed 12 tests / 155 assertions (`TransactionCurrencyLineEntryTest`, `PurchaseInvoiceProductPickerTest`); `npm run build` passed with 4,003 modules transformed. Generated `public/build` output remains excluded.
 
 ### 2026-11-03 Asia/Colombo - Codex - Multi-currency edit state and document-card parity
 

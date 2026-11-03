@@ -294,12 +294,9 @@ export default function Create() {
                                     </div>
                                 </div>
                             )}
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="pt-6">
-                            <TransactionCurrencyFields currencyCode={data.currency_code} exchangeRate={data.exchange_rate} transactionDate={data.invoice_date} amount={totals.total} errors={errors} onCurrencyChange={value => setData('currency_code', value)} onRateChange={value => setData('exchange_rate', value)} />
+                            <div className="mt-6 border-t pt-6">
+                                <TransactionCurrencyFields currencyCode={data.currency_code} exchangeRate={data.exchange_rate} transactionDate={data.invoice_date} amount={totals.total} errors={errors} onCurrencyChange={value => setData('currency_code', value)} onRateChange={value => setData('exchange_rate', value)} />
+                            </div>
                         </CardContent>
                     </Card>
 

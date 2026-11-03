@@ -30,6 +30,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Company users can configure exchange gain and loss accounts from Currency Rates. Customer and vendor forms can set a preferred document currency.
 
 ### Changed
+- Moved the Multi-Currency Transaction controls into the upper details card on Sales Invoice, Purchase Invoice and Quotation create/edit forms, separated from the regular fields by a divider while preserving the same collapsed and expanded behavior.
 - Removed the category filter from the shared Add Products browser on Sales Invoice and Purchase Invoice create/edit screens. Product search and selection remain unchanged, and Category is still available when creating a new product.
 - Sales Invoice, Purchase Invoice and Quotation line prices now use the selected transaction currency directly. Their create/edit tables show the selected currency symbol in the `Unit Price` heading, transaction totals remain in that currency, saved base equivalents use the entered exchange rate, and catalogue prices are converted when inserted. Explicit legacy base-currency line requests remain supported.
 - Removed default-warehouse fields and warehouse creation from initial migration workspace setup; warehouse entry and no-warehouse confirmation now belong exclusively to Step 6.
