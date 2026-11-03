@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `release/zoho-and-security` | Ensure the shared Multi-Currency Transaction pill defaults off by resolving the correct company base currency across document contexts; focused regression test/build, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Split Product & Service Items into permission-controlled Products and Services submenus, type-locked list/create/edit flows, permission migration/seeder, tests, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Replace the shared Multi-Currency Transaction checkbox with an accessible pill toggle across document forms; focused test/build, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Move Sales Invoice, Purchase Invoice and Quotation multi-currency controls into their upper details cards on create/edit; preserve currency behavior, focused tests/build, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
@@ -253,6 +254,13 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-11-03 Asia/Colombo - Codex - Multi-currency pill default-off correction
+
+- Branch: `release/zoho-and-security`; no PR; locally verified and ready to commit and push.
+- Fixed: the shared Multi-Currency Transaction control now resolves the company base currency from both `companyAllSetting` and `settings` page payloads. New QAR quotations therefore remain off instead of being compared with a USD fallback and incorrectly appearing active.
+- Behavior preserved: new base-currency Sales Invoices, Purchase Invoices and Quotations start collapsed/off. Editing an existing document still opens the pill only when its saved transaction currency is genuinely different from its base currency.
+- Verification: PHP 8.5 PHPUnit passed 13 tests / 162 assertions (`TransactionCurrencyLineEntryTest`, `PurchaseInvoiceProductPickerTest`); `npm run build` passed with 4,001 modules transformed. Generated `public/build` output remains excluded.
 
 ### 2026-11-03 Asia/Colombo - Codex - Product and Service catalog split
 

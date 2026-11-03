@@ -37,7 +37,7 @@ export default function TransactionCurrencyFields({
     const { t } = useTranslation();
     const page = usePage().props as any;
     const currencies: Currency[] = page.currencies || [];
-    const baseCurrency = page.companyAllSetting?.defaultCurrency || 'USD';
+    const baseCurrency = page.companyAllSetting?.defaultCurrency || page.settings?.defaultCurrency || 'USD';
     const [rateFocused, setRateFocused] = useState(false);
     const [currencyOpen, setCurrencyOpen] = useState(false);
     const [currencyQuery, setCurrencyQuery] = useState('');

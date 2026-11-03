@@ -11,6 +11,7 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Fixed
+- Multi-Currency Transaction pills now resolve the company base currency from both standard document settings payloads, preventing new QAR quotations from incorrectly opening in the active state because of a USD fallback.
 - Legacy Sales Invoice, Purchase Invoice and Quotation records without a saved base-currency snapshot now open in the company's base currency with multi-currency disabled instead of incorrectly defaulting to USD. The base currency remains searchable in the currency picker and selecting it cleanly disables multi-currency. All three document create/edit forms now place these controls in the same separate white expandable card.
 - Kept the Add Products search icon inside its input boundary at every width, and added balanced top/bottom spacing around the shared Multi-Currency Transaction controls.
 - Purchase Invoice multi-currency controls now sit inside a dedicated white card on create and edit; the card stays compact while disabled and expands with the currency and exchange-rate controls when enabled.
