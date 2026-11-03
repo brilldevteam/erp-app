@@ -38,6 +38,57 @@ class TransactionCurrencyLineEntryTest extends TestCase
         }
     }
 
+    public function test_all_three_document_forms_use_separate_multi_currency_cards(): void
+    {
+        foreach ([
+            'resources/js/pages/Sales/Create.tsx',
+            'resources/js/pages/Sales/Edit.tsx',
+            'resources/js/pages/Purchase/Create.tsx',
+            'resources/js/pages/Purchase/Edit.tsx',
+            'packages/workdo/Quotation/src/Resources/js/Pages/Quotations/Create.tsx',
+            'packages/workdo/Quotation/src/Resources/js/Pages/Quotations/Edit.tsx',
+        ] as $path) {
+            $source = $this->source($path);
+            $currencyFields = strpos($source, '<TransactionCurrencyFields');
+
+            $this->assertNotFalse($currencyFields, $path);
+            $cardStart = strrpos(substr($source, 0, $currencyFields), '<Card>');
+            $cardEnd = strpos($source, '</Card>', $currencyFields);
+            $this->assertNotFalse($cardStart, $path);
+            $this->assertNotFalse($cardEnd, $path);
+            $this->assertStringContainsString(
+                '<CardContent className="pt-6">',
+                substr($source, $cardStart, $cardEnd - $cardStart),
+                $path,
+            );
+        }
+    }
+
+    public function test_legacy_documents_without_base_snapshots_use_the_company_currency_when_edited(): void
+    {
+        foreach ([
+            'resources/js/pages/Sales/Edit.tsx' => 'invoice',
+            'resources/js/pages/Purchase/Edit.tsx' => 'invoice',
+            'packages/workdo/Quotation/src/Resources/js/Pages/Quotations/Edit.tsx' => 'quotation',
+        ] as $path => $document) {
+            $source = $this->source($path);
+
+            $this->assertStringContainsString("page.companyAllSetting?.defaultCurrency || 'USD'", $source, $path);
+            $this->assertStringContainsString("{$document}.base_currency_code || companyBaseCurrency", $source, $path);
+            $this->assertStringContainsString("{$document}.base_currency_code\n        ? String({$document}.currency_code || baseCurrency).toUpperCase()\n        : baseCurrency", $source, $path);
+            $this->assertStringContainsString("initialCurrency === baseCurrency ? '1.00000000'", $source, $path);
+        }
+    }
+
+    public function test_selecting_the_base_currency_closes_multi_currency_mode(): void
+    {
+        $source = $this->source('resources/js/components/transaction-currency-fields.tsx');
+
+        $this->assertStringContainsString('const availableCurrencies = currencies;', $source);
+        $this->assertStringContainsString("if (multiCurrencyEnabled) {\n            setMultiCurrencyEnabled(false);", $source);
+        $this->assertStringContainsString("if (value === baseCurrency) {\n            onRateChange('1.00000000');\n            setMultiCurrencyEnabled(false);", $source);
+    }
+
     public function test_invoice_servers_accept_direct_transaction_amounts_and_keep_legacy_base_amount_requests(): void
     {
         foreach ([
@@ -58,6 +109,6 @@ class TransactionCurrencyLineEntryTest extends TestCase
         $source = file_get_contents(dirname(__DIR__, 2).DIRECTORY_SEPARATOR.$path);
         $this->assertIsString($source);
 
-        return $source;
+        return str_replace("\r\n", "\n", $source);
     }
 }

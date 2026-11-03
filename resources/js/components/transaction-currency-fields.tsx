@@ -50,7 +50,13 @@ export default function TransactionCurrencyFields({
         // A foreign currency chosen by the form (a party's preferred currency, an invoice being paid) turns the section on.
         if (currencyCode && currencyCode !== baseCurrency) {
             setMultiCurrencyEnabled(true);
-        } else if (!multiCurrencyEnabled && currencyCode !== baseCurrency) {
+            return;
+        }
+
+        if (multiCurrencyEnabled) {
+            setMultiCurrencyEnabled(false);
+        }
+        if (currencyCode !== baseCurrency) {
             onCurrencyChange(baseCurrency);
             onRateChange('1.00');
         }
@@ -68,6 +74,7 @@ export default function TransactionCurrencyFields({
         onCurrencyChange(value);
         if (value === baseCurrency) {
             onRateChange('1.00000000');
+            setMultiCurrencyEnabled(false);
             return;
         }
         // A transaction rate is an auditable snapshot, so users enter the agreed rate explicitly.
@@ -76,7 +83,7 @@ export default function TransactionCurrencyFields({
 
     const converted = Number(amount || 0) * Number(exchangeRate || 0);
     const formattedRate = Number(exchangeRate || 0).toFixed(2);
-    const availableCurrencies = currencies.filter((currency) => currency.code !== baseCurrency);
+    const availableCurrencies = currencies;
     const selectedCurrency = availableCurrencies.find((currency) => currency.code === currencyCode);
     const normalizedQuery = currencyQuery.trim().toLowerCase();
     const filteredCurrencies = normalizedQuery

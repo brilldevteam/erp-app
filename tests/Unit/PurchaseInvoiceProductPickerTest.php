@@ -55,13 +55,13 @@ class PurchaseInvoiceProductPickerTest extends TestCase
         $this->assertStringContainsString('props.categories.map', $source);
     }
 
-    public function test_sales_invoice_multi_currency_controls_have_balanced_vertical_spacing(): void
+    public function test_sales_invoice_multi_currency_controls_use_separate_cards(): void
     {
         $create = $this->source('resources/js/pages/Sales/Create.tsx');
         $edit = $this->source('resources/js/pages/Sales/Edit.tsx');
 
-        $this->assertStringContainsString('className="my-4 grid grid-cols-1 gap-4 py-3 md:grid-cols-2"', $create);
-        $this->assertStringContainsString('<div className="py-3">', $edit);
+        $this->assertStringContainsString('<CardContent className="pt-6">', $create);
+        $this->assertStringContainsString('<CardContent className="pt-6">', $edit);
     }
 
     public function test_purchase_multi_currency_controls_are_contained_in_expandable_cards(): void

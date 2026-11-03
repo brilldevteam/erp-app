@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `release/zoho-and-security` | Normalize legacy base-currency edit state and standardize separate white multi-currency cards across Sales Invoice, Purchase Invoice and Quotation create/edit; shared picker behavior, tests, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Correct Add Products search-icon containment and add balanced vertical spacing to Sales Invoice multi-currency controls; focused tests/build, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Remove category filtering from the shared Add Products browser everywhere it is used; preserve product-creation category assignment, focused test/build, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Transaction-currency line entry and dynamic currency-symbol Unit Price headings across Sales Invoice, Purchase Invoice and Quotation create/edit; backward-compatible server handling, tests, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
@@ -249,6 +250,14 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-11-03 Asia/Colombo - Codex - Multi-currency edit state and document-card parity
+
+- Branch: `release/zoho-and-security`; no PR; locally verified and ready to commit and push.
+- Legacy edit behavior: Sales Invoice, Purchase Invoice and Quotation records without a saved `base_currency_code` now use the current company base currency. Old QAR documents therefore open with multi-currency off and a 1.00 rate instead of incorrectly appearing as USD transactions.
+- Currency picker: the company base currency remains searchable while multi-currency is open; selecting it restores a 1.00 rate and collapses multi-currency mode, eliminating the `No currency found` dead end.
+- Layout: Sales Invoice and Quotation create/edit now use the same separate white expandable multi-currency card already used by Purchase Invoice.
+- Verification: PHP 8.5 PHPUnit passed 12 tests / 139 assertions (`TransactionCurrencyLineEntryTest`, `PurchaseInvoiceProductPickerTest`); `npm run build` passed; Git's whitespace check passed with `cr-at-eol` for the existing CRLF shared component; generated `public/build` output remains excluded.
 
 ### 2026-11-02 Asia/Colombo - Codex - Product search icon and currency-control spacing
 

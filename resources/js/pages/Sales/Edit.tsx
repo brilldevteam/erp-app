@@ -41,16 +41,22 @@ interface EditProps {
 
 export default function Edit() {
     const { t } = useTranslation();
-    const { invoice, customers, taxes = [], warehouses, documentTemplates = [], productCatalog, revenueAccounts = [], auth } = usePage<EditProps>().props;
+    const page = usePage<EditProps>().props;
+    const { invoice, customers, taxes = [], warehouses, documentTemplates = [], productCatalog, revenueAccounts = [], auth } = page;
     const [availableProducts, setAvailableProducts] = useState<QuotationProduct[]>([]);
     const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
     const [productsLoading, setProductsLoading] = useState(false);
 
     useFlashMessages();
-    const baseCurrency = invoice.base_currency_code || 'USD';
+    const companyBaseCurrency = String(page.companyAllSetting?.defaultCurrency || 'USD').toUpperCase();
+    const baseCurrency = String(invoice.base_currency_code || companyBaseCurrency).toUpperCase();
+    const initialCurrency = invoice.base_currency_code
+        ? String(invoice.currency_code || baseCurrency).toUpperCase()
+        : baseCurrency;
     const { data, setData, put, processing, errors, clearErrors } = useForm({
         ...invoice,
-        exchange_rate: String(invoice.exchange_rate),
+        currency_code: initialCurrency,
+        exchange_rate: initialCurrency === baseCurrency ? '1.00000000' : String(invoice.exchange_rate),
         customer_id: invoice.customer_id.toString(),
         warehouse_id: invoice.warehouse_id?.toString() || '',
         document_template_id: invoice.document_template_id?.toString() || '',
@@ -380,9 +386,11 @@ export default function Edit() {
                         </CardContent>
                     </Card>
 
-                    <div className="py-3">
-                        <TransactionCurrencyFields currencyCode={data.currency_code} exchangeRate={data.exchange_rate} transactionDate={data.invoice_date} amount={totals.total} errors={errors} onCurrencyChange={value => setData('currency_code', value)} onRateChange={value => setData('exchange_rate', value)} />
-                    </div>
+                    <Card>
+                        <CardContent className="pt-6">
+                            <TransactionCurrencyFields currencyCode={data.currency_code} exchangeRate={data.exchange_rate} transactionDate={data.invoice_date} amount={totals.total} errors={errors} onCurrencyChange={value => setData('currency_code', value)} onRateChange={value => setData('exchange_rate', value)} />
+                        </CardContent>
+                    </Card>
 
                     <Card>
                         <CardHeader>

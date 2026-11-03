@@ -40,18 +40,23 @@ interface EditProps {
 
 export default function Edit() {
     const { t } = useTranslation();
-    const { invoice, vendors, products, warehouses, projectContracts, billAccounts, productCatalog, auth } = usePage<EditProps>().props;
+    const page = usePage<EditProps>().props;
+    const { invoice, vendors, products, warehouses, projectContracts, billAccounts, productCatalog, auth } = page;
     const [availableProducts, setAvailableProducts] = useState<QuotationProduct[]>(products);
     const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
 
     useFlashMessages();
-    const baseCurrency = invoice.base_currency_code || 'USD';
+    const companyBaseCurrency = String(page.companyAllSetting?.defaultCurrency || 'USD').toUpperCase();
+    const baseCurrency = String(invoice.base_currency_code || companyBaseCurrency).toUpperCase();
+    const initialCurrency = invoice.base_currency_code
+        ? String(invoice.currency_code || baseCurrency).toUpperCase()
+        : baseCurrency;
     const { data, setData, post, processing, errors } = useForm({
         _method: 'put',
         invoice_date: invoice.invoice_date,
         due_date: invoice.due_date,
-        currency_code: invoice.currency_code,
-        exchange_rate: String(invoice.exchange_rate),
+        currency_code: initialCurrency,
+        exchange_rate: initialCurrency === baseCurrency ? '1.00000000' : String(invoice.exchange_rate),
         supplier_invoice_number: invoice.supplier_invoice_number || '',
         purchase_order_number: invoice.purchase_order_number || '',
         vendor_id: invoice.vendor_id.toString(),

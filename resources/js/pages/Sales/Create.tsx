@@ -404,18 +404,6 @@ export default function Create() {
                                 </div>
                             </div>
 
-                            <div className="my-4 grid grid-cols-1 gap-4 py-3 md:grid-cols-2">
-                                <TransactionCurrencyFields
-                                    currencyCode={data.currency_code}
-                                    exchangeRate={data.exchange_rate}
-                                    amount={totals.total}
-                                    transactionDate={data.invoice_date}
-                                    onCurrencyChange={(value) => setData('currency_code', value)}
-                                    onRateChange={(value) => setData('exchange_rate', value)}
-                                    errors={errors as Record<string, string>}
-                                />
-                            </div>
-
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
                                 <RevenueAccountField
                                     accounts={revenueAccounts}
@@ -519,6 +507,20 @@ export default function Create() {
                                     </div>
                                 </div>
                             )}
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardContent className="pt-6">
+                            <TransactionCurrencyFields
+                                currencyCode={data.currency_code}
+                                exchangeRate={data.exchange_rate}
+                                amount={totals.total}
+                                transactionDate={data.invoice_date}
+                                onCurrencyChange={(value) => setData('currency_code', value)}
+                                onRateChange={(value) => setData('exchange_rate', value)}
+                                errors={errors as Record<string, string>}
+                            />
                         </CardContent>
                     </Card>
 

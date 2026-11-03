@@ -36,8 +36,13 @@ interface EditProps {
 
 export default function Edit() {
     const { t } = useTranslation();
-    const { quotation, customers, warehouses, documentTemplates = [], productCatalog, auth } = usePage<EditProps>().props;
-    const baseCurrency = quotation.base_currency_code || 'USD';
+    const page = usePage<EditProps>().props;
+    const { quotation, customers, warehouses, documentTemplates = [], productCatalog, auth } = page;
+    const companyBaseCurrency = String(page.companyAllSetting?.defaultCurrency || 'USD').toUpperCase();
+    const baseCurrency = String(quotation.base_currency_code || companyBaseCurrency).toUpperCase();
+    const initialCurrency = quotation.base_currency_code
+        ? String(quotation.currency_code || baseCurrency).toUpperCase()
+        : baseCurrency;
     const [availableProducts, setAvailableProducts] = useState<QuotationProduct[]>([]);
     const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
     const [productsLoading, setProductsLoading] = useState(false);
@@ -47,8 +52,8 @@ export default function Edit() {
     const { data, setData, put, processing, errors, clearErrors } = useForm({
         invoice_date: quotation.quotation_date,
         due_date: quotation.due_date,
-        currency_code: quotation.currency_code,
-        exchange_rate: String(quotation.exchange_rate),
+        currency_code: initialCurrency,
+        exchange_rate: initialCurrency === baseCurrency ? '1.00000000' : String(quotation.exchange_rate),
         customer_id: quotation.customer_id.toString(),
         warehouse_id: quotation.warehouse_id?.toString() || '',
         document_template_id: quotation.document_template_id?.toString() || '',
@@ -288,7 +293,11 @@ export default function Edit() {
                         </CardContent>
                     </Card>
 
-                    <TransactionCurrencyFields currencyCode={data.currency_code} exchangeRate={data.exchange_rate} transactionDate={data.invoice_date} amount={totals.total} errors={errors} onCurrencyChange={value => setData('currency_code', value)} onRateChange={value => setData('exchange_rate', value)} />
+                    <Card>
+                        <CardContent className="pt-6">
+                            <TransactionCurrencyFields currencyCode={data.currency_code} exchangeRate={data.exchange_rate} transactionDate={data.invoice_date} amount={totals.total} errors={errors} onCurrencyChange={value => setData('currency_code', value)} onRateChange={value => setData('exchange_rate', value)} />
+                        </CardContent>
+                    </Card>
 
                     <Card>
                         <CardHeader>
