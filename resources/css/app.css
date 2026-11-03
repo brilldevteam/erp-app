@@ -4,7 +4,7 @@
 
 @layer base {
     html {
-        font-family: "Open Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         text-rendering: optimizeLegibility;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
@@ -204,6 +204,30 @@
     body {
         @apply bg-background font-sans text-foreground;
         letter-spacing: 0;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        font-family: Archivo, "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+        font-optical-sizing: auto;
+        letter-spacing: -0.018em;
+    }
+
+    code,
+    kbd,
+    samp,
+    pre {
+        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-variant-ligatures: none;
+    }
+
+    [data-numeric],
+    .tabular-nums {
+        font-variant-numeric: tabular-nums lining-nums;
     }
 
     button,

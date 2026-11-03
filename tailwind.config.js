@@ -17,7 +17,9 @@ module.exports = {
   	},
   	extend: {
 		fontFamily: {
-			sans: ['"Open Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif']
+			sans: ['"Instrument Sans"', 'ui-sans-serif', 'system-ui', '-apple-system', '"Segoe UI"', 'sans-serif'],
+			display: ['Archivo', '"Instrument Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+			mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace']
 		},
   		colors: {
   			border: 'hsl(var(--border))',
