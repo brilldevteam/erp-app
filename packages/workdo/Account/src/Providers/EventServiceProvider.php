@@ -14,6 +14,9 @@ use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvi
 use Workdo\Account\Listeners\ApproveHolidayzRoomBookingListener;
 use Workdo\Account\Listeners\ApproveMedicalOrderPaymentListener;
 use Workdo\Account\Listeners\ApprovePettyCashListener;
+use Workdo\Account\Listeners\LogCustomerActivity;
+use Workdo\Account\Events\CreateCustomer;
+use Workdo\Account\Events\UpdateCustomer;
 use Workdo\Account\Listeners\BankAccountFieldUpdate;
 use Workdo\Account\Listeners\CreateDebitNoteFromReturn;
 use Workdo\Account\Listeners\CreateCreditNoteFromReturn;
@@ -128,6 +131,12 @@ use Workdo\Warranty\Events\CompleteWarrantyClaim;
 class EventServiceProvider extends ServiceProvider
 {
     protected $listen = [
+        CreateCustomer::class => [
+            LogCustomerActivity::class,
+        ],
+        UpdateCustomer::class => [
+            LogCustomerActivity::class,
+        ],
         // Add your event listeners here
         DefaultData::class => [
             DataDefault::class,

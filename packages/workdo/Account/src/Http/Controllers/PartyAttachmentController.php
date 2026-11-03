@@ -11,6 +11,7 @@ use Workdo\Account\Models\Customer;
 use Workdo\Account\Models\PartyAttachment;
 use Workdo\Account\Models\Vendor;
 use Workdo\Account\Services\PartyAttachmentService;
+use Workdo\Account\Models\CustomerActivityLog;
 
 class PartyAttachmentController extends Controller
 {
@@ -77,12 +78,32 @@ class PartyAttachmentController extends Controller
 
     public function storeCustomer(Request $request, Customer $customer, PartyAttachmentService $service)
     {
-        return $this->store($request, $customer, 'edit-customers', $service);
+        $response = $this->store($request, $customer, 'edit-customers', $service);
+        $this->logCustomerFile($customer, 'customer.attachment_added', __('Customer attachment added'), count($request->file('attachments', [])));
+        return $response;
     }
 
     public function destroyCustomer(Customer $customer, PartyAttachment $attachment, PartyAttachmentService $service)
     {
-        return $this->destroy($customer, $attachment, 'edit-customers', $service);
+        $fileName = $attachment->file_name;
+        $response = $this->destroy($customer, $attachment, 'edit-customers', $service);
+        $this->logCustomerFile($customer, 'customer.attachment_removed', __('Customer attachment removed'), 1, $fileName);
+        return $response;
+    }
+
+    private function logCustomerFile(Customer $customer, string $eventType, string $title, int $count, ?string $fileName = null): void
+    {
+        CustomerActivityLog::create([
+            'customer_id' => $customer->id,
+            'actor_id' => auth()->id(),
+            'created_by' => $customer->created_by,
+            'event_type' => $eventType,
+            'subject_type' => $customer->getMorphClass(),
+            'subject_id' => $customer->id,
+            'title' => $title,
+            'metadata' => array_filter(['file_count' => $count, 'file_name' => $fileName]),
+            'occurred_at' => now(),
+        ]);
     }
 
     public function downloadVendor(Request $request, Vendor $vendor, PartyAttachment $attachment)

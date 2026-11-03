@@ -20,6 +20,8 @@ interface DatePickerProps {
   placeholder?: string
   className?: string
   id?: string
+  name?: string
+  ariaLabel?: string
   required?: boolean
   maxDate?: Date
   minDate?: Date
@@ -36,6 +38,8 @@ export function DatePicker({
   placeholder,
   className,
   id,
+  name,
+  ariaLabel,
   required,
   maxDate,
   minDate,
@@ -49,7 +53,10 @@ export function DatePicker({
   const [open, setOpen] = React.useState(false)
 
   const parseValue = (val?: string): Date | null => {
-    return val ? new Date(val) : null
+    if (!val) return null
+    const [year, month, day] = val.slice(0, 10).split('-').map(Number)
+    if (!year || !month || !day) return null
+    return new Date(year, month - 1, day)
   }
 
   const formatValue = (date: Date | null) => {
@@ -79,11 +86,15 @@ export function DatePicker({
 
   return (
     <div className={cn("w-full", className)}>
-      {id && <input id={id} type="hidden" value={value || ''} required={required} />}
+      {(name || id) && <input type="hidden" name={name || id} value={value || ''} />}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
+            id={id}
+            type="button"
+            aria-label={ariaLabel}
+            aria-required={required}
             className={cn(
               'w-full justify-start text-left font-normal h-10',
               !value && 'text-muted-foreground'

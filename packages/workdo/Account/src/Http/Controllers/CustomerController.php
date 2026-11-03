@@ -14,32 +14,19 @@ use Workdo\Account\Events\UpdateCustomer;
 use Workdo\Account\Events\DestroyCustomer;
 use Illuminate\Support\Facades\DB;
 use Workdo\Account\Services\PartyAttachmentService;
+use Workdo\Account\Services\CustomerWorkspaceService;
+use Illuminate\Http\Request;
 
 class CustomerController extends Controller
 {
-    public function index()
+    public function index(Request $request, CustomerWorkspaceService $workspace)
     {
         if(Auth::user()->can('manage-customers')){
-            $customers = Customer::query()
-                ->with(['user:id,name,email,mobile_no,avatar,is_disable,is_enable_login', 'attachments.uploader:id,name'])
-                ->where(function($q) {
-                    if(Auth::user()->can('manage-any-customers')) {
-                        $q->where('created_by', creatorId());
-                    } elseif(Auth::user()->can('manage-own-customers')) {
-                        $q->where('creator_id', Auth::id());
-                    } else {
-                        $q->whereRaw('1 = 0');
-                    }
-                })
-                ->when(request('company_name'), fn($q) => $q->where('company_name', 'like', '%' . request('company_name') . '%'))
-                ->when(request('customer_code'), fn($q) => $q->where('customer_code', 'like', '%' . request('customer_code') . '%'))
-                ->when(request('tax_number'), fn($q) => $q->where('tax_number', 'like', '%' . request('tax_number') . '%'))
-                ->when(request('sort'), fn($q) => $q->orderBy(request('sort'), request('direction', 'asc')), fn($q) => $q->latest())
-                ->paginate(request('per_page', 10))
-                ->withQueryString();
+            $customers = $workspace->directory($request, creatorId());
 
             return Inertia::render('Account/Customers/Index', [
                 'customers' => $customers,
+                'filters' => $request->only(['search', 'view', 'sort', 'direction', 'currency', 'portal', 'activity_from']),
                 'editCustomer' => request('edit') ? Customer::with('user:id,email,preferred_currency_code,is_enable_login,is_disable')->where('created_by', creatorId())->find(request('edit')) : null,
             ]);
         }

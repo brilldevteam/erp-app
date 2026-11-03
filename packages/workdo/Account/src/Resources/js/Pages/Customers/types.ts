@@ -23,6 +23,9 @@ export interface Customer {
   created_by: number;
   created_at: string;
   updated_at: string;
+  outstanding_base?: number | string;
+  overdue_base?: number | string;
+  last_activity_at?: string | null;
   attachments?: PartyAttachment[];
   user?: {
     id: number;
@@ -41,6 +44,46 @@ export interface Customer {
     id: number;
     name: string;
   };
+}
+
+export interface WorkspaceTransaction {
+  id: number;
+  type: string;
+  number: string;
+  date: string;
+  due_date?: string | null;
+  status: string;
+  currency: string;
+  total: number | string;
+  balance: number | string;
+  base_total?: number | string;
+  debit?: number;
+  credit?: number;
+  running_balance?: number;
+}
+
+export interface CustomerWorkspaceData {
+  customer: Customer;
+  tab: 'overview' | 'transactions' | 'statement' | 'activity' | 'details';
+  summary: Record<string, number | string | null> & { base_currency: string };
+  aging: Record<string, number>;
+  currency_breakdown: Array<{ currency: string; outstanding: number; credits: number }>;
+  revenue_trend: Array<{ month: string; value: number }>;
+  attention_items: Array<{ tone: string; title: string; detail: string }>;
+  available_actions: Record<string, boolean>;
+  transactions?: PaginationData<WorkspaceTransaction> | null;
+  statement?: { data: WorkspaceTransaction[]; current_page: number; last_page: number; total: number; opening_balance: number; closing_balance: number } | null;
+  activity?: Array<{ id: string; type: string; title: string; detail?: string | null; occurred_at: string }> | null;
+}
+
+export interface PaginationData<T> {
+  data: T[];
+  current_page: number;
+  last_page: number;
+  per_page?: number;
+  total: number;
+  from?: number | null;
+  to?: number | null;
 }
 
 export interface CustomerFormData {

@@ -26,6 +26,7 @@ use Workdo\Account\Http\Controllers\ReportsController;
 use Workdo\Account\Models\AccountType;
 use Workdo\Account\Http\Controllers\PartyAttachmentController;
 use Workdo\Account\Http\Controllers\CurrencyRateController;
+use Workdo\Account\Http\Controllers\CustomerWorkspaceController;
 
 Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Account'])->group(function () {
     Route::get('/account', [DashboardController::class, 'index'])->name('account.index');
@@ -35,6 +36,8 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Account'])->group
     Route::put('account/currency-rates/exchange-accounts', [CurrencyRateController::class, 'updateExchangeAccounts'])->name('account.currency-rates.exchange-accounts');
     Route::delete('account/currency-rates/{currencyRate}', [CurrencyRateController::class, 'destroy'])->name('account.currency-rates.destroy');
     Route::resource('account/vendors', VendorController::class, ['as' => 'account']);
+    Route::get('account/customers/{customer}/workspace/statement.csv', [CustomerWorkspaceController::class, 'statementCsv'])->name('account.customers.workspace.statement-csv');
+    Route::get('account/customers/{customer}/workspace', [CustomerWorkspaceController::class, 'show'])->name('account.customers.workspace');
     Route::resource('account/customers', CustomerController::class, ['as' => 'account']);
     Route::post('account/customers/{customer}/attachments', [PartyAttachmentController::class, 'storeCustomer'])->name('account.customers.attachments.store');
     Route::get('account/customers/{customer}/attachments/{attachment}', [PartyAttachmentController::class, 'downloadCustomer'])->name('account.customers.attachments.download');
