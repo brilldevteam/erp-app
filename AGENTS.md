@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `release/zoho-and-security` | Replace the shared Multi-Currency Transaction checkbox with an accessible pill toggle across document forms; focused test/build, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Move Sales Invoice, Purchase Invoice and Quotation multi-currency controls into their upper details cards on create/edit; preserve currency behavior, focused tests/build, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Normalize legacy base-currency edit state and standardize separate white multi-currency cards across Sales Invoice, Purchase Invoice and Quotation create/edit; shared picker behavior, tests, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Correct Add Products search-icon containment and add balanced vertical spacing to Sales Invoice multi-currency controls; focused tests/build, changelog and handoff. | 2026-11-02 | Complete - locally verified; ready to commit and push |
@@ -251,6 +252,13 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-11-03 Asia/Colombo - Codex - Multi-currency pill toggle
+
+- Branch: `release/zoho-and-security`; no PR; locally verified and ready to commit and push.
+- Changed: replaced the shared Multi-Currency Transaction checkbox and external label with one rounded pill button. The inactive state is neutrally outlined; the active state uses the primary blue treatment and a filled state indicator.
+- Accessibility and behavior: the pill uses `aria-pressed`, remains keyboard-operable and disabled-aware, and calls the existing toggle path. Expanding, collapsing, currency reset and exchange-rate behavior are unchanged across Sales Invoice, Purchase Invoice and Quotation create/edit forms.
+- Verification: PHP 8.5 PHPUnit passed 13 tests / 161 assertions (`TransactionCurrencyLineEntryTest`, `PurchaseInvoiceProductPickerTest`); `npm run build` passed with 4,003 modules transformed; Git's whitespace check passed with `cr-at-eol` for the existing CRLF shared component. Generated `public/build` output remains excluded.
 
 ### 2026-11-03 Asia/Colombo - Codex - Multi-currency controls inside document details
 

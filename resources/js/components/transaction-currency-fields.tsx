@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import InputError from '@/components/ui/input-error';
-import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 
 type Currency = { code: string; name: string; symbol: string };
@@ -91,16 +90,25 @@ export default function TransactionCurrencyFields({
         : availableCurrencies;
 
     return <div className="space-y-3 md:col-span-2">
-        <div className="flex items-center gap-2">
-            <Checkbox
-                id="multi-currency-transaction"
-                checked={multiCurrencyEnabled}
+        <div className="flex items-center">
+            <button
+                type="button"
+                aria-pressed={multiCurrencyEnabled}
                 disabled={disabled}
-                onCheckedChange={(checked) => toggleMultiCurrency(checked === true)}
-            />
-            <Label htmlFor="multi-currency-transaction" className="cursor-pointer">
+                onClick={() => toggleMultiCurrency(!multiCurrencyEnabled)}
+                className={cn(
+                    'inline-flex h-9 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+                    multiCurrencyEnabled
+                        ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90'
+                        : 'border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground',
+                )}
+            >
+                <span className={cn(
+                    'h-2 w-2 rounded-full border transition-colors',
+                    multiCurrencyEnabled ? 'border-primary-foreground bg-primary-foreground' : 'border-muted-foreground bg-transparent',
+                )} />
                 {t('Multi-Currency Transaction')}
-            </Label>
+            </button>
         </div>
 
         {multiCurrencyEnabled && <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
