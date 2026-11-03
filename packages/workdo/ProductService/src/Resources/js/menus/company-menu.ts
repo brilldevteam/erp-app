@@ -1,4 +1,4 @@
-import { Layers } from 'lucide-react';
+import { BriefcaseBusiness, Layers, Package } from 'lucide-react';
 
 declare global {
     function route(name: string): string;
@@ -8,14 +8,21 @@ export const productserviceCompanyMenu = (t: (key: string) => string) => [
     {
         title: t('Product & Service'),
         icon: Layers,
-        permission: 'manage-product-service-item',
+        anyPermission: ['manage-products', 'manage-services', 'manage-product-service-item'],
         parent: 'settings',
         order: 37,
         children: [
             {
-                title: t('Items'),
-                href: route('product-service.items.index'),
-                permission: 'manage-product-service-item',
+                title: t('Products'),
+                icon: Package,
+                href: route('product-service.products.index'),
+                permission: 'manage-products',
+            },
+            {
+                title: t('Services'),
+                icon: BriefcaseBusiness,
+                href: route('product-service.services.index'),
+                permission: 'manage-services',
             },
             {
                 title: t('System Setup'),

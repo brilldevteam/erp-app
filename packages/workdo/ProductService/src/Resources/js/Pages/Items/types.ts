@@ -74,6 +74,7 @@ export type PaginatedItems = PaginatedData<Item>;
 export interface ItemsIndexProps {
     items: PaginatedItems;
     categories: Category[];
+    catalogType: 'product' | 'service';
     auth: AuthContext;
     [key: string]: unknown;
 }
@@ -83,6 +84,7 @@ export interface CreateItemPageProps {
     categories: Category[];
     units: Unit[];
     warehouses: Warehouse[];
+    catalogType: 'product' | 'service';
     auth: AuthContext;
     [key: string]: unknown;
 }
@@ -93,6 +95,7 @@ export interface EditItemPageProps {
     categories: Category[];
     units: Unit[];
     warehouses: Warehouse[];
+    catalogType: 'product' | 'service';
     auth: AuthContext;
     [key: string]: unknown;
 }

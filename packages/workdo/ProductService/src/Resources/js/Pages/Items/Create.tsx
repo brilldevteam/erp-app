@@ -19,7 +19,9 @@ import { CreateItemPageProps, ItemFormData } from './types';
 
 export default function Create() {
     const { t } = useTranslation();
-    const { taxes, categories, units, warehouses } = usePage<CreateItemPageProps>().props;
+    const { taxes, categories, units, warehouses, catalogType } = usePage<CreateItemPageProps>().props;
+    const catalogLabel = catalogType === 'service' ? t('Service') : t('Product');
+    const catalogRoute = catalogType === 'service' ? 'product-service.services' : 'product-service.products';
     const [activeTab, setActiveTab] = useState('details');
 
     useFlashMessages();
@@ -38,7 +40,7 @@ export default function Create() {
         image: '',
         images: [],
         warehouse_id: '',
-        type: 'product',
+        type: catalogType,
         has_warranty: 0,
         warranty_type: '',
         warranty_duration: '',
@@ -95,7 +97,7 @@ export default function Create() {
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('product-service.items.store'), {
+        post(route(`${catalogRoute}.store`), {
             transform: (data) => {
                 if (data.type === 'service') {
                     const { quantity, warehouse_id, unit, ...serviceData } = data;
@@ -111,44 +113,23 @@ export default function Create() {
         <Dialog>
             <AuthenticatedLayout
                 breadcrumbs={[
-                    {label: t('Items'), url: route('product-service.items.index')},
+                    {label: t(catalogType === 'service' ? 'Services' : 'Products'), url: route(`${catalogRoute}.index`)},
                     {label: t('Create')}
                 ]}
                 pageTitle={
                     <div className="flex items-center justify-between">
-                        <span>{t('Create Item')}</span>
+                        <span>{t('Create')} {catalogLabel}</span>
                     </div>
                 }
             >
-                <Head title={t('Create Item')} />
+                <Head title={`${t('Create')} ${catalogLabel}`} />
 
                 <Card>
                     <CardContent>
                         <form onSubmit={submit} className="pt-5">
                             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                                 <TabsContent value="details" className="space-y-6 mt-6">
-                                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                        <div>
-                                            <Label htmlFor="type">{t('Item Type (Product / Service / Part)')}</Label>
-                                            <Select value={data.type || ''} onValueChange={(value) => {
-                                                setData('type', value);
-                                                if (value === 'service') {
-                                                    setData('quantity', '');
-                                                    setData('warehouse_id', '');
-                                                    setData('unit', '');
-                                                }
-                                            }}>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('Select Type')} />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="product">{t('Product')}</SelectItem>
-                                                    <SelectItem value="service">{t('Service')}</SelectItem>
-                                                    <SelectItem value="part">{t('Part')}</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <InputError message={errors.type} />
-                                        </div>
+                                    <div className="grid grid-cols-1 gap-6">
                                         <div>
                                             <Label htmlFor="name">{t('Name')}</Label>
                                             <Input

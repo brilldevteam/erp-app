@@ -7,6 +7,13 @@ use Illuminate\Validation\Rule;
 
 class StoreProductServiceItemRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if (in_array($this->route('catalogType'), ['product', 'service'], true)) {
+            $this->merge(['type' => $this->route('catalogType')]);
+        }
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -30,7 +37,7 @@ class StoreProductServiceItemRequest extends FormRequest
             'images' => 'nullable|array',
             'images.*' => 'string',
             'warehouse_id' => ['nullable', Rule::exists('warehouses', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
-            'type' => 'nullable|in:product,service,part',
+            'type' => 'required|in:product,service,part',
         ];
     }
 }

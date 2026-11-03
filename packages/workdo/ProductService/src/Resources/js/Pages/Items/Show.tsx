@@ -10,6 +10,7 @@ import { ImageSlider } from "@/components/ui/image-slider";
 import { useFormFields } from '@/hooks/useFormFields';
 
 interface ShowItemPageProps {
+    catalogType: 'product' | 'service';
     item: {
         id: number;
         name: string;
@@ -47,7 +48,9 @@ interface ShowItemPageProps {
 
 export default function Show() {
     const { t } = useTranslation();
-    const { item } = usePage<ShowItemPageProps>().props;
+    const { item, catalogType } = usePage<ShowItemPageProps>().props;
+    const catalogLabel = catalogType === 'service' ? t('Service') : t('Product');
+    const routeBase = catalogType === 'service' ? 'product-service.services' : 'product-service.products';
     const videoHubButtons = usePageButtons('itemShowButtons', { item });
     let imageUrl = getImagePath(item.image);
     const customFields = useFormFields('getCustomFields', { ...item, module: 'ProductService', sub_module: 'Items', id: item.id }, () => { }, {}, 'view', t);
@@ -55,12 +58,12 @@ export default function Show() {
     return (
         <AuthenticatedLayout
             breadcrumbs={[
-                { label: t('Items'), url: route('product-service.items.index') },
-                { label: t('Item Details') }
+                { label: t(catalogType === 'service' ? 'Services' : 'Products'), url: route(`${routeBase}.index`) },
+                { label: `${catalogLabel} ${t('Details')}` }
             ]}
-            pageTitle={t('Item Details')}
+            pageTitle={`${catalogLabel} ${t('Details')}`}
         >
-            <Head title={t('Item Details')} />
+            <Head title={`${catalogLabel} ${t('Details')}`} />
 
             <Card>
                 <CardHeader>
@@ -95,11 +98,6 @@ export default function Show() {
                                         <label className="text-lg font-semibold text-gray-800 mb-3">{t('Category')}</label>
                                         <p className="text-gray-700 leading-relaxed">{item.category?.name || '-'}</p>
                                     </div>
-                                    <div className="bg-gray-50 p-4 rounded-lg">
-                                        <label className="text-lg font-semibold text-gray-800 mb-3">{t('Type')}</label>
-                                        <p className="text-gray-700 leading-relaxed">{item.type || '-'}</p>
-                                    </div>
-
                                 </div>
                             </div>
 
@@ -118,14 +116,14 @@ export default function Show() {
                                             <p className="text-xl font-bold text-blue-800 mt-1">{formatCurrency(item.purchase_price)}</p>
                                         </div>
                                     )}
-                                    <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                                    {catalogType === 'product' && <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
                                         <label className="text-sm font-medium text-orange-700">{t('Total Quantity')}</label>
                                         <p className="text-xl font-bold text-orange-800 mt-1">{Math.floor(item.total_quantity) || 0}</p>
-                                    </div>
+                                    </div>}
                                 </div>
                             </div>
 
-                            {item.warehouse_stocks && item.warehouse_stocks.length > 0 && (
+                            {catalogType === 'product' && item.warehouse_stocks && item.warehouse_stocks.length > 0 && (
                                 <div>
                                     <h3 className="text-lg font-semibold text-gray-800 mb-4">{t('Warehouse Stock')}</h3>
                                     <div className="bg-gray-50 p-4 rounded-lg">
@@ -144,10 +142,10 @@ export default function Show() {
                             <div>
                                 <h3 className="text-lg font-semibold text-gray-800 mb-4">{t('Additional Details')}</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="bg-gray-50 p-4 rounded-lg">
+                                    {catalogType === 'product' && <div className="bg-gray-50 p-4 rounded-lg">
                                         <label className="text-lg font-semibold text-gray-800 mb-3">{t('Unit')}</label>
                                         <p className="text-gray-700 leading-relaxed">{item.unit_relation?.unit_name || '-'}</p>
-                                    </div>
+                                    </div>}
                                     <div className="bg-gray-50 p-4 rounded-lg">
                                         <label className="text-lg font-semibold text-gray-800 mb-3">{t('Taxes')}</label>
                                         <div className="mt-2">
@@ -192,7 +190,7 @@ export default function Show() {
                         <div className="lg:col-span-1 space-y-6">
                             {/* Main Image */}
                             <div className="bg-white border rounded-lg p-6 shadow-sm">
-                                <h3 className="text-lg font-semibold text-gray-800 mb-4">{t('Product Image')}</h3>
+                                <h3 className="text-lg font-semibold text-gray-800 mb-4">{catalogLabel} {t('Image')}</h3>
                                 {item.image ? (
                                     <img
                                         src={imageUrl}

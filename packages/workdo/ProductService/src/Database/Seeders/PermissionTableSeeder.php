@@ -16,6 +16,22 @@ class PermissionTableSeeder extends Seeder
         Artisan::call('cache:clear');
 
         $permission = [
+            ['name' => 'manage-products', 'module' => 'products', 'label' => 'Manage Products'],
+            ['name' => 'manage-any-products', 'module' => 'products', 'label' => 'Manage All Products'],
+            ['name' => 'manage-own-products', 'module' => 'products', 'label' => 'Manage Own Products'],
+            ['name' => 'view-products', 'module' => 'products', 'label' => 'View Products'],
+            ['name' => 'create-products', 'module' => 'products', 'label' => 'Create Products'],
+            ['name' => 'edit-products', 'module' => 'products', 'label' => 'Edit Products'],
+            ['name' => 'delete-products', 'module' => 'products', 'label' => 'Delete Products'],
+
+            ['name' => 'manage-services', 'module' => 'services', 'label' => 'Manage Services'],
+            ['name' => 'manage-any-services', 'module' => 'services', 'label' => 'Manage All Services'],
+            ['name' => 'manage-own-services', 'module' => 'services', 'label' => 'Manage Own Services'],
+            ['name' => 'view-services', 'module' => 'services', 'label' => 'View Services'],
+            ['name' => 'create-services', 'module' => 'services', 'label' => 'Create Services'],
+            ['name' => 'edit-services', 'module' => 'services', 'label' => 'Edit Services'],
+            ['name' => 'delete-services', 'module' => 'services', 'label' => 'Delete Services'],
+
             ['name' => 'manage-product-service-item', 'module' => 'product-service-item', 'label' => 'Manage Product Service'],
             ['name' => 'manage-any-product-service-item', 'module' => 'product-service-item', 'label' => 'Manage All Product Service'],
             ['name' => 'manage-own-product-service-item', 'module' => 'product-service-item', 'label' => 'Manage Own Product Service'],

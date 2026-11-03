@@ -21,6 +21,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Fixed the Purchases > Payments Made page returning a server error by limiting its vendor-details query to columns that exist in the vendor table.
 
 ### Added
+- Product & Service now has separate Products and Services submenus with independent manage, own/all scope, view, create, edit and delete permissions. Existing role grants are copied to both new permission families during migration so current access is preserved.
 - Purchase Invoice create and edit now use the same searchable product browser as Sales Invoice, including category filtering, multi-select, quick product creation when permitted, and immediate line insertion. Purchase mode displays and applies purchase prices and allows out-of-stock products to be selected for replenishment.
 - Every file-based migration journey step now supports clients arriving from any ERP: its upload guide shows the accepted column structure and provides downloadable Wazely XLSX and CSV templates. Original Zoho exports remain supported unchanged.
 - Multi-currency transaction forms now provide a searchable currency picker that filters by currency name or ISO code.
@@ -30,6 +31,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Company users can configure exchange gain and loss accounts from Currency Rates. Customer and vendor forms can set a preferred document currency.
 
 ### Changed
+- Product and Service catalog pages are now type-locked by their submenu and server route. The Item Type dropdown has been removed from create/edit forms, product/part records appear under Products, service records appear under Services, and each list uses matching titles, actions, filters and empty states.
 - Replaced the Multi-Currency Transaction checkbox with a compact accessible pill toggle across Sales Invoice, Purchase Invoice and Quotation create/edit forms; active styling clearly indicates when the currency fields are expanded.
 - Moved the Multi-Currency Transaction controls into the upper details card on Sales Invoice, Purchase Invoice and Quotation create/edit forms, separated from the regular fields by a divider while preserving the same collapsed and expanded behavior.
 - Removed the category filter from the shared Add Products browser on Sales Invoice and Purchase Invoice create/edit screens. Product search and selection remain unchanged, and Category is still available when creating a new product.

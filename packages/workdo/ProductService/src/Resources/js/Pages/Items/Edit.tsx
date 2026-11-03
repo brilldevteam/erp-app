@@ -20,7 +20,9 @@ import { EditItemPageProps, ItemFormData } from './types';
 
 export default function Edit() {
     const { t } = useTranslation();
-    const { item, taxes, categories, units, warehouses } = usePage<EditItemPageProps>().props;
+    const { item, taxes, categories, units, warehouses, catalogType } = usePage<EditItemPageProps>().props;
+    const catalogLabel = catalogType === 'service' ? t('Service') : t('Product');
+    const catalogRoute = catalogType === 'service' ? 'product-service.services' : 'product-service.products';
     const [activeTab, setActiveTab] = useState('details');
 
     useFlashMessages();
@@ -82,7 +84,7 @@ export default function Edit() {
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        put(route('product-service.items.update', item.id), {
+        put(route(`${catalogRoute}.update`, item.id), {
             transform: (data) => ({
                 ...data,
                 unit: data.type === 'service' ? '' : data.unit,
@@ -101,16 +103,16 @@ export default function Edit() {
         <Dialog>
             <AuthenticatedLayout
                 breadcrumbs={[
-                    { label: t('Items'), url: route('product-service.items.index') },
+                    { label: t(catalogType === 'service' ? 'Services' : 'Products'), url: route(`${catalogRoute}.index`) },
                     { label: t('Edit') }
                 ]}
                 pageTitle={
                     <div className="flex items-center justify-between">
-                        <span>{t('Edit Item')}</span>
+                        <span>{t('Edit')} {catalogLabel}</span>
                     </div>
                 }
             >
-                <Head title={t('Edit Item')} />
+                <Head title={`${t('Edit')} ${catalogLabel}`} />
 
                 <Card>
                     <CardContent>
@@ -119,28 +121,7 @@ export default function Edit() {
 
 
                                 <TabsContent value="details" className="space-y-6 mt-6">
-                                    <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                                        <div>
-                                            <Label htmlFor="type">{t('Item Type (Product / Service / Part)')}</Label>
-                                            <Select value={data.type || ''} onValueChange={(value) => {
-                                                setData('type', value);
-                                                if (value === 'service') {
-                                                    setData('unit', '');
-                                                    setData('warehouse_id', '');
-                                                    setData('quantity', '');
-                                                }
-                                            }}>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('Select Type')} />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="product">{t('Product')}</SelectItem>
-                                                    <SelectItem value="service">{t('Service')}</SelectItem>
-                                                    <SelectItem value="part">{t('Part')}</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <InputError message={errors.type} />
-                                        </div>
+                                    <div className="grid grid-cols-1 gap-6">
                                         <div>
                                             <Label htmlFor="name">{t('Name')}</Label>
                                             <Input

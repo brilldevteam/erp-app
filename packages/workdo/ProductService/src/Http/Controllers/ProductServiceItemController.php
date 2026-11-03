@@ -20,20 +20,23 @@ use Workdo\ProductService\Models\ProductServiceUnit;
 
 class ProductServiceItemController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        if(Auth::user()->can('manage-product-service-item')){
+        $catalogType = $this->catalogType($request);
+        if($this->canCatalog('manage', $catalogType)){
             $items = ProductServiceItem::select('id', 'name', 'sku', 'sale_price', 'purchase_price', 'tax_ids', 'category_id', 'unit', 'type', 'image', 'description', 'long_description', 'created_at')
                 ->with(['category:id,name', 'unitRelation:id,unit_name', 'warehouseStocks:product_id,quantity'])
-                ->where(function($q) {
-                    if(Auth::user()->can('manage-any-product-service-item')) {
+                ->where(function($q) use ($catalogType) {
+                    if($this->canCatalog('manage-any', $catalogType)) {
                         $q->where('created_by', creatorId());
-                    } elseif(Auth::user()->can('manage-own-product-service-item')) {
+                    } elseif($this->canCatalog('manage-own', $catalogType)) {
                         $q->where('creator_id', Auth::id());
                     } else {
                         $q->whereRaw('1 = 0');
                     }
                 })
+                ->when($catalogType === 'service', fn($q) => $q->where('type', 'service'))
+                ->when($catalogType === 'product', fn($q) => $q->where('type', '!=', 'service'))
                 ->when(request('name'), fn($q) => $q->where('name', 'like', '%' . request('name') . '%'))
                 ->when(request('type'), fn($q) => $q->where('type', request('type')))
                 ->when(request('category_id'), fn($q) => $q->where('category_id', request('category_id')))
@@ -53,14 +56,16 @@ class ProductServiceItemController extends Controller
             return Inertia::render('ProductService/Items/Index', [
                 'items' => $items,
                 'categories' => $categories,
+                'catalogType' => $catalogType,
             ]);
         }
         return back()->with('error', __('Permission denied'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
-        if(Auth::user()->can('create-product-service-item')){
+        $catalogType = $this->catalogType($request);
+        if($this->canCatalog('create', $catalogType)){
             $taxes = ProductServiceTax::where('created_by', creatorId())->get(['id', 'tax_name', 'rate']);
             $categories = ProductServiceCategory::where('created_by', creatorId())->get(['id', 'name']);
             $units = ProductServiceUnit::where('created_by', creatorId())->get(['id', 'unit_name']);
@@ -71,6 +76,7 @@ class ProductServiceItemController extends Controller
                 'categories' => $categories,
                 'units' => $units,
                 'warehouses' => $warehouses,
+                'catalogType' => $catalogType,
             ]);
         }
         return redirect()->route('product-service.items.index')->with('error', __('Permission denied'));
@@ -78,7 +84,8 @@ class ProductServiceItemController extends Controller
 
     public function store(StoreProductServiceItemRequest $request)
     {
-        if(Auth::user()->can('create-product-service-item')){
+        $catalogType = $this->catalogType($request);
+        if($this->canCatalog('create', $catalogType)){
             $validated = $request->validated();
             $item = new ProductServiceItem();
             $item->name = $validated['name'];
@@ -90,7 +97,7 @@ class ProductServiceItemController extends Controller
             $item->sale_price = $validated['sale_price'];
             $item->purchase_price = $validated['purchase_price'];
             $item->unit = ($validated['unit'] ?? null) === 'none' ? null : ($validated['unit'] ?? null);
-            $item->type = $validated['type'];
+            $item->type = $catalogType ?: ($validated['type'] ?? 'product');
             $item->creator_id = Auth::id();
             $item->created_by = creatorId();
 
@@ -146,14 +153,15 @@ class ProductServiceItemController extends Controller
                 ], 201);
             }
 
-            return redirect()->route('product-service.items.index')->with('success', __('The item has been created successfully.'));
+            return redirect()->route($this->catalogRoute('index', $item->type))->with('success', __('The item has been created successfully.'));
         }
         return redirect()->route('product-service.items.index')->with('error', __('Permission denied'));
     }
 
-    public function show(ProductServiceItem $item)
+    public function show(Request $request, ProductServiceItem $item)
     {
-        if(Auth::user()->can('view-product-service-item')){
+        $catalogType = $this->itemCatalogType($item);
+        if($this->routeMatchesItem($request, $catalogType) && $this->canCatalog('view', $catalogType)){
             $item->load(['category', 'unitRelation', 'warehouseStocks.warehouse:id,name']);
 
             // Load taxes if tax_ids exist
@@ -180,14 +188,16 @@ class ProductServiceItemController extends Controller
 
             return Inertia::render('ProductService/Items/Show', [
                 'item' => $itemData,
+                'catalogType' => $catalogType,
             ]);
         }
         return redirect()->route('product-service.items.index')->with('error', __('Permission denied'));
     }
 
-    public function edit(ProductServiceItem $item)
+    public function edit(Request $request, ProductServiceItem $item)
     {
-        if(Auth::user()->can('edit-product-service-item')){
+        $catalogType = $this->itemCatalogType($item);
+        if($this->routeMatchesItem($request, $catalogType) && $this->canCatalog('edit', $catalogType)){
             $taxes = ProductServiceTax::where('created_by', creatorId())->get(['id', 'tax_name', 'rate']);
             $categories = ProductServiceCategory::where('created_by', creatorId())->get(['id', 'name']);
             $units = ProductServiceUnit::where('created_by', creatorId())->get(['id', 'unit_name']);
@@ -205,6 +215,7 @@ class ProductServiceItemController extends Controller
                 'categories' => $categories,
                 'units' => $units,
                 'warehouses' => $warehouses,
+                'catalogType' => $catalogType,
             ]);
         }
         return redirect()->route('product-service.items.index')->with('error', __('Permission denied'));
@@ -214,7 +225,8 @@ class ProductServiceItemController extends Controller
 
     public function update(UpdateProductServiceItemRequest $request, ProductServiceItem $item)
     {
-        if(Auth::user()->can('edit-product-service-item')){
+        $catalogType = $this->itemCatalogType($item);
+        if($this->routeMatchesItem($request, $catalogType) && $this->canCatalog('edit', $catalogType)){
             $validated = $request->validated();
 
             $item->name = $validated['name'];
@@ -226,7 +238,9 @@ class ProductServiceItemController extends Controller
             $item->sale_price = $validated['sale_price'];
             $item->purchase_price = $validated['purchase_price'];
             $item->unit = ($validated['unit'] ?? null) === 'none' ? null : ($validated['unit'] ?? null);
-            $item->type = $validated['type'];
+            $item->type = $item->type === 'part' && $catalogType === 'product'
+                ? 'part'
+                : $catalogType;
 
             // Handle image path from media library
             if (isset($validated['image'])) {
@@ -263,7 +277,7 @@ class ProductServiceItemController extends Controller
             // Dispatch event for packages to handle their fields
             UpdateProductServiceItem::dispatch($request, $item);
 
-            return redirect()->route('product-service.items.index')->with('success', __('The item details are updated successfully.'));
+            return redirect()->route($this->catalogRoute('index', $catalogType))->with('success', __('The item details are updated successfully.'));
         }
         return redirect()->route('product-service.items.index')->with('error', __('Permission denied'));
     }
@@ -301,9 +315,10 @@ class ProductServiceItemController extends Controller
         return (int) $warehouse->id;
     }
 
-    public function destroy(ProductServiceItem $item)
+    public function destroy(Request $request, ProductServiceItem $item)
     {
-        if(Auth::user()->can('delete-product-service-item')){
+        $catalogType = $this->itemCatalogType($item);
+        if($this->routeMatchesItem($request, $catalogType) && $this->canCatalog('delete', $catalogType)){
             if ($item->image) {
                 delete_file($item->image);
             }
@@ -324,6 +339,39 @@ class ProductServiceItemController extends Controller
             return back()->with('success', __('The item has been deleted.'));
         }
         return back()->with('error', __('Permission denied'));
+    }
+
+    private function catalogType(Request $request): ?string
+    {
+        $type = $request->route('catalogType');
+
+        return in_array($type, ['product', 'service'], true) ? $type : null;
+    }
+
+    private function itemCatalogType(ProductServiceItem $item): string
+    {
+        return $item->type === 'service' ? 'service' : 'product';
+    }
+
+    private function canCatalog(string $action, ?string $catalogType): bool
+    {
+        if ($catalogType) {
+            return Auth::user()->can($action.'-'.($catalogType === 'service' ? 'services' : 'products'));
+        }
+
+        return Auth::user()->can($action.'-product-service-item');
+    }
+
+    private function routeMatchesItem(Request $request, string $catalogType): bool
+    {
+        $routeType = $this->catalogType($request);
+
+        return $routeType === null || $routeType === $catalogType;
+    }
+
+    private function catalogRoute(string $action, string $catalogType): string
+    {
+        return 'product-service.'.($catalogType === 'service' ? 'services' : 'products').'.'.$action;
     }
 
     public function stockIndex()

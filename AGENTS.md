@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `release/zoho-and-security` | Split Product & Service Items into permission-controlled Products and Services submenus, type-locked list/create/edit flows, permission migration/seeder, tests, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Replace the shared Multi-Currency Transaction checkbox with an accessible pill toggle across document forms; focused test/build, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Move Sales Invoice, Purchase Invoice and Quotation multi-currency controls into their upper details cards on create/edit; preserve currency behavior, focused tests/build, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Normalize legacy base-currency edit state and standardize separate white multi-currency cards across Sales Invoice, Purchase Invoice and Quotation create/edit; shared picker behavior, tests, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
@@ -252,6 +253,15 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-11-03 Asia/Colombo - Codex - Product and Service catalog split
+
+- Branch: `release/zoho-and-security`; no PR; locally verified and ready to commit and push.
+- Navigation and forms: replaced the single Items submenu with Products and Services. Their list, create, view and edit flows are type-locked by route, and the Item Type dropdown is removed. Existing Part records remain visible under Products and retain their stored type when edited.
+- Permissions: added independent manage, own/all scope, view, create, edit and delete permissions for Products and Services. The deployment migration copies each role's matching legacy item grants to both new permission families so current access is preserved; future role edits can grant either catalog independently.
+- Compatibility: retained the legacy Items routes for existing integrations and links. Product and Service pages use matching titles, actions, empty states and route destinations.
+- Deployment: run `php artisan migrate --force` before testing role access so the new permissions exist and existing grants are copied.
+- Verification: PHP 8.5 PHPUnit passed 11 tests / 100 assertions (`ProductServiceCatalogSplitTest`, `PurchaseInvoiceProductPickerTest`); PHP syntax checks passed for the controller and migration; the earlier production frontend build passed; Git whitespace validation passed. Generated `public/build`, `public/hot`, `public/storage`, and unrelated `tmp` files remain excluded.
 
 ### 2026-11-03 Asia/Colombo - Codex - Multi-currency pill toggle
 

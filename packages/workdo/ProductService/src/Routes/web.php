@@ -11,6 +11,18 @@ use Workdo\ProductService\Http\Controllers\WarehouseStockController;
 
 Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:ProductService'])->group(function () {
 
+    foreach (['products' => 'product', 'services' => 'service'] as $path => $catalogType) {
+        Route::prefix("product-service/{$path}")->name("product-service.{$path}.")->group(function () use ($catalogType) {
+            Route::get('/', [ProductServiceItemController::class, 'index'])->defaults('catalogType', $catalogType)->name('index');
+            Route::get('/create', [ProductServiceItemController::class, 'create'])->defaults('catalogType', $catalogType)->name('create');
+            Route::post('/', [ProductServiceItemController::class, 'store'])->defaults('catalogType', $catalogType)->name('store');
+            Route::get('/{item}', [ProductServiceItemController::class, 'show'])->defaults('catalogType', $catalogType)->name('show');
+            Route::get('/{item}/edit', [ProductServiceItemController::class, 'edit'])->defaults('catalogType', $catalogType)->name('edit');
+            Route::put('/{item}', [ProductServiceItemController::class, 'update'])->defaults('catalogType', $catalogType)->name('update');
+            Route::delete('/{item}', [ProductServiceItemController::class, 'destroy'])->defaults('catalogType', $catalogType)->name('destroy');
+        });
+    }
+
     Route::prefix('product-service/items')->name('product-service.items.')->group(function () {
         Route::get('/', [ProductServiceItemController::class, 'index'])->name('index');
         Route::get('/create', [ProductServiceItemController::class, 'create'])->name('create');

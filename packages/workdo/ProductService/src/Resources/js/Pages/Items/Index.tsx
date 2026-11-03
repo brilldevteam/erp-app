@@ -24,15 +24,16 @@ import { usePageButtons } from '@/hooks/usePageButtons';
 
 export default function Index() {
     const { t } = useTranslation();
-    const { items, categories, auth } = usePage<ItemsIndexProps>().props;
+    const { items, categories, auth, catalogType } = usePage<ItemsIndexProps>().props;
     const urlParams = useMemo(() => new URLSearchParams(window.location.search), []);
-
-    // Item types same as Create page
-    const itemTypes = ['product', 'service', 'part'];
+    const routeBase = catalogType === 'service' ? 'product-service.services' : 'product-service.products';
+    const permissionSuffix = catalogType === 'service' ? 'services' : 'products';
+    const singularLabel = catalogType === 'service' ? t('Service') : t('Product');
+    const pluralLabel = catalogType === 'service' ? t('Services') : t('Products');
 
     const [filters, setFilters] = useState<ItemFilters>({
         name: urlParams.get('name') || '',
-        type: urlParams.get('type') || '',
+        type: catalogType,
         category_id: urlParams.get('category_id') || ''
     });
 
@@ -52,11 +53,11 @@ export default function Index() {
     useFlashMessages();
 
     const { deleteState, openDeleteDialog, closeDeleteDialog, confirmDelete } = useDeleteHandler({
-        routeName: 'product-service.items.destroy',
+        routeName: `${routeBase}.destroy`,
         defaultMessage: t('Are you sure you want to delete this item?')
     });
     const handleFilter = () => {
-        router.get(route('product-service.items.index'), {...filters, per_page: perPage, sort: sortField, direction: sortDirection, view: viewMode}, {
+        router.get(route(`${routeBase}.index`), {...filters, per_page: perPage, sort: sortField, direction: sortDirection, view: viewMode}, {
             preserveState: true,
             replace: true
         });
@@ -66,15 +67,15 @@ export default function Index() {
         const direction = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
         setSortField(field);
         setSortDirection(direction);
-        router.get(route('product-service.items.index'), {...filters, per_page: perPage, sort: field, direction, view: viewMode}, {
+        router.get(route(`${routeBase}.index`), {...filters, per_page: perPage, sort: field, direction, view: viewMode}, {
             preserveState: true,
             replace: true
         });
     };
 
     const clearFilters = () => {
-        setFilters({ name: '', type: '', category_id: '' });
-        router.get(route('product-service.items.index'), {per_page: perPage, view: viewMode});
+        setFilters({ name: '', type: catalogType, category_id: '' });
+        router.get(route(`${routeBase}.index`), {per_page: perPage, view: viewMode});
     };
 
 
@@ -161,26 +162,16 @@ export default function Index() {
             sortable: false,
             render: (value: number, item: Item) => item.type === 'service' ? '_' : (Math.floor(value) || 0)
         },
-        {
-            key: 'type',
-            header: t('Type'),
-            sortable: true,
-            render: (value: string) => (
-                <span className="px-2 py-1 rounded-full text-sm bg-green-100 text-green-800 capitalize">
-                    {t(value.replace(/_/g, ' '))}
-                </span>
-            )
-        },
-        ...(auth.user?.permissions?.some((p: string) => ['view-product-service-item', 'edit-product-service-item', 'delete-product-service-item'].includes(p)) ? [{
+        ...(auth.user?.permissions?.some((p: string) => [`view-${permissionSuffix}`, `edit-${permissionSuffix}`, `delete-${permissionSuffix}`].includes(p)) ? [{
             key: 'actions',
             header: t('Actions'),
             render: (_: any, item: Item) => (
                 <div className="flex gap-1">
                     <TooltipProvider>
-                        {auth.user?.permissions?.includes('view-product-service-item') && (
+                        {auth.user?.permissions?.includes(`view-${permissionSuffix}`) && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="sm" onClick={() => router.visit(route('product-service.items.show', item.id))} className="h-8 w-8 p-0 text-green-600 hover:text-green-700">
+                                    <Button variant="ghost" size="sm" onClick={() => router.visit(route(`${routeBase}.show`, item.id))} className="h-8 w-8 p-0 text-green-600 hover:text-green-700">
                                         <Eye className="h-4 w-4" />
                                     </Button>
                                 </TooltipTrigger>
@@ -189,10 +180,10 @@ export default function Index() {
                                 </TooltipContent>
                             </Tooltip>
                         )}
-                        {auth.user?.permissions?.includes('edit-product-service-item') && (
+                        {auth.user?.permissions?.includes(`edit-${permissionSuffix}`) && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="sm" onClick={() => router.visit(route('product-service.items.edit', item.id))} className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700">
+                                    <Button variant="ghost" size="sm" onClick={() => router.visit(route(`${routeBase}.edit`, item.id))} className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700">
                                         <Edit className="h-4 w-4" />
                                     </Button>
                                 </TooltipTrigger>
@@ -201,7 +192,7 @@ export default function Index() {
                                 </TooltipContent>
                             </Tooltip>
                         )}
-                        {auth.user?.permissions?.includes('delete-product-service-item') && (
+                        {auth.user?.permissions?.includes(`delete-${permissionSuffix}`) && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>
                                     <Button
@@ -229,9 +220,9 @@ export default function Index() {
             <AuthenticatedLayout
                 breadcrumbs={[
                     {label: t('Product & Service')},
-                    {label: t('Items')}
+                    {label: pluralLabel}
                 ]}
-                pageTitle={t('Manage Items')}
+                pageTitle={`${t('Manage')} ${pluralLabel}`}
                 pageActions={
                     <div className="flex gap-2">
                         {googleDriveButtons.map((button) => (
@@ -261,10 +252,10 @@ export default function Index() {
                                 </TooltipContent>
                             </Tooltip>
                         )}
-                        {auth.user?.permissions?.includes('create-product-service-item') && (
+                        {auth.user?.permissions?.includes(`create-${permissionSuffix}`) && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>
-                                    <Button size="sm" onClick={() => router.visit(route('product-service.items.create'))}>
+                                    <Button size="sm" onClick={() => router.visit(route(`${routeBase}.create`))}>
                                         <Plus className="h-4 w-4" />
                                     </Button>
                                 </TooltipTrigger>
@@ -276,7 +267,7 @@ export default function Index() {
                     </div>
                 }
             >
-            <Head title={t('Items')} />
+            <Head title={pluralLabel} />
 
             <Card className="shadow-sm">
                 {/* Search & Controls Header */}
@@ -287,17 +278,17 @@ export default function Index() {
                                 value={filters.name}
                                 onChange={(value) => setFilters({...filters, name: value})}
                                 onSearch={handleFilter}
-                                placeholder={t('Search items...')}
+                                placeholder={`${t('Search')} ${pluralLabel.toLowerCase()}...`}
                             />
                         </div>
                         <div className="flex items-center gap-3">
                             <ListGridToggle
                                 currentView={viewMode}
-                                routeName="product-service.items.index"
+                                routeName={`${routeBase}.index`}
                                 filters={{...filters, per_page: perPage}}
                             />
                             <PerPageSelector
-                                routeName="product-service.items.index"
+                                routeName={`${routeBase}.index`}
                                 filters={{...filters, view: viewMode}}
                             />
                             <div className="relative">
@@ -306,7 +297,7 @@ export default function Index() {
                                     onToggle={() => setShowFilters(!showFilters)}
                                 />
                                 {(() => {
-                                    const activeFilters = [filters.type, filters.category_id].filter(Boolean).length;
+                                    const activeFilters = [filters.category_id].filter(Boolean).length;
                                     return activeFilters > 0 && (
                                         <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
                                             {activeFilters}
@@ -322,21 +313,6 @@ export default function Index() {
                 {showFilters && (
                     <CardContent className="p-6 bg-blue-50/30 border-b">
                         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('Item Type')}</label>
-                                <Select value={filters.type} onValueChange={(value) => setFilters({...filters, type: value})}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={t('Filter by item type')} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {itemTypes.map((type) => (
-                                            <SelectItem key={type} value={type}>
-                                                {t(type)}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('Category')}</label>
                                 <Select value={filters.category_id} onValueChange={(value) => setFilters({...filters, category_id: value})}>
@@ -375,13 +351,13 @@ export default function Index() {
                                     emptyState={
                                         <NoRecordsFound
                                             icon={Package}
-                                            title={t('No items found')}
-                                            description={t('Get started by creating your first item.')}
-                                            hasFilters={!!(filters.name || filters.type || filters.category_id)}
+                                            title={`${t('No')} ${pluralLabel.toLowerCase()} ${t('found')}`}
+                                            description={`${t('Get started by creating your first')} ${singularLabel.toLowerCase()}.`}
+                                            hasFilters={!!(filters.name || filters.category_id)}
                                             onClearFilters={clearFilters}
-                                            createPermission="create-product-service-item"
-                                            onCreateClick={() => router.visit(route('product-service.items.create'))}
-                                            createButtonText={t('Create Item')}
+                                            createPermission={`create-${permissionSuffix}`}
+                                            onCreateClick={() => router.visit(route(`${routeBase}.create`))}
+                                            createButtonText={`${t('Create')} ${singularLabel}`}
                                             className="h-auto"
                                         />
                                     }
@@ -461,31 +437,31 @@ export default function Index() {
 
                                                 <div className="flex items-center justify-between pt-3 border-t">
                                                     <span className="px-2 py-1 rounded-full text-sm bg-green-100 text-green-800 capitalize">
-                                                        {t(item.type.replace(/_/g, ' '))}
+                                                        {singularLabel}
                                                     </span>
                                                     <div className="flex gap-1">
                                                 <TooltipProvider>
-                                                    {auth.user?.permissions?.includes('view-product-service-item') && (
+                                                    {auth.user?.permissions?.includes(`view-${permissionSuffix}`) && (
                                                         <Tooltip delayDuration={300}>
                                                             <TooltipTrigger asChild>
-                                                                <Button variant="ghost" size="sm" onClick={() => router.visit(route('product-service.items.show', item.id))} className="h-9 w-9 p-0 text-green-600 hover:text-green-700 hover:bg-green-50">
+                                                                <Button variant="ghost" size="sm" onClick={() => router.visit(route(`${routeBase}.show`, item.id))} className="h-9 w-9 p-0 text-green-600 hover:text-green-700 hover:bg-green-50">
                                                                     <Eye className="h-4 w-4" />
                                                                 </Button>
                                                             </TooltipTrigger>
                                                             <TooltipContent><p>{t('View')}</p></TooltipContent>
                                                         </Tooltip>
                                                     )}
-                                                    {auth.user?.permissions?.includes('edit-product-service-item') && (
+                                                    {auth.user?.permissions?.includes(`edit-${permissionSuffix}`) && (
                                                         <Tooltip delayDuration={300}>
                                                             <TooltipTrigger asChild>
-                                                                <Button variant="ghost" size="sm" onClick={() => router.visit(route('product-service.items.edit', item.id))} className="h-9 w-9 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                                                                <Button variant="ghost" size="sm" onClick={() => router.visit(route(`${routeBase}.edit`, item.id))} className="h-9 w-9 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
                                                                     <Edit className="h-4 w-4" />
                                                                 </Button>
                                                             </TooltipTrigger>
                                                             <TooltipContent><p>{t('Edit')}</p></TooltipContent>
                                                         </Tooltip>
                                                     )}
-                                                    {auth.user?.permissions?.includes('delete-product-service-item') && (
+                                                    {auth.user?.permissions?.includes(`delete-${permissionSuffix}`) && (
                                                         <Tooltip delayDuration={300}>
                                                             <TooltipTrigger asChild>
                                                                 <Button
@@ -510,13 +486,13 @@ export default function Index() {
                             ) : (
                                 <NoRecordsFound
                                     icon={Package}
-                                    title={t('No items found')}
-                                    description={t('Get started by creating your first item.')}
-                                    hasFilters={!!(filters.name || filters.type || filters.category_id)}
+                                    title={`${t('No')} ${pluralLabel.toLowerCase()} ${t('found')}`}
+                                    description={`${t('Get started by creating your first')} ${singularLabel.toLowerCase()}.`}
+                                    hasFilters={!!(filters.name || filters.category_id)}
                                     onClearFilters={clearFilters}
-                                    createPermission="create-product-service-item"
-                                    onCreateClick={() => router.visit(route('product-service.items.create'))}
-                                    createButtonText={t('Create Item')}
+                                    createPermission={`create-${permissionSuffix}`}
+                                    onCreateClick={() => router.visit(route(`${routeBase}.create`))}
+                                    createButtonText={`${t('Create')} ${singularLabel}`}
                                     className="h-auto"
                                 />
                             )}
@@ -528,7 +504,7 @@ export default function Index() {
                 <CardContent className="px-4 py-2 border-t bg-gray-50/30">
                     <Pagination
                         data={items}
-                        routeName="product-service.items.index"
+                        routeName={`${routeBase}.index`}
                         filters={{...filters, per_page: perPage, view: viewMode}}
                     />
                 </CardContent>
@@ -537,7 +513,7 @@ export default function Index() {
             <ConfirmationDialog
                 open={deleteState.isOpen}
                 onOpenChange={closeDeleteDialog}
-                title={t('Delete Item')}
+                title={`${t('Delete')} ${singularLabel}`}
                 message={deleteState.message}
                 confirmText={t('Delete')}
                 onConfirm={confirmDelete}
