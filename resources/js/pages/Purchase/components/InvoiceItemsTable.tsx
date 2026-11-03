@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { InputError } from '@/components/ui/input-error';
-import { Trash2 } from 'lucide-react';
+import { ListPlus, Plus, Trash2 } from 'lucide-react';
 import { baseToTransactionAmount, formatTransactionMoney } from '@/utils/transaction-money';
 import SalesLineDiscount from '@/components/sales-line-discount';
 import { getCurrencySymbolForCode } from '@/utils/helpers';
@@ -23,9 +23,12 @@ interface Props {
     currencyCode?: string;
     baseCurrencyCode?: string;
     exchangeRate?: string | number;
+    canCreateItem?: boolean;
+    onCreateItem?: () => void;
+    onAddMultipleItems?: () => void;
 }
 
-export default function InvoiceItemsTable({ items, onChange, errors, products = [], accounts = [], showAddButton = true, currencyCode = 'USD', baseCurrencyCode = 'USD', exchangeRate = 1 }: Props) {
+export default function InvoiceItemsTable({ items, onChange, errors, products = [], accounts = [], showAddButton = true, currencyCode = 'USD', baseCurrencyCode = 'USD', exchangeRate = 1, canCreateItem = false, onCreateItem, onAddMultipleItems }: Props) {
     const { t } = useTranslation();
     const currencySymbol = getCurrencySymbolForCode(currencyCode, usePage().props);
     const inventoryAccountId = accounts.find(account => account.account_code === '1200')?.id ?? null;
@@ -133,7 +136,7 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                     <thead>
                         <tr className="border-b border-border">
                             <th className="px-2 py-3 text-left text-sm font-semibold text-foreground min-w-[200px]">
-                                {t('Item Type (Product / Service / Part)')} <span className="text-red-500">*</span>
+                                {t('Item Details')} <span className="text-red-500">*</span>
                             </th>
                             <th className="px-2 py-3 text-left text-sm font-semibold text-foreground">
                                 {t('Account')} <span className="text-red-500">*</span>
@@ -165,6 +168,11 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                     <ProductSelector
                                         products={products}
                                         value={item.product_id}
+                                        currencyCode={currencyCode}
+                                        baseCurrencyCode={baseCurrencyCode}
+                                        exchangeRate={exchangeRate}
+                                        canCreateItem={canCreateItem}
+                                        onCreateItem={onCreateItem}
                                         onChange={(productId, product) => handleProductSelect(index, productId, product)}
                                     />
                                     <textarea
@@ -261,15 +269,20 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
             </div>
 
             {showAddButton && (
-                <div className="flex justify-start">
+                <div className="flex flex-wrap justify-start gap-2">
                     <Button
                         type="button"
                         onClick={addItem}
-                        variant="default"
+                        variant="outline"
                         size="sm"
                     >
-                        + {t('Add Item')}
+                        <Plus className="mr-2 h-4 w-4" />
+                        {t('Add New Row')}
                     </Button>
+                    {onAddMultipleItems && <Button type="button" onClick={onAddMultipleItems} variant="outline" size="sm">
+                        <ListPlus className="mr-2 h-4 w-4" />
+                        {t('Add Multiple Items')}
+                    </Button>}
                 </div>
             )}
 

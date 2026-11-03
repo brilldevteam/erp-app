@@ -32,6 +32,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Company users can configure exchange gain and loss accounts from Currency Rates. Customer and vendor forms can set a preferred document currency.
 
 ### Changed
+- Sales Invoice, Purchase Invoice and Quotation create/edit now use a Zoho-style searchable line-item selector with item rates and an Add New Item footer. Add New Row and Add Multiple Items controls sit below each table; the former top Add Product button and the bulk dialog's Create New Product button were removed, while quick creation still adds the new item immediately.
 - Product and Service catalog pages are now type-locked by their submenu and server route. The Item Type dropdown has been removed from create/edit forms, product/part records appear under Products, service records appear under Services, and each list uses matching titles, actions, filters and empty states.
 - Replaced the Multi-Currency Transaction checkbox with a compact accessible pill toggle across Sales Invoice, Purchase Invoice and Quotation create/edit forms; active styling clearly indicates when the currency fields are expanded.
 - Moved the Multi-Currency Transaction controls into the upper details card on Sales Invoice, Purchase Invoice and Quotation create/edit forms, separated from the regular fields by a divider while preserving the same collapsed and expanded behavior.

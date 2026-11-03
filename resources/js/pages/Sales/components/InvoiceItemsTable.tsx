@@ -9,7 +9,7 @@ import { calculateLineItemAmounts } from './TaxCalculator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { InputError } from '@/components/ui/input-error';
-import { Trash2 } from 'lucide-react';
+import { ListPlus, Plus, Trash2 } from 'lucide-react';
 import { baseToTransactionAmount, formatTransactionMoney } from '@/utils/transaction-money';
 import { getCurrencySymbolForCode } from '@/utils/helpers';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -26,9 +26,12 @@ interface Props {
     currencyCode?: string;
     baseCurrencyCode?: string;
     exchangeRate?: string | number;
+    canCreateItem?: boolean;
+    onCreateItem?: () => void;
+    onAddMultipleItems?: () => void;
 }
 
-export default function InvoiceItemsTable({ items, onChange, errors, products = [], taxTypes = [], showAddButton = true, invoiceType = 'product', onClearError, currencyCode = 'USD', baseCurrencyCode = 'USD', exchangeRate = 1 }: Props) {
+export default function InvoiceItemsTable({ items, onChange, errors, products = [], taxTypes = [], showAddButton = true, invoiceType = 'product', onClearError, currencyCode = 'USD', baseCurrencyCode = 'USD', exchangeRate = 1, canCreateItem = false, onCreateItem, onAddMultipleItems }: Props) {
     const { t } = useTranslation();
     const currencySymbol = getCurrencySymbolForCode(currencyCode, usePage().props);
 
@@ -208,6 +211,11 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                         products={products}
                                         value={item.product_id}
                                         itemType={invoiceType}
+                                        currencyCode={currencyCode}
+                                        baseCurrencyCode={baseCurrencyCode}
+                                        exchangeRate={exchangeRate}
+                                        canCreateItem={canCreateItem}
+                                        onCreateItem={onCreateItem}
                                         onChange={(productId, product) => handleProductSelect(index, productId, product)}
                                     />
                                     <InputError message={errors[`items.${index}.product_id`]} />
@@ -301,15 +309,20 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
             </div>
 
             {showAddButton && (
-                <div className="flex justify-start">
+                <div className="flex flex-wrap justify-start gap-2">
                     <Button
                         type="button"
                         onClick={addItem}
-                        variant="default"
+                        variant="outline"
                         size="sm"
                     >
-                        + {t('Add Item')}
+                        <Plus className="mr-2 h-4 w-4" />
+                        {t('Add New Row')}
                     </Button>
+                    {onAddMultipleItems && <Button type="button" onClick={onAddMultipleItems} variant="outline" size="sm">
+                        <ListPlus className="mr-2 h-4 w-4" />
+                        {t('Add Multiple Items')}
+                    </Button>}
                 </div>
             )}
 

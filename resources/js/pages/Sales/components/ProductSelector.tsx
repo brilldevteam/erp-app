@@ -1,11 +1,10 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { formatCurrency } from '@/utils/helpers';
+import DocumentItemSelector from '@/components/document-item-selector';
 
 interface Product {
     id: number;
     name: string;
+    sku?: string;
     description?: string;
     sale_price: number;
     unit?: string;
@@ -16,30 +15,25 @@ interface Props {
     products: Product[];
     value: number;
     itemType?: string;
+    currencyCode: string;
+    baseCurrencyCode: string;
+    exchangeRate: string | number;
+    canCreateItem?: boolean;
+    onCreateItem?: () => void;
     onChange: (productId: number, product?: Product) => void;
 }
 
-export default function ProductSelector({ products, value, itemType = 'product', onChange }: Props) {
+export default function ProductSelector({ products, value, itemType = 'product', currencyCode, baseCurrencyCode, exchangeRate, canCreateItem, onCreateItem, onChange }: Props) {
     const { t } = useTranslation();
-
-    const handleChange = (productId: string) => {
-        const id = parseInt(productId);
-        const product = products.find(p => p.id === id);
-        onChange(id, product);
-    };
-
-    return (
-        <Select value={value.toString()} onValueChange={handleChange}>
-            <SelectTrigger className="w-full">
-                <SelectValue placeholder={itemType === 'service' ? t('Select Service') : t('Select Product')} />
-            </SelectTrigger>
-            <SelectContent searchable>
-                {products.map((product) => (
-                    <SelectItem key={product.id} value={product.id.toString()}>
-                        {product.name} - {formatCurrency(product.sale_price || 0)}
-                    </SelectItem>
-                ))}
-            </SelectContent>
-        </Select>
-    );
+    return <DocumentItemSelector
+        products={products}
+        value={value}
+        currencyCode={currencyCode}
+        baseCurrencyCode={baseCurrencyCode}
+        exchangeRate={exchangeRate}
+        placeholder={t(itemType === 'service' ? 'Type or click to select a service' : 'Type or click to select an item')}
+        canCreateItem={canCreateItem}
+        onCreateItem={onCreateItem}
+        onChange={onChange}
+    />;
 }

@@ -44,6 +44,7 @@ export default function Edit() {
     const { invoice, vendors, products, warehouses, projectContracts, billAccounts, productCatalog, auth } = page;
     const [availableProducts, setAvailableProducts] = useState<QuotationProduct[]>(products);
     const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
+    const [productPickerView, setProductPickerView] = useState<'browse' | 'create'>('browse');
 
     useFlashMessages();
     const companyBaseCurrency = String(page.companyAllSetting?.defaultCurrency || 'USD').toUpperCase();
@@ -366,22 +367,7 @@ export default function Edit() {
 
                     {/* Invoice Items */}
                     <Card>
-                        <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="flex items-center gap-2 text-lg">
-                                    <Package className="h-5 w-5" />
-                                    {t('Purchase Invoice Items')}
-                                </CardTitle>
-                                <Button
-                                    type="button"
-                                    onClick={() => setIsProductPickerOpen(true)}
-                                    variant="default"
-                                    size="sm"
-                                >
-                                    + {t('Add Product')}
-                                </Button>
-                            </div>
-                        </CardHeader>
+                        <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Package className="h-5 w-5" />{t('Purchase Invoice Items')}</CardTitle></CardHeader>
                         <CardContent>
                             <InvoiceItemsTable
                                 items={data.items}
@@ -389,7 +375,10 @@ export default function Edit() {
                                 errors={errors}
                                 products={availableProducts}
                                 accounts={billAccounts || []}
-                                showAddButton={false}
+                                showAddButton
+                                canCreateItem={auth.user.permissions?.includes('create-products') || auth.user.permissions?.includes('create-services') || auth.user.permissions?.includes('create-product-service-item') || false}
+                                onCreateItem={() => { setProductPickerView('create'); setIsProductPickerOpen(true); }}
+                                onAddMultipleItems={() => { setProductPickerView('browse'); setIsProductPickerOpen(true); }}
                                 currencyCode={data.currency_code}
                                 baseCurrencyCode={baseCurrency}
                                 exchangeRate={data.exchange_rate}
@@ -398,6 +387,7 @@ export default function Edit() {
                             <ProductPickerDialog
                                 open={isProductPickerOpen}
                                 onOpenChange={setIsProductPickerOpen}
+                                initialView={productPickerView}
                                 products={availableProducts}
                                 categories={productCatalog?.categories || []}
                                 units={productCatalog?.units || []}
@@ -407,7 +397,7 @@ export default function Edit() {
                                 catalogMode="all"
                                 priceMode="purchase"
                                 requireAvailableStock={false}
-                                canCreateProduct={auth.user.permissions?.includes('create-product-service-item') || false}
+                                canCreateProduct={auth.user.permissions?.includes('create-products') || auth.user.permissions?.includes('create-services') || auth.user.permissions?.includes('create-product-service-item') || false}
                                 onAdd={addProducts}
                                 onProductCreated={product => setAvailableProducts(current => [...current, product])}
                             />

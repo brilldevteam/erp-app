@@ -45,6 +45,7 @@ export default function Edit() {
     const { invoice, customers, taxes = [], warehouses, documentTemplates = [], productCatalog, revenueAccounts = [], auth } = page;
     const [availableProducts, setAvailableProducts] = useState<QuotationProduct[]>([]);
     const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
+    const [productPickerView, setProductPickerView] = useState<'browse' | 'create'>('browse');
     const [productsLoading, setProductsLoading] = useState(false);
 
     useFlashMessages();
@@ -390,22 +391,7 @@ export default function Edit() {
                     </Card>
 
                     <Card>
-                        <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="flex items-center gap-2 text-lg">
-                                    <Package className="h-5 w-5" />
-                                    {t('Sales Invoice Items')}
-                                </CardTitle>
-                                <Button
-                                    type="button"
-                                    onClick={() => setIsProductPickerOpen(true)}
-                                    variant="default"
-                                    size="sm"
-                                >
-                                    + {t(data.type === 'service' ? 'Add Service' : 'Add Product')}
-                                </Button>
-                            </div>
-                        </CardHeader>
+                        <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Package className="h-5 w-5" />{t('Sales Invoice Items')}</CardTitle></CardHeader>
                         <CardContent>
                             <InvoiceItemsTable
                                 items={data.items}
@@ -413,8 +399,11 @@ export default function Edit() {
                                 errors={errors}
                                 products={availableProducts}
                                 taxTypes={taxes}
-                                showAddButton={false}
+                                showAddButton
                                 invoiceType={data.type}
+                                canCreateItem={auth.user.permissions?.includes(data.type === 'service' ? 'create-services' : 'create-products') || auth.user.permissions?.includes('create-product-service-item') || false}
+                                onCreateItem={() => { setProductPickerView('create'); setIsProductPickerOpen(true); }}
+                                onAddMultipleItems={() => { setProductPickerView('browse'); setIsProductPickerOpen(true); }}
                                 onClearError={(field) => clearErrors(field as any)}
                                 currencyCode={data.currency_code}
                                 baseCurrencyCode={baseCurrency}
@@ -454,6 +443,7 @@ export default function Edit() {
                     <ProductPickerDialog
                         open={isProductPickerOpen}
                         onOpenChange={setIsProductPickerOpen}
+                        initialView={productPickerView}
                         products={availableProducts}
                         categories={productCatalog?.categories || []}
                         units={productCatalog?.units || []}
@@ -462,7 +452,7 @@ export default function Edit() {
                         warehouseId={data.warehouse_id}
                         defaultProductType={data.type as 'product' | 'service'}
                         catalogMode={data.type === 'service' ? 'service' : 'stock'}
-                        canCreateProduct={auth.user.permissions?.includes('create-product-service-item') || false}
+                        canCreateProduct={auth.user.permissions?.includes(data.type === 'service' ? 'create-services' : 'create-products') || auth.user.permissions?.includes('create-product-service-item') || false}
                         loading={productsLoading}
                         onAdd={addProducts}
                         onProductCreated={product => setAvailableProducts(current => [...current, product])}

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { formatCurrency } from '@/utils/helpers';
-import { Loader2, PackagePlus, Plus, Search } from 'lucide-react';
+import { Loader2, PackagePlus, Search } from 'lucide-react';
 
 export interface QuotationProduct {
     id: number;
@@ -47,6 +47,7 @@ interface Props {
     loading?: boolean;
     onAdd: (products: QuotationProduct[]) => void;
     onProductCreated: (product: QuotationProduct) => void;
+    initialView?: 'browse' | 'create';
 }
 
 const initialProduct = {
@@ -62,6 +63,15 @@ export default function ProductPickerDialog(props: Props) {
     const [saving, setSaving] = useState(false);
     const [form, setForm] = useState(initialProduct);
     const [formErrors, setFormErrors] = useState<Record<string, string[]>>({});
+
+    useEffect(() => {
+        if (!props.open) return;
+        if (props.initialView === 'create' && props.canCreateProduct) {
+            beginCreate();
+            return;
+        }
+        setCreating(false);
+    }, [props.open, props.initialView]);
 
     const filtered = useMemo(() => {
         const normalize = (value: string) => value.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
@@ -124,7 +134,8 @@ export default function ProductPickerDialog(props: Props) {
                 category_id: Number(form.category_id),
                 tax_ids: form.tax_ids.map(Number),
             };
-            const response = await fetch(route('product-service.items.store'), {
+            const storeRoute = form.type === 'service' ? 'product-service.services.store' : 'product-service.products.store';
+            const response = await fetch(route(storeRoute), {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
@@ -235,11 +246,10 @@ export default function ProductPickerDialog(props: Props) {
                                         className={`${isUnavailable ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-muted/60'} transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${isSelected ? 'bg-primary/10' : ''}`}
                                     ><td className="p-3 text-center" onClick={event => event.stopPropagation()}><Checkbox checked={isSelected} disabled={isUnavailable} onCheckedChange={() => toggleProduct(product.id)} aria-label={t('Select {{product}}', { product: product.name })} /></td><td className="p-3"><div className="font-medium">{product.name}</div>{product.description && <div className="max-w-md truncate text-xs text-muted-foreground">{product.description}</div>}</td><td className="p-3">{product.sku || '-'}</td><td className="p-3">{product.unit_name || product.unit || '-'}</td><td className="p-3 text-right">{formatCurrency(Number(props.priceMode === 'purchase' ? product.purchase_price : product.sale_price) || 0)}</td><td className="p-3 text-right">{product.type === 'service' ? t('Service') : `${t('Stock')}: ${product.stock_quantity ?? 0}`}</td></tr>;
                                 })}</tbody></table>
-                            ) : <div className="p-10 text-center text-muted-foreground"><p>{t('No products found.')}</p>{props.canCreateProduct && <Button type="button" variant="link" onClick={beginCreate}>{t('Create your first product')}</Button>}</div>}
+                            ) : <div className="p-10 text-center text-muted-foreground"><p>{t('No products found.')}</p></div>}
                         </div>
-                        <DialogFooter className="gap-2 sm:justify-between">
-                            <div>{props.canCreateProduct && <Button type="button" variant="outline" onClick={beginCreate}><Plus className="mr-2 h-4 w-4" />{t('Create New Product')}</Button>}</div>
-                            <div className="flex gap-2"><Button type="button" variant="outline" onClick={close}>{t('Cancel')}</Button><Button type="button" onClick={addSelected} disabled={!selected.length}>{t(selected.length === 1 ? 'Add 1 Product' : 'Add {{count}} Products', { count: selected.length })}</Button></div>
+                        <DialogFooter className="gap-2">
+                            <Button type="button" variant="outline" onClick={close}>{t('Cancel')}</Button><Button type="button" onClick={addSelected} disabled={!selected.length}>{t(selected.length === 1 ? 'Add 1 Item' : 'Add {{count}} Items', { count: selected.length })}</Button>
                         </DialogFooter>
                     </>
                 )}

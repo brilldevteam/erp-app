@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `release/zoho-and-security` | Zoho-style searchable line-item selector for Sales Invoice, Purchase Invoice and Quotation create/edit; bottom Add New Row/Add Multiple Items controls; quick-create footer flow, tests/build, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Ensure the shared Multi-Currency Transaction pill defaults off by resolving the correct company base currency across document contexts; focused regression test/build, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Split Product & Service Items into permission-controlled Products and Services submenus, type-locked list/create/edit flows, permission migration/seeder, tests, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Replace the shared Multi-Currency Transaction checkbox with an accessible pill toggle across document forms; focused test/build, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
@@ -254,6 +255,15 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-11-03 Asia/Colombo - Codex - Zoho-style document item selection
+
+- Branch: `release/zoho-and-security`; no PR; locally verified and ready to commit and push.
+- Scope: Sales Invoice, Purchase Invoice and Quotation create/edit only. Their line-item selectors are now searchable popovers showing item name and transaction-currency rate, with selected-item highlighting and a fixed Add New Item footer.
+- Actions: removed the top Add Product/Add Service button. Added Add New Row and Add Multiple Items beneath each item table; Add Multiple Items opens the existing bulk browser.
+- Quick create: removed creation controls from the bulk browser. Add New Item in the row selector opens the existing create form directly, submits through the permission-controlled Product or Service route, refreshes the available items and immediately adds the created item to the document.
+- Preserved behavior: existing line calculations, descriptions, quantity, stock, account, discount, tax, currency conversion, totals and bulk selection behavior are unchanged.
+- Verification: PHP 8.5 PHPUnit passed 14 tests / 185 assertions (`PurchaseInvoiceProductPickerTest`, `TransactionCurrencyLineEntryTest`); `npm run build` passed with 4,004 modules transformed; generated `public/build` output remains excluded. Browser verification was deferred because the local PHP child process stopped during stale-process cleanup and is restarted separately.
 
 ### 2026-11-03 Asia/Colombo - Codex - Multi-currency pill default-off correction
 

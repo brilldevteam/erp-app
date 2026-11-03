@@ -16,7 +16,9 @@ class PurchaseInvoiceProductPickerTest extends TestCase
             $this->assertStringContainsString('requireAvailableStock={false}', $source, $file);
             $this->assertStringContainsString('Number(product.purchase_price)', $source, $file);
             $this->assertStringContainsString("account_id: null", $source, $file);
-            $this->assertStringContainsString("t('Add Product')", $source, $file);
+            $this->assertStringNotContainsString("t('Add Product')", $source, $file);
+            $this->assertStringContainsString('onAddMultipleItems=', $source, $file);
+            $this->assertStringContainsString('onCreateItem=', $source, $file);
         }
     }
 
@@ -53,6 +55,29 @@ class PurchaseInvoiceProductPickerTest extends TestCase
         $this->assertStringContainsString('h-4 w-4 shrink-0 text-muted-foreground', $source);
         $this->assertStringContainsString("<Field label={t('Category')}", $source);
         $this->assertStringContainsString('props.categories.map', $source);
+        $this->assertStringNotContainsString('onClick={beginCreate}', $source);
+        $this->assertStringContainsString("initialView?: 'browse' | 'create'", $source);
+        $this->assertStringContainsString("'product-service.services.store' : 'product-service.products.store'", $source);
+    }
+
+    public function test_requested_document_tables_use_the_zoho_style_item_controls(): void
+    {
+        $selector = $this->source('resources/js/components/document-item-selector.tsx');
+        $this->assertStringContainsString("t('Type or click to select an item')", $selector);
+        $this->assertStringContainsString("t('Rate')", $selector);
+        $this->assertStringContainsString("t('Add New Item')", $selector);
+        $this->assertStringContainsString('baseToTransactionAmount(Number(basePrice) || 0, currencyCode, baseCurrencyCode, exchangeRate)', $selector);
+
+        foreach ([
+            'resources/js/pages/Sales/components/InvoiceItemsTable.tsx',
+            'resources/js/pages/Purchase/components/InvoiceItemsTable.tsx',
+            'packages/workdo/Quotation/src/Resources/js/Pages/Quotations/components/QuotationItemsTable.tsx',
+        ] as $path) {
+            $source = $this->source($path);
+            $this->assertStringContainsString("t('Add New Row')", $source, $path);
+            $this->assertStringContainsString("t('Add Multiple Items')", $source, $path);
+            $this->assertStringContainsString('onCreateItem={onCreateItem}', $source, $path);
+        }
     }
 
     public function test_sales_invoice_multi_currency_controls_stay_inside_details_cards(): void

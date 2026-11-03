@@ -45,6 +45,7 @@ export default function Edit() {
         : baseCurrency;
     const [availableProducts, setAvailableProducts] = useState<QuotationProduct[]>([]);
     const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
+    const [productPickerView, setProductPickerView] = useState<'browse' | 'create'>('browse');
     const [productsLoading, setProductsLoading] = useState(false);
     const noWarehouseValue = 'none';
 
@@ -297,29 +298,17 @@ export default function Edit() {
                     </Card>
 
                     <Card>
-                        <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="flex items-center gap-2 text-lg">
-                                    <Package className="h-5 w-5" />
-                                    {t('Quotation Items')}
-                                </CardTitle>
-                                <Button
-                                    type="button"
-                                    onClick={() => setIsProductPickerOpen(true)}
-                                    variant="default"
-                                    size="sm"
-                                >
-                                    + {t('Add Product')}
-                                </Button>
-                            </div>
-                        </CardHeader>
+                        <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Package className="h-5 w-5" />{t('Quotation Items')}</CardTitle></CardHeader>
                         <CardContent>
                             <QuotationItemsTable
                                 items={data.items}
                                 onChange={(items) => setData('items', items)}
                                 errors={errors}
                                 products={availableProducts}
-                                showAddButton={false}
+                                showAddButton
+                                canCreateItem={auth.user.permissions?.includes('create-products') || auth.user.permissions?.includes('create-services') || auth.user.permissions?.includes('create-product-service-item') || false}
+                                onCreateItem={() => { setProductPickerView('create'); setIsProductPickerOpen(true); }}
+                                onAddMultipleItems={() => { setProductPickerView('browse'); setIsProductPickerOpen(true); }}
                                 onClearError={(field) => clearErrors(field as any)}
                                 currencyCode={data.currency_code}
                                 baseCurrencyCode={baseCurrency}
@@ -356,13 +345,14 @@ export default function Edit() {
                     <ProductPickerDialog
                         open={isProductPickerOpen}
                         onOpenChange={setIsProductPickerOpen}
+                        initialView={productPickerView}
                         products={availableProducts}
                         categories={productCatalog?.categories || []}
                         units={productCatalog?.units || []}
                         taxes={productCatalog?.taxes || []}
                         warehouses={warehouses}
                         warehouseId={data.warehouse_id}
-                        canCreateProduct={auth.user.permissions?.includes('create-product-service-item') || false}
+                        canCreateProduct={auth.user.permissions?.includes('create-products') || auth.user.permissions?.includes('create-services') || auth.user.permissions?.includes('create-product-service-item') || false}
                         loading={productsLoading}
                         onAdd={addProducts}
                         onProductCreated={product => setAvailableProducts(current => [...current, product])}
