@@ -95,4 +95,23 @@ class CustomerWorkspaceContractTest extends TestCase
         $this->assertStringContainsString("orWhere('preferred_currency_code', '')", $service);
         $this->assertStringContainsString('$currency === $baseCurrency', $service);
     }
+
+    public function test_customer_create_and_edit_share_the_guided_responsive_form(): void
+    {
+        $create = $this->source('packages/workdo/Account/src/Resources/js/Pages/Customers/Create.tsx');
+        $edit = $this->source('packages/workdo/Account/src/Resources/js/Pages/Customers/Edit.tsx');
+        $form = $this->source('packages/workdo/Account/src/Resources/js/Pages/Customers/CustomerForm.tsx');
+
+        $this->assertStringContainsString("<CustomerForm mode=\"create\"", $create);
+        $this->assertStringContainsString("<CustomerForm mode=\"edit\"", $edit);
+        $this->assertStringContainsString("[t('Contact'), t('Billing'), t('Review & access')]", $form);
+        $this->assertStringContainsString("[t('Profile'), t('Billing'), t('Access & files')]", $form);
+        $this->assertStringContainsString("t('Tax and registration details')", $form);
+        $this->assertStringContainsString("t('Billing address')", $form);
+        $this->assertStringContainsString("t('Custom terms')", $form);
+        $this->assertStringContainsString('h-[100dvh]', $form);
+        $this->assertStringContainsString("t('Ready to save')", $form);
+        $this->assertStringContainsString('<Switch id="portal_access_enabled"', $form);
+        $this->assertStringContainsString("onError: result => setStep(errorStep(result))", $form);
+    }
 }
