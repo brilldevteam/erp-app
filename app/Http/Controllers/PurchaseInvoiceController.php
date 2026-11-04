@@ -457,7 +457,8 @@ class PurchaseInvoiceController extends Controller
         foreach ($items as $itemData) {
             $item = new PurchaseInvoiceItem();
             $item->invoice_id = $invoiceId;
-            $item->product_id = $itemData['product_id'];
+            $item->product_id = $itemData['product_id'] ?? null;
+            $item->item_name = $itemData['item_name'] ?? null;
             $item->account_id = $itemData['account_id'] ?? null;
             $item->description = $itemData['description'] ?? null;
             $item->unit = $itemData['unit'] ?? null;

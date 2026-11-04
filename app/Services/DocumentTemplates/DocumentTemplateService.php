@@ -352,7 +352,7 @@ class DocumentTemplateService
                 ? (float) ($document->balance_amount ?? $document->total_amount)
                 : (float) $document->total_amount,
             'items' => $document->items->map(fn ($item) => [
-                'item' => $item->product?->name ?: __('Item'),
+                'item' => $item->product?->name ?: ($item->item_name ?: __('Item')),
                 'description' => $item->description ?? '',
                 'discount_type' => $item->discount_type ?? 'percentage',
                 'discount_percentage' => (float) $item->discount_percentage,

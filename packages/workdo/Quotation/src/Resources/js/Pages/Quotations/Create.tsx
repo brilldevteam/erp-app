@@ -22,11 +22,13 @@ import CreateCustomer from '../../../../../../Account/src/Resources/js/Pages/Cus
 import CreateWarehouse from '@/pages/warehouses/create';
 import TransactionCurrencyFields from '@/components/transaction-currency-fields';
 import { baseToTransactionAmount, formatTransactionMoney } from '@/utils/transaction-money';
+import SalespersonField, { Salesperson } from './components/SalespersonField';
 
 interface CreateProps {
     customers: Array<{id: number; name: string; email?: string | null}>;
     warehouses: Array<{id: number; name: string; address: string}>;
     documentTemplates: Array<{ id: number; name: string; is_default: boolean }>;
+    salespersons: Salesperson[];
     productCatalog: {
         categories: Array<{ id: number; name: string }>;
         units: Array<{ id: number; unit_name: string }>;
@@ -42,8 +44,8 @@ interface CreateProps {
 
 export default function Create() {
     const { t } = useTranslation();
-    const { customers, warehouses, documentTemplates = [], productCatalog, auth, settings } = usePage<CreateProps>().props;
-    const baseCurrency = settings?.defaultCurrency || 'USD';
+    const { customers, warehouses, documentTemplates = [], productCatalog, auth, companyAllSetting, salespersons = [] } = usePage<CreateProps>().props;
+    const baseCurrency = companyAllSetting?.defaultCurrency || 'USD';
     const [availableProducts, setAvailableProducts] = useState<QuotationProduct[]>([]);
     const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
     const [productPickerView, setProductPickerView] = useState<'browse' | 'create'>('browse');
@@ -58,9 +60,10 @@ export default function Create() {
     const { data, setData, post, processing, errors, clearErrors } = useForm({
         invoice_date: new Date().toISOString().split('T')[0],
         due_date: '',
-        currency_code: settings?.defaultCurrency || 'USD',
+        currency_code: baseCurrency,
         exchange_rate: '1.00000000',
         customer_id: '',
+        salesperson_id: '',
         warehouse_id: '',
         document_template_id: documentTemplates.find((template) => template.is_default)?.id?.toString() ?? '',
         payment_terms: '',
@@ -117,6 +120,7 @@ export default function Create() {
             return {
                 ...emptyItem(),
                 product_id: product.id,
+                item_name: product.name,
                 description: product.description || '',
                 unit_price: price,
                 tax_percentage: taxPercentage,
@@ -127,7 +131,7 @@ export default function Create() {
         });
         setData(current => ({
             ...current,
-            items: [...current.items.filter(item => item.product_id > 0), ...selectedItems],
+            items: [...current.items.filter(item => Number(item.product_id) > 0 || Boolean(item.item_name?.trim())), ...selectedItems],
         }));
         const productErrors = Object.keys(errors).filter(key => /^items\.\d+\.product_id$/.test(key));
         if (productErrors.length) clearErrors(...productErrors as any);
@@ -307,6 +311,11 @@ export default function Create() {
                                     </Select>
                                     <InputError message={errors.document_template_id} />
                                 </div>
+
+                                <div>
+                                    <SalespersonField value={data.salesperson_id} initialSalespersons={salespersons} onChange={value => setData('salesperson_id', value)} />
+                                    <InputError message={errors.salesperson_id} />
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
@@ -355,6 +364,11 @@ export default function Create() {
                                 onChange={(items) => setData('items', items)}
                                 errors={errors}
                                 products={availableProducts}
+                                taxTypes={productCatalog?.taxes || []}
+                                canManageTaxes={auth.user.permissions?.includes('manage-product-service-taxes') || false}
+                                canCreateTaxes={auth.user.permissions?.includes('create-product-service-taxes') || false}
+                                canEditTaxes={auth.user.permissions?.includes('edit-product-service-taxes') || false}
+                                canDeleteTaxes={auth.user.permissions?.includes('delete-product-service-taxes') || false}
                                 showAddButton
                                 canCreateItem={auth.user.permissions?.includes('create-products') || auth.user.permissions?.includes('create-services') || auth.user.permissions?.includes('create-product-service-item') || false}
                                 onCreateItem={() => { setProductPickerView('create'); setIsProductPickerOpen(true); }}

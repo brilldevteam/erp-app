@@ -28,6 +28,7 @@ class SalesQuotation extends Model
         'exchange_rate',
         'base_amount',
         'customer_id',
+        'salesperson_id',
         'warehouse_id',
         'due_date',
         'subtotal',
@@ -63,6 +64,11 @@ class SalesQuotation extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'customer_id');
+    }
+
+    public function salesperson(): BelongsTo
+    {
+        return $this->belongsTo(QuotationSalesperson::class, 'salesperson_id');
     }
 
     public function items(): HasMany

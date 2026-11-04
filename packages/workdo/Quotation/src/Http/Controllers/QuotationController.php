@@ -106,6 +106,7 @@ class QuotationController extends Controller
                 'warehouses' => $warehouses,
                 'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_QUOTATION),
                 'productCatalog' => $this->productCatalog(),
+                'salespersons' => \Workdo\Quotation\Models\QuotationSalesperson::where('created_by', creatorId())->orderBy('name')->get(['id', 'name', 'email', 'is_active']),
             ]);
         } else {
             return back()->with('error', __('Permission denied'));
@@ -126,6 +127,7 @@ class QuotationController extends Controller
                 ->id;
             $quotation->due_date        = $request->due_date;
             $quotation->customer_id     = $request->customer_id;
+            $quotation->salesperson_id  = $request->filled('salesperson_id') ? $request->salesperson_id : null;
             $quotation->warehouse_id    = $request->filled('warehouse_id') ? $request->warehouse_id : null;
             $quotation->payment_terms   = $request->payment_terms;
             $quotation->subject         = $request->subject;
@@ -198,6 +200,7 @@ class QuotationController extends Controller
                 'warehouses' => $warehouses,
                 'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_QUOTATION),
                 'productCatalog' => $this->productCatalog(),
+                'salespersons' => \Workdo\Quotation\Models\QuotationSalesperson::where('created_by', creatorId())->orderBy('name')->get(['id', 'name', 'email', 'is_active']),
             ]);
         } else {
             return redirect()->route('quotations.index')->with('error', __('Permission denied'));
@@ -218,6 +221,7 @@ class QuotationController extends Controller
             $quotation->quotation_date  = $request->invoice_date;
             $quotation->due_date        = $request->due_date;
             $quotation->customer_id     = $request->customer_id;
+            $quotation->salesperson_id  = $request->filled('salesperson_id') ? $request->salesperson_id : null;
             $quotation->document_template_id = app(DocumentTemplateService::class)
                 ->resolveForDocument(DocumentTemplate::TYPE_QUOTATION, creatorId(), $request->document_template_id)
                 ->id;
@@ -274,7 +278,8 @@ class QuotationController extends Controller
         foreach ($items as $itemData) {
             $item                      = new SalesQuotationItem();
             $item->quotation_id        = $quotationId;
-            $item->product_id          = $itemData['product_id'];
+            $item->product_id          = $itemData['product_id'] ?? null;
+            $item->item_name           = $itemData['item_name'] ?? null;
             $item->description = $itemData['description'] ?? '';
             $item->discount_type = $itemData['discount_type'] ?? 'percentage';
             $item->discount_value = $itemData['discount_value'] ?? 0;
@@ -284,7 +289,7 @@ class QuotationController extends Controller
             $item->tax_percentage      = $itemData['tax_percentage'] ?? 0;
             $item->save();
 
-            if (array_key_exists('description', $itemData)) {
+            if (!empty($itemData['product_id']) && array_key_exists('description', $itemData)) {
                 \App\Services\SalesLineAmounts::syncProductDescription(
                     (int) $itemData['product_id'],
                     $itemData['description'],
@@ -341,15 +346,17 @@ class QuotationController extends Controller
 
     private function productCatalog(): array
     {
-        if (!Auth::user()->can('manage-product-service-item')
-            && !Auth::user()->can('view-product-service-item')
-            && !Auth::user()->can('create-product-service-item')) {
-            return ['categories' => [], 'units' => [], 'taxes' => []];
-        }
+        $canUseCatalog = Auth::user()->can('manage-product-service-item')
+            || Auth::user()->can('view-product-service-item')
+            || Auth::user()->can('create-product-service-item')
+            || Auth::user()->can('manage-products')
+            || Auth::user()->can('manage-services')
+            || Auth::user()->can('view-products')
+            || Auth::user()->can('view-services');
 
         return [
-            'categories' => ProductServiceCategory::where('created_by', creatorId())->orderBy('name')->get(['id', 'name']),
-            'units' => ProductServiceUnit::where('created_by', creatorId())->orderBy('unit_name')->get(['id', 'unit_name']),
+            'categories' => $canUseCatalog ? ProductServiceCategory::where('created_by', creatorId())->orderBy('name')->get(['id', 'name']) : [],
+            'units' => $canUseCatalog ? ProductServiceUnit::where('created_by', creatorId())->orderBy('unit_name')->get(['id', 'unit_name']) : [],
             'taxes' => ProductServiceTax::where('created_by', creatorId())->orderBy('tax_name')->get(['id', 'tax_name', 'rate']),
         ];
     }
@@ -578,6 +585,7 @@ class QuotationController extends Controller
                 'notes' => $quotation->notes ?? '',
                 'items' => $quotation->items->map(fn ($item) => [
                     'product_id' => $item->product_id,
+                    'item_name' => $item->item_name,
                     'quantity' => $item->quantity,
                     'unit_price' => (float) $item->unit_price,
                     'description' => $item->description ?? '',

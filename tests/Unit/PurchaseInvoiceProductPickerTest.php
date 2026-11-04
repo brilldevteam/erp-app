@@ -63,7 +63,8 @@ class PurchaseInvoiceProductPickerTest extends TestCase
     public function test_requested_document_tables_use_the_zoho_style_item_controls(): void
     {
         $selector = $this->source('resources/js/components/document-item-selector.tsx');
-        $this->assertStringContainsString("t('Type or click to select an item')", $selector);
+        $this->assertStringContainsString('placeholder={placeholder}', $selector);
+        $this->assertStringContainsString('manualValue', $selector);
         $this->assertStringContainsString("t('Rate')", $selector);
         $this->assertStringContainsString("t('Add New Item')", $selector);
         $this->assertStringContainsString('baseToTransactionAmount(Number(basePrice) || 0, currencyCode, baseCurrencyCode, exchangeRate)', $selector);

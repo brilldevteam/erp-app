@@ -135,7 +135,7 @@ export default function Edit() {
             const price = baseToTransactionAmount(Number(product.sale_price) || 0, data.currency_code, baseCurrency, data.exchange_rate);
             const amounts = calculateLineItemAmounts(1, price, 0, taxPercentage, 'percentage', 0);
             return {
-                product_id: product.id, quantity: 1, unit_price: price, description: product.description || '',
+                product_id: product.id, item_name: product.name, quantity: 1, unit_price: price, description: product.description || '',
                 discount_type: 'percentage' as const, discount_value: 0, discount_percentage: 0,
                 discount_amount: amounts.discountAmount, tax_percentage: taxPercentage,
                 tax_amount: amounts.taxAmount, total_amount: amounts.totalAmount,
@@ -144,7 +144,7 @@ export default function Edit() {
         });
         setData(current => ({
             ...current,
-            items: [...current.items.filter(item => item.product_id > 0), ...selectedItems],
+            items: [...current.items.filter(item => Number(item.product_id) > 0 || Boolean(item.item_name?.trim())), ...selectedItems],
         }));
         const productErrors = Object.keys(errors).filter(key => /^items\.\d+\.product_id$/.test(key));
         if (productErrors.length) clearErrors(...productErrors as any);
@@ -385,7 +385,7 @@ export default function Edit() {
                                 </div>
                             )}
                             <div className="mt-6 border-t pt-6">
-                                <TransactionCurrencyFields currencyCode={data.currency_code} exchangeRate={data.exchange_rate} transactionDate={data.invoice_date} amount={totals.total} errors={errors} onCurrencyChange={value => setData('currency_code', value)} onRateChange={value => setData('exchange_rate', value)} />
+                                <TransactionCurrencyFields defaultEnabled={initialCurrency !== baseCurrency} currencyCode={data.currency_code} exchangeRate={data.exchange_rate} transactionDate={data.invoice_date} amount={totals.total} errors={errors} onCurrencyChange={value => setData('currency_code', value)} onRateChange={value => setData('exchange_rate', value)} />
                             </div>
                         </CardContent>
                     </Card>
@@ -399,6 +399,10 @@ export default function Edit() {
                                 errors={errors}
                                 products={availableProducts}
                                 taxTypes={taxes}
+                                canManageTaxes={auth.user.permissions?.includes('manage-product-service-taxes') || false}
+                                canCreateTaxes={auth.user.permissions?.includes('create-product-service-taxes') || false}
+                                canEditTaxes={auth.user.permissions?.includes('edit-product-service-taxes') || false}
+                                canDeleteTaxes={auth.user.permissions?.includes('delete-product-service-taxes') || false}
                                 showAddButton
                                 invoiceType={data.type}
                                 canCreateItem={auth.user.permissions?.includes(data.type === 'service' ? 'create-services' : 'create-products') || auth.user.permissions?.includes('create-product-service-item') || false}

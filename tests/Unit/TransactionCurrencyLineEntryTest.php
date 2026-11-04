@@ -88,19 +88,19 @@ class TransactionCurrencyLineEntryTest extends TestCase
 
         $this->assertStringContainsString("page.companyAllSetting?.defaultCurrency || page.settings?.defaultCurrency || 'USD'", $source);
         $this->assertStringContainsString('const availableCurrencies = currencies;', $source);
-        $this->assertStringContainsString("if (multiCurrencyEnabled) {\n            setMultiCurrencyEnabled(false);", $source);
+        $this->assertStringContainsString('const [multiCurrencyEnabled, setMultiCurrencyEnabled] = useState(defaultEnabled);', $source);
         $this->assertStringContainsString("if (value === baseCurrency) {\n            onRateChange('1.00000000');\n            setMultiCurrencyEnabled(false);", $source);
     }
 
-    public function test_multi_currency_control_is_an_accessible_pill_button(): void
+    public function test_multi_currency_control_is_an_accessible_theme_switch(): void
     {
         $source = $this->source('resources/js/components/transaction-currency-fields.tsx');
 
         $this->assertStringNotContainsString("@/components/ui/checkbox", $source);
         $this->assertStringContainsString('aria-pressed={multiCurrencyEnabled}', $source);
         $this->assertStringContainsString("onClick={() => toggleMultiCurrency(!multiCurrencyEnabled)}", $source);
-        $this->assertStringContainsString("'inline-flex h-9 items-center gap-2 rounded-full border px-4", $source);
-        $this->assertStringContainsString("'border-primary bg-primary text-primary-foreground hover:bg-primary/90'", $source);
+        $this->assertStringContainsString("multiCurrencyEnabled ? 'bg-primary' : 'bg-muted-foreground/70'", $source);
+        $this->assertStringContainsString("multiCurrencyEnabled ? 'translate-x-[22px]' : 'translate-x-0.5'", $source);
     }
 
     public function test_invoice_servers_accept_direct_transaction_amounts_and_keep_legacy_base_amount_requests(): void

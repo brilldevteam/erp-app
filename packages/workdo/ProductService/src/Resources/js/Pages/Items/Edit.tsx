@@ -162,9 +162,9 @@ export default function Edit() {
                                                 value={data.tax_ids?.[0]?.toString() || 'none'}
                                                 onValueChange={(value) => setData('tax_ids', value === 'none' ? [] : [value])}
                                             >
-                                                <SelectTrigger id="tax_ids"><SelectValue placeholder="_" /></SelectTrigger>
+                                                <SelectTrigger id="tax_ids"><SelectValue placeholder={t('No Tax')} /></SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="none">_</SelectItem>
+                                                    <SelectItem value="none">{t('No Tax')}</SelectItem>
                                                     {taxes.filter(tax => !(Number(tax.rate) === 0 && tax.tax_name.trim().toLowerCase() === 'no tax')).map(tax => (
                                                         <SelectItem key={tax.id} value={tax.id.toString()}>{tax.tax_name} ({tax.rate}%)</SelectItem>
                                                     ))}

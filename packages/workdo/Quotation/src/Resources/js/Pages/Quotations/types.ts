@@ -9,6 +9,7 @@ export interface Quotation {
     quotation_date: string;
     due_date: string;
     customer_id: number;
+    salesperson_id?: number | null;
     warehouse_id?: number;
     subtotal: number;
     tax_amount: number;
@@ -40,7 +41,8 @@ export interface Quotation {
 export interface QuotationItem {
     id?: number;
     quotation_id?: number;
-    product_id: number;
+    product_id: number | null;
+    item_name?: string;
     quantity: number;
     unit_price: number;
     description?: string;

@@ -12,7 +12,7 @@ import { InputError } from '@/components/ui/input-error';
 import { ListPlus, Plus, Trash2 } from 'lucide-react';
 import { baseToTransactionAmount, formatTransactionMoney } from '@/utils/transaction-money';
 import { getCurrencySymbolForCode } from '@/utils/helpers';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import TaxField, { TaxOption } from '@/components/tax-field';
 
 interface Props {
     items: SalesInvoiceItem[];
@@ -29,15 +29,23 @@ interface Props {
     canCreateItem?: boolean;
     onCreateItem?: () => void;
     onAddMultipleItems?: () => void;
+    canManageTaxes?: boolean;
+    canCreateTaxes?: boolean;
+    canEditTaxes?: boolean;
+    canDeleteTaxes?: boolean;
 }
 
-export default function InvoiceItemsTable({ items, onChange, errors, products = [], taxTypes = [], showAddButton = true, invoiceType = 'product', onClearError, currencyCode = 'USD', baseCurrencyCode = 'USD', exchangeRate = 1, canCreateItem = false, onCreateItem, onAddMultipleItems }: Props) {
+export default function InvoiceItemsTable({ items, onChange, errors, products = [], taxTypes = [], showAddButton = true, invoiceType = 'product', onClearError, currencyCode = 'USD', baseCurrencyCode = 'USD', exchangeRate = 1, canCreateItem = false, onCreateItem, onAddMultipleItems, canManageTaxes = false, canCreateTaxes = false, canEditTaxes = false, canDeleteTaxes = false }: Props) {
     const { t } = useTranslation();
     const currencySymbol = getCurrencySymbolForCode(currencyCode, usePage().props);
+    const [availableTaxes, setAvailableTaxes] = React.useState<TaxOption[]>(taxTypes);
+
+    React.useEffect(() => setAvailableTaxes(taxTypes), [taxTypes]);
 
     const addItem = () => {
         const newItem: SalesInvoiceItem = {
-            product_id: 0,
+            product_id: null,
+            item_name: '',
             quantity: 1,
             unit_price: 0,
             description: '',
@@ -96,17 +104,17 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
 
     const getSelectedTaxId = (item: SalesInvoiceItem) => {
         const currentTax = item.taxes?.[0];
-        if (!currentTax) return undefined;
+        if (!currentTax) return 'none';
+        if (currentTax.id) return String(currentTax.id);
 
-        return taxTypes.find((tax) =>
+        return availableTaxes.find((tax) =>
             tax.tax_name === currentTax.tax_name && Number(tax.rate) === Number(currentTax.tax_rate)
-        )?.id.toString();
+        )?.id.toString() ?? 'none';
     };
 
-    const handleTaxSelect = (index: number, taxId: string) => {
+    const handleTaxSelect = (index: number, selectedTax: TaxOption | null) => {
         const newItems = [...items];
         const item = { ...newItems[index] };
-        const selectedTax = taxTypes.find((tax) => tax.id.toString() === taxId);
 
         item.taxes = selectedTax ? [{
             id: selectedTax.id,
@@ -143,6 +151,7 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
         newItems[index] = {
             ...newItems[index],
             product_id: productId,
+            item_name: product?.name || newItems[index].item_name || '',
             description: product?.description || '',
             unit_price: baseToTransactionAmount(Number(product?.sale_price) || 0, currencyCode, baseCurrencyCode, exchangeRate),
             tax_percentage: Number(totalTaxRate) || 0,
@@ -209,7 +218,8 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                 <td className="px-4 py-4">
                                     <ProductSelector
                                         products={products}
-                                        value={item.product_id}
+                                        value={Number(item.product_id) || 0}
+                                        manualValue={item.item_name || ''}
                                         itemType={invoiceType}
                                         currencyCode={currencyCode}
                                         baseCurrencyCode={baseCurrencyCode}
@@ -217,8 +227,13 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                         canCreateItem={canCreateItem}
                                         onCreateItem={onCreateItem}
                                         onChange={(productId, product) => handleProductSelect(index, productId, product)}
+                                        onManualChange={(value) => {
+                                            const nextItems = [...items];
+                                            nextItems[index] = { ...nextItems[index], product_id: null, item_name: value };
+                                            onChange(nextItems);
+                                        }}
                                     />
-                                    <InputError message={errors[`items.${index}.product_id`]} />
+                                    <InputError message={errors[`items.${index}.item_name`] || errors[`items.${index}.product_id`]} />
                                     <Textarea aria-label={t('Item description')} placeholder={t('Description')}
                                         className="mt-2 min-w-[260px] min-h-[100px]" rows={4} maxLength={20000}
                                         value={item.description ?? ''}
@@ -269,22 +284,16 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
                                     <InputError message={errors[`items.${index}.discount_percentage`] || errors[`items.${index}.discount_value`] || errors[`items.${index}.discount_type`]} />
                                 </td>
                                 <td className="px-4 py-4">
-                                    <Select
-                                        value={getSelectedTaxId(item) ?? ''}
-                                        onValueChange={(value) => handleTaxSelect(index, value)}
-                                    >
-                                        <SelectTrigger className="w-40">
-                                            <SelectValue placeholder=" " />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="none">{t('No Tax')}</SelectItem>
-                                            {taxTypes.map((tax) => (
-                                                <SelectItem key={tax.id} value={tax.id.toString()}>
-                                                    {tax.tax_name} ({tax.rate}%)
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <TaxField
+                                        value={getSelectedTaxId(item)}
+                                        taxes={availableTaxes}
+                                        onChange={(tax) => handleTaxSelect(index, tax)}
+                                        onTaxesChange={setAvailableTaxes}
+                                        canManage={canManageTaxes}
+                                        canCreate={canCreateTaxes}
+                                        canEdit={canEditTaxes}
+                                        canDelete={canDeleteTaxes}
+                                    />
                                 </td>
                                 <td className="px-4 py-4">
                                     <span className="text-sm font-medium">

@@ -15,25 +15,29 @@ interface Product {
 interface Props {
     products: Product[];
     value: number;
+    manualValue?: string;
     currencyCode: string;
     baseCurrencyCode: string;
     exchangeRate: string | number;
     canCreateItem?: boolean;
     onCreateItem?: () => void;
     onChange: (productId: number, product?: Product) => void;
+    onManualChange?: (value: string) => void;
 }
 
-export default function ProductSelector({ products, value, currencyCode, baseCurrencyCode, exchangeRate, canCreateItem, onCreateItem, onChange }: Props) {
+export default function ProductSelector({ products, value, manualValue, currencyCode, baseCurrencyCode, exchangeRate, canCreateItem, onCreateItem, onChange, onManualChange }: Props) {
     const { t } = useTranslation();
     return <DocumentItemSelector
         products={products}
         value={value}
+        manualValue={manualValue}
         currencyCode={currencyCode}
         baseCurrencyCode={baseCurrencyCode}
         exchangeRate={exchangeRate}
-        placeholder={t('Type or click to select an item')}
+        placeholder={t('Type or click to select an item.', { defaultValue: 'Type or click to select an item.' })}
         canCreateItem={canCreateItem}
         onCreateItem={onCreateItem}
         onChange={onChange}
+        onManualChange={onManualChange}
     />;
 }

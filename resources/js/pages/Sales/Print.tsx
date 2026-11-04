@@ -214,7 +214,7 @@ export default function Print() {
                             {invoice.items?.map((item, index) => (
                                 <tr key={index} className="page-break-inside-avoid">
                                     <td className="py-4">
-                                        <div className="font-semibold">{item.product?.name}{item.description && <div className="mt-1 whitespace-pre-wrap break-words text-sm font-normal">{item.description}</div>}</div>
+                                        <div className="font-semibold">{item.product?.name || item.item_name}{item.description && <div className="mt-1 whitespace-pre-wrap break-words text-sm font-normal">{item.description}</div>}</div>
                                         {item.product?.sku && (
                                             <div className="text-xs text-gray-500">{t('SKU')}: {item.product.sku}</div>
                                         )}

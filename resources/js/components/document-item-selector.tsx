@@ -1,9 +1,8 @@
-import { useMemo, useState } from 'react';
-import { Check, ChevronsUpDown, Plus, Search } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import { Check, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
 import { baseToTransactionAmount, formatTransactionMoney } from '@/utils/transaction-money';
 import { cn } from '@/lib/utils';
 
@@ -25,8 +24,10 @@ interface Props<T extends DocumentItemOption> {
     exchangeRate: string | number;
     priceMode?: 'sale' | 'purchase';
     placeholder: string;
+    manualValue?: string;
     canCreateItem?: boolean;
     onChange: (productId: number, product?: T) => void;
+    onManualChange?: (value: string) => void;
     onCreateItem?: () => void;
 }
 
@@ -38,11 +39,14 @@ export default function DocumentItemSelector<T extends DocumentItemOption>({
     exchangeRate,
     priceMode = 'sale',
     placeholder,
+    manualValue = '',
     canCreateItem = false,
     onChange,
+    onManualChange,
     onCreateItem,
 }: Props<T>) {
     const { t } = useTranslation();
+    const inputRef = useRef<HTMLInputElement>(null);
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
     const selected = products.find(product => product.id === value);
@@ -63,32 +67,39 @@ export default function DocumentItemSelector<T extends DocumentItemOption>({
             setOpen(next);
             if (!next) setQuery('');
         }}>
-            <PopoverTrigger asChild>
-                <Button
-                    type="button"
-                    variant="outline"
+            <PopoverAnchor asChild>
+                <Input
+                    ref={inputRef}
+                    value={selected?.name || manualValue}
+                    onFocus={() => setOpen(true)}
+                    onClick={() => setOpen(true)}
+                    onChange={event => {
+                        onManualChange?.(event.target.value);
+                        setQuery(event.target.value);
+                        setOpen(true);
+                    }}
                     role="combobox"
+                    aria-autocomplete="list"
+                    aria-controls="document-item-suggestions"
                     aria-expanded={open}
-                    className="h-auto min-h-10 w-full justify-between px-3 py-2 text-left font-normal"
-                >
-                    <span className={cn('min-w-0 flex-1 truncate', !selected && 'text-muted-foreground')}>
-                        {selected?.name || placeholder}
-                    </span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] min-w-[320px] p-0">
-                <div className="flex items-center gap-2 border-b px-3 py-2">
-                    <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <Input
-                        value={query}
-                        onChange={event => setQuery(event.target.value)}
-                        placeholder={t('Type or click to select an item')}
-                        className="h-8 border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
-                        autoFocus
-                    />
-                </div>
-                <div className="max-h-72 overflow-y-auto p-1">
+                    autoComplete="off"
+                    placeholder={placeholder}
+                    className="h-10"
+                />
+            </PopoverAnchor>
+            <PopoverContent
+                id="document-item-suggestions"
+                align="start"
+                onOpenAutoFocus={event => event.preventDefault()}
+                onInteractOutside={event => {
+                    if (inputRef.current?.contains(event.target as Node)) {
+                        event.preventDefault();
+                    }
+                }}
+                style={{ width: Math.max(inputRef.current?.offsetWidth || 0, 320) }}
+                className="max-w-[calc(100vw-2rem)] p-0"
+            >
+                <div className="max-h-72 overflow-y-auto overscroll-contain p-1">
                     {filtered.length ? filtered.map(product => {
                         const basePrice = priceMode === 'purchase' ? product.purchase_price : product.sale_price;
                         const price = baseToTransactionAmount(Number(basePrice) || 0, currencyCode, baseCurrencyCode, exchangeRate);
@@ -113,7 +124,9 @@ export default function DocumentItemSelector<T extends DocumentItemOption>({
                             </button>
                         );
                     }) : (
-                        <div className="px-3 py-8 text-center text-sm text-muted-foreground">{t('No items found.')}</div>
+                        <div className="px-3 py-8 text-center text-sm text-muted-foreground">
+                            {manualValue.trim() ? t('Use the typed text as a manual item') : t('No items found.')}
+                        </div>
                     )}
                 </div>
                 {canCreateItem && onCreateItem && (

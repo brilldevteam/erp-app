@@ -128,7 +128,8 @@ class SalesInvoiceService
         foreach ($items as $itemData) {
             $item = new SalesInvoiceItem();
             $item->invoice_id = $invoiceId;
-            $item->product_id = $itemData['product_id'];
+            $item->product_id = $itemData['product_id'] ?? null;
+            $item->item_name = $itemData['item_name'] ?? null;
             $item->description = $itemData['description'] ?? '';
             $item->discount_type = $itemData['discount_type'] ?? 'percentage';
             $item->discount_value = $itemData['discount_value'] ?? 0;
@@ -138,7 +139,7 @@ class SalesInvoiceService
             $item->tax_percentage = $itemData['tax_percentage'] ?? 0;
             $item->save();
 
-            if (array_key_exists('description', $itemData)) {
+            if (!empty($itemData['product_id']) && array_key_exists('description', $itemData)) {
                 SalesLineAmounts::syncProductDescription(
                     (int) $itemData['product_id'],
                     $itemData['description'],

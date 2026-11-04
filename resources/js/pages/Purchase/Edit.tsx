@@ -105,6 +105,7 @@ export default function Edit() {
             const amounts = calculateLineItemAmounts(1, price, 0, taxPercentage, 'percentage', 0);
             return {
                 product_id: product.id,
+                item_name: product.name,
                 description: product.description || '',
                 account_id: null,
                 quantity: 1,
@@ -119,7 +120,7 @@ export default function Edit() {
                 taxes: product.taxes?.map(tax => ({ id: tax.id, tax_name: tax.tax_name, tax_rate: Number(tax.rate) })) || [],
             } as PurchaseInvoiceItem;
         });
-        setData('items', [...data.items.filter(item => item.product_id > 0), ...selectedItems]);
+        setData('items', [...data.items.filter(item => Number(item.product_id) > 0 || Boolean(item.item_name?.trim())), ...selectedItems]);
     };
 
     // Recurring fields hook
@@ -302,7 +303,7 @@ export default function Edit() {
                                 </div>
                             )}
                             <div className="mt-6 border-t pt-6">
-                                <TransactionCurrencyFields currencyCode={data.currency_code} exchangeRate={data.exchange_rate} transactionDate={data.invoice_date} amount={totals.total} errors={errors} onCurrencyChange={value => setData('currency_code', value)} onRateChange={value => setData('exchange_rate', value)} />
+                                <TransactionCurrencyFields defaultEnabled={initialCurrency !== baseCurrency} currencyCode={data.currency_code} exchangeRate={data.exchange_rate} transactionDate={data.invoice_date} amount={totals.total} errors={errors} onCurrencyChange={value => setData('currency_code', value)} onRateChange={value => setData('exchange_rate', value)} />
                             </div>
                         </CardContent>
                     </Card>
@@ -375,6 +376,7 @@ export default function Edit() {
                                 errors={errors}
                                 products={availableProducts}
                                 accounts={billAccounts || []}
+                                taxTypes={productCatalog?.taxes || []}
                                 showAddButton
                                 canCreateItem={auth.user.permissions?.includes('create-products') || auth.user.permissions?.includes('create-services') || auth.user.permissions?.includes('create-product-service-item') || false}
                                 onCreateItem={() => { setProductPickerView('create'); setIsProductPickerOpen(true); }}
@@ -382,6 +384,10 @@ export default function Edit() {
                                 currencyCode={data.currency_code}
                                 baseCurrencyCode={baseCurrency}
                                 exchangeRate={data.exchange_rate}
+                                canManageTaxes={auth.user.permissions?.includes('manage-product-service-taxes') || false}
+                                canCreateTaxes={auth.user.permissions?.includes('create-product-service-taxes') || false}
+                                canEditTaxes={auth.user.permissions?.includes('edit-product-service-taxes') || false}
+                                canDeleteTaxes={auth.user.permissions?.includes('delete-product-service-taxes') || false}
                             />
 
                             <ProductPickerDialog

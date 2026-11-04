@@ -12,12 +12,14 @@ import { InputError } from '@/components/ui/input-error';
 import { ListPlus, Plus, Trash2 } from 'lucide-react';
 import { getCurrencySymbolForCode } from '@/utils/helpers';
 import { baseToTransactionAmount, formatTransactionMoney } from '@/utils/transaction-money';
+import TaxField, { TaxOption } from '@/components/tax-field';
 
 interface Props {
     items: QuotationItem[];
     onChange: (items: QuotationItem[]) => void;
     errors: any;
-    products?: Array<{id: number; name: string; sale_price: number; unit?: string; stock_quantity?: number; taxes?: Array<{id: number; tax_name: string; rate: number}>}>;
+    products?: Array<{id: number; name: string; description?: string; sale_price: number; unit?: string; stock_quantity?: number; taxes?: Array<{id: number; tax_name: string; rate: number}>}>;
+    taxTypes?: TaxOption[];
     showAddButton?: boolean;
     onClearError?: (field: string) => void;
     currencyCode?: string;
@@ -26,15 +28,23 @@ interface Props {
     canCreateItem?: boolean;
     onCreateItem?: () => void;
     onAddMultipleItems?: () => void;
+    canManageTaxes?: boolean;
+    canCreateTaxes?: boolean;
+    canEditTaxes?: boolean;
+    canDeleteTaxes?: boolean;
 }
 
-export default function QuotationItemsTable({ items, onChange, errors, products = [], showAddButton = true, onClearError, currencyCode = 'USD', baseCurrencyCode = 'USD', exchangeRate = 1, canCreateItem = false, onCreateItem, onAddMultipleItems }: Props) {
+export default function QuotationItemsTable({ items, onChange, errors, products = [], taxTypes = [], showAddButton = true, onClearError, currencyCode = 'USD', baseCurrencyCode = 'USD', exchangeRate = 1, canCreateItem = false, onCreateItem, onAddMultipleItems, canManageTaxes = false, canCreateTaxes = false, canEditTaxes = false, canDeleteTaxes = false }: Props) {
     const { t } = useTranslation();
     const currencySymbol = getCurrencySymbolForCode(currencyCode, usePage().props);
+    const [availableTaxes, setAvailableTaxes] = React.useState(taxTypes);
+
+    React.useEffect(() => setAvailableTaxes(taxTypes), [taxTypes]);
 
     const addItem = () => {
         const newItem: QuotationItem = {
-            product_id: 0,
+            product_id: null,
+            item_name: '',
             quantity: 1,
             unit_price: 0,
             description: '',
@@ -65,7 +75,7 @@ export default function QuotationItemsTable({ items, onChange, errors, products 
             item.discount_value = 0;
         }
 
-        if (item.tax_percentage === 0 && item.product_id > 0) {
+        if (item.tax_percentage === 0 && Number(item.product_id) > 0) {
             const product = products.find(p => p.id === item.product_id);
             if (product?.taxes?.length) {
                 item.tax_percentage = product.taxes.reduce((sum, tax) => sum + tax.rate, 0);
@@ -109,6 +119,7 @@ export default function QuotationItemsTable({ items, onChange, errors, products 
         newItems[index] = {
             ...newItems[index],
             product_id: productId,
+            item_name: product?.name || newItems[index].item_name || '',
             description: product?.description || '',
             unit_price: baseToTransactionAmount(Number(product?.sale_price) || 0, currencyCode, baseCurrencyCode, exchangeRate),
             tax_percentage: Number(totalTaxRate) || 0,
@@ -138,6 +149,43 @@ export default function QuotationItemsTable({ items, onChange, errors, products 
         }
     };
 
+    const getSelectedTaxId = (item: QuotationItem) => {
+        const currentTax = item.taxes?.[0];
+        if (!currentTax) return 'none';
+        if (currentTax.id) return String(currentTax.id);
+
+        return availableTaxes.find((tax) =>
+            tax.tax_name === currentTax.tax_name && Number(tax.rate) === Number(currentTax.tax_rate)
+        )?.id.toString() ?? 'none';
+    };
+
+    const handleTaxSelect = (index: number, selectedTax: TaxOption | null) => {
+        const newItems = [...items];
+        const item = { ...newItems[index] };
+
+        item.taxes = selectedTax ? [{
+            id: selectedTax.id,
+            tax_name: selectedTax.tax_name,
+            tax_rate: Number(selectedTax.rate),
+        }] : [];
+        item.tax_percentage = selectedTax ? Number(selectedTax.rate) : 0;
+
+        const calculations = calculateLineItemAmounts(
+            item.quantity,
+            item.unit_price,
+            item.discount_percentage,
+            item.tax_percentage,
+            item.discount_type,
+            item.discount_value
+        );
+
+        item.discount_amount = calculations.discountAmount;
+        item.tax_amount = calculations.taxAmount;
+        item.total_amount = calculations.totalAmount;
+        newItems[index] = item;
+        onChange(newItems);
+    };
+
     return (
         <div className="space-y-4">
             <div className="overflow-x-auto">
@@ -145,7 +193,7 @@ export default function QuotationItemsTable({ items, onChange, errors, products 
                     <thead>
                         <tr className="border-b border-border">
                             <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                                {t('Product')} <span className="text-red-500">*</span>
+                                {t('Item Details')} <span className="text-red-500">*</span>
                             </th>
                             <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
                                 {t('Qty')} <span className="text-red-500">*</span>
@@ -173,15 +221,25 @@ export default function QuotationItemsTable({ items, onChange, errors, products 
                                 <td className="px-4 py-4">
                                     <ProductSelector
                                         products={products}
-                                        value={item.product_id}
+                                        value={Number(item.product_id) || 0}
+                                        manualValue={item.item_name || ''}
                                         currencyCode={currencyCode}
                                         baseCurrencyCode={baseCurrencyCode}
                                         exchangeRate={exchangeRate}
                                         canCreateItem={canCreateItem}
                                         onCreateItem={onCreateItem}
                                         onChange={(productId, product) => handleProductSelect(index, productId, product)}
+                                        onManualChange={(value) => {
+                                            const nextItems = [...items];
+                                            nextItems[index] = { ...nextItems[index], product_id: null, item_name: value };
+                                            onChange(nextItems);
+                                            if (value.trim()) {
+                                                onClearError?.(`items.${index}.item_name`);
+                                                onClearError?.(`items.${index}.product_id`);
+                                            }
+                                        }}
                                     />
-                                    <InputError message={errors[`items.${index}.product_id`]} />
+                                    <InputError message={errors[`items.${index}.item_name`] || errors[`items.${index}.product_id`]} />
                                     <Textarea aria-label={t('Item description')} placeholder={t('Description')}
                                         className="mt-2 min-w-[260px] min-h-[100px]" rows={4} maxLength={20000}
                                         value={item.description ?? ''}
@@ -232,19 +290,16 @@ export default function QuotationItemsTable({ items, onChange, errors, products 
                                     <InputError message={errors[`items.${index}.discount_percentage`] || errors[`items.${index}.discount_value`] || errors[`items.${index}.discount_type`]} />
                                 </td>
                                 <td className="px-4 py-4">
-                                    {item.taxes && item.taxes.length > 0 ? (
-                                        <div className="flex flex-wrap gap-1">
-                                            {item.taxes.map((tax, taxIndex) => (
-                                                <span key={taxIndex} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                    {tax.tax_name} ({tax.tax_rate}%)
-                                                </span>
-                                            ))}
-                                        </div>
-                                    ) : item.tax_percentage > 0 ? (
-                                        <span className="text-sm text-blue-800">Tax ({item.tax_percentage}%)</span>
-                                    ) : (
-                                        <span className="text-sm text-muted-foreground">No tax</span>
-                                    )}
+                                    <TaxField
+                                        value={getSelectedTaxId(item)}
+                                        taxes={availableTaxes}
+                                        onChange={(tax) => handleTaxSelect(index, tax)}
+                                        onTaxesChange={setAvailableTaxes}
+                                        canManage={canManageTaxes}
+                                        canCreate={canCreateTaxes}
+                                        canEdit={canEditTaxes}
+                                        canDelete={canDeleteTaxes}
+                                    />
                                 </td>
                                 <td className="px-4 py-4">
                                     <span className="text-sm font-medium">

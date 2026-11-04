@@ -22,6 +22,7 @@ export default function TransactionCurrencyFields({
     errors = {},
     disabled = false,
     exchangeDifference = null,
+    defaultEnabled = false,
 }: {
     currencyCode: string;
     exchangeRate: string | number;
@@ -33,6 +34,7 @@ export default function TransactionCurrencyFields({
     disabled?: boolean;
     /** Base-currency gain (positive) or loss (negative) against the documents being settled, shown beside the equivalent. */
     exchangeDifference?: number | null;
+    defaultEnabled?: boolean;
 }) {
     const { t } = useTranslation();
     const page = usePage().props as any;
@@ -41,25 +43,16 @@ export default function TransactionCurrencyFields({
     const [rateFocused, setRateFocused] = useState(false);
     const [currencyOpen, setCurrencyOpen] = useState(false);
     const [currencyQuery, setCurrencyQuery] = useState('');
-    const [multiCurrencyEnabled, setMultiCurrencyEnabled] = useState(
-        Boolean(currencyCode && currencyCode !== baseCurrency),
-    );
+    const [multiCurrencyEnabled, setMultiCurrencyEnabled] = useState(defaultEnabled);
 
     useEffect(() => {
-        // A foreign currency chosen by the form (a party's preferred currency, an invoice being paid) turns the section on.
-        if (currencyCode && currencyCode !== baseCurrency) {
-            setMultiCurrencyEnabled(true);
-            return;
-        }
-
-        if (multiCurrencyEnabled) {
-            setMultiCurrencyEnabled(false);
-        }
-        if (currencyCode !== baseCurrency) {
+        if (!defaultEnabled && (!currencyCode || currencyCode !== baseCurrency)) {
             onCurrencyChange(baseCurrency);
             onRateChange('1.00');
         }
-    }, [baseCurrency, currencyCode, multiCurrencyEnabled]);
+        // Initialize a new document once. User toggles and currency choices must not be synchronized back off.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const toggleMultiCurrency = (checked: boolean) => {
         setMultiCurrencyEnabled(checked);
@@ -96,18 +89,12 @@ export default function TransactionCurrencyFields({
                 aria-pressed={multiCurrencyEnabled}
                 disabled={disabled}
                 onClick={() => toggleMultiCurrency(!multiCurrencyEnabled)}
-                className={cn(
-                    'inline-flex h-9 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-                    multiCurrencyEnabled
-                        ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90'
-                        : 'border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground',
-                )}
+                className="inline-flex min-h-9 items-center gap-3 whitespace-nowrap text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
-                <span className={cn(
-                    'h-2 w-2 rounded-full border transition-colors',
-                    multiCurrencyEnabled ? 'border-primary-foreground bg-primary-foreground' : 'border-muted-foreground bg-transparent',
-                )} />
-                {t('Multi-Currency Transaction')}
+                <span className={cn('relative h-6 w-11 shrink-0 rounded-full transition-colors', multiCurrencyEnabled ? 'bg-primary' : 'bg-muted-foreground/70')}>
+                    <span className={cn('absolute left-0 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform', multiCurrencyEnabled ? 'translate-x-[22px]' : 'translate-x-0.5')} />
+                </span>
+                <span>{t('Multi-Currency Transaction')}</span>
             </button>
         </div>
 

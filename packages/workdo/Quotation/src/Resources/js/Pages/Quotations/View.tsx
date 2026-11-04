@@ -219,7 +219,7 @@ export default function View() {
                                     {quotation.items?.map((item, index) => (
                                         <tr key={index}>
                                             <td className="px-4 py-4">
-                                                <div className="font-medium">{item.product?.name}</div>
+                                                <div className="font-medium">{item.product?.name || item.item_name}</div>
                                                 {item.product?.sku && (
                                                     <div className="text-sm text-muted-foreground">SKU: {item.product.sku}</div>
                                                 )}

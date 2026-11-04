@@ -54,6 +54,10 @@ class TaxController extends Controller
             // Dispatch event for packages to handle their fields
             CreateProductServiceTax::dispatch($request, $tax);
 
+            if ($request->expectsJson()) {
+                return response()->json($tax->only(['id', 'tax_name', 'rate']), 201);
+            }
+
             return redirect()->route('product-service.taxes.index')->with('success', __('The tax has been created successfully.'));
         }
         return redirect()->route('product-service.taxes.index')->with('error', __('Permission denied'));
@@ -62,6 +66,8 @@ class TaxController extends Controller
     public function update(Request $request, ProductServiceTax $tax)
     {
         if(Auth::user()->can('edit-product-service-taxes')){
+            abort_unless((int) $tax->created_by === (int) creatorId(), 403);
+
             $validated = $request->validate([
                 'tax_name' => 'required|string|max:255',
                 'rate' => 'required|numeric|min:0|max:100',
@@ -74,6 +80,10 @@ class TaxController extends Controller
             // Dispatch event for packages to handle their fields
             UpdateProductServiceTax::dispatch($request, $tax);
 
+            if ($request->expectsJson()) {
+                return response()->json($tax->only(['id', 'tax_name', 'rate']));
+            }
+
             return redirect()->route('product-service.taxes.index')->with('success', __('The tax details are updated successfully.'));
         }
         return redirect()->route('product-service.taxes.index')->with('error', __('Permission denied'));
@@ -82,10 +92,16 @@ class TaxController extends Controller
     public function destroy(ProductServiceTax $tax)
     {
         if(Auth::user()->can('delete-product-service-taxes')){
+            abort_unless((int) $tax->created_by === (int) creatorId(), 403);
+
             // Dispatch event for packages to handle their fields
             DestroyProductServiceTax::dispatch($tax);
 
             $tax->delete();
+
+            if (request()->expectsJson()) {
+                return response()->noContent();
+            }
 
             return redirect()->route('product-service.taxes.index')->with('success', __('The tax has been deleted.'));
         }

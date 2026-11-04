@@ -11,6 +11,13 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Fixed
+- The shared tax manager now treats tax creation as a catalogue-only action. Creating a tax uses Save and adds it to the available list without changing the active Quotation, Sales Invoice, or Purchase Invoice line; users select it explicitly afterward.
+- Purchase Invoice tax selectors now match Sales Invoice and Quotation: new lines visibly default to No Tax, saved-item taxes remain preselected, and users can override or clear tax before saving while totals recalculate immediately.
+- Sales Invoice tax selectors now map an empty tax state to the explicit No Tax option, so new and manually cleared lines no longer render a blank dropdown.
+- Quotation lines now use the same editable tax selector as Sales Invoices. Selecting a saved item applies its configured tax, users can override or remove that tax before saving, totals recalculate immediately, and descriptions remain editable for saved and manual items.
+- Fixed manually typed Sales Invoice line names disappearing after creation. The create service now persists catalog-optional item names, keeps the product relation nullable, and only synchronizes descriptions for selected catalog products.
+- Fixed the shared editable document-item selector closing immediately after it was clicked. Sales Invoice, Purchase Invoice, and Quotation item dropdowns now use one stable popover trigger and remain open while users browse or type.
+- Fixed the shared Multi-Currency Transaction switch so its thumb no longer covers the label, new documents initialize in the company base currency with the switch off, and enabling it is no longer immediately reversed by state synchronization.
 - Multi-Currency Transaction pills now resolve the company base currency from both standard document settings payloads, preventing new QAR quotations from incorrectly opening in the active state because of a USD fallback.
 - Legacy Sales Invoice, Purchase Invoice and Quotation records without a saved base-currency snapshot now open in the company's base currency with multi-currency disabled instead of incorrectly defaulting to USD. The base currency remains searchable in the currency picker and selecting it cleanly disables multi-currency. All three document create/edit forms now place these controls in the same separate white expandable card.
 - Kept the Add Products search icon inside its input boundary at every width, and added balanced top/bottom spacing around the shared Multi-Currency Transaction controls.
@@ -22,6 +29,10 @@ All notable changes to the Wazely ERP application are documented here.
 - Fixed the Purchases > Payments Made page returning a server error by limiting its vendor-details query to columns that exist in the vendor table.
 
 ### Added
+- Purchase Invoice create/edit tax selectors now expose the shared searchable, permission-controlled Manage Taxes workflow, including inline creation, editing and deletion of the Product & Service tax catalogue.
+- Sales Invoice create/edit tax selectors now expose the same searchable, permission-controlled Manage Taxes workflow as Quotations, with shared immediate catalogue updates across all invoice rows.
+- Quotation tax dropdowns now show No Tax by default and provide a searchable, permission-controlled Manage Taxes workflow for creating, editing and deleting the shared Product & Service tax catalogue. Inline tax mutations return JSON while existing System Setup pages retain their redirects, and update/delete now enforce tenant ownership. Product and Service forms also use the explicit No Tax label.
+- Quotations now support a tenant-scoped Salesperson on the second details row beside Template. The searchable selector includes a Zoho-style manager with inline blank creation, populated editing, active/inactive controls, deletion, and hover-only row actions; the selected salesperson is persisted on create and edit. The model explicitly uses the migrated `quotation_salespersons` table so Laravel's irregular `salespeople` pluralization cannot break the page.
 - Product & Service now has separate Products and Services submenus with independent manage, own/all scope, view, create, edit and delete permissions. Existing role grants are copied to both new permission families during migration so current access is preserved.
 - Purchase Invoice create and edit now use the same searchable product browser as Sales Invoice, including category filtering, multi-select, quick product creation when permitted, and immediate line insertion. Purchase mode displays and applies purchase prices and allows out-of-stock products to be selected for replenishment.
 - Every file-based migration journey step now supports clients arriving from any ERP: its upload guide shows the accepted column structure and provides downloadable Wazely XLSX and CSV templates. Original Zoho exports remain supported unchanged.
@@ -32,6 +43,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Company users can configure exchange gain and loss accounts from Currency Rates. Customer and vendor forms can set a preferred document currency.
 
 ### Changed
+- Quotation lines now present one Zoho-style `Item Details` textbox without dropdown chrome: clicking lists all available products and services, typing filters saved matches, and unmatched text remains a valid manual quotation item with independently editable description, quantity, price, discount, and tax.
 - Sales Invoice, Purchase Invoice and Quotation create/edit now use a Zoho-style searchable line-item selector with item rates and an Add New Item footer. Add New Row and Add Multiple Items controls sit below each table; the former top Add Product button and the bulk dialog's Create New Product button were removed, while quick creation still adds the new item immediately.
 - Product and Service catalog pages are now type-locked by their submenu and server route. The Item Type dropdown has been removed from create/edit forms, product/part records appear under Products, service records appear under Services, and each list uses matching titles, actions, filters and empty states.
 - Replaced the Multi-Currency Transaction checkbox with a compact accessible pill toggle across Sales Invoice, Purchase Invoice and Quotation create/edit forms; active styling clearly indicates when the currency fields are expanded.

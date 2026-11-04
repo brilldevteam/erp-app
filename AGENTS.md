@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `feature/customer-360-document-ux-2026-11-04` | Package the verified local Customer 360 plus document UX integration: reliable default-off multi-currency switch, quotation salesperson selector/manager, single-scroll item/product dialogs, stable editable item popover, catalog-optional manual lines, and shared tax management for Sales Invoice, Purchase Invoice and Quotation. Exclude generated `public/build`, `public/hot`, and unrelated workspace files; commit and push without a PR. | 2026-11-04 | Active - branch packaging and push |
 | Codex | `release/zoho-and-security` | Zoho-style searchable line-item selector for Sales Invoice, Purchase Invoice and Quotation create/edit; bottom Add New Row/Add Multiple Items controls; quick-create footer flow, tests/build, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Ensure the shared Multi-Currency Transaction pill defaults off by resolving the correct company base currency across document contexts; focused regression test/build, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Split Product & Service Items into permission-controlled Products and Services submenus, type-locked list/create/edit flows, permission migration/seeder, tests, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
@@ -264,6 +265,79 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-11-04 Asia/Colombo - Codex - Customer 360 document UX release branch
+
+- Branch: `feature/customer-360-document-ux-2026-11-04`, created from Aadil's Customer 360 tip `c26514fdd` with the verified local document UX work applied on top.
+- Scope: Sales Invoice, Purchase Invoice and Quotation manual/catalog line entry, shared tax management, quotation salesperson management, multi-currency controls, supporting migrations, focused tests, changelog and coordination records.
+- Verification before packaging: focused PHPUnit passed 23 tests / 325 assertions; TypeScript and the production Vite build passed with 4,015 modules transformed; local `/login` returned HTTP 200.
+- Database: local-only migrations for manual document lines, Product/Service permission split, quotation salespersons and Customer 360 activity logs are applied. Production requires normal migration deployment.
+- Exclusions: generated `public/build`, `public/hot`, local scratch folders, the unrelated Medical Production Evidence architecture note, and all other unrelated untracked files.
+- Delivery: commit and push this branch directly without creating a pull request. No production deployment is included.
+
+### 2026-11-04 Asia/Colombo - Codex - Customer 360 local integration recovery
+
+- Branch: `feature/customer-360-ui-upgrade-2026-11-03`, tracking Aadil's remote branch at `c26514fdd`; no commit or push.
+- Existing document UX changes remain uncommitted on top of Aadil's branch. Generated `public/build` remains local-only.
+- Installed Aadil's declared font dependencies, rebuilt the complete frontend successfully, confirmed the bundle contains Sales and Product/Service menu permissions, and restarted Laravel at `http://127.0.0.1:8001`.
+- Local database only: ran Aadil's pending `2026_11_03_000001_create_customer_activity_logs_table` migration. Product/service permission and document migrations were already applied.
+- Aadil's branch already descends from release commit `e8db2fb50`, so the committed ERP changes were present; the visible menu problem came from a stopped server and stale bundle after the branch switch, not missing commits.
+- Verification: production frontend build passed with 4,015 modules; focused document suite passed 23 tests / 325 assertions; `/login` on port 8001 returns HTTP 200. The browser automation bridge failed, so the authenticated sidebar still needs a manual hard refresh check.
+- No GitHub or production changes. Do not commit generated build files. Next: hard-refresh the authenticated local page and verify Sales and Product/Service menus.
+
+### 2026-11-04 Asia/Colombo - Codex - Shared tax create-only behavior
+
+- Branch: `release/zoho-and-security`; no PR, commit, or push; retained within the active local document UX claim for user verification.
+- Removed Save and Select from the shared tax manager at the user's request. Creating a tax now uses Save, adds it to the shared catalogue without changing the active Quotation, Sales Invoice, or Purchase Invoice line, and leaves explicit selection to the user. Editing a selected tax still refreshes that line's tax snapshot.
+- Verification: focused PHPUnit passed 9 tests / 138 assertions; TypeScript and production Vite build passed with 4,007 modules transformed. Generated `public/build` remains excluded from commits.
+
+### 2026-11-04 Asia/Colombo - Codex - Purchase Invoice tax manager parity
+
+- Branch: `release/zoho-and-security`; no PR, commit, or push; retained within the active local document UX claim for user verification.
+- Purchase Invoice create/edit now use the same shared searchable TaxField and permission-controlled Manage Taxes dialog as Sales Invoice and Quotation. New and cleared lines visibly default to No Tax, selecting a catalog item preserves its configured tax, and tax overrides recalculate line totals immediately.
+- Verification: focused PHPUnit passed 9 tests / 130 assertions; TypeScript and production Vite build passed with 4,007 modules transformed. Generated `public/build` remains excluded from commits.
+
+### 2026-11-04 Asia/Colombo - Codex - Sales Invoice tax manager parity
+
+- Branch: `release/zoho-and-security`; no PR, commit, or push; retained within the active local document UX claim for user verification.
+- Sales Invoice create/edit now use the same shared searchable TaxField and permission-controlled Manage Taxes dialog as Quotation. Create, edit and delete actions mutate the shared Product & Service tax catalogue and update every Sales Invoice row immediately; No Tax remains the explicit default.
+- Verification: focused PHPUnit passed 9 tests / 117 assertions; TypeScript and production Vite build passed with 4,007 modules transformed. Generated `public/build` remains excluded from commits. Local PHP server restarted on port 8001 and `/login` returned HTTP 200.
+
+### 2026-11-04 Asia/Colombo - Codex - Sales Invoice No Tax default
+
+- Branch: `release/zoho-and-security`; no PR, commit, or push; retained within the active local document UX claim for user verification.
+- Fixed new and manually cleared Sales Invoice rows mapping their empty tax state to the explicit `none` option, so the selector visibly reads No Tax instead of rendering blank.
+- Verification: focused PHPUnit passed 6 tests / 84 assertions; TypeScript and production Vite build passed with 4,006 modules transformed. Generated `public/build` remains excluded from commits. Local PHP server restarted on port 8001 and `/login` returned HTTP 200.
+
+### 2026-11-04 Asia/Colombo - Codex - Shared quotation tax manager
+
+- Branch: `release/zoho-and-security`; no PR, commit, or push; retained within the active local document UX claim for user verification.
+- Quotation tax fields now visibly default to No Tax and use a searchable selector with a permission-controlled Manage Taxes dialog. Users with the corresponding Product & Service tax permissions can create, edit and delete the tenant's shared taxes; changes update every quotation row immediately and are available to Product/Service forms from the same catalogue.
+- Product and Service create/edit forms now label their empty tax option No Tax instead of `_`. Quotation users receive tenant tax options independently from legacy product-item permissions, while categories and units remain catalog-permission scoped.
+- Security/compatibility: inline tax CRUD returns JSON only when requested; existing System Setup redirects remain intact. Tax update/delete now enforce tenant ownership. Historical document-line tax snapshots are not removed when a catalogue tax is deleted.
+- Verification: PHP syntax checks passed; focused PHPUnit passed 9 tests / 107 assertions; TypeScript and production Vite build passed with 4,006 modules transformed. Generated `public/build` remains excluded from commits. Local PHP server restarted on port 8001 and `/login` returned HTTP 200.
+
+### 2026-11-04 Asia/Colombo - Codex - Quotation editable tax parity
+
+- Branch: `release/zoho-and-security`; no PR, commit, or push; retained within the active local document UX claim for user verification.
+- Quotation create/edit lines now receive the tenant tax catalogue and render the same editable tax selector as Sales Invoice. Saved-item selection applies its configured tax; users can change or remove it, and line/summary amounts recalculate immediately. Item names and descriptions remain editable for saved and manual lines.
+- Verification: focused PHPUnit passed 9 tests / 95 assertions; TypeScript and production Vite build passed with 4,005 modules transformed. Generated `public/build` remains excluded from commits. Local PHP server restarted on port 8001 after the build; `/login` returned HTTP 200.
+
+### 2026-11-04 Asia/Colombo - Codex - Manual Sales Invoice item-name persistence
+
+- Branch: `release/zoho-and-security`; no PR, commit, or push; kept within the active local document UX claim for user verification.
+- Fixed the Sales Invoice create service so catalog-optional lines persist their typed `item_name`, accept a null `product_id`, and skip catalog-description synchronization when no saved product was selected. The existing edit, view, print and document-template fallbacks remain unchanged.
+- Deployment dependency: migration `2026_11_03_000001_allow_manual_document_line_items` provides the nullable product relation and `item_name` columns; it is already applied in the local database and must run in production with the rest of the pending migrations.
+- Verification: PHP syntax checks passed; focused PHPUnit passed 5 tests / 60 assertions; migration status confirms `2026_11_03_000001_allow_manual_document_line_items` is applied locally. No frontend rebuild was required for this backend-only follow-up, and generated `public/build` remains excluded.
+
+### 2026-11-04 Asia/Colombo - Codex - Quotation salesperson and multi-currency switch repair
+
+- Branch: `release/zoho-and-security`; no PR and no push; local user verification pending.
+- Multi-currency: repaired the shared switch geometry and state handling. New documents initialize once to the company base currency with the switch off; user activation is no longer immediately reversed; existing foreign-currency edits can still initialize enabled.
+- Quotations: added a tenant-scoped salesperson table and optional quotation relationship. Create/edit forms place Salesperson on the second details row beside Template and provide a searchable Zoho-style manager with blank create fields, populated edit fields, active/inactive and delete actions, and hover-only action controls.
+- Follow-up: explicitly mapped `QuotationSalesperson` to `quotation_salespersons`; Laravel otherwise pluralizes the class to the nonexistent `quotation_salespeople` table.
+- Deployment: applied `2026_11_04_000001_add_quotation_salespersons` locally. Production deployment requires `php artisan migrate --force`.
+- Verification: PHP syntax checks passed; focused PHPUnit passed 8 tests / 72 assertions; TypeScript and the production Vite build passed with 4,005 modules transformed before the final one-time base-currency initialization adjustment. A final rebuild follows this entry. Generated `public/build` remains excluded from commits.
 
 ### 2026-11-03 Asia/Colombo - Codex - Zoho-style document item selection
 

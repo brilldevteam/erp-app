@@ -52,7 +52,8 @@ export interface PurchaseInvoiceAttachment {
 export interface PurchaseInvoiceItem {
     id?: number;
     invoice_id?: number;
-    product_id: number;
+    product_id: number | null;
+    item_name?: string;
     description?: string;
     unit?: string;
     account_id?: number | null;

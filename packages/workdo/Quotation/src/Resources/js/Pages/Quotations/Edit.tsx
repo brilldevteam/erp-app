@@ -19,12 +19,14 @@ import { Separator } from '@/components/ui/separator';
 import { CalendarDays, Package } from 'lucide-react';
 import TransactionCurrencyFields from '@/components/transaction-currency-fields';
 import { baseToTransactionAmount, formatTransactionMoney } from '@/utils/transaction-money';
+import SalespersonField, { Salesperson } from './components/SalespersonField';
 
 interface EditProps {
     quotation: Quotation;
     customers: Array<{id: number; name: string; email?: string | null}>;
     warehouses: Array<{id: number; name: string; address: string}>;
     documentTemplates: Array<{ id: number; name: string; is_default: boolean }>;
+    salespersons: Salesperson[];
     productCatalog: {
         categories: Array<{ id: number; name: string }>;
         units: Array<{ id: number; unit_name: string }>;
@@ -37,7 +39,7 @@ interface EditProps {
 export default function Edit() {
     const { t } = useTranslation();
     const page = usePage<EditProps>().props;
-    const { quotation, customers, warehouses, documentTemplates = [], productCatalog, auth } = page;
+    const { quotation, customers, warehouses, documentTemplates = [], productCatalog, auth, salespersons = [] } = page;
     const companyBaseCurrency = String(page.companyAllSetting?.defaultCurrency || 'USD').toUpperCase();
     const baseCurrency = String(quotation.base_currency_code || companyBaseCurrency).toUpperCase();
     const initialCurrency = quotation.base_currency_code
@@ -56,6 +58,7 @@ export default function Edit() {
         currency_code: initialCurrency,
         exchange_rate: initialCurrency === baseCurrency ? '1.00000000' : String(quotation.exchange_rate),
         customer_id: quotation.customer_id.toString(),
+        salesperson_id: quotation.salesperson_id?.toString() || '',
         warehouse_id: quotation.warehouse_id?.toString() || '',
         document_template_id: quotation.document_template_id?.toString() || '',
         payment_terms: quotation.payment_terms || '',
@@ -115,7 +118,7 @@ export default function Edit() {
             const taxPercentage = product.taxes?.reduce((sum, tax) => sum + Number(tax.rate), 0) || 0;
             const price = baseToTransactionAmount(Number(product.sale_price) || 0, data.currency_code, baseCurrency, data.exchange_rate);
             return {
-                ...emptyItem(), product_id: product.id, description: product.description || '', unit_price: price,
+                ...emptyItem(), product_id: product.id, item_name: product.name, description: product.description || '', unit_price: price,
                 tax_percentage: taxPercentage,
                 taxes: product.taxes?.map(tax => ({ tax_name: tax.tax_name, tax_rate: Number(tax.rate) })) || [],
                 tax_amount: price * taxPercentage / 100, total_amount: price * (1 + taxPercentage / 100),
@@ -123,7 +126,7 @@ export default function Edit() {
         });
         setData(current => ({
             ...current,
-            items: [...current.items.filter(item => item.product_id > 0), ...selectedItems],
+            items: [...current.items.filter(item => Number(item.product_id) > 0 || Boolean(item.item_name?.trim())), ...selectedItems],
         }));
         const productErrors = Object.keys(errors).filter(key => /^items\.\d+\.product_id$/.test(key));
         if (productErrors.length) clearErrors(...productErrors as any);
@@ -257,6 +260,11 @@ export default function Edit() {
                                     </Select>
                                     <InputError message={errors.document_template_id} />
                                 </div>
+
+                                <div>
+                                    <SalespersonField value={data.salesperson_id} initialSalespersons={salespersons} onChange={value => setData('salesperson_id', value)} />
+                                    <InputError message={errors.salesperson_id} />
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
@@ -292,7 +300,7 @@ export default function Edit() {
                                 </div>
                             </div>
                             <div className="mt-6 border-t pt-6">
-                                <TransactionCurrencyFields currencyCode={data.currency_code} exchangeRate={data.exchange_rate} transactionDate={data.invoice_date} amount={totals.total} errors={errors} onCurrencyChange={value => setData('currency_code', value)} onRateChange={value => setData('exchange_rate', value)} />
+                                <TransactionCurrencyFields defaultEnabled={initialCurrency !== baseCurrency} currencyCode={data.currency_code} exchangeRate={data.exchange_rate} transactionDate={data.invoice_date} amount={totals.total} errors={errors} onCurrencyChange={value => setData('currency_code', value)} onRateChange={value => setData('exchange_rate', value)} />
                             </div>
                         </CardContent>
                     </Card>
@@ -305,6 +313,11 @@ export default function Edit() {
                                 onChange={(items) => setData('items', items)}
                                 errors={errors}
                                 products={availableProducts}
+                                taxTypes={productCatalog?.taxes || []}
+                                canManageTaxes={auth.user.permissions?.includes('manage-product-service-taxes') || false}
+                                canCreateTaxes={auth.user.permissions?.includes('create-product-service-taxes') || false}
+                                canEditTaxes={auth.user.permissions?.includes('edit-product-service-taxes') || false}
+                                canDeleteTaxes={auth.user.permissions?.includes('delete-product-service-taxes') || false}
                                 showAddButton
                                 canCreateItem={auth.user.permissions?.includes('create-products') || auth.user.permissions?.includes('create-services') || auth.user.permissions?.includes('create-product-service-item') || false}
                                 onCreateItem={() => { setProductPickerView('create'); setIsProductPickerOpen(true); }}

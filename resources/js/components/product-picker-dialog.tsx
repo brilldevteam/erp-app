@@ -178,7 +178,7 @@ export default function ProductPickerDialog(props: Props) {
 
     return (
         <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+            <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden sm:max-w-4xl">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <PackagePlus className="h-5 w-5" />
@@ -187,7 +187,7 @@ export default function ProductPickerDialog(props: Props) {
                 </DialogHeader>
 
                 {creating ? (
-                    <form onSubmit={saveProduct} className="space-y-4">
+                    <form onSubmit={saveProduct} className="min-h-0 space-y-4 overflow-y-auto overscroll-contain pr-1">
                         <div className="grid gap-4 sm:grid-cols-2">
                             <Field label={t('Name')} error={formErrors.name?.[0]}><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required /></Field>
                             <Field label={t('SKU')} error={formErrors.sku?.[0]}>

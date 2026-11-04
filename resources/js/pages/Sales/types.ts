@@ -43,7 +43,8 @@ export interface SalesInvoice {
 export interface SalesInvoiceItem {
     id?: number;
     invoice_id?: number;
-    product_id: number;
+    product_id: number | null;
+    item_name?: string;
     quantity: number;
     unit_price: number;
     description?: string;

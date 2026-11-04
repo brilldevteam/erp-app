@@ -33,7 +33,8 @@ class StorePurchaseInvoiceRequest extends FormRequest
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.product_id' => ['nullable', 'integer', 'min:1', Rule::exists('product_service_items', 'id')->where(fn ($query) => $query->where('created_by', creatorId())->where('is_active', true))],
-            'items.*.description' => 'required_without:items.*.product_id|nullable|string|max:20000',
+            'items.*.item_name' => 'required_without:items.*.product_id|nullable|string|max:255',
+            'items.*.description' => 'nullable|string|max:20000',
             'items.*.unit' => 'nullable|string|max:50',
 
             'items.*.account_id' => $this->lineAccountRule(),
