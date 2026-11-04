@@ -64,7 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
-| Codex | `feature/customer-360-document-ux-2026-11-04` | Package the verified local Customer 360 plus document UX integration: reliable default-off multi-currency switch, quotation salesperson selector/manager, single-scroll item/product dialogs, stable editable item popover, catalog-optional manual lines, and shared tax management for Sales Invoice, Purchase Invoice and Quotation. Exclude generated `public/build`, `public/hot`, and unrelated workspace files; commit and push without a PR. | 2026-11-04 | Active - branch packaging and push |
+| Codex | `feature/zoho-ui-upgrade-2026-11-04` | Package the verified local Customer 360 plus document UX integration: reliable default-off multi-currency switch, quotation salesperson selector/manager, single-scroll item/product dialogs, stable editable item popover, catalog-optional manual lines, and shared tax management for Sales Invoice, Purchase Invoice and Quotation. Exclude generated `public/build`, `public/hot`, and unrelated workspace files; keep the branch local with no PR. | 2026-11-04 | Complete - committed locally; not pushed |
 | Codex | `release/zoho-and-security` | Zoho-style searchable line-item selector for Sales Invoice, Purchase Invoice and Quotation create/edit; bottom Add New Row/Add Multiple Items controls; quick-create footer flow, tests/build, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Ensure the shared Multi-Currency Transaction pill defaults off by resolving the correct company base currency across document contexts; focused regression test/build, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Split Product & Service Items into permission-controlled Products and Services submenus, type-locked list/create/edit flows, permission migration/seeder, tests, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
@@ -268,7 +268,7 @@ Add newest entries first. Do not remove earlier entries.
 
 ### 2026-11-04 Asia/Colombo - Codex - Customer 360 document UX release branch
 
-- Branch: `feature/customer-360-document-ux-2026-11-04`, created from Aadil's Customer 360 tip `c26514fdd` with the verified local document UX work applied on top.
+- Branch: `feature/zoho-ui-upgrade-2026-11-04`, created from Aadil's Customer 360 tip `c26514fdd` with the verified local document UX work applied on top.
 - Scope: Sales Invoice, Purchase Invoice and Quotation manual/catalog line entry, shared tax management, quotation salesperson management, multi-currency controls, supporting migrations, focused tests, changelog and coordination records.
 - Verification before packaging: focused PHPUnit passed 23 tests / 325 assertions; TypeScript and the production Vite build passed with 4,015 modules transformed; local `/login` returned HTTP 200.
 - Database: local-only migrations for manual document lines, Product/Service permission split, quotation salespersons and Customer 360 activity logs are applied. Production requires normal migration deployment.
