@@ -6,10 +6,13 @@ use App\Models\PurchaseInvoice;
 use App\Models\PurchaseInvoiceAttachment;
 use App\Models\PurchaseInvoiceItem;
 use App\Models\PurchaseInvoiceItemTax;
+use App\Models\InvoiceStatusHistory;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Http\Requests\StorePurchaseInvoiceRequest;
 use App\Http\Requests\UpdatePurchaseInvoiceRequest;
+use App\Http\Requests\RevertInvoiceToDraftRequest;
+use App\Services\InvoiceReversionService;
 use Workdo\ProductService\Models\ProductServiceItem;
 use Workdo\ProductService\Models\ProductServiceCategory;
 use Workdo\ProductService\Models\ProductServiceTax;
@@ -313,7 +316,7 @@ class PurchaseInvoiceController extends Controller
                 return redirect()->route('purchase-invoices.index')->with('error', __('Permission denied'));
             }
 
-            $purchaseInvoice->load(['vendor', 'vendorDetails', 'items.product', 'items.taxes', 'items.account:id,account_code,account_name', 'warehouse', 'attachments.uploader']);
+            $purchaseInvoice->load(['vendor', 'vendorDetails', 'items.product', 'items.taxes', 'items.account:id,account_code,account_name', 'warehouse', 'attachments.uploader', 'statusHistory.actor:id,name']);
 
             return Inertia::render('Purchase/View', [
                 'invoice' => $purchaseInvoice
@@ -546,23 +549,52 @@ class PurchaseInvoiceController extends Controller
     public function post(PurchaseInvoice $purchaseInvoice)
     {
         if(Auth::user()->can('post-purchase-invoices')){
-        if ($purchaseInvoice->status !== 'draft') {
-            return back()->withErrors(['error' => __('Only draft invoices can be posted.')]);
-        }
-
         try {
-            PostPurchaseInvoice::dispatch($purchaseInvoice);
+            DB::transaction(function () use ($purchaseInvoice) {
+                $lockedInvoice = PurchaseInvoice::whereKey($purchaseInvoice->id)->lockForUpdate()->firstOrFail();
+                if ($lockedInvoice->status !== 'draft') {
+                    throw new \RuntimeException(__('Only draft invoices can be posted.'));
+                }
+                PostPurchaseInvoice::dispatch($lockedInvoice);
+                $lockedInvoice->update(['status' => 'posted']);
+                InvoiceStatusHistory::create([
+                    'document_type' => 'purchase_invoice',
+                    'document_id' => $lockedInvoice->id,
+                    'from_status' => 'draft',
+                    'to_status' => 'posted',
+                    'action' => 'posted',
+                    'reason' => 'Invoice posted',
+                    'metadata' => ['invoice_number' => $lockedInvoice->invoice_number],
+                    'actor_id' => Auth::id(),
+                    'created_by' => creatorId(),
+                ]);
+            });
         } catch (\Throwable $th) {
             return back()->with('error', $th->getMessage());
         }
-
-        $purchaseInvoice->update(['status' => 'posted']);
 
         return back()->with('success', __('The purchase invoice has been posted successfully.'));
         }
         else{
             return back()->with('error', __('Permission denied'));
         }
+    }
+
+    public function revertToDraft(RevertInvoiceToDraftRequest $request, PurchaseInvoice $purchaseInvoice, InvoiceReversionService $service)
+    {
+        if (!Auth::user()->can('revert-purchase-invoices-to-draft')) {
+            return back()->with('error', __('Permission denied'));
+        }
+
+        try {
+            $service->purchase($purchaseInvoice, $request->validated('reason'));
+        } catch (\Throwable $th) {
+            report($th);
+            return back()->with('error', $th->getMessage());
+        }
+
+        return redirect()->route('purchase-invoices.edit', $purchaseInvoice)
+            ->with('success', __('The purchase invoice was reverted to draft. Its accounting and stock effects were reversed.'));
     }
 
     public function print(PurchaseInvoice $purchaseInvoice)

@@ -87,6 +87,13 @@ class PurchaseInvoice extends Model
         return $this->hasMany(PurchaseReturn::class, 'original_invoice_id');
     }
 
+    public function statusHistory(): HasMany
+    {
+        return $this->hasMany(InvoiceStatusHistory::class, 'document_id')
+            ->where('document_type', 'purchase_invoice')
+            ->latest();
+    }
+
     public function attachments(): HasMany
     {
         return $this->hasMany(PurchaseInvoiceAttachment::class);

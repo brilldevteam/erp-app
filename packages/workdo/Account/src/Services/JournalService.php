@@ -955,6 +955,73 @@ class JournalService
     }
 
     /**
+     * Reverse every active accounting entry created by an invoice while retaining
+     * both sides of the audit trail. Reposting can then create a fresh journal set.
+     */
+    public function reverseInvoiceJournals(string $documentType, int $documentId, string $documentNumber, string $reason): array
+    {
+        $referenceTypes = match ($documentType) {
+            'sales_invoice' => ['sales_invoice', 'service_invoice', 'sales_invoice_cogs'],
+            'purchase_invoice' => ['purchase_invoice'],
+            default => throw new \InvalidArgumentException('Unsupported invoice type.'),
+        };
+
+        $journals = JournalEntry::query()
+            ->where('created_by', creatorId())
+            ->where('reference_id', $documentId)
+            ->whereIn('reference_type', $referenceTypes)
+            ->where('status', 'posted')
+            ->with('items')
+            ->lockForUpdate()
+            ->get();
+
+        if ($journals->isEmpty()) {
+            throw new \RuntimeException(__('The posted accounting entry could not be found. Repair the invoice journal before reverting it.'));
+        }
+
+        $reversalIds = [];
+        foreach ($journals as $journal) {
+            $reversal = JournalEntry::create([
+                'journal_date' => now()->toDateString(),
+                'entry_type' => 'automatic',
+                'reference_type' => $journal->reference_type.'_reversal',
+                'reference_id' => $documentId,
+                'description' => "Reversal of {$journal->journal_number} for {$documentNumber}: {$reason}",
+                'total_debit' => $journal->total_credit,
+                'total_credit' => $journal->total_debit,
+                'currency_code' => $journal->currency_code,
+                'base_currency_code' => $journal->base_currency_code,
+                'exchange_rate' => $journal->exchange_rate,
+                'foreign_amount' => $journal->foreign_amount,
+                'base_amount' => $journal->base_amount,
+                'status' => 'posted',
+                'creator_id' => Auth::id(),
+                'created_by' => creatorId(),
+            ]);
+
+            foreach ($journal->items as $item) {
+                JournalEntryItem::create([
+                    'journal_entry_id' => $reversal->id,
+                    'account_id' => $item->account_id,
+                    'contact_id' => $item->contact_id,
+                    'description' => 'Reversal: '.$item->description,
+                    'debit_amount' => $item->credit_amount,
+                    'credit_amount' => $item->debit_amount,
+                    'creator_id' => Auth::id(),
+                    'created_by' => creatorId(),
+                ]);
+            }
+
+            $this->updateAccountBalances($reversal);
+            $journal->update(['status' => 'reversed']);
+            $reversal->update(['status' => 'reversed']);
+            $reversalIds[] = $reversal->id;
+        }
+
+        return ['original' => $journals->pluck('id')->all(), 'reversals' => $reversalIds];
+    }
+
+    /**
      * Creates journal entry for debit note: Dr: A/P, Cr: Inventory + Tax Receivable
      * Usage: DebitNoteController->approve() after approving debit note
      */

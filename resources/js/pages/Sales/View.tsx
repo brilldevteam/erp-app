@@ -18,6 +18,8 @@ import { displayEmail } from '@/utils/display-email';
 import { Dialog } from '@/components/ui/dialog';
 import CreateCustomerPayment from '../../../../packages/workdo/Account/src/Resources/js/Pages/CustomerPayments/Create';
 import DualCurrencyAmount from '@/components/dual-currency-amount';
+import RevertInvoiceDialog from '@/components/revert-invoice-dialog';
+import InvoiceStatusHistory from '@/components/invoice-status-history';
 
 interface ViewProps {
     invoice: SalesInvoice;
@@ -215,6 +217,9 @@ export default function View() {
                                                     </Tooltip>
                                                 </TooltipProvider>
                                             )}
+                                            {invoice.status === 'posted' && auth.user?.permissions?.includes('revert-sales-invoices-to-draft') && (
+                                                <RevertInvoiceDialog routeName="sales-invoices.revert-to-draft" invoiceId={invoice.id} />
+                                            )}
                                         </div>
                                         <div className="text-right sm:text-right">
                                             <div className="text-lg sm:text-xl font-bold text-blue-600">{formatCurrency(invoice.balance_amount)}</div>
@@ -364,6 +369,7 @@ export default function View() {
                         </div>
                     </CardContent>
                 </Card>
+                <InvoiceStatusHistory items={(invoice as any).status_history} />
             </div>
 
             <Dialog open={isRecordPaymentOpen} onOpenChange={setIsRecordPaymentOpen}>

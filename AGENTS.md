@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `feature/zoho-ui-upgrade-2026-11-04` | Guarded Sales/Purchase Invoice Revert to Draft workflow: permissions, routes/controllers, lifecycle and journal reversal services, inventory reversal, dependency checks, status history migration/model/UI, focused tests, changelog and handoff. Generated `public/build` and `public/hot` remain excluded. | 2026-11-04 | Complete - committed locally; not pushed |
 | Codex | `feature/zoho-ui-upgrade-2026-11-04` | Package the verified local Customer 360 plus document UX integration: reliable default-off multi-currency switch, quotation salesperson selector/manager, single-scroll item/product dialogs, stable editable item popover, catalog-optional manual lines, and shared tax management for Sales Invoice, Purchase Invoice and Quotation. Exclude generated `public/build`, `public/hot`, and unrelated workspace files; publish the branch without a PR. | 2026-11-04 | Released - pushed; no PR |
 | Codex | `release/zoho-and-security` | Zoho-style searchable line-item selector for Sales Invoice, Purchase Invoice and Quotation create/edit; bottom Add New Row/Add Multiple Items controls; quick-create footer flow, tests/build, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
 | Codex | `release/zoho-and-security` | Ensure the shared Multi-Currency Transaction pill defaults off by resolving the correct company base currency across document contexts; focused regression test/build, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
@@ -265,6 +266,16 @@ A work item is not complete until its code is committed, tests are recorded, aff
 ## Handoff Log
 
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-11-04 Asia/Colombo - Codex - Guarded invoice revert to draft
+
+- Branch: `feature/zoho-ui-upgrade-2026-11-04`; changes are committed locally and are not pushed in this handoff.
+- Scope: Sales and Purchase Invoice Revert to Draft actions with required reasons, dedicated permissions, tenant checks, dependency blocking, reversal journals, warehouse stock reversal, status history, shared confirmation UI, and transaction-safe Purchase posting.
+- Accounting behavior: original and generated reversal journals are retained with `reversed` status, cached account balances are neutralized, and reposting creates a fresh active journal set. Sales product COGS, sales/service revenue and purchase journals are all covered.
+- Guardrails: only `posted` invoices qualify; payment allocations, credit/vendor-credit links and sales/purchase returns block reversion. Product sales without a warehouse snapshot and purchase bills whose stock has been consumed are also blocked.
+- Verification: PHP syntax passed; both routes resolve; focused PHPUnit passed 19 tests / 255 assertions on PHP 8.5.7; TypeScript and production Vite build passed with 4,017 modules transformed; local `/login` returns HTTP 200.
+- Database: migration `2026_11_04_000002_add_invoice_revert_to_draft` was cleanly rolled back and reapplied locally (batch 65). Production still requires `php artisan migrate --force`.
+- Exclusions: generated `public/build`, `public/hot`, server logs and unrelated workspace files are intentionally excluded.
 
 ### 2026-11-04 Asia/Colombo - Codex - Customer 360 document UX release branch
 

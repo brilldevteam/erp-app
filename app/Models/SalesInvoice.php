@@ -100,6 +100,13 @@ class SalesInvoice extends Model
         return $this->hasMany(SalesInvoiceReturn::class, 'original_invoice_id');
     }
 
+    public function statusHistory(): HasMany
+    {
+        return $this->hasMany(InvoiceStatusHistory::class, 'document_id')
+            ->where('document_type', 'sales_invoice')
+            ->latest();
+    }
+
     public function isOverdue(): bool
     {
         return $this->due_date < now() && $this->status !== 'paid';

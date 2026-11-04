@@ -29,6 +29,7 @@ All notable changes to the Wazely ERP application are documented here.
 - Fixed the Purchases > Payments Made page returning a server error by limiting its vendor-details query to columns that exist in the vendor table.
 
 ### Added
+- Posted Sales and Purchase Invoices can now be safely reverted to draft by authorized finance users. The guarded workflow requires a reason, blocks invoices with payments, credits or returns, reverses revenue/AP/AR/COGS journals and warehouse stock in one transaction, records an immutable status-history entry, and keeps the invoice editable for correction and reposting. Purchase posting now uses the same row-locking transaction protection as Sales posting.
 - Purchase Invoice create/edit tax selectors now expose the shared searchable, permission-controlled Manage Taxes workflow, including inline creation, editing and deletion of the Product & Service tax catalogue.
 - Sales Invoice create/edit tax selectors now expose the same searchable, permission-controlled Manage Taxes workflow as Quotations, with shared immediate catalogue updates across all invoice rows.
 - Quotation tax dropdowns now show No Tax by default and provide a searchable, permission-controlled Manage Taxes workflow for creating, editing and deleting the shared Product & Service tax catalogue. Inline tax mutations return JSON while existing System Setup pages retain their redirects, and update/delete now enforce tenant ownership. Product and Service forms also use the explicit No Tax label.

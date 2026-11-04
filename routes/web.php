@@ -112,6 +112,7 @@ Route::middleware(['auth', 'auth.session.current', 'verified', 'PlanModuleCheck'
     // purchase invoices
     Route::resource('purchase-invoices', PurchaseInvoiceController::class);
     Route::post('purchase-invoices/{purchaseInvoice}/post', [PurchaseInvoiceController::class, 'post'])->name('purchase-invoices.post');
+    Route::post('purchase-invoices/{purchaseInvoice}/revert-to-draft', [PurchaseInvoiceController::class, 'revertToDraft'])->name('purchase-invoices.revert-to-draft');
     Route::get('purchase-invoices/{purchaseInvoice}/print', [PurchaseInvoiceController::class, 'print'])->name('purchase-invoices.print');
     Route::get('purchase-invoices/{purchaseInvoice}/attachments/{attachment}/download', [PurchaseInvoiceController::class, 'downloadAttachment'])->name('purchase-invoices.attachments.download');
     Route::delete('purchase-invoices/{purchaseInvoice}/attachments/{attachment}', [PurchaseInvoiceController::class, 'destroyAttachment'])->name('purchase-invoices.attachments.destroy');
@@ -119,6 +120,7 @@ Route::middleware(['auth', 'auth.session.current', 'verified', 'PlanModuleCheck'
     // sales invoices
     Route::resource('sales-invoices', SalesInvoiceController::class);
     Route::post('sales-invoices/{salesInvoice}/post', [SalesInvoiceController::class, 'post'])->name('sales-invoices.post');
+    Route::post('sales-invoices/{salesInvoice}/revert-to-draft', [SalesInvoiceController::class, 'revertToDraft'])->name('sales-invoices.revert-to-draft');
     Route::post('sales-invoices/{salesInvoice}/duplicate', [SalesInvoiceController::class, 'duplicate'])->name('sales-invoices.duplicate');
     Route::get('sales-invoices/{salesInvoice}/print', [SalesInvoiceController::class, 'print'])->name('sales-invoices.print');
     Route::get('sales-invoices/warehouse/products', [SalesInvoiceController::class, 'getWarehouseProducts'])->name('sales-invoices.warehouse.products');

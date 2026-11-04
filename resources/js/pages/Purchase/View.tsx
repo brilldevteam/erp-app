@@ -15,6 +15,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { usePageButtons } from '@/hooks/usePageButtons';
 import { useFormFields } from '@/hooks/useFormFields';
 import DualCurrencyAmount from '@/components/dual-currency-amount';
+import RevertInvoiceDialog from '@/components/revert-invoice-dialog';
+import InvoiceStatusHistory from '@/components/invoice-status-history';
 
 interface ViewProps {
     invoice: PurchaseInvoice;
@@ -168,6 +170,9 @@ export default function View() {
                                                         </TooltipContent>
                                                     </Tooltip>
                                                 </TooltipProvider>
+                                            )}
+                                            {invoice.status === 'posted' && auth.user?.permissions?.includes('revert-purchase-invoices-to-draft') && (
+                                                <RevertInvoiceDialog routeName="purchase-invoices.revert-to-draft" invoiceId={invoice.id} />
                                             )}
                                         </div>
                                         <div className="min-w-0 text-left xl:text-right">
@@ -376,6 +381,7 @@ export default function View() {
                         </div>
                     </CardContent>
                 </Card>
+                <InvoiceStatusHistory items={(invoice as any).status_history} />
             </div>
         </AuthenticatedLayout>
     );

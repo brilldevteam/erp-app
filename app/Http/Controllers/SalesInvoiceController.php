@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\SalesInvoice;
 use App\Models\SalesInvoiceItem;
 use App\Models\SalesInvoiceItemTax;
+use App\Models\InvoiceStatusHistory;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Http\Requests\StoreSalesInvoiceRequest;
 use App\Http\Requests\UpdateSalesInvoiceRequest;
+use App\Http\Requests\RevertInvoiceToDraftRequest;
 use Workdo\ProductService\Models\ProductServiceItem;
 use Workdo\ProductService\Models\ProductServiceTax;
 use Workdo\ProductService\Models\ProductServiceCategory;
@@ -25,6 +27,7 @@ use App\Events\EditSalesInvoice;
 use App\Models\EmailTemplate;
 use App\Models\DocumentTemplate;
 use App\Services\SalesInvoiceService;
+use App\Services\InvoiceReversionService;
 use App\Services\DocumentTemplates\DocumentTemplateService;
 use Workdo\Quotation\Events\ConvertSalesQuotation;
 use Workdo\Account\Models\ChartOfAccount;
@@ -250,7 +253,7 @@ class SalesInvoiceController extends Controller
                 return redirect()->route('sales-invoices.index')->with('error', __('Permission denied'));
             }
 
-            $salesInvoice->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'warehouse', 'quotation', 'revenueAccount:id,account_code,account_name']);
+            $salesInvoice->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'warehouse', 'quotation', 'revenueAccount:id,account_code,account_name', 'statusHistory.actor:id,name']);
 
             return Inertia::render('Sales/View', [
                 'invoice' => $salesInvoice,
@@ -443,6 +446,17 @@ class SalesInvoiceController extends Controller
 
                 PostSalesInvoice::dispatch($lockedInvoice);
                 $lockedInvoice->update(['status' => 'posted']);
+                InvoiceStatusHistory::create([
+                    'document_type' => 'sales_invoice',
+                    'document_id' => $lockedInvoice->id,
+                    'from_status' => 'draft',
+                    'to_status' => 'posted',
+                    'action' => 'posted',
+                    'reason' => 'Invoice posted',
+                    'metadata' => ['invoice_number' => $lockedInvoice->invoice_number],
+                    'actor_id' => Auth::id(),
+                    'created_by' => creatorId(),
+                ]);
             });
         } catch (\Throwable $th) {
             return back()->with('error', $th->getMessage());
@@ -453,6 +467,23 @@ class SalesInvoiceController extends Controller
         else{
             return back()->with('error', __('Permission denied'));
         }
+    }
+
+    public function revertToDraft(RevertInvoiceToDraftRequest $request, SalesInvoice $salesInvoice, InvoiceReversionService $service)
+    {
+        if (!Auth::user()->can('revert-sales-invoices-to-draft')) {
+            return back()->with('error', __('Permission denied'));
+        }
+
+        try {
+            $service->sales($salesInvoice, $request->validated('reason'));
+        } catch (\Throwable $th) {
+            report($th);
+            return back()->with('error', $th->getMessage());
+        }
+
+        return redirect()->route('sales-invoices.edit', $salesInvoice)
+            ->with('success', __('The sales invoice was reverted to draft. Its accounting and stock effects were reversed.'));
     }
 
     public function getWarehouseProducts(Request $request)

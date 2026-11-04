@@ -233,6 +233,7 @@ class PermissionRoleSeeder extends Seeder
             ['name' => 'edit-purchase-invoices', 'module' => 'purchase-invoices', 'label' => 'Edit Purchase Invoices'],
             ['name' => 'delete-purchase-invoices', 'module' => 'purchase-invoices', 'label' => 'Delete Purchase Invoices'],
             ['name' => 'post-purchase-invoices', 'module' => 'purchase-invoices', 'label' => 'Post Purchase Invoices'],
+            ['name' => 'revert-purchase-invoices-to-draft', 'module' => 'purchase-invoices', 'label' => 'Revert Purchase Invoices to Draft'],
             ['name' => 'print-purchase-invoices', 'module' => 'purchase-invoices', 'label' => 'Print Purchase Invoices'],
 
             // Purchase Return Invoice Management
@@ -255,6 +256,7 @@ class PermissionRoleSeeder extends Seeder
             ['name' => 'edit-sales-invoices', 'module' => 'sales-invoices', 'label' => 'Edit Sales Invoices'],
             ['name' => 'delete-sales-invoices', 'module' => 'sales-invoices', 'label' => 'Delete Sales Invoices'],
             ['name' => 'post-sales-invoices', 'module' => 'sales-invoices', 'label' => 'Post Sales Invoices'],
+            ['name' => 'revert-sales-invoices-to-draft', 'module' => 'sales-invoices', 'label' => 'Revert Sales Invoices to Draft'],
             ['name' => 'print-sales-invoices', 'module' => 'sales-invoices', 'label' => 'Print Sales Invoices'],
 
             // Sales Return Invoice Management
@@ -328,9 +330,9 @@ class PermissionRoleSeeder extends Seeder
                     'manage-orders', 'view-orders',
                     'manage-profile', 'edit-profile', 'change-password-profile',
                     'manage-messenger', 'send-messages', 'view-messages', 'edit-messages', 'delete-messages', 'toggle-favorite-messages', 'toggle-pinned-messages',
-                    'manage-purchase-invoices', 'manage-any-purchase-invoices', 'manage-own-purchase-invoices', 'view-purchase-invoices', 'create-purchase-invoices', 'import-purchase-invoices', 'edit-purchase-invoices', 'delete-purchase-invoices', 'post-purchase-invoices', 'print-purchase-invoices',
+                    'manage-purchase-invoices', 'manage-any-purchase-invoices', 'manage-own-purchase-invoices', 'view-purchase-invoices', 'create-purchase-invoices', 'import-purchase-invoices', 'edit-purchase-invoices', 'delete-purchase-invoices', 'post-purchase-invoices', 'revert-purchase-invoices-to-draft', 'print-purchase-invoices',
                     'manage-purchase-return-invoices','manage-any-purchase-return-invoices','manage-own-purchase-return-invoices','view-purchase-return-invoices','create-purchase-return-invoices','edit-purchase-return-invoices','delete-purchase-return-invoices','approve-purchase-returns-invoices', 'complete-purchase-returns-invoices',
-                    'manage-sales-invoices', 'manage-any-sales-invoices', 'manage-own-sales-invoices', 'view-sales-invoices', 'create-sales-invoices', 'import-sales-invoices', 'edit-sales-invoices', 'delete-sales-invoices', 'post-sales-invoices', 'print-sales-invoices',
+                    'manage-sales-invoices', 'manage-any-sales-invoices', 'manage-own-sales-invoices', 'view-sales-invoices', 'create-sales-invoices', 'import-sales-invoices', 'edit-sales-invoices', 'delete-sales-invoices', 'post-sales-invoices', 'revert-sales-invoices-to-draft', 'print-sales-invoices',
                     'manage-sales-return-invoices','manage-any-sales-return-invoices','manage-own-sales-return-invoices','view-sales-return-invoices','create-sales-return-invoices','delete-sales-return-invoices','approve-sales-returns-invoices', 'complete-sales-returns-invoices',
                     'manage-sales-proposals','manage-any-sales-proposals','manage-own-sales-proposals','view-sales-proposals','create-sales-proposals','edit-sales-proposals','delete-sales-proposals','print-sales-proposals','sent-sales-proposals','accept-sales-proposals','convert-sales-proposals','reject-sales-proposals',
                 ]
