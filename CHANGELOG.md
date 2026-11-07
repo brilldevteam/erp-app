@@ -10,7 +10,16 @@ All notable changes to the Wazely ERP application are documented here.
 
 ## [Unreleased]
 
+### Changed
+- Purchase Invoice details now use one aligned four-column layout on create and edit, with Notes at full width.
+- The Multi-Currency Transaction dropdown no longer lists the company default currency.
+- The Quotations list now follows the Customers page: summary cards, live search, sort, filters, and All, Product, Service and Overdue tabs. Overdue now applies only to draft or sent quotations past their due date that have not been converted.
+- Quotations are now created as a Product Quotation or a Service Quotation. The + button offers both, and each one lists only its own items from Product & Service. Service quotations hide Warehouse, Salesperson now follows Customer, saved lines must match the type, and Convert to Invoice keeps the type. Existing quotations are unchanged.
+- The + on Products and Services opens a create popup on the same page, and Tax now sits next to Opening Stock so the form fits without scrolling on common screen sizes.
+
 ### Fixed
+- Editing a quotation no longer blanks its Terms.
+- Customer 360 statement PDF actions now trigger the existing PDF download flow instead of opening a preview-only tab, and carry the selected statement start/end dates into the downloaded report.
 - The shared tax manager now treats tax creation as a catalogue-only action. Creating a tax uses Save and adds it to the available list without changing the active Quotation, Sales Invoice, or Purchase Invoice line; users select it explicitly afterward.
 - Purchase Invoice tax selectors now match Sales Invoice and Quotation: new lines visibly default to No Tax, saved-item taxes remain preselected, and users can override or clear tax before saving while totals recalculate immediately.
 - Sales Invoice tax selectors now map an empty tax state to the explicit No Tax option, so new and manually cleared lines no longer render a blank dropdown.
@@ -319,3 +328,21 @@ main
 - Bulk import requires a running Laravel queue worker.
 - Frontend changes require rebuilding Vite assets for production.
 - Media and module asset fixes require correct public storage handling on hosting.
+# 2026-11-05 - Branded Customer Statement templates
+
+- Added Customer Statement as a dedicated document-template type with its own configurable logo, brand color, watermark, statement columns, notes, and footer details.
+- Replaced the Customer 360 Statement PDF action's legacy customer-detail report with a filtered running statement showing opening balance, debit/credit activity, running balances, and closing balance.
+- Kept CSV export and statement date filters unchanged; PDF downloads now use the company's selected default Customer Statement template.
+
+# 2026-11-05 - Quotation salesperson management
+
+- Fixed salesperson-workspace invoice drill-through and resized recent quotation rows so the complete invoice state remains visible in the narrower overview card.
+- Simplified Create Quotation details into two responsive four-field rows and removed the Notes control from that create form.
+- Added editable Notes and Terms and Conditions beside the Create Quotation summary, prefilled from the selected document template and persisted as quotation-specific PDF content.
+- Replaced department wording in the salesperson workspace with salesperson-specific labels.
+- Added a salesperson/department workspace with department-specific quotation, converted-invoice, collected-payment and outstanding metrics; overview, quotation and payment tabs; and direct quotation drill-through from every attributed row.
+- Restyled the Salesperson directory to match the Customer directory's search, tab and responsive list language, with All Salespersons, Active and Inactive views and no summary cards.
+- Corrected the salesperson management page's Inertia package path so the new Sales submenu opens reliably.
+
+- Added a Sales > Salesperson submenu with a tenant-scoped searchable management page for creating, editing, activating, deactivating, and deleting quotation salespersons.
+- Made salesperson selection required when creating or editing quotations and removed the optional No Salesperson choice.

@@ -16,6 +16,7 @@ class CustomerWorkspaceContractTest extends TestCase
         $routes = $this->source('packages/workdo/Account/src/Routes/web.php');
 
         $this->assertStringContainsString("name('account.customers.workspace')", $routes);
+        $this->assertStringContainsString("name('account.customers.workspace.statement-pdf')", $routes);
         $this->assertStringContainsString("name('customer-detail')", $routes);
         $this->assertStringContainsString("name('customer-detail.print')", $routes);
     }
@@ -65,6 +66,39 @@ class CustomerWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('title={customer.company_name}', $workspace);
         $this->assertStringContainsString('min-w-0 truncate text-xl', $workspace);
         $this->assertStringContainsString('shrink-0 flex-wrap gap-2 xl:flex-nowrap', $workspace);
+    }
+
+    public function test_workspace_pdf_actions_trigger_download_and_preserve_statement_dates(): void
+    {
+        $workspace = $this->source('packages/workdo/Account/src/Resources/js/Pages/Customers/Workspace.tsx');
+
+        $this->assertStringContainsString("const statementPdfUrl = () =>", $workspace);
+        $this->assertStringContainsString("start_date: filters.start_date || ''", $workspace);
+        $this->assertStringContainsString("end_date: filters.end_date || ''", $workspace);
+        $this->assertStringContainsString("download: 'pdf'", $workspace);
+        $this->assertStringContainsString("route('account.customers.workspace.statement-pdf', customer.id)", $workspace);
+        $this->assertSame(2, substr_count($workspace, "window.open(statementPdfUrl(), '_blank')"));
+    }
+
+    public function test_statement_pdf_uses_the_dedicated_document_template(): void
+    {
+        $model = $this->source('app/Models/DocumentTemplate.php');
+        $service = $this->source('app/Services/DocumentTemplates/DocumentTemplateService.php');
+        $controller = $this->source('packages/workdo/Account/src/Http/Controllers/CustomerWorkspaceController.php');
+        $preview = $this->source('resources/js/components/document-templates/document-template-preview.tsx');
+        $form = $this->source('resources/js/pages/document-templates/form.tsx');
+        $print = $this->source('packages/workdo/Account/src/Resources/js/Pages/Customers/StatementPrint.tsx');
+
+        $this->assertStringContainsString("TYPE_STATEMENT = 'statement'", $model);
+        $this->assertStringContainsString("__('Standard Customer Statement')", $service);
+        $this->assertStringContainsString('customerStatementDocument', $service);
+        $this->assertStringContainsString('DocumentTemplate::TYPE_STATEMENT', $controller);
+        $this->assertStringContainsString("Inertia::render('Account/Customers/StatementPrint'", $controller);
+        $this->assertStringContainsString("document.type === 'statement'", $preview);
+        $this->assertStringContainsString('CustomerStatementTemplate', $preview);
+        $this->assertStringContainsString('Customer Statement', $form);
+        $this->assertStringContainsString('DocumentTemplatePreview', $print);
+        $this->assertStringContainsString('filename: `customer-statement-${customer.customer_code}.pdf`', $print);
     }
 
     public function test_directory_exposes_pagination_and_uses_company_currency_settings(): void

@@ -1,4 +1,4 @@
-export type DocumentTemplateType = 'quotation' | 'invoice' | 'payment';
+export type DocumentTemplateType = 'quotation' | 'invoice' | 'payment' | 'statement';
 export type DocumentTemplateStatus = 'active' | 'inactive';
 
 export interface DocumentTemplateConfig {
@@ -92,6 +92,7 @@ export interface TemplateSampleDocument {
     bank_account?: string;
     subject?: string;
     notes?: string;
+    terms?: string;
     balance_due?: number;
     currency_code?: string | null;
     items: Array<Record<string, any>>;
@@ -100,5 +101,19 @@ export interface TemplateSampleDocument {
         discount: number;
         tax: number;
         grand_total: number;
+    };
+    statement?: {
+        period_start?: string | null;
+        period_end?: string | null;
+        opening_balance: number;
+        closing_balance: number;
+        rows: Array<{
+            date?: string | null;
+            type: string;
+            number: string;
+            debit: number;
+            credit: number;
+            running_balance: number;
+        }>;
     };
 }

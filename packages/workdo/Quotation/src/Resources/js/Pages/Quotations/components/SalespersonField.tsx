@@ -73,11 +73,10 @@ export default function SalespersonField({ value, initialSalespersons, onChange 
     };
 
     return <>
-        <Label htmlFor="salesperson_id">{t('Salesperson')}</Label>
-        <Select value={value || 'none'} onValueChange={(next) => next === 'manage' ? setOpen(true) : onChange(next === 'none' ? '' : next)}>
+        <Label htmlFor="salesperson_id" required>{t('Salesperson')}</Label>
+        <Select value={value} onValueChange={(next) => next === 'manage' ? setOpen(true) : onChange(next)}>
             <SelectTrigger id="salesperson_id"><SelectValue placeholder={t('Select Salesperson')} /></SelectTrigger>
             <SelectContent searchable>
-                <SelectItem value="none">{t('No Salesperson')}</SelectItem>
                 {activeSalespersons.map(person => <SelectItem key={person.id} value={String(person.id)}>{person.name}</SelectItem>)}
                 <SelectItem value="manage" className="mt-1 border-t pt-2 font-medium text-primary">{t('Manage Salespersons')}</SelectItem>
             </SelectContent>

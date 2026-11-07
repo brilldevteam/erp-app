@@ -14,6 +14,8 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Quotation'])->gro
     Route::post('quotations/{quotation}/create-revision', [QuotationController::class, 'createRevision'])->name('quotations.create-revision');
     Route::post('quotations/{quotation}/duplicate', [QuotationController::class, 'duplicate'])->name('quotations.duplicate');
     Route::get('sales-quotations/warehouse/products', [QuotationController::class, 'getWarehouseProducts'])->name('quotations.warehouse.products');
+    Route::get('quotation-salespersons', [QuotationSalespersonController::class, 'index'])->name('quotation-salespersons.index');
+    Route::get('quotation-salespersons/{salesperson}', [QuotationSalespersonController::class, 'show'])->name('quotation-salespersons.show');
     Route::post('quotation-salespersons', [QuotationSalespersonController::class, 'store'])->name('quotation-salespersons.store');
     Route::put('quotation-salespersons/{salesperson}', [QuotationSalespersonController::class, 'update'])->name('quotation-salespersons.update');
     Route::patch('quotation-salespersons/{salesperson}/toggle', [QuotationSalespersonController::class, 'toggle'])->name('quotation-salespersons.toggle');

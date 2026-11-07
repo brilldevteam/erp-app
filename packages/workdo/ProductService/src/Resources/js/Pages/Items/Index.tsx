@@ -21,10 +21,13 @@ import NoRecordsFound from '@/components/no-records-found';
 import { formatCurrency, getImagePath } from '@/utils/helpers';
 import { Item, ItemsIndexProps, ItemFilters } from './types';
 import { usePageButtons } from '@/hooks/usePageButtons';
+import ProductPickerDialog from '@/components/product-picker-dialog';
+import { toast } from 'sonner';
 
 export default function Index() {
     const { t } = useTranslation();
-    const { items, categories, auth, catalogType } = usePage<ItemsIndexProps>().props;
+    const { items, categories, taxes, units, warehouses, auth, catalogType } = usePage<ItemsIndexProps>().props;
+    const [createOpen, setCreateOpen] = useState(false);
     const urlParams = useMemo(() => new URLSearchParams(window.location.search), []);
     const routeBase = catalogType === 'service' ? 'product-service.services' : 'product-service.products';
     const permissionSuffix = catalogType === 'service' ? 'services' : 'products';
@@ -255,7 +258,7 @@ export default function Index() {
                         {auth.user?.permissions?.includes(`create-${permissionSuffix}`) && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>
-                                    <Button size="sm" onClick={() => router.visit(route(`${routeBase}.create`))}>
+                                    <Button size="sm" onClick={() => setCreateOpen(true)}>
                                         <Plus className="h-4 w-4" />
                                     </Button>
                                 </TooltipTrigger>
@@ -356,7 +359,7 @@ export default function Index() {
                                             hasFilters={!!(filters.name || filters.category_id)}
                                             onClearFilters={clearFilters}
                                             createPermission={`create-${permissionSuffix}`}
-                                            onCreateClick={() => router.visit(route(`${routeBase}.create`))}
+                                            onCreateClick={() => setCreateOpen(true)}
                                             createButtonText={`${t('Create')} ${singularLabel}`}
                                             className="h-auto"
                                         />
@@ -491,7 +494,7 @@ export default function Index() {
                                     hasFilters={!!(filters.name || filters.category_id)}
                                     onClearFilters={clearFilters}
                                     createPermission={`create-${permissionSuffix}`}
-                                    onCreateClick={() => router.visit(route(`${routeBase}.create`))}
+                                    onCreateClick={() => setCreateOpen(true)}
                                     createButtonText={`${t('Create')} ${singularLabel}`}
                                     className="h-auto"
                                 />
@@ -518,6 +521,25 @@ export default function Index() {
                 confirmText={t('Delete')}
                 onConfirm={confirmDelete}
                 variant="destructive"
+            />
+
+            <ProductPickerDialog
+                open={createOpen}
+                onOpenChange={setCreateOpen}
+                products={[]}
+                categories={categories}
+                units={units}
+                taxes={taxes}
+                warehouses={warehouses}
+                catalogMode={catalogType === 'service' ? 'service' : 'stock'}
+                canCreateProduct={Boolean(auth.user?.permissions?.includes(`create-${permissionSuffix}`))}
+                initialView="create"
+                createOnly
+                onAdd={() => {}}
+                onProductCreated={() => {
+                    toast.success(`${singularLabel} ${t('created successfully.')}`);
+                    router.reload({ only: ['items'] });
+                }}
             />
 
             </AuthenticatedLayout>

@@ -74,6 +74,9 @@ export type PaginatedItems = PaginatedData<Item>;
 export interface ItemsIndexProps {
     items: PaginatedItems;
     categories: Category[];
+    taxes: Array<{ id: number; tax_name: string; rate: number }>;
+    units: Array<{ id: number; unit_name: string }>;
+    warehouses: Array<{ id: number; name: string }>;
     catalogType: 'product' | 'service';
     auth: AuthContext;
     [key: string]: unknown;

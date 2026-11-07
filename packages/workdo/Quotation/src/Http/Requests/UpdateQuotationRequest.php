@@ -14,20 +14,28 @@ class UpdateQuotationRequest extends FormRequest
 
     public function rules()
     {
+        // The type is fixed when the quotation is created. Older quotations have none.
+        $type = $this->route('quotation')?->type;
+
         return [
             'invoice_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:invoice_date',
             'currency_code' => 'required|string|size:3',
             'exchange_rate' => 'required|numeric|gt:0',
             'customer_id' => ['required', Rule::exists('users', 'id')->where(fn ($query) => $query->where('created_by', creatorId())->where('type', 'client'))],
-            'salesperson_id' => ['nullable', Rule::exists('quotation_salespersons', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
+            'salesperson_id' => ['required', Rule::exists('quotation_salespersons', 'id')->where(fn ($query) => $query->where('created_by', creatorId())->where('is_active', true))],
             'document_template_id' => ['nullable', 'integer', Rule::exists('document_templates', 'id')->where(fn ($query) => $query->where('company_id', creatorId())->where('type', 'quotation'))],
             'warehouse_id' => ['nullable', Rule::exists('warehouses', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
             'payment_terms' => 'nullable|string|max:255',
             'subject' => 'nullable|string|max:500',
             'notes' => 'nullable|string',
+            'terms' => 'nullable|string',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => ['nullable', 'numeric', 'min:1', Rule::exists('product_service_items', 'id')->where(fn ($query) => $query->where('created_by', creatorId())->where('is_active', true))],
+            'items.*.product_id' => ['nullable', 'numeric', 'min:1', Rule::exists('product_service_items', 'id')->where(fn ($query) => $query
+                ->where('created_by', creatorId())
+                ->where('is_active', true)
+                ->when($type === 'service', fn ($items) => $items->where('type', 'service'))
+                ->when($type === 'product', fn ($items) => $items->where('type', '!=', 'service')))],
             'items.*.item_name' => 'required_without:items.*.product_id|nullable|string|max:255',
             'items.*.quantity' => 'required|numeric|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
@@ -46,8 +54,11 @@ class UpdateQuotationRequest extends FormRequest
     {
         return [
             'customer_id.exists' => __('Selected customer does not exist.'),
+            'salesperson_id.required' => __('Please select a salesperson.'),
+            'salesperson_id.exists' => __('Selected salesperson is not available.'),
             'items.required' => __('At least one item is required.'),
             'items.*.product_id.min' => __('Please select a product for each item.'),
+            'items.*.product_id.exists' => __('This item is not available on this type of quotation.'),
             'items.*.quantity.min' => __('Quantity must be at least 1.'),
             'items.*.unit_price.min' => __('Unit price must be 0 or greater.')
         ];

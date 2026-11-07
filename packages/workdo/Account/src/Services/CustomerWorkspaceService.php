@@ -152,7 +152,10 @@ class CustomerWorkspaceService
 
     public function statementExport(Customer $customer, Request $request): array
     {
-        return $this->statement($customer, $request, 100000);
+        return [
+            ...$this->statement($customer, $request, 100000),
+            'base_currency' => $this->baseCurrency($customer),
+        ];
     }
 
     private function summary(Customer $customer): array

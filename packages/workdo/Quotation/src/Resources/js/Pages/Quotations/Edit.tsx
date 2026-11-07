@@ -39,7 +39,8 @@ interface EditProps {
 export default function Edit() {
     const { t } = useTranslation();
     const page = usePage<EditProps>().props;
-    const { quotation, customers, warehouses, documentTemplates = [], productCatalog, auth, salespersons = [] } = page;
+    const { quotation, quotationType, customers, warehouses, documentTemplates = [], productCatalog, auth, salespersons = [] } = page;
+    const pageTitle = quotationType === 'service' ? t('Edit Service Quotation') : quotationType === 'product' ? t('Edit Product Quotation') : t('Edit Quotation');
     const companyBaseCurrency = String(page.companyAllSetting?.defaultCurrency || 'USD').toUpperCase();
     const baseCurrency = String(quotation.base_currency_code || companyBaseCurrency).toUpperCase();
     const initialCurrency = quotation.base_currency_code
@@ -64,6 +65,7 @@ export default function Edit() {
         payment_terms: quotation.payment_terms || '',
         subject: quotation.subject || '',
         notes: quotation.notes || '',
+        terms: quotation.terms || '',
         items: (quotation.items || []).map(item => {
             const calculations = calculateLineItemAmounts(
                 item.quantity,
@@ -96,11 +98,10 @@ export default function Edit() {
     });
 
     const loadProducts = async (warehouseId: string) => {
-        const query = warehouseId ? `?warehouse_id=${warehouseId}` : '';
 
         try {
             setProductsLoading(true);
-            const response = await fetch(route('quotations.warehouse.products') + query);
+            const response = await fetch(route('quotations.warehouse.products', { warehouse_id: warehouseId || undefined, type: quotationType || undefined }));
             if (!response.ok) {
                 throw new Error(`Product request failed with status ${response.status}`);
             }
@@ -157,11 +158,11 @@ export default function Edit() {
         <AuthenticatedLayout
             breadcrumbs={[
                 {label: t('Quotations'), url: route('quotations.index')},
-                {label: t('Edit Quotation')}
+                {label: pageTitle}
             ]}
-            pageTitle={t('Edit Quotation')}
+            pageTitle={pageTitle}
         >
-            <Head title={t('Edit Quotation')} />
+            <Head title={pageTitle} />
 
             <div>
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -220,6 +221,11 @@ export default function Edit() {
                                 </div>
 
                                 <div>
+                                    <SalespersonField value={data.salesperson_id} initialSalespersons={salespersons} onChange={value => setData('salesperson_id', value)} />
+                                    <InputError message={errors.salesperson_id} />
+                                </div>
+
+                                {quotationType !== 'service' && <div>
                                     <Label htmlFor="warehouse_id">
                                         {t('Warehouse')}
                                     </Label>
@@ -239,7 +245,7 @@ export default function Edit() {
                                         </SelectContent>
                                     </Select>
                                     <InputError message={errors.warehouse_id} />
-                                </div>
+                                </div>}
 
                                 <div>
                                     <Label htmlFor="document_template_id">
@@ -261,10 +267,6 @@ export default function Edit() {
                                     <InputError message={errors.document_template_id} />
                                 </div>
 
-                                <div>
-                                    <SalespersonField value={data.salesperson_id} initialSalespersons={salespersons} onChange={value => setData('salesperson_id', value)} />
-                                    <InputError message={errors.salesperson_id} />
-                                </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
@@ -365,6 +367,8 @@ export default function Edit() {
                         taxes={productCatalog?.taxes || []}
                         warehouses={warehouses}
                         warehouseId={data.warehouse_id}
+                        defaultProductType={quotationType ?? undefined}
+                        catalogMode={quotationType === 'service' ? 'service' : quotationType === 'product' ? 'stock' : 'all'}
                         canCreateProduct={auth.user.permissions?.includes('create-products') || auth.user.permissions?.includes('create-services') || auth.user.permissions?.includes('create-product-service-item') || false}
                         loading={productsLoading}
                         onAdd={addProducts}

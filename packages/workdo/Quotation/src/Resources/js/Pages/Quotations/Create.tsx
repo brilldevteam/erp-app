@@ -25,9 +25,10 @@ import { baseToTransactionAmount, formatTransactionMoney } from '@/utils/transac
 import SalespersonField, { Salesperson } from './components/SalespersonField';
 
 interface CreateProps {
+    quotationType: 'product' | 'service';
     customers: Array<{id: number; name: string; email?: string | null}>;
     warehouses: Array<{id: number; name: string; address: string}>;
-    documentTemplates: Array<{ id: number; name: string; is_default: boolean }>;
+    documentTemplates: Array<{ id: number; name: string; is_default: boolean; terms?: string | null; notes?: string | null }>;
     salespersons: Salesperson[];
     productCatalog: {
         categories: Array<{ id: number; name: string }>;
@@ -44,7 +45,9 @@ interface CreateProps {
 
 export default function Create() {
     const { t } = useTranslation();
-    const { customers, warehouses, documentTemplates = [], productCatalog, auth, companyAllSetting, salespersons = [] } = usePage<CreateProps>().props;
+    const { quotationType, customers, warehouses, documentTemplates = [], productCatalog, auth, companyAllSetting, salespersons = [] } = usePage<CreateProps>().props;
+    const pageTitle = quotationType === 'service' ? t('Create Service Quotation') : t('Create Product Quotation');
+    const createItemPermission = quotationType === 'service' ? 'create-services' : 'create-products';
     const baseCurrency = companyAllSetting?.defaultCurrency || 'USD';
     const [availableProducts, setAvailableProducts] = useState<QuotationProduct[]>([]);
     const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
@@ -55,9 +58,11 @@ export default function Create() {
     const noWarehouseValue = 'none';
     const addCustomerValue = 'add-new-customer';
     const addWarehouseValue = 'add-new-warehouse';
+    const defaultTemplate = documentTemplates.find((template) => template.is_default);
 
     useFlashMessages();
     const { data, setData, post, processing, errors, clearErrors } = useForm({
+        type: quotationType,
         invoice_date: new Date().toISOString().split('T')[0],
         due_date: '',
         currency_code: baseCurrency,
@@ -65,10 +70,11 @@ export default function Create() {
         customer_id: '',
         salesperson_id: '',
         warehouse_id: '',
-        document_template_id: documentTemplates.find((template) => template.is_default)?.id?.toString() ?? '',
+        document_template_id: defaultTemplate?.id?.toString() ?? '',
         payment_terms: '',
         subject: '',
-        notes: '',
+        notes: defaultTemplate?.notes ?? '',
+        terms: defaultTemplate?.terms ?? '',
         items: [{
             product_id: 0,
             quantity: 1,
@@ -84,6 +90,19 @@ export default function Create() {
         }] as QuotationItem[]
     });
 
+    const handleTemplateChange = (value: string) => {
+        const template = value === 'default'
+            ? defaultTemplate
+            : documentTemplates.find((candidate) => candidate.id.toString() === value);
+
+        setData((current) => ({
+            ...current,
+            document_template_id: template?.id?.toString() ?? '',
+            notes: template?.notes ?? '',
+            terms: template?.terms ?? '',
+        }));
+    };
+
     const emptyItem = (): QuotationItem => ({
         product_id: 0,
         quantity: 1,
@@ -96,11 +115,10 @@ export default function Create() {
     });
 
     const loadProducts = async (warehouseId: string) => {
-        const query = warehouseId ? `?warehouse_id=${warehouseId}` : '';
 
         try {
             setProductsLoading(true);
-            const response = await fetch(route('quotations.warehouse.products') + query);
+            const response = await fetch(route('quotations.warehouse.products', { warehouse_id: warehouseId || undefined, type: quotationType || undefined }));
             if (!response.ok) {
                 throw new Error(`Product request failed with status ${response.status}`);
             }
@@ -192,11 +210,11 @@ export default function Create() {
         <AuthenticatedLayout
             breadcrumbs={[
                 {label: t('Quotations'), url: route('quotations.index')},
-                {label: t('Create Quotation')}
+                {label: pageTitle}
             ]}
-            pageTitle={t('Create Quotation')}
+            pageTitle={pageTitle}
         >
-            <Head title={t('Create Quotation')} />
+            <Head title={pageTitle} />
 
             <div>
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -263,6 +281,11 @@ export default function Create() {
                                 </div>
 
                                 <div>
+                                    <SalespersonField value={data.salesperson_id} initialSalespersons={salespersons} onChange={value => setData('salesperson_id', value)} />
+                                    <InputError message={errors.salesperson_id} />
+                                </div>
+
+                                {quotationType !== 'service' && <div>
                                     <Label htmlFor="warehouse_id">
                                         {t('Warehouse')}
                                     </Label>
@@ -290,13 +313,13 @@ export default function Create() {
                                         </SelectContent>
                                     </Select>
                                     <InputError message={errors.warehouse_id} />
-                                </div>
+                                </div>}
 
                                 <div>
                                     <Label htmlFor="document_template_id">
                                         {t('Template')}
                                     </Label>
-                                    <Select value={data.document_template_id || 'default'} onValueChange={(value) => setData('document_template_id', value === 'default' ? '' : value)}>
+                                    <Select value={data.document_template_id || 'default'} onValueChange={handleTemplateChange}>
                                         <SelectTrigger>
                                             <SelectValue placeholder={t('Default Template')} />
                                         </SelectTrigger>
@@ -313,13 +336,6 @@ export default function Create() {
                                 </div>
 
                                 <div>
-                                    <SalespersonField value={data.salesperson_id} initialSalespersons={salespersons} onChange={value => setData('salesperson_id', value)} />
-                                    <InputError message={errors.salesperson_id} />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                                <div>
                                     <Label htmlFor="payment_terms">
                                         {t('Payment Terms')}
                                     </Label>
@@ -335,19 +351,6 @@ export default function Create() {
                                     <Label htmlFor="subject">{t('Subject')}</Label>
                                     <Input id="subject" value={data.subject} onChange={(e) => setData('subject', e.target.value)} placeholder={t('e.g., Event Coverage')} />
                                     <InputError message={errors.subject} />
-                                </div>
-
-                                <div>
-                                    <Label htmlFor="notes">
-                                        {t('Notes')}
-                                    </Label>
-                                    <Textarea
-                                        id="notes"
-                                        value={data.notes}
-                                        onChange={(e) => setData('notes', e.target.value)}
-                                        rows={2}
-                                        placeholder={t('Additional notes...')}
-                                    />
                                 </div>
                             </div>
                             <div className="mt-6 border-t pt-6">
@@ -370,7 +373,7 @@ export default function Create() {
                                 canEditTaxes={auth.user.permissions?.includes('edit-product-service-taxes') || false}
                                 canDeleteTaxes={auth.user.permissions?.includes('delete-product-service-taxes') || false}
                                 showAddButton
-                                canCreateItem={auth.user.permissions?.includes('create-products') || auth.user.permissions?.includes('create-services') || auth.user.permissions?.includes('create-product-service-item') || false}
+                                canCreateItem={auth.user.permissions?.includes(createItemPermission) || auth.user.permissions?.includes('create-product-service-item') || false}
                                 onCreateItem={() => { setProductPickerView('create'); setIsProductPickerOpen(true); }}
                                 onAddMultipleItems={() => { setProductPickerView('browse'); setIsProductPickerOpen(true); }}
                                 onClearError={(field) => clearErrors(field as any)}
@@ -379,8 +382,35 @@ export default function Create() {
                                 exchangeRate={data.exchange_rate}
                             />
 
-                            <div className="mt-6 flex justify-end">
-                                <div className="w-80 bg-muted/30 rounded-lg p-4">
+                            <div className="mt-6 flex flex-col gap-6 border-t pt-6 lg:flex-row lg:items-stretch">
+                                <div className="flex min-w-0 flex-1 flex-col gap-4 sm:flex-row">
+                                <div className="flex w-full flex-col sm:w-[270px]">
+                                    <Label htmlFor="notes">{t('Notes')}</Label>
+                                    <Textarea
+                                        id="notes"
+                                        value={data.notes}
+                                        onChange={(event) => setData('notes', event.target.value)}
+                                        rows={4}
+                                        className="mt-2 min-h-[100px] flex-1"
+                                        placeholder={t('Add quotation notes')}
+                                    />
+                                    <InputError message={errors.notes} />
+                                </div>
+                                <div className="flex w-full flex-col sm:w-[270px]">
+                                    <Label htmlFor="terms">{t('Terms and Conditions')}</Label>
+                                    <Textarea
+                                        id="terms"
+                                        value={data.terms}
+                                        onChange={(event) => setData('terms', event.target.value)}
+                                        rows={4}
+                                        className="mt-2 min-h-[100px] flex-1"
+                                        placeholder={t('Add terms and conditions')}
+                                    />
+                                    <InputError message={(errors as Record<string, string>).terms} />
+                                </div>
+                                </div>
+
+                                <div className="w-full shrink-0 rounded-lg bg-muted/30 p-4 lg:w-80">
                                     <h3 className="font-semibold mb-3">{t('Quotation Summary')}</h3>
                                     <div>
                                         <div className="flex justify-between text-sm">
@@ -416,7 +446,9 @@ export default function Create() {
                         taxes={productCatalog?.taxes || []}
                         warehouses={warehouses}
                         warehouseId={data.warehouse_id}
-                        canCreateProduct={auth.user.permissions?.includes('create-products') || auth.user.permissions?.includes('create-services') || auth.user.permissions?.includes('create-product-service-item') || false}
+                        defaultProductType={quotationType}
+                        catalogMode={quotationType === 'service' ? 'service' : 'stock'}
+                        canCreateProduct={auth.user.permissions?.includes(createItemPermission) || auth.user.permissions?.includes('create-product-service-item') || false}
                         loading={productsLoading}
                         onAdd={addProducts}
                         onProductCreated={product => setAvailableProducts(current => [...current, product])}

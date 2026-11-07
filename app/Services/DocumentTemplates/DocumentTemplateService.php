@@ -15,6 +15,7 @@ class DocumentTemplateService
         DocumentTemplate::TYPE_QUOTATION,
         DocumentTemplate::TYPE_INVOICE,
         DocumentTemplate::TYPE_PAYMENT,
+        DocumentTemplate::TYPE_STATEMENT,
     ];
 
     public const DEFAULT_CONFIG = [
@@ -226,6 +227,7 @@ class DocumentTemplateService
             'name' => match ($type) {
                 DocumentTemplate::TYPE_INVOICE => __('Standard Invoice'),
                 DocumentTemplate::TYPE_PAYMENT => __('Standard Payment'),
+                DocumentTemplate::TYPE_STATEMENT => __('Standard Customer Statement'),
                 default => __('Standard Quotation'),
             },
             'type' => $type,
@@ -234,7 +236,9 @@ class DocumentTemplateService
             'primary_color' => company_setting('theme_color', $companyId) ?: '#10b981',
             'logo_url' => company_setting('logo_dark', $companyId) ?: company_setting('logo_light', $companyId),
             'watermark_url' => null,
-            'config_json' => self::DEFAULT_CONFIG,
+            'config_json' => $type === DocumentTemplate::TYPE_STATEMENT
+                ? array_replace_recursive(self::DEFAULT_CONFIG, ['itemsTable' => ['columns' => ['date', 'transaction', 'debit', 'credit', 'balance']]])
+                : self::DEFAULT_CONFIG,
             'terms' => '',
             'notes' => '',
             'bank_details' => '',
@@ -284,6 +288,7 @@ class DocumentTemplateService
             'number' => match ($type) {
                 DocumentTemplate::TYPE_INVOICE => 'SI-2026-06-001',
                 DocumentTemplate::TYPE_PAYMENT => 'Payment#491',
+                DocumentTemplate::TYPE_STATEMENT => __('Statement'),
                 default => 'QT-2026-06-001',
             },
             'date' => now()->format('Y-m-d'),
@@ -300,6 +305,63 @@ class DocumentTemplateService
                 ['item' => 'Annual support', 'description' => 'Priority support subscription', 'quantity' => 1, 'rate' => 600, 'tax' => 90, 'total' => 690],
             ],
             'totals' => ['subtotal' => 1600, 'discount' => 50, 'tax' => 232.50, 'grand_total' => 1782.50],
+            'statement' => [
+                'period_start' => now()->startOfMonth()->format('Y-m-d'),
+                'period_end' => now()->format('Y-m-d'),
+                'opening_balance' => 1250,
+                'closing_balance' => 4750,
+                'rows' => [
+                    ['date' => now()->startOfMonth()->format('Y-m-d'), 'type' => 'invoice', 'number' => 'INV-000404', 'debit' => 9500, 'credit' => 0, 'running_balance' => 10750],
+                    ['date' => now()->subDays(5)->format('Y-m-d'), 'type' => 'payment', 'number' => '344', 'debit' => 0, 'credit' => 6000, 'running_balance' => 4750],
+                ],
+            ],
+        ];
+    }
+
+    public function customerStatementDocument(array $customer, array $statement, DocumentTemplate $template, int $companyId, ?string $startDate, ?string $endDate): array
+    {
+        return [
+            'type' => DocumentTemplate::TYPE_STATEMENT,
+            'template' => $template->toArray(),
+            'company' => [
+                'name' => company_setting('company_name', $companyId) ?: auth()->user()?->name ?: '',
+                'address' => company_setting('company_address', $companyId),
+                'city' => company_setting('company_city', $companyId),
+                'state' => company_setting('company_state', $companyId),
+                'postal_code' => company_setting('company_zipcode', $companyId),
+                'country' => company_setting('company_country', $companyId),
+                'phone' => company_setting('company_telephone', $companyId),
+                'email' => company_setting('company_email', $companyId),
+                'registration_number' => company_setting('registration_number', $companyId),
+                'logo' => $template->logo_url ?: company_setting('logo_dark', $companyId) ?: company_setting('logo_light', $companyId),
+            ],
+            'customer' => [
+                'name' => $customer['company_name'] ?: $customer['contact_person_name'] ?: __('Customer'),
+                'contact_person' => $customer['contact_person_name'] ?? null,
+                'email' => $customer['contact_person_email'] ?? null,
+                'billing_address' => $this->addressLines($customer['billing_address'] ?? []),
+                'shipping_address' => [],
+            ],
+            'number' => $customer['customer_code'] ?? __('Statement'),
+            'date' => now()->format('Y-m-d'),
+            'due_date' => '',
+            'currency_code' => $statement['base_currency'] ?? null,
+            'items' => [],
+            'totals' => ['subtotal' => 0, 'discount' => 0, 'tax' => 0, 'grand_total' => (float) ($statement['closing_balance'] ?? 0)],
+            'statement' => [
+                'period_start' => $startDate,
+                'period_end' => $endDate,
+                'opening_balance' => (float) ($statement['opening_balance'] ?? 0),
+                'closing_balance' => (float) ($statement['closing_balance'] ?? 0),
+                'rows' => collect($statement['data'] ?? [])->map(fn ($row) => [
+                    'date' => $row['date'] ?? null,
+                    'type' => $row['type'] ?? '',
+                    'number' => $row['number'] ?? '',
+                    'debit' => (float) ($row['debit'] ?? 0),
+                    'credit' => (float) ($row['credit'] ?? 0),
+                    'running_balance' => (float) ($row['running_balance'] ?? 0),
+                ])->values()->all(),
+            ],
         ];
     }
 
@@ -344,6 +406,7 @@ class DocumentTemplateService
             'payment_terms' => $document->payment_terms,
             'subject' => $document->subject,
             'notes' => $document->notes,
+            'terms' => $document instanceof SalesQuotation ? $document->terms : null,
             // Amounts are in the document currency; a foreign-currency document is printed in that currency.
             'currency_code' => $document->currency_code && $document->base_currency_code && strtoupper($document->currency_code) !== strtoupper($document->base_currency_code)
                 ? strtoupper($document->currency_code)

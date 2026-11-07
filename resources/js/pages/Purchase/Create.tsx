@@ -230,9 +230,7 @@ export default function Create() {
                                     </Select>
                                     <InputError message={errors.warehouse_id} />
                                 </div>
-                            </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                                 <div>
                                     <Label htmlFor="supplier_invoice_number">{t('Supplier Invoice Number')}</Label>
                                     <Input id="supplier_invoice_number" value={data.supplier_invoice_number} onChange={(event) => setData('supplier_invoice_number', event.target.value)} />
@@ -255,7 +253,7 @@ export default function Create() {
                                     />
                                 </div>
 
-                                <div>
+                                <div className="md:col-span-2 lg:col-span-4">
                                     <Label htmlFor="notes">
                                         {t('Notes')}
                                     </Label>
@@ -264,6 +262,7 @@ export default function Create() {
                                         value={data.notes}
                                         onChange={(e) => setData('notes', e.target.value)}
                                         rows={2}
+                                        className="min-h-[64px]"
                                         placeholder={t('Additional notes...')}
                                     />
                                 </div>

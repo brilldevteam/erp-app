@@ -15,6 +15,11 @@ const labels: Record<string, string> = {
     discount: 'Discount',
     tax: 'Tax',
     total: 'Total',
+    date: 'Date',
+    transaction: 'Transaction',
+    debit: 'Debit',
+    credit: 'Credit',
+    balance: 'Balance',
 };
 
 // Slightly under a full A4 page: html2pdf rounds 297mm up past its own page height and emits a blank trailing page.
@@ -87,6 +92,10 @@ export default function DocumentTemplatePreview({
 
     if (document.type === 'payment') {
         return <PaymentTemplatePreview template={template} document={document} compact={compact} logo={logo} signature={signature} />;
+    }
+
+    if (document.type === 'statement') {
+        return <CustomerStatementTemplate template={template} document={document} compact={compact} />;
     }
 
     if (document.type === 'invoice') {
@@ -171,7 +180,7 @@ export default function DocumentTemplatePreview({
                 <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div className="space-y-4">
                         {config.footer.showNotes && template.notes && <Section title="Notes" content={template.notes} />}
-                        {config.footer.showTerms && template.terms && <Section title="Terms and Conditions" content={template.terms} />}
+                        {config.footer.showTerms && (document.terms || template.terms) && <Section title="Terms and Conditions" content={document.terms || template.terms || ''} />}
                         {config.footer.showBankDetails && template.bank_details && <Section title="Bank Details" content={template.bank_details} />}
                     </div>
                     {config.footer.showSignature && (
@@ -188,6 +197,111 @@ export default function DocumentTemplatePreview({
             </div>
         </div>
     );
+}
+
+function CustomerStatementTemplate({
+    template,
+    document,
+    compact,
+}: {
+    template: Partial<DocumentTemplate> & { config_json: DocumentTemplateConfig };
+    document: TemplateSampleDocument;
+    compact: boolean;
+}) {
+    const money = documentMoney(document);
+    const [logoFailed, setLogoFailed] = useState(false);
+    const config = template.config_json;
+    const statement = document.statement || { opening_balance: 0, closing_balance: 0, rows: [] };
+    const color = template.primary_color || '#10b981';
+    const logo = template.logo_url || document.company.logo;
+    const watermark = template.watermark_url;
+    const address = [document.company.address, document.company.city, document.company.state, document.company.postal_code, document.company.country].filter(Boolean).join(', ');
+    const configured = config.itemsTable.columns || [];
+    const columns = configured.filter(column => ['date', 'transaction', 'debit', 'credit', 'balance'].includes(column));
+    const visibleColumns = columns.length ? columns : ['date', 'transaction', 'debit', 'credit', 'balance'];
+    const pageStyle = compact ? { aspectRatio: '210 / 297' } : { minHeight: A4_PAGE_MIN_HEIGHT };
+    const period = statement.period_start || statement.period_end
+        ? `${statement.period_start ? documentDate(statement.period_start) : 'Beginning'} - ${statement.period_end ? documentDate(statement.period_end) : 'Present'}`
+        : 'All transactions';
+
+    return (
+        <div className={`bg-white font-['Noto_Sans'] text-[#252525] shadow-sm ${compact ? 'text-[9px]' : 'text-[9pt]'}`}>
+            <div className={`relative mx-auto flex w-[210mm] max-w-full flex-col overflow-hidden bg-white ${compact ? 'p-5' : 'px-10 py-11'}`} style={pageStyle}>
+                <div className="relative z-10 flex items-start justify-between gap-8 border-b-2 pb-7" style={{ borderColor: color }}>
+                    <div className="max-w-[46%]">
+                        {config.header.showLogo && logo && !logoFailed && <img src={getImagePath(String(logo))} alt={document.company.name || 'Company logo'} className="max-h-20 max-w-52 object-contain object-left" onError={() => setLogoFailed(true)} />}
+                        {config.header.showCompanyName && (!logo || logoFailed) && <div className="text-2xl font-bold">{document.company.name}</div>}
+                        {config.header.showCompanyAddress && address && <div className="mt-3 leading-relaxed text-[#666]">{address}</div>}
+                    </div>
+                    <div className="text-right">
+                        <div className={`${compact ? 'text-[24px]' : 'text-[26pt]'} font-bold leading-none`} style={{ color }}>Customer Statement</div>
+                        <div className="mt-3 font-semibold">{document.number}</div>
+                        <div className="mt-1 text-[#666]">Statement date: {documentDate(document.date)}</div>
+                    </div>
+                </div>
+
+                <div className="relative z-10 mt-7 grid grid-cols-[1fr_auto] gap-8">
+                    <div>
+                        <div className="text-[8pt] font-bold uppercase tracking-wide" style={{ color }}>Statement For</div>
+                        <div className="mt-1 text-[13pt] font-bold">{document.customer.name}</div>
+                        {config.customerBlock.showContactPerson && document.customer.contact_person && <div className="mt-1">{document.customer.contact_person}</div>}
+                        {document.customer.email && <div className="text-[#666]">{document.customer.email}</div>}
+                        {config.customerBlock.showBillingAddress && document.customer.billing_address?.map((line) => <div key={line} className="text-[#666]">{line}</div>)}
+                    </div>
+                    <div className="min-w-56 rounded border border-[#dedede] bg-[#f7f8f7] px-5 py-4 text-right">
+                        <div className="text-[8pt] font-bold uppercase text-[#777]">Statement Period</div>
+                        <div className="mt-1 font-semibold">{period}</div>
+                    </div>
+                </div>
+
+                <div className="relative z-10 mt-7 flex items-center justify-between rounded px-5 py-4 text-white" style={{ backgroundColor: color }}>
+                    <span className="font-semibold">Opening Balance</span>
+                    <span className="text-[13pt] font-bold">{money(statement.opening_balance)}</span>
+                </div>
+
+                <table className="relative z-10 mt-4 w-full table-fixed border-collapse">
+                    <thead>
+                        <tr className="border-b-2 text-[8pt] uppercase text-[#666]" style={{ borderColor: color }}>
+                            {visibleColumns.map(column => <th key={column} className={`${statementColumnClass(column)} px-3 py-3 font-bold`}>{labels[column]}</th>)}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {statement.rows.length ? statement.rows.map((row, index) => (
+                            <tr key={`${row.type}-${row.number}-${index}`} className="break-inside-avoid border-b border-[#e4e4e4]">
+                                {visibleColumns.map(column => (
+                                    <td key={column} className={`${statementColumnClass(column)} px-3 py-3 align-top`}>
+                                        {column === 'date' ? documentDate(row.date || undefined)
+                                            : column === 'transaction' ? <><div className="font-semibold capitalize">{row.type.replaceAll('_', ' ')}</div><div className="text-[8pt] text-[#777]">{row.number}</div></>
+                                            : column === 'debit' ? Number(row.debit) ? money(row.debit) : '-'
+                                            : column === 'credit' ? Number(row.credit) ? money(row.credit) : '-'
+                                            : money(row.running_balance)}
+                                    </td>
+                                ))}
+                            </tr>
+                        )) : <tr><td colSpan={visibleColumns.length} className="px-3 py-12 text-center text-[#777]">No transactions in this period</td></tr>}
+                    </tbody>
+                </table>
+
+                <div className="relative z-10 ml-auto mt-6 w-[46%] rounded border border-[#dedede] bg-[#f7f8f7] px-5 py-4">
+                    <div className="flex items-center justify-between gap-6"><span className="font-semibold">Closing Balance</span><span className="text-[15pt] font-bold" style={{ color }}>{money(statement.closing_balance)}</span></div>
+                </div>
+
+                {config.footer.showNotes && (template.notes || document.notes) && <div className="relative z-10 mt-8"><Section title="Notes" content={template.notes || document.notes || ''} /></div>}
+                <div className="mt-auto" />
+                {watermark && <img src={getImagePath(String(watermark))} aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 z-0 aspect-square w-[58%] -translate-x-1/2 -translate-y-1/2 object-contain opacity-[0.04] grayscale" />}
+                <div className="relative z-10 mt-8 border-t pt-3 text-center text-[7pt] leading-relaxed">
+                    <FooterContact config={config} company={document.company} fallbackAddress={address} />
+                    {config.footer.footerText && <div className="mt-1">{config.footer.footerText}</div>}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function statementColumnClass(column: string) {
+    if (column === 'transaction') return 'w-[34%] text-left';
+    if (column === 'date') return 'w-[18%] text-left';
+    return 'text-right';
 }
 
 function PaymentTemplatePreview({ template, document, compact, logo, signature }: { template: Partial<DocumentTemplate> & { config_json: DocumentTemplateConfig }; document: TemplateSampleDocument; compact: boolean; logo?: string | null; signature?: string | null }) {
@@ -335,7 +449,7 @@ function ReferenceQuotationTemplate({
                 <div className="relative z-10 mt-12 max-w-[68%] space-y-5">
                     {config.footer.showBankDetails && template.bank_details && <Section title="Bank Details" content={template.bank_details} />}
                     {config.footer.showNotes && (document.notes || template.notes) && <Section title="Notes" content={document.notes || template.notes || ''} />}
-                    {config.footer.showTerms && template.terms && <Section title="Terms and Conditions" content={template.terms} />}
+                    {config.footer.showTerms && (document.terms || template.terms) && <Section title="Terms and Conditions" content={document.terms || template.terms || ''} />}
                 </div>
 
                 <div className="mt-auto" />
@@ -455,7 +569,7 @@ function ReferenceInvoiceTemplate({
                 <div className="relative z-10 mt-12 max-w-[68%] space-y-5">
                     {config.footer.showBankDetails && template.bank_details && <Section title="Bank Details" content={template.bank_details} />}
                     {config.footer.showNotes && (document.notes || template.notes) && <Section title="Notes" content={document.notes || template.notes || ''} />}
-                    {config.footer.showTerms && template.terms && <Section title="Terms and Conditions" content={template.terms} />}
+                    {config.footer.showTerms && (document.terms || template.terms) && <Section title="Terms and Conditions" content={document.terms || template.terms || ''} />}
                 </div>
 
                 <div className="mt-auto" />

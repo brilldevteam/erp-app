@@ -75,7 +75,7 @@ export default function TransactionCurrencyFields({
 
     const converted = Number(amount || 0) * Number(exchangeRate || 0);
     const formattedRate = Number(exchangeRate || 0).toFixed(2);
-    const availableCurrencies = currencies;
+    const availableCurrencies = currencies.filter((currency) => currency.code !== baseCurrency);
     const selectedCurrency = availableCurrencies.find((currency) => currency.code === currencyCode);
     const normalizedQuery = currencyQuery.trim().toLowerCase();
     const filteredCurrencies = normalizedQuery

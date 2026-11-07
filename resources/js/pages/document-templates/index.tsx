@@ -63,6 +63,7 @@ export default function Index() {
                                     <SelectItem value="quotation">{t('Quotation')}</SelectItem>
                                     <SelectItem value="invoice">{t('Invoice')}</SelectItem>
                                     <SelectItem value="payment">{t('Payment')}</SelectItem>
+                                    <SelectItem value="statement">{t('Customer Statement')}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

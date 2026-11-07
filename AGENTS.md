@@ -64,6 +64,10 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `feature/zoho-ui-upgrade-2026-11-04` | Salesperson workspace and Create Quotation UX: clickable directory rows, tenant-scoped overview/quotations/payments data, quotation/invoice drill-through, two-row details layout, and editable template-prefilled Notes/Terms persisted on quotations and PDFs. Focused tests, migration, changelog and handoff included. Existing statement and salesperson work is preserved; generated `public/build` and `public/hot` remain excluded. | 2026-11-05 | Complete - locally migrated and verified; not committed or pushed |
+| Codex | `feature/zoho-ui-upgrade-2026-11-04` | Salesperson management submenu/page and required quotation salesperson selection: Quotation routes/controller/menu/forms/validation, focused tests, changelog and handoff. Existing statement-template changes are preserved; generated `public/build` and `public/hot` remain excluded. | 2026-11-05 | Complete - locally verified; not committed or pushed |
+| Codex | `feature/zoho-ui-upgrade-2026-11-04` | Customer Statement document-template type and branded Customer 360 statement PDF: template catalogue/form/preview, dedicated filtered PDF route/controller/page, focused regression coverage, changelog and handoff. Generated `public/build` and `public/hot` remain excluded. | 2026-11-05 | Complete - locally verified; not committed or pushed |
+| Codex | `feature/zoho-ui-upgrade-2026-11-04` | Customer 360 statement PDF download: make Statement-tab and overflow actions trigger the existing PDF download flow, preserve date filters, add focused regression coverage, changelog and handoff. Generated `public/build` and `public/hot` remain excluded. | 2026-11-05 | Complete - locally verified; not committed or pushed |
 | Codex | `feature/zoho-ui-upgrade-2026-11-04` | Guarded Sales/Purchase Invoice Revert to Draft workflow: permissions, routes/controllers, lifecycle and journal reversal services, inventory reversal, dependency checks, status history migration/model/UI, focused tests, changelog and handoff. Generated `public/build` and `public/hot` remain excluded. | 2026-11-04 | Complete - committed locally; not pushed |
 | Codex | `feature/zoho-ui-upgrade-2026-11-04` | Package the verified local Customer 360 plus document UX integration: reliable default-off multi-currency switch, quotation salesperson selector/manager, single-scroll item/product dialogs, stable editable item popover, catalog-optional manual lines, and shared tax management for Sales Invoice, Purchase Invoice and Quotation. Exclude generated `public/build`, `public/hot`, and unrelated workspace files; publish the branch without a PR. | 2026-11-04 | Released - pushed; no PR |
 | Codex | `release/zoho-and-security` | Zoho-style searchable line-item selector for Sales Invoice, Purchase Invoice and Quotation create/edit; bottom Add New Row/Add Multiple Items controls; quick-create footer flow, tests/build, changelog and handoff. | 2026-11-03 | Complete - locally verified; ready to commit and push |
@@ -265,7 +269,147 @@ A work item is not complete until its code is committed, tests are recorded, aff
 
 ## Handoff Log
 
+### 2026-11-07 Asia/Colombo - Claude - UI upgrade branch published
+
+- Branch: `New-feature/ui-upgrade-2026-11-07`, created from `feature/zoho-ui-upgrade-2026-11-04` at `dd3975f7f`. No pull request.
+- Commit: single commit on this branch, pushed to origin.
+- Files changed: 39 source files. Includes today's Claude UI work and Codex's completed Nov 5 work (Customer 360 statement PDF, Customer Statement template, Salesperson submenu and workspace, quotation Terms), because they share the same quotation files.
+- Database records/migrations affected: new `2026_11_05_000001_add_terms_to_sales_quotations_table` and `2026_11_07_000001_add_type_to_sales_quotations_table`. Both ran on local `erp_live_copy` only, not on live.
+- Tests run and results: full Unit suite ran 167 tests with 5 failures in `BulkImportRegistryTest` (2), `CustomerAddressValidationTest` (2), `ProjectPropertyInformationValidationTest` (1). No staged file relates to those areas. They were not compared on a clean checkout.
+- Known issues or blockers: `public/build` is tracked and shows 1,661 local changes; excluded from the commit. Graphify refresh not completed this session.
+- Deployment or rollback notes: backup first, run both migrations, rebuild on the server. Not deployed.
+- Files/areas still claimed: none.
+- Exact next step: user decides whether to merge or deploy.
+
+### 2026-11-07 Asia/Colombo - Claude - Purchase Invoice details layout
+
+- Branch: `feature/zoho-ui-upgrade-2026-11-04`.
+- Commit: none; changes remain local and are not pushed.
+- Files changed: `AGENTS.md`, `CHANGELOG.md`, `resources/js/pages/Purchase/Create.tsx`, `resources/js/pages/Purchase/Edit.tsx`.
+- Database records/migrations affected: none.
+- What was implemented: merged the 4-column and 2-column detail grids into one 4-column grid; Notes is full width. No field, name or behaviour changed.
+- Decisions and assumptions: the user's request was read as tidying the layout to match Quotation and Sales Invoice.
+- Tests run and results: `TransactionCurrencyLineEntryTest`, `ManualDocumentLineTest`, `LiveSecuritySmokeRegressionTest`, `PurchaseInvoiceProductPickerTest` passed 26 tests / 329 assertions; `npx tsc --noEmit` no errors in Purchase pages; `npm run build` passed.
+- Manual verification: Create page measured in the browser at 1536 and 900 wide: fields align in 4 columns and 2 columns, no sideways scroll. Edit received the same change but was not opened, because Test COMPANY has no draft Purchase Invoice.
+- Known issues or blockers: none.
+- Deployment or rollback notes: no migration. Do not commit generated `public/build` or `public/hot`.
+- Files/areas still claimed: none for this task.
+- Exact next step: user checks Create Purchase Invoice, then says when to commit and push.
+
+### 2026-11-07 Asia/Colombo - Claude - Default currency removed from Multi-Currency dropdown
+
+- Branch: `feature/zoho-ui-upgrade-2026-11-04`.
+- Commit: none; changes remain local and are not pushed.
+- Files changed: `AGENTS.md`, `CHANGELOG.md`, `resources/js/components/transaction-currency-fields.tsx`, `tests/Unit/TransactionCurrencyLineEntryTest.php`.
+- Database records/migrations affected: none.
+- What was implemented: the shared control no longer lists the company default currency, on all 14 forms that use it. This is the only change. Hiding Exchange Rate until a currency was picked was added without being asked, the user rejected it, and the file was restored from git with only the one-line filter re-applied.
+- Decisions and assumptions: this reverses the earlier rule that listed every currency, at the user's request, so one test assertion was changed. Do not hide or change Exchange Rate. Turning the switch on without picking a currency saves in the default currency, as it did before.
+- Tests run and results: `TransactionCurrencyLineEntryTest` passed 7 tests / 110 assertions; `npx tsc --noEmit` no errors in the component; `npm run build` passed.
+- Manual verification: Quotation, Sales Invoice and Purchase Invoice create pages on Test COMPANY: QAR absent from the list, searching Qatar returns no currency, USD selectable, rate appears, switching off hides it. No page errors. Not saved with a foreign currency in this check. The other 11 forms share the component but were not opened.
+- Known issues or blockers: if a company changes its default currency later, an older document in the new default shows Select currency in Edit.
+- Deployment or rollback notes: no migration. Do not commit generated `public/build` or `public/hot`.
+- Files/areas still claimed: none for this task.
+- Exact next step: user checks the dropdown, then says when to commit and push.
+
+### 2026-11-07 Asia/Colombo - Claude - Quotations list redesigned like Customers
+
+- Branch: `feature/zoho-ui-upgrade-2026-11-04`.
+- Commit: none; changes remain local and are not pushed.
+- Files changed: `AGENTS.md`, `CHANGELOG.md`, Quotations `Index.tsx` (rewritten), `QuotationController.php` (index), `SalesQuotation.php`, `tests/Unit/QuotationTypeSplitTest.php`.
+- Database records/migrations affected: none beyond the `type` column from the entry below.
+- What was implemented: Customers-style page with summary cards (Total, Awaiting response, Overdue), live search, sort and direction, per-page, Filters panel, tabs (All quotations, Product, Service, Overdue) and clickable rows. Preview and Download stay as icons; all other actions moved to a three-dot menu. `New quotation` opens the Product/Service choice.
+- Decisions and assumptions: Overdue now means draft, sent or expired, not converted, due date before today; accepted, rejected and converted are finished, so they no longer show Overdue. Product/Service tabs include older quotations by their lines via `scopeOfType`, same rule as `resolvedType()`; mixed and manual-only quotations appear only under All. Grid view was removed because Customers has none. Placeholder `@import.local` emails are hidden. Default page size is 10.
+- Tests run and results: `QuotationTypeSplitTest`, `QuotationSalespersonFeatureTest`, `ManualDocumentLineTest` passed 18 tests / 227 assertions before the final two-line tidy; `npx tsc --noEmit` no errors in the quotation pages; `npm run build` passed.
+- Manual verification: browser on Test COMPANY against SQL counts: total 479, awaiting 110, overdue 155, Service 478, Product 0, converted 203, search Squad 2. No converted row shows Overdue. Sort, paging, row click, both menus and widths 1280, 1360, 1366, 1536 and 390 checked with no sideways scroll.
+- Known issues or blockers: `python -m graphify update .` ran over 40 minutes and was stopped, so the graph is not refreshed for this session's changes.
+- Deployment or rollback notes: no extra migration. Do not commit generated `public/build` or `public/hot`.
+- Files/areas still claimed: none for this task.
+- Exact next step: user checks Sales > Quotations, then says when to commit and push.
+
+### 2026-11-07 Asia/Colombo - Claude - Separate Product and Service quotations
+
+- Branch: `feature/zoho-ui-upgrade-2026-11-04`.
+- Commit: none; changes remain local and are not pushed.
+- Files changed: `AGENTS.md`, `CHANGELOG.md`, Quotation controller, Store/Update requests, `SalesQuotation` model, new migration `2026_11_07_000001_add_type_to_sales_quotations_table`, Quotations `Index.tsx`/`Create.tsx`/`Edit.tsx`, `Customers/Workspace.tsx`, `product-picker-dialog.tsx`, new `tests/Unit/QuotationTypeSplitTest.php`.
+- Database records/migrations affected: new nullable `sales_quotations.type`, run on local `erp_live_copy`. Existing rows are not changed; all 975 stay NULL.
+- What was implemented: the Quotations + now opens Product Quotation / Service Quotation (also the empty-state button and Customer 360). The type is saved on the quotation and fixes the item dropdown and Add Multiple Items list. Service quotations hide Warehouse, confirmed by the user. Salesperson sits directly after Customer on create and edit. On Create Quotation, Notes and Terms sit side by side left of Quotation Summary, each the Description box size (270 x 100), the layout the user chose. Store/Update reject lines of the wrong type. Convert to Invoice uses the saved type. Edit now sends `terms`, which was being blanked on every edit.
+- Decisions and assumptions: no backfill, so no production data changes. Older quotations get their type from their catalog lines at runtime; mixed or manual-only ones keep the full list. Product means `type != service`, matching the Products page, so Parts are included. Manual lines stay allowed on both types. The type cannot be changed after creation.
+- Tests run and results: `npx tsc --noEmit` no errors in touched files; PHP syntax passed; `QuotationSalespersonFeatureTest`, `ManualDocumentLineTest`, `PurchaseInvoiceProductPickerTest`, `ProductServiceCatalogSplitTest`, `TransactionCurrencyLineEntryTest` passed 32 tests / 435 assertions before the new test; `QuotationTypeSplitTest` + `QuotationSalespersonFeatureTest` passed 11 tests / 109 assertions; `npm run build` passed.
+- Manual verification: browser on Test COMPANY. + menu shows both options; Service list 18 services, Product list only the temporary product. Wrong-type lines and missing type returned 422; both types saved; Edit kept the type; Update through the page succeeded; Convert returned the right invoice type, including manual-only Service; legacy EST-000470 opened as Service. Temporary product and 3 quotations were deleted through the app; all 13 product-linked tables show 0 rows and 975 quotations remain.
+- Known issues or blockers: Edit Quotation has no visible Terms box, so Terms can only be set on create. Create ignores `customer_id` in the URL, so Customer 360 does not preselect the customer (already the case).
+- Deployment or rollback notes: run migrations for BOTH `2026_11_05_000001_add_terms_to_sales_quotations_table` and this one, then rebuild. Take a phpMyAdmin backup first. Rollback: revert the files and drop the nullable column. Do not commit generated `public/build` or `public/hot`.
+- Files/areas still claimed: none for this task.
+- Exact next step: user tests Quotations > + locally, then says when to commit and push.
+
+### 2026-11-07 Asia/Colombo - Claude - Product picker layout and Products/Services create popup
+
+- Branch: `feature/zoho-ui-upgrade-2026-11-04`.
+- Commit: none; changes remain local and are not pushed.
+- Files changed: `AGENTS.md`, `resources/js/components/product-picker-dialog.tsx`, ProductService `ProductServiceItemController.php`, `Pages/Items/Index.tsx`, `Pages/Items/types.ts`.
+- Database records/migrations affected: none.
+- What was implemented: Add Products popup (Sales Invoice, Purchase Invoice, Quotation) got search/table spacing and no sideways scroll. The + on Products and Services now opens the shared create form in a new `createOnly` mode instead of a separate page. Tax moved next to Opening Stock, above Description, and the create form was tightened so it fits without scrolling.
+- Decisions and assumptions: `createOnly` allows Opening Stock 0 and hides Part. Image and long description stay on the Edit page. The layout change also applies to the create form inside invoices and quotations because the component is shared.
+- Tests run and results: `ProductServiceCatalogSplitTest` + `PurchaseInvoiceProductPickerTest` passed 12 tests / 125 assertions; `npm run build` passed.
+- Manual verification: real popup measured in the browser. Products needs 648px and fits at 1536x730, 1366x768 and 1920x950; Services needs 560px. At 1366x650 Products still scrolls (585px available). The Create save was not clicked, to avoid adding test data.
+- Known issues or blockers: Part chosen in the invoice version of the popup probably saves as Product (existing behaviour, unchanged, not tested).
+- Deployment or rollback notes: no migration; do not commit generated `public/build` or `public/hot`. Rollback is limited to the files above.
+- Files/areas still claimed: none for this task.
+- Exact next step: user creates one product and one service locally, then says when to commit and push.
+
+### 2026-11-05 Asia/Colombo - Codex - Salesperson department workspace
+
+- Branch: `feature/zoho-ui-upgrade-2026-11-04`.
+- Commit: none; changes remain local and are not pushed.
+- Files changed: `AGENTS.md`, `CHANGELOG.md`, Quotation salesperson routes/controller, Salesperson directory and new `Salespersons/Show.tsx`, plus `tests/Unit/QuotationSalespersonFeatureTest.php`.
+- Database records/migrations affected: none. Existing salesperson, quotation, converted-invoice and payment-allocation relationships are read only.
+- What was implemented: clicking a salesperson opens a tenant-scoped salesperson workspace with Overview, Quotations and Payments tabs; salesperson-specific quoted, converted, collected and outstanding totals; quotation status breakdown; recent/all quotation lists; payment attribution rows; direct quotation navigation; and separate invoice-number navigation to the sales invoice. Recent rows use a compact complete layout so invoice details are not clipped. All visible department wording was removed at the user's request.
+- Decisions and assumptions: salesperson records represent departments; payments are attributed only through allocations on invoices converted from quotations assigned to that department; customer-only concepts such as portal access, receivables aging and customer contact snapshots are intentionally omitted.
+- Tests run and results: PHP syntax passed for the quotation controller, requests, and Terms migration; `QuotationSalespersonFeatureTest` passed 7 tests / 88 assertions after invoice drill-through, Create Quotation layout, and template-prefill coverage were added; `npx tsc --noEmit` passed; `npm run build` passed with 4,020 modules; migration `2026_11_05_000001_add_terms_to_sales_quotations_table` ran successfully on the local database; route listing confirmed all six salesperson routes; focused `git diff --check` passed.
+- Manual verification: local Laravel and Vite servers are running; authenticated browser refresh and data review remain for the user.
+- Known issues or blockers: historical quotations without a salesperson are intentionally excluded until assigned; payments on unrelated invoices cannot be attributed to a department.
+- Deployment or rollback notes: no migration is required; do not commit generated `public/build` or `public/hot`. Rollback is limited to the files above.
+- Files/areas still claimed: none for this task.
+- Exact next step: user opens Sales > Salesperson, clicks a department, checks quotation/payment totals, and opens a quotation row.
+
+### 2026-11-05 Asia/Colombo - Codex - Salesperson submenu and required quotation assignment
+
+- Branch: `feature/zoho-ui-upgrade-2026-11-04`.
+- Commit: none; changes remain local and are not pushed.
+- Files changed: `AGENTS.md`, `CHANGELOG.md`, Quotation salesperson controller/routes/menu/management page, quotation create/update requests, shared salesperson field, and `tests/Unit/QuotationSalespersonFeatureTest.php`.
+- Database records/migrations affected: none. The existing `quotation_salespersons` table and `sales_quotations.salesperson_id` relationship are reused.
+- What was implemented: added Sales > Salesperson beneath Quotations; added a tenant-scoped Customer-directory-style management page with salesperson search, All Salespersons/Active/Inactive tabs, responsive rows and add/edit/activate/inactivate/delete actions without summary cards; made an active tenant-owned salesperson mandatory when creating or updating a quotation; removed the optional No Salesperson choice from the quotation form; corrected the Inertia package prefix after browser testing exposed that the submenu route could not resolve its page.
+- Decisions and assumptions: the submenu uses the existing `manage-quotations` permission instead of introducing a new permission; historical quotations are not changed, but an old quotation without an active salesperson must select one before it can be saved again.
+- Tests run and results: PHP syntax passed for the controller, create/update requests and focused test; `QuotationSalespersonFeatureTest` passed 5 tests / 50 assertions after the directory redesign; `npx tsc --noEmit` passed; `npm run build` passed with 4,019 modules before the final UI-only redesign; focused `git diff --check` passed; `artisan route:list --path=quotation-salespersons` confirmed all five routes.
+- Manual verification: source, menu and route contracts verified. Authenticated browser verification of the submenu, add flow and required-field error remains for the user.
+- Known issues or blockers: none.
+- Deployment or rollback notes: no migration is required; do not commit generated `public/build` or `public/hot`. Rollback is limited to the files listed above.
+- Files/areas still claimed: none for this task.
+- Exact next step: user opens Sales > Salesperson, adds an active salesperson, then confirms a quotation cannot be created or updated without selecting one.
+
+### 2026-11-05 Asia/Colombo - Codex - Branded Customer Statement template and PDF
+
+- Branch: `feature/zoho-ui-upgrade-2026-11-04`.
+- Commit: none; changes remain local and are not pushed.
+- Files changed: `AGENTS.md`, `CHANGELOG.md`, `app/Models/DocumentTemplate.php`, `app/Services/DocumentTemplates/DocumentTemplateService.php`, Customer Workspace controller/service/routes/UI, new `StatementPrint.tsx`, document-template preview/form/index/types, and `tests/Feature/CustomerWorkspaceContractTest.php`.
+- Database records/migrations affected: none. The first statement PDF request lazily creates the company's default Customer Statement template through the existing document-template service.
+- What was implemented: added a fourth `statement` template type; added its Templates filter/form option, statement-column controls and live preview; added a branded A4 statement renderer with customer and period details, opening balance, running debit/credit rows, closing balance, watermark and contact footer; replaced both Customer 360 PDF actions with a dedicated filtered statement route that downloads the rendered template.
+- Decisions and assumptions: Customer Statement is separate from the legacy Customer Detail Report; CSV behavior is unchanged; the PDF uses company base currency and preserves start/end date filters; existing invoice, quotation and payment template behavior remains unchanged.
+- Tests run and results: PHP syntax passed for all changed PHP files; `CustomerWorkspaceContractTest` passed 9 tests / 76 assertions under PHP 8.5 with a 1 GB test memory limit; `npx tsc --noEmit` passed; `npm run build` passed with 4,018 modules; `git diff --check` passed excluding generated `public/build` and `public/hot`.
+- Manual verification: source and route contract verified; the production bundle contains the new StatementPrint and updated Workspace/template assets. Authenticated browser download should be checked with a real customer and both an unfiltered and date-filtered statement.
+- Known issues or blockers: none in implementation. The default local PHP memory limit of 128 MB is too low for PHPUnit preload, so the focused test was run directly with `-d memory_limit=1G`.
+- Deployment or rollback notes: do not commit generated `public/build` or `public/hot`; no migration is required. Rollback is limited to the files above and restores the legacy customer-detail PDF action.
+- Files/areas still claimed: none for this task.
+- Exact next step: user tests Customer 360 > Statement > PDF and optionally customizes Templates > Customer Statement before deployment.
+
 Add newest entries first. Do not remove earlier entries.
+
+### 2026-11-05 Asia/Colombo - Codex - Customer 360 statement PDF download
+
+- Branch: `feature/zoho-ui-upgrade-2026-11-04`; changes are locally verified and are not committed or pushed in this handoff.
+- Scope: Customer 360 Statement-tab PDF and overflow Download statement actions now call the existing customer-detail PDF generator with `download=pdf` and preserve the selected statement start/end dates.
+- Root cause: Customer 360 opened the print route without the download query flag, so live correctly rendered only the PDF preview page while the legacy customer report already used the working download flag.
+- Verification: `CustomerWorkspaceContractTest` passed 8 tests / 64 assertions; `npx tsc --noEmit` passed; targeted `git diff --check` passed.
+- Exclusions: generated `public/build`, `public/hot`, local server logs and unrelated workspace files remain excluded.
 
 ### 2026-11-04 Asia/Colombo - Codex - Guarded invoice revert to draft
 

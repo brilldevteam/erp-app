@@ -33,25 +33,34 @@ class QuotationController extends Controller
     public function index(Request $request)
     {
         if (Auth::user()->can('manage-quotations')) {
-            $query = SalesQuotation::with(['customer', 'items'])
-                ->where(function ($q) {
-                    if (Auth::user()->can('manage-any-quotations')) {
-                        $q->where('created_by', creatorId());
-                    } elseif (Auth::user()->can('manage-own-quotations')) {
-                        $q->where('creator_id', Auth::id())->orWhere('customer_id', Auth::id());
-                        if (Auth::user()->type == 'client') {
-                            $q->where('status', '!=', 'draft');
-                        }
-                    } else {
-                        $q->whereRaw('1 = 0');
+            $visibleQuotations = fn () => SalesQuotation::where(function ($q) {
+                if (Auth::user()->can('manage-any-quotations')) {
+                    $q->where('created_by', creatorId());
+                } elseif (Auth::user()->can('manage-own-quotations')) {
+                    $q->where('creator_id', Auth::id())->orWhere('customer_id', Auth::id());
+                    if (Auth::user()->type == 'client') {
+                        $q->where('status', '!=', 'draft');
                     }
-                });
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
+            });
+
+            $query = $visibleQuotations()->with(['customer', 'salesperson:id,name', 'items']);
+
               // Apply filters
             if ($request->customer_id) {
                 $query->where('customer_id', $request->customer_id);
             }
-            if ($request->status) {
+            if ($request->status === 'converted') {
+                $query->where('converted_to_invoice', true);
+            } elseif ($request->status) {
                 $query->where('status', $request->status);
+            }
+            if (in_array($request->view, ['product', 'service'], true)) {
+                $query->ofType($request->view);
+            } elseif ($request->view === 'overdue') {
+                $query->overdue();
             }
             if ($request->search) {
                 $search = trim($request->search);
@@ -73,35 +82,47 @@ class QuotationController extends Controller
 
               // Apply sorting
             $sortField     = $request->get('sort', 'created_at');
-            $sortDirection = $request->get('direction', 'desc');
+            $sortDirection = $request->get('direction') === 'asc' ? 'asc' : 'desc';
 
             $allowedSortFields = ['quotation_number', 'quotation_date', 'due_date', 'subtotal', 'tax_amount', 'total_amount', 'status', 'created_at'];
             if (!in_array($sortField, $allowedSortFields) || empty($sortField)) {
                 $sortField = 'created_at';
             }
 
-            $query->orderBy($sortField, $sortDirection);
+            // Imported quotations share timestamps, so the id keeps page order stable.
+            $query->orderBy($sortField, $sortDirection)->orderBy('id', 'desc');
 
-            $perPage    = $request->get('per_page', 15);
-            $quotations = $query->paginate($perPage);
+            $perPage    = in_array((int) $request->get('per_page'), [10, 25, 50, 100], true) ? (int) $request->get('per_page') : 10;
+            $quotations = $query->paginate($perPage)->through(function (SalesQuotation $quotation) {
+                $quotation->setAttribute('catalog_type', $quotation->resolvedType());
+                $quotation->setAttribute('is_overdue', $quotation->isOverdue());
+
+                return $quotation;
+            });
             $customers  = $this->quotationCustomers();
 
             return Inertia::render('Quotation/Quotations/Index', [
                 'quotations' => $quotations,
                 'customers'  => $customers,
-                'filters'    => $request->only(['customer_id', 'status', 'search', 'date_range'])
+                'summary'    => [
+                    'total' => $visibleQuotations()->count(),
+                    'awaiting' => $visibleQuotations()->where('status', 'sent')->where('converted_to_invoice', false)->count(),
+                    'overdue' => $visibleQuotations()->overdue()->count(),
+                ],
+                'filters'    => $request->only(['customer_id', 'status', 'search', 'date_range', 'view', 'sort', 'direction', 'per_page'])
             ]);
         } else {
             return back()->with('error', __('Permission denied'));
         }
     }
 
-    public function create()
+    public function create(Request $request)
     {
         if (Auth::user()->can('create-quotations')) {
             $customers  = $this->quotationCustomers();
             $warehouses = Warehouse::where('is_active', true)->select('id', 'name', 'address')->where('created_by', creatorId())->get();
             return Inertia::render('Quotation/Quotations/Create', [
+                'quotationType' => $request->query('type') === 'service' ? 'service' : 'product',
                 'customers'  => $customers,
                 'warehouses' => $warehouses,
                 'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_QUOTATION),
@@ -121,6 +142,7 @@ class QuotationController extends Controller
 
             $quotation = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $totals, $currency) {
             $quotation                  = new SalesQuotation();
+            $quotation->type            = $request->type;
             $quotation->quotation_date  = $request->invoice_date;
             $quotation->document_template_id = app(DocumentTemplateService::class)
                 ->resolveForDocument(DocumentTemplate::TYPE_QUOTATION, creatorId(), $request->document_template_id)
@@ -132,6 +154,7 @@ class QuotationController extends Controller
             $quotation->payment_terms   = $request->payment_terms;
             $quotation->subject         = $request->subject;
             $quotation->notes           = $request->notes;
+            $quotation->terms           = $request->terms;
             $quotation->currency_code   = $currency['currency_code'];
             $quotation->exchange_rate   = $currency['exchange_rate'];
             $quotation->base_amount     = $currency['base_amount'];
@@ -196,6 +219,7 @@ class QuotationController extends Controller
 
             return Inertia::render('Quotation/Quotations/Edit', [
                 'quotation'  => $quotation,
+                'quotationType' => $quotation->resolvedType(),
                 'customers'  => $customers,
                 'warehouses' => $warehouses,
                 'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_QUOTATION),
@@ -229,6 +253,7 @@ class QuotationController extends Controller
             $quotation->payment_terms   = $request->payment_terms;
             $quotation->subject         = $request->subject;
             $quotation->notes           = $request->notes;
+            $quotation->terms           = $request->terms;
             $quotation->currency_code   = $currency['currency_code'];
             $quotation->exchange_rate   = $currency['exchange_rate'];
             $quotation->base_amount     = $currency['base_amount'];
@@ -320,7 +345,7 @@ class QuotationController extends Controller
             ->active()
             ->orderByDesc('is_default')
             ->orderBy('name')
-            ->get(['id', 'name', 'is_default']);
+            ->get(['id', 'name', 'is_default', 'terms', 'notes']);
     }
 
     private function quotationCustomers()
@@ -531,9 +556,9 @@ class QuotationController extends Controller
             return back()->with('error', __('At least one line item is required before converting this quotation.'));
         }
 
-        $type = $quotation->items->every(
+        $type = $quotation->type ?: ($quotation->items->every(
             fn ($item) => $item->product?->type === 'service'
-        ) ? 'service' : 'product';
+        ) ? 'service' : 'product');
 
         $customers = $this->quotationCustomers();
         $warehouses = Warehouse::where('is_active', true)
@@ -624,8 +649,10 @@ class QuotationController extends Controller
         if ($canEditQuotation && $canBrowseProducts) {
             $validated = $request->validate([
                 'warehouse_id' => ['nullable', 'integer', 'exists:warehouses,id'],
+                'type' => ['nullable', 'in:product,service'],
             ]);
             $warehouseId = $validated['warehouse_id'] ?? null;
+            $catalogType = $validated['type'] ?? null;
 
             if ($warehouseId) {
                 $warehouseExists = Warehouse::where('id', $warehouseId)
@@ -640,6 +667,8 @@ class QuotationController extends Controller
             $productsQuery = ProductServiceItem::select('id', 'name', 'sku', 'description', 'long_description', 'sale_price', 'tax_ids', 'unit', 'type', 'category_id')
                 ->where('is_active', true)
                 ->where('created_by', creatorId())
+                ->when($catalogType === 'service', fn ($query) => $query->where('type', 'service'))
+                ->when($catalogType === 'product', fn ($query) => $query->where('type', '!=', 'service'))
                 ->with(['category:id,name', 'unitRelation:id,unit_name']);
 
             if ($warehouseId) {

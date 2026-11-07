@@ -2,6 +2,8 @@
 
 namespace Workdo\Account\Http\Controllers;
 
+use App\Models\DocumentTemplate;
+use App\Services\DocumentTemplates\DocumentTemplateService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Inertia\Inertia;
@@ -35,6 +37,28 @@ class CustomerWorkspaceController extends Controller
             }
             fclose($output);
         }, 'customer-statement-' . $customer->customer_code . '.csv', ['Content-Type' => 'text/csv']);
+    }
+
+    public function statementPdf(Request $request, Customer $customer, CustomerWorkspaceService $workspace, DocumentTemplateService $templates)
+    {
+        $this->authorizeCustomer($customer);
+        abort_unless(auth()->user()->can('print-customer-detail-report') || auth()->user()->can('view-customer-detail-report'), 403);
+
+        $statement = $workspace->statementExport($customer, $request);
+        $template = $templates->resolveForDocument(DocumentTemplate::TYPE_STATEMENT, creatorId(), null);
+
+        return Inertia::render('Account/Customers/StatementPrint', [
+            'customer' => $customer,
+            'documentTemplate' => $template,
+            'templateDocument' => $templates->customerStatementDocument(
+                $customer->toArray(),
+                $statement,
+                $template,
+                creatorId(),
+                $request->string('start_date')->value() ?: null,
+                $request->string('end_date')->value() ?: null,
+            ),
+        ]);
     }
 
     private function authorizeCustomer(Customer $customer): void

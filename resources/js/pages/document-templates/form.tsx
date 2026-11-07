@@ -30,6 +30,7 @@ interface Props {
 }
 
 const itemColumns = ['item', 'description', 'quantity', 'rate', 'discount', 'tax', 'total'];
+const statementColumns = ['date', 'transaction', 'debit', 'credit', 'balance'];
 
 export default function Form() {
     const { t } = useTranslation();
@@ -56,7 +57,7 @@ export default function Form() {
 
     const previewDocument = useMemo(() => ({
         ...sampleDocument,
-        type: data.type as 'quotation' | 'invoice' | 'payment',
+        type: data.type,
         notes: '',
         template: data,
     }), [sampleDocument, data]);
@@ -76,7 +77,20 @@ export default function Form() {
     const toggleColumn = (column: string, checked: boolean) => {
         const columns = data.config_json.itemsTable.columns || [];
         const next = checked ? [...new Set([...columns, column])] : columns.filter((item) => item !== column);
-        setConfig('itemsTable.columns', next.length ? next : ['item', 'total']);
+        setConfig('itemsTable.columns', next.length ? next : data.type === 'statement' ? ['date', 'transaction', 'balance'] : ['item', 'total']);
+    };
+
+    const changeType = (value: typeof data.type) => {
+        const wasStatement = data.type === 'statement';
+        const isStatement = value === 'statement';
+        setData((current) => ({
+            ...current,
+            type: value,
+            config_json: wasStatement === isStatement ? current.config_json : {
+                ...current.config_json,
+                itemsTable: { columns: isStatement ? statementColumns : defaultConfig.itemsTable.columns },
+            },
+        }));
     };
 
     const submit = (event: FormEvent) => {
@@ -130,9 +144,9 @@ export default function Form() {
                             <Field label={t('Template Name')} error={errors.name}><Input value={data.name} onChange={(e) => setData('name', e.target.value)} /></Field>
                             <div className="grid grid-cols-2 gap-4">
                                 <Field label={t('Type')} error={errors.type}>
-                                    <Select value={data.type} onValueChange={(value) => setData('type', value as any)}>
+                                    <Select value={data.type} onValueChange={(value) => changeType(value as typeof data.type)}>
                                         <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent><SelectItem value="quotation">{t('Quotation')}</SelectItem><SelectItem value="invoice">{t('Invoice')}</SelectItem><SelectItem value="payment">{t('Payment')}</SelectItem></SelectContent>
+                                        <SelectContent><SelectItem value="quotation">{t('Quotation')}</SelectItem><SelectItem value="invoice">{t('Invoice')}</SelectItem><SelectItem value="payment">{t('Payment')}</SelectItem><SelectItem value="statement">{t('Customer Statement')}</SelectItem></SelectContent>
                                     </Select>
                                 </Field>
                                 <Field label={t('Status')} error={errors.status}>
@@ -172,16 +186,18 @@ export default function Form() {
                                 <Check label={t('Shipping Address')} checked={data.config_json.customerBlock.showShippingAddress} onChange={(value) => setConfig('customerBlock.showShippingAddress', value)} />
                                 <Check label={t('Contact Person')} checked={data.config_json.customerBlock.showContactPerson} onChange={(value) => setConfig('customerBlock.showContactPerson', value)} />
                             </Section>
-                            <Section title={t('Item Table Columns')}>
+                            <Section title={data.type === 'statement' ? t('Statement Columns') : t('Item Table Columns')}>
                                 <div className="grid grid-cols-2 gap-2">
-                                    {itemColumns.map((column) => <Check key={column} label={t(column)} checked={data.config_json.itemsTable.columns.includes(column)} onChange={(value) => toggleColumn(column, value)} />)}
+                                    {(data.type === 'statement' ? statementColumns : itemColumns).map((column) => <Check key={column} label={t(column)} checked={data.config_json.itemsTable.columns.includes(column)} onChange={(value) => toggleColumn(column, value)} />)}
                                 </div>
                             </Section>
-                            <Section title={t('Totals And Footer')}>
+                            <Section title={data.type === 'statement' ? t('Footer') : t('Totals And Footer')}>
+                                {data.type !== 'statement' && <>
                                 <Check label={t('Subtotal')} checked={data.config_json.totals.showSubtotal} onChange={(value) => setConfig('totals.showSubtotal', value)} />
                                 <Check label={t('Discount')} checked={data.config_json.totals.showDiscount} onChange={(value) => setConfig('totals.showDiscount', value)} />
                                 <Check label={t('Tax')} checked={data.config_json.totals.showTax} onChange={(value) => setConfig('totals.showTax', value)} />
                                 <Check label={t('Grand Total')} checked={data.config_json.totals.showGrandTotal} onChange={(value) => setConfig('totals.showGrandTotal', value)} />
+                                </>}
                                 <Check label={t('Terms')} checked={data.config_json.footer.showTerms} onChange={(value) => setConfig('footer.showTerms', value)} />
                                 <Check label={t('Notes')} checked={data.config_json.footer.showNotes} onChange={(value) => setConfig('footer.showNotes', value)} />
                                 <Check label={t('Bank Details')} checked={data.config_json.footer.showBankDetails} onChange={(value) => setConfig('footer.showBankDetails', value)} />

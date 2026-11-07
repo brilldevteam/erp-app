@@ -87,7 +87,7 @@ class TransactionCurrencyLineEntryTest extends TestCase
         $source = $this->source('resources/js/components/transaction-currency-fields.tsx');
 
         $this->assertStringContainsString("page.companyAllSetting?.defaultCurrency || page.settings?.defaultCurrency || 'USD'", $source);
-        $this->assertStringContainsString('const availableCurrencies = currencies;', $source);
+        $this->assertStringContainsString('const availableCurrencies = currencies.filter((currency) => currency.code !== baseCurrency);', $source);
         $this->assertStringContainsString('const [multiCurrencyEnabled, setMultiCurrencyEnabled] = useState(defaultEnabled);', $source);
         $this->assertStringContainsString("if (value === baseCurrency) {\n            onRateChange('1.00000000');\n            setMultiCurrencyEnabled(false);", $source);
     }

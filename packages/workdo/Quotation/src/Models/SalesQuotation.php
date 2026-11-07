@@ -2,6 +2,7 @@
 
 namespace Workdo\Quotation\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,12 +13,14 @@ use App\Models\DocumentTemplate;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Workdo\Account\Models\Customer;
+use Workdo\ProductService\Models\ProductServiceItem;
 
 class SalesQuotation extends Model
 {
     use HasFactory;
 
     public const CONVERTIBLE_STATUSES = ['draft', 'sent', 'accepted'];
+    public const AWAITING_STATUSES = ['draft', 'sent', 'expired'];
 
     protected $fillable = [
         'quotation_number',
@@ -36,12 +39,14 @@ class SalesQuotation extends Model
         'discount_amount',
         'total_amount',
         'status',
+        'type',
         'converted_to_invoice',
         'invoice_id',
         'document_template_id',
         'payment_terms',
         'subject',
         'notes',
+        'terms',
         'creator_id',
         'created_by',
     ];
@@ -64,6 +69,58 @@ class SalesQuotation extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'customer_id');
+    }
+
+    /**
+     * Older quotations have no stored type, so it comes from their catalog lines.
+     * Null means mixed or manual lines only.
+     */
+    public function resolvedType(): ?string
+    {
+        if ($this->type) {
+            return $this->type;
+        }
+
+        $itemTypes = ProductServiceItem::whereIn('id', $this->items->pluck('product_id')->filter())->pluck('type');
+
+        if ($itemTypes->isEmpty()) {
+            return null;
+        }
+
+        if ($itemTypes->every(fn ($type) => $type === 'service')) {
+            return 'service';
+        }
+
+        return $itemTypes->contains('service') ? null : 'product';
+    }
+
+    /** Same rule as resolvedType(), for filtering a list. */
+    public function scopeOfType(Builder $query, string $type): Builder
+    {
+        $isService = fn ($product) => $product->where('type', 'service');
+        $isNotService = fn ($product) => $product->where('type', '!=', 'service');
+
+        return $query->where(fn ($quotations) => $quotations
+            ->where('type', $type)
+            ->orWhere(fn ($older) => $older
+                ->whereNull('type')
+                ->whereHas('items.product', $type === 'service' ? $isService : $isNotService)
+                ->whereDoesntHave('items.product', $type === 'service' ? $isNotService : $isService)));
+    }
+
+    /** Still waiting on the customer after the due date. Accepted, rejected and converted quotations are finished. */
+    public function scopeOverdue(Builder $query): Builder
+    {
+        return $query->where('converted_to_invoice', false)
+            ->whereIn('status', self::AWAITING_STATUSES)
+            ->whereDate('due_date', '<', today());
+    }
+
+    public function isOverdue(): bool
+    {
+        return !$this->converted_to_invoice
+            && in_array($this->status, self::AWAITING_STATUSES, true)
+            && $this->due_date?->lt(today());
     }
 
     public function salesperson(): BelongsTo

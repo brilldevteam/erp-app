@@ -56,6 +56,10 @@ class ProductServiceItemController extends Controller
             return Inertia::render('ProductService/Items/Index', [
                 'items' => $items,
                 'categories' => $categories,
+                // Options for the create popup.
+                'taxes' => ProductServiceTax::where('created_by', creatorId())->get(['id', 'tax_name', 'rate']),
+                'units' => ProductServiceUnit::where('created_by', creatorId())->get(['id', 'unit_name']),
+                'warehouses' => Warehouse::where('is_active', true)->where('created_by', creatorId())->get(['id', 'name']),
                 'catalogType' => $catalogType,
             ]);
         }
