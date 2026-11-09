@@ -1,108 +1,100 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Head, usePage, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
+import { ArrowDownAZ, ArrowUpAZ, ChevronDown, Edit, Filter, History, Key, LoaderCircle, Mail, MoreHorizontal, PackageOpen, Plus, Search, ShieldCheck, ShieldOff, Trash2, UserCheck, Users as UsersIcon, X } from 'lucide-react';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { useDeleteHandler } from '@/hooks/useDeleteHandler';
 import { usePageButtons } from '@/hooks/usePageButtons';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PerPageSelector } from '@/components/ui/per-page-selector';
-import AuthenticatedLayout from "@/layouts/authenticated-layout";
+import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { DataTable } from "@/components/ui/data-table";
-import { Dialog } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Card, CardContent } from '@/components/ui/card';
+import { Dialog } from '@/components/ui/dialog';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Plus, Edit, Trash2, Key, Users as UsersIcon, User as UserIcon, UserCheck, History, PackageOpen, Mail } from "lucide-react";
 import { getImagePath } from '@/utils/helpers';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { FilterButton } from '@/components/ui/filter-button';
-import { Pagination } from "@/components/ui/pagination";
-import { SearchInput } from "@/components/ui/search-input";
-import { ListGridToggle } from '@/components/ui/list-grid-toggle';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Pagination } from '@/components/ui/pagination';
 import Create from './create';
 import EditUser from './edit';
 import ChangePassword from './change-password';
 import ChangePlan from './change-plan';
 import NoRecordsFound from '@/components/no-records-found';
-import { User, UsersIndexProps, UserFilters, UserModalState } from './types';
+import { User, UsersIndexProps, UserModalState } from './types';
+
+const sorts = [['created_at', 'Created date'], ['name', 'Name'], ['email', 'Email'], ['type', 'Role'], ['is_enable_login', 'Login status']];
 
 export default function Index() {
     const { t } = useTranslation();
-    const { users, roles, createRoles, plans, auth } = usePage<UsersIndexProps>().props;
-    const urlParams = new URLSearchParams(window.location.search);
+    const pageProps = usePage().props as unknown as UsersIndexProps & {
+        summary: { total: number; enabled: number; disabled: number };
+        filters: Record<string, string>;
+    };
+    const { users, roles, createRoles, plans, auth, summary, filters = {} } = pageProps;
 
-    const [filters, setFilters] = useState<UserFilters>({
-        name: urlParams.get('name') || '',
-        email: urlParams.get('email') || '',
-        role: urlParams.get('role') || '',
-        is_enable_login: urlParams.get('is_enable_login') || ''
-    });
-
-    const [perPage] = useState(urlParams.get('per_page') || '10');
-    const [sortField, setSortField] = useState(urlParams.get('sort') || '');
-    const [sortDirection, setSortDirection] = useState(urlParams.get('direction') || 'asc');
-
-    const [viewMode, setViewMode] = useState<'list' | 'grid'>(urlParams.get('view') as 'list' | 'grid' || 'grid');
-    const [modalState, setModalState] = useState<UserModalState>({
-        isOpen: false,
-        mode: '',
-        data: null
-    });
-    const [showFilters, setShowFilters] = useState(false);
+    const [search, setSearch] = useState(filters.search || '');
+    const [isSearching, setIsSearching] = useState(false);
+    const [showAdvanced, setShowAdvanced] = useState(Boolean(filters.role || filters.is_enable_login));
+    const [modalState, setModalState] = useState<UserModalState>({ isOpen: false, mode: '', data: null });
 
     useFlashMessages();
 
-    // Add hook here
-    const pageButtons = usePageButtons('userBtn','Test data');
+    const pageButtons = usePageButtons('userBtn', 'Test data');
 
     const { deleteState, openDeleteDialog, closeDeleteDialog, confirmDelete } = useDeleteHandler({
         routeName: 'users.destroy',
         defaultMessage: t('Are you sure you want to delete this user?')
     });
 
-    const handleFilter = () => {
-        router.get(route('users.index'), {...filters, per_page: perPage, sort: sortField, direction: sortDirection, view: viewMode}, {
-            preserveState: true,
-            replace: true
-        });
+    const can = (permission: string) => Boolean(auth.user?.permissions?.includes(permission));
+    // A super admin's list holds companies, so the staff, client and vendor tabs would always be empty.
+    const views = (auth.user as any)?.type === 'superadmin'
+        ? [['all', 'All users'], ['login_disabled', 'Login disabled']]
+        : [['all', 'All users'], ['staff', 'Staff'], ['client', 'Clients'], ['vendor', 'Vendors'], ['login_disabled', 'Login disabled']];
+    const activeView = filters.view || 'all';
+    const activeFilterCount = [filters.role, filters.is_enable_login].filter(Boolean).length;
+    const hasFilters = Boolean(filters.search || filters.name || filters.email || activeFilterCount || activeView !== 'all');
+
+    const navigate = (extra: Record<string, string | number>) => router.get(route('users.index'), { ...filters, ...extra }, { preserveState: true, replace: true });
+    const clearAdvanced = () => navigate({ role: '', is_enable_login: '', page: 1 });
+    const clearAll = () => {
+        setSearch('');
+        router.get(route('users.index'), { per_page: filters.per_page || '' }, { preserveState: true, replace: true });
     };
 
-    const handleSort = (field: string) => {
-        const direction = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
-        setSortField(field);
-        setSortDirection(direction);
-        router.get(route('users.index'), {...filters, per_page: perPage, sort: field, direction, view: viewMode}, {
-            preserveState: true,
-            replace: true
-        });
-    };
+    useEffect(() => {
+        const normalizedSearch = search.trim();
+        if (normalizedSearch === (filters.search || '')) return;
 
-    const clearFilters = () => {
-        setFilters({ name: '', email: '', role: '', is_enable_login: '' });
-        router.get(route('users.index'), {per_page: perPage, view: viewMode});
-    };
+        setIsSearching(true);
+        const timeout = window.setTimeout(() => {
+            router.get(route('users.index'), { ...filters, search: normalizedSearch, page: 1 }, {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                only: ['users', 'filters'],
+                onFinish: () => setIsSearching(false),
+            });
+        }, normalizedSearch ? 300 : 0);
+
+        return () => window.clearTimeout(timeout);
+    }, [search, filters.search]);
 
     const openModal = (mode: 'add' | 'edit' | 'change-password' | 'change-plan', data: User | null = null) => {
-        setModalState({
-            isOpen: true,
-            mode,
-            data
-        });
+        setModalState({ isOpen: true, mode, data });
     };
 
     const closeModal = () => {
-        setModalState({
-            isOpen: false,
-            mode: '',
-            data: null
-        });
+        setModalState({ isOpen: false, mode: '', data: null });
     };
 
     const editUserOrParty = (user: User) => {
         if (user.linked_party) {
             const routeName = user.linked_party.type === 'customer' ? 'account.customers.index' : 'account.vendors.index';
-            router.get(route(routeName), { edit: user.linked_party.id });
+            // The customer and vendor pages send you back here when their edit popup closes.
+            router.get(route(routeName), { edit: user.linked_party.id, back: 'users', back_query: window.location.search.replace(/^\?/, '') });
             return;
         }
         openModal('edit', user);
@@ -123,174 +115,30 @@ export default function Index() {
     };
 
     const hasUsableLoginEmail = (user: User) => !isPlaceholderEmail(user.email);
-    const displayEmail = (email?: string | null) => isPlaceholderEmail(email) ? '-' : email;
     const displayRole = (user: User) => user.display_role || user.type;
+    const openUser = (user: User) => {
+        if (can('edit-users')) editUserOrParty(user);
+    };
 
-    const tableColumns = [
-        {
-            key: 'avatar',
-            header: t('Avatar'),
-            render: (value: string) => (
-                <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 border flex items-center justify-center">
-                    {value ? (
-                        <img
-                            src={getImagePath(value)}
-                            alt="Avatar"
-                            className="w-full h-full object-cover"
-                        />
-                    ) : (
-                        <UserIcon className="w-5 h-5 text-gray-400" />
-                    )}
-                </div>
-            )
-        },
-        {
-            key: 'name',
-            header: t('Name'),
-            sortable: true
-        },
-        {
-            key: 'email',
-            header: t('Email'),
-            sortable: true,
-            render: (value: string | null) => displayEmail(value)
-        },
-        {
-            key: 'mobile_no',
-            header: t('Mobile No')
-        },
-        {
-            key: 'type',
-            header: t('Role'),
-            sortable: true,
-            render: (_value: string, user: User) => (
-                <span className="capitalize px-2 py-1 bg-gray-100 rounded-full text-sm">
-                    {displayRole(user)}
-                </span>
-            )
-        },
-        {
-            key: 'is_enable_login',
-            header: t('Login Status'),
-            sortable: true,
-            render: (value: boolean) => (
-                <span className={`px-2 py-1 rounded-full text-sm ${
-                    value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                }`}>
-                    {value ? t('Enabled') : t('Disabled')}
-                </span>
-            )
-        },
-        ...(auth.user?.permissions?.some((p: string) => ['change-password-users', 'edit-users', 'delete-users'].includes(p)) ? [{
-            key: 'actions',
-            header: t('Actions'),
-            render: (_: any, user: User) => (
-                <div className="flex gap-1">
-                        <TooltipProvider>
-                        {auth.user?.permissions?.includes('impersonate-users') && user.id !== auth.user?.id && user.is_enable_login && hasUsableLoginEmail(user) && (
-                                <Tooltip delayDuration={0}>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => router.post(route('users.impersonate', user.id))}
-                                            className="h-8 w-8 p-0 text-purple-600 hover:text-purple-700"
-                                        >
-                                            <UserCheck className="h-4 w-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>{t('Login As User')}</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            )}
-                            {auth.user?.permissions?.includes('change-password-users') && !user.linked_party && hasUsableLoginEmail(user) && (
-                                <Tooltip delayDuration={0}>
-                                    <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="sm" onClick={() => openModal('change-password', user)} className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700">
-                                            <Key className="h-4 w-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>{t('Change Password')}</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            )}
-                            {auth.user?.permissions?.includes('change-password-users') && !user.linked_party && hasUsableLoginEmail(user) && (
-                                <Tooltip delayDuration={0}>
-                                    <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="sm" onClick={() => sendPasswordReset(user)} className="h-8 w-8 p-0 text-teal-600 hover:text-teal-700">
-                                            <Mail className="h-4 w-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>{t('Send Password Reset Link')}</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            )}
-                            {auth.user?.permissions?.includes('edit-users') && (
-                                <Tooltip delayDuration={0}>
-                                    <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="sm" onClick={() => editUserOrParty(user)} className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700">
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>{t('Edit')}</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            )}
-                            {auth.user?.permissions?.includes('edit-users') && user.type === 'company' && plans.length > 0 && (
-                                <Tooltip delayDuration={0}>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => openModal('change-plan', user)}
-                                            className="h-8 w-8 p-0 text-emerald-600 hover:text-emerald-700"
-                                        >
-                                            <PackageOpen className="h-4 w-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>{t('Change Plan')}</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            )}
-                            {auth.user?.permissions?.includes('delete-users') && !user.linked_party && (
-                                <Tooltip delayDuration={0}>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => openDeleteDialog(user.id)}
-                                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>{t('Delete')}</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            )}
-                        </TooltipProvider>
-                </div>
-            )
-        }] : [])
+    const summaryCards = [
+        { label: t('Total users'), value: summary.total, icon: UsersIcon, tone: 'bg-blue-50 text-blue-600', valueTone: '' },
+        { label: t('Login enabled'), value: summary.enabled, icon: ShieldCheck, tone: 'bg-green-50 text-green-600', valueTone: '' },
+        { label: t('Login disabled'), value: summary.disabled, icon: ShieldOff, tone: 'bg-rose-50 text-rose-600', valueTone: '' },
     ];
+
+    const rowColumns = 'xl:grid-cols-[minmax(240px,1.3fr)_minmax(200px,1.1fr)_150px_140px_96px]';
 
     return (
         <AuthenticatedLayout
-            breadcrumbs={[{label: t('Users')}]}
-            pageTitle={t('Manage Users')}
+            breadcrumbs={[{ label: t('Users') }]}
+            pageTitle={t('Users')}
             pageActions={
-                <div className="flex gap-2">
-                    <TooltipProvider>
-                        {auth.user?.permissions?.includes('view-login-history') && (
+                <TooltipProvider>
+                    <div className="flex gap-2">
+                        {can('view-login-history') && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>
-                                    <Button variant="outline" size="sm" onClick={() => router.get(route('users.login-history'))}>
+                                    <Button variant="outline" size="sm" aria-label={t('User Login History')} onClick={() => router.get(route('users.login-history'))}>
                                         <History className="h-4 w-4" />
                                     </Button>
                                 </TooltipTrigger>
@@ -299,333 +147,235 @@ export default function Index() {
                                 </TooltipContent>
                             </Tooltip>
                         )}
-                        {auth.user?.permissions?.includes('create-users') && (
-                            <Tooltip delayDuration={0}>
-                                <TooltipTrigger asChild>
-                                    <Button size="sm" onClick={() => openModal('add')}>
-                                        <Plus className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t('Create')}</p>
-                                </TooltipContent>
-                            </Tooltip>
+                        {can('create-users') && (
+                            <Button size="sm" onClick={() => openModal('add')}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                {t('New user')}
+                            </Button>
                         )}
                         {pageButtons.map((button) => (
                             <div key={button.id}>{button.component}</div>
                         ))}
-                    </TooltipProvider>
-                </div>
+                    </div>
+                </TooltipProvider>
             }
         >
             <Head title={t('Users')} />
 
-            {/* Main Content Card */}
-            <Card className="shadow-sm">
-                {/* Search & Controls Header */}
-                <CardContent className="p-6 border-b bg-gray-50/50">
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="flex-1 max-w-md">
-                            <SearchInput
-                                value={filters.name}
-                                onChange={(value) => setFilters({...filters, name: value})}
-                                onSearch={handleFilter}
-                                placeholder={t('Search users...')}
-                            />
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <ListGridToggle
-                                currentView={viewMode}
-                                routeName="users.index"
-                                filters={{...filters, per_page: perPage}}
-                            />
-                            <PerPageSelector
-                                routeName="users.index"
-                                filters={{...filters, view: viewMode}}
-                            />
-                            <div className="relative">
-                                <FilterButton
-                                    showFilters={showFilters}
-                                    onToggle={() => setShowFilters(!showFilters)}
-                                />
-                                {(() => {
-                                    const activeFilters = [filters.email, filters.role, filters.is_enable_login].filter(Boolean).length;
-                                    return activeFilters > 0 && (
-                                        <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
-                                            {activeFilters}
-                                        </span>
-                                    );
-                                })()}
-                            </div>
-                        </div>
-                    </div>
-                </CardContent>
-
-                {/* Advanced Filters */}
-                {showFilters && (
-                    <CardContent className="p-6 bg-blue-50/30 border-b">
-                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('Email')}</label>
-                                <Input
-                                    placeholder={t('Filter by email')}
-                                    value={filters.email}
-                                    onChange={(e) => setFilters({...filters, email: e.target.value})}
-                                />
-                            </div>
-                            {auth.user?.permissions?.includes('manage-roles') && (
+            <div className="mx-auto max-w-[1600px] space-y-5 pb-8">
+                <section className="grid grid-cols-2 gap-3 sm:grid-cols-3" aria-label={t('User summary')}>
+                    {summaryCards.map((card, index) => (
+                        <div key={card.label} className={`rounded-2xl border bg-background p-4 shadow-sm shadow-slate-200/30 ${index === 0 ? 'col-span-2 sm:col-span-1' : ''}`}>
+                            <div className="flex items-center gap-3">
+                                <span className={`rounded-xl p-2.5 ${card.tone}`}><card.icon className="h-5 w-5" /></span>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('Role')}</label>
-                                    <Select value={filters.role} onValueChange={(value) => setFilters({...filters, role: value})}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder={t('Filter by role')} />
-                                        </SelectTrigger>
+                                    <p className="text-xs font-medium text-muted-foreground">{card.label}</p>
+                                    <p className={`mt-0.5 text-xl font-semibold tabular-nums ${card.valueTone}`}>{card.value}</p>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </section>
+
+                <Card className="relative z-20 overflow-visible rounded-2xl border shadow-sm shadow-slate-200/40">
+                    <CardContent className="p-0">
+                        <div className="flex flex-col gap-3 p-4 sm:p-5 xl:flex-row xl:items-center">
+                            <form onSubmit={e => { e.preventDefault(); navigate({ search: search.trim(), page: 1 }); }} className="relative min-w-0 flex-1" role="search">
+                                <Search className="absolute left-3.5 top-3 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                    autoComplete="off"
+                                    placeholder={t('Search users by name, email or mobile')}
+                                    className="h-10 border-slate-200 bg-slate-50/70 pl-10 pr-10 focus-visible:bg-background"
+                                />
+                                {isSearching ? (
+                                    <LoaderCircle className="absolute right-3.5 top-3 h-4 w-4 animate-spin text-primary" />
+                                ) : search && (
+                                    <button type="button" onClick={() => setSearch('')} className="absolute right-3 top-2.5 rounded-md p-1 text-muted-foreground hover:bg-slate-200 hover:text-foreground" aria-label={t('Clear search')}>
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                )}
+                            </form>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <label className="relative min-w-[160px] flex-1 sm:flex-none">
+                                    <span className="sr-only">{t('Sort users')}</span>
+                                    <select value={filters.sort || 'created_at'} onChange={e => navigate({ sort: e.target.value, page: 1 })} className="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-background pl-3 pr-9 text-sm sm:w-44">
+                                        {sorts.map(([value, label]) => <option key={value} value={value}>{`${t('Sort')}: ${t(label)}`}</option>)}
+                                    </select>
+                                    <ChevronDown className="pointer-events-none absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                                </label>
+                                <Button variant="outline" size="icon" className="h-10 w-10 rounded-lg" title={filters.direction === 'asc' ? t('Ascending') : t('Descending')} onClick={() => navigate({ direction: filters.direction === 'asc' ? 'desc' : 'asc', page: 1 })}>
+                                    {filters.direction === 'asc' ? <ArrowUpAZ className="h-4 w-4" /> : <ArrowDownAZ className="h-4 w-4" />}
+                                </Button>
+                                <PerPageSelector routeName="users.index" filters={filters} className="h-10 w-36" />
+                                <Button variant={showAdvanced || activeFilterCount ? 'secondary' : 'outline'} className="h-10 rounded-lg" onClick={() => setShowAdvanced(value => !value)}>
+                                    <Filter className="mr-2 h-4 w-4" />
+                                    {t('Filters')}
+                                    {activeFilterCount > 0 && <span className="ml-2 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">{activeFilterCount}</span>}
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-1 overflow-x-auto border-t bg-slate-50/50 px-4 py-2 sm:px-5" role="tablist" aria-label={t('User views')}>
+                            {views.map(([value, label]) => (
+                                <button
+                                    key={value}
+                                    role="tab"
+                                    aria-selected={activeView === value}
+                                    onClick={() => navigate({ view: value, page: 1 })}
+                                    className={`whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${activeView === value ? 'bg-background text-foreground shadow-sm ring-1 ring-slate-200' : 'text-muted-foreground hover:bg-background/70 hover:text-foreground'}`}
+                                >
+                                    {t(label)}
+                                </button>
+                            ))}
+                        </div>
+
+                        {showAdvanced && (
+                            <div className="grid gap-3 border-t bg-slate-50/30 p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-[1fr_1fr_auto]">
+                                {can('manage-roles') && (
+                                    <div className="space-y-1.5">
+                                        <span className="text-xs font-medium text-muted-foreground">{t('Role')}</span>
+                                        <Select value={filters.role || 'all'} onValueChange={value => navigate({ role: value === 'all' ? '' : value, page: 1 })}>
+                                            <SelectTrigger aria-label={t('Filter by role')} className="bg-background"><SelectValue placeholder={t('Any role')} /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">{t('Any role')}</SelectItem>
+                                                {Object.entries(roles).map(([name, label]) => <SelectItem key={name} value={name}>{label as string}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+                                <div className="space-y-1.5">
+                                    <span className="text-xs font-medium text-muted-foreground">{t('Login status')}</span>
+                                    <Select value={filters.is_enable_login || 'all'} onValueChange={value => navigate({ is_enable_login: value === 'all' ? '' : value, page: 1 })}>
+                                        <SelectTrigger aria-label={t('Filter by login status')} className="bg-background"><SelectValue placeholder={t('Any login status')} /></SelectTrigger>
                                         <SelectContent>
-                                            {Object.entries(roles).map(([name, label]) => (
-                                                <SelectItem key={name} value={name}>
-                                                    {label}
-                                                </SelectItem>
-                                            ))}
+                                            <SelectItem value="all">{t('Any login status')}</SelectItem>
+                                            <SelectItem value="1">{t('Enabled')}</SelectItem>
+                                            <SelectItem value="0">{t('Disabled')}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
-                            )}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('Login Status')}</label>
-                                <Select value={filters.is_enable_login} onValueChange={(value) => setFilters({...filters, is_enable_login: value})}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={t('Filter by login status')} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="1">{t('Enabled')}</SelectItem>
-                                        <SelectItem value="0">{t('Disabled')}</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <Button variant="ghost" className="self-end text-muted-foreground" onClick={clearAdvanced} disabled={!activeFilterCount}>{t('Clear filters')}</Button>
                             </div>
-                            <div className="flex items-end gap-2">
-                                <Button onClick={handleFilter} size="sm">{t('Apply')}</Button>
-                                <Button variant="outline" onClick={clearFilters} size="sm">{t('Clear')}</Button>
-                            </div>
-                        </div>
+                        )}
                     </CardContent>
-                )}
+                </Card>
 
-                {/* Table Content */}
-                <CardContent className="p-0">
-                    {viewMode === 'list' ? (
-                        <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 max-h-[70vh] rounded-none w-full">
-                            <div className="min-w-[800px]">
-                            <DataTable
-                                data={users.data}
-                                columns={tableColumns}
-                                onSort={handleSort}
-                                sortKey={sortField}
-                                sortDirection={sortDirection as 'asc' | 'desc'}
-                                className="rounded-none"
-                                emptyState={
-                                    <NoRecordsFound
-                                        icon={UsersIcon}
-                                        title={t('No users found')}
-                                        description={t('Get started by creating your first user.')}
-                                        hasFilters={!!(filters.name || filters.email || filters.role || filters.is_enable_login)}
-                                        onClearFilters={clearFilters}
-                                        createPermission="create-users"
-                                        onCreateClick={() => openModal('add')}
-                                        createButtonText={t('Create User')}
-                                        className="h-auto"
-                                    />
-                                }
-                            />
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="overflow-auto max-h-[70vh] p-6">
-                            {users.data.length > 0 ? (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5">
-                                    {users.data.map((user) => (
-                                        <Card key={user.id} className="group relative overflow-hidden border border-gray-200 hover:border-primary/40 hover:shadow-xl transition-all duration-300">
-                                            {/* Status Badge - Top Right Corner */}
-                                            <div className="absolute top-3 right-3 z-10">
-                                                <span className={`px-2 py-1 rounded-full text-sm ${
-                                                    user.is_enable_login ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                                }`}>
-                                                    {user.is_enable_login ? t('Enabled') : t('Disabled')}
-                                                </span>
-                                            </div>
+                <Card className="relative z-0 overflow-hidden rounded-2xl border shadow-sm shadow-slate-200/40">
+                    <div className={`hidden gap-4 border-b bg-slate-50/70 px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 xl:grid ${rowColumns}`}>
+                        <span>{t('User')}</span>
+                        <span>{t('Contact')}</span>
+                        <span>{t('Role')}</span>
+                        <span>{t('Login')}</span>
+                        <span />
+                    </div>
 
-                                            <div className="p-5">
-                                                {/* Avatar Section - Centered */}
-                                                <div className="flex flex-col items-center mb-4">
-                                                    <div className="relative mb-3">
-                                                        <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-primary/20 via-primary/10 to-transparent border-2 border-primary/30 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                                                            {user.avatar ? (
-                                                                <img src={getImagePath(user.avatar)} alt={user.name} className="w-full h-full object-cover" />
-                                                            ) : (
-                                                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
-                                                                    <UserIcon className="w-7 h-7 text-primary" />
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <div className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white ${
-                                                            user.is_online ? 'bg-green-500' : 'bg-gray-400'
-                                                        }`} />
-                                                    </div>
-                                                    
-                                                    {/* Name */}
-                                                    <h3 className="font-bold text-base text-gray-900 text-center mb-1.5 line-clamp-1 px-2" title={user.name}>
-                                                        {user.name}
-                                                    </h3>
-                                                    
-                                                    {/* Role Badge */}
-                                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-primary/10 to-primary/5 text-primary border border-primary/20 capitalize">
-                                                        {displayRole(user)}
-                                                    </span>
-                                                </div>
+                    <div className="divide-y">
+                        {users.data.map((user) => {
+                            const canImpersonate = can('impersonate-users') && user.id !== auth.user?.id && user.is_enable_login && hasUsableLoginEmail(user);
+                            const canManagePassword = can('change-password-users') && !user.linked_party && hasUsableLoginEmail(user);
+                            const canChangePlan = can('edit-users') && user.type === 'company' && plans.length > 0;
+                            const canDelete = can('delete-users') && !user.linked_party;
+                            const hasMenu = canImpersonate || canManagePassword || canChangePlan || canDelete;
+                            const email = hasUsableLoginEmail(user) ? user.email : null;
 
-                                                {/* Contact Info */}
-                                                <div className="space-y-2 mb-4 bg-gray-50 rounded-lg p-3">
-                                                    {hasUsableLoginEmail(user) && (
-                                                        <div className="flex items-center gap-2 text-xs text-gray-600">
-                                                            <svg className="w-4 h-4 flex-shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                                            </svg>
-                                                            <span className="truncate font-medium" title={user.email ?? undefined}>{user.email}</span>
-                                                        </div>
+                            return (
+                                <div
+                                    key={user.id}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openUser(user); } }}
+                                    onClick={() => openUser(user)}
+                                    className={`group grid cursor-pointer gap-4 bg-background p-5 transition-colors hover:bg-blue-50/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary xl:items-center xl:px-6 xl:py-4 ${rowColumns}`}
+                                >
+                                    <div className="flex min-w-0 items-center gap-3.5">
+                                        <span className="relative h-11 w-11 shrink-0">
+                                            {user.avatar ? (
+                                                <img src={getImagePath(user.avatar)} alt={user.name} className="h-11 w-11 rounded-xl border border-blue-100 object-cover" />
+                                            ) : (
+                                                <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-sm font-semibold text-blue-700">{user.name?.charAt(0).toUpperCase()}</span>
+                                            )}
+                                            <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white ${user.is_online ? 'bg-green-500' : 'bg-gray-400'}`} title={user.is_online ? t('Online') : t('Offline')} />
+                                        </span>
+                                        <div className="min-w-0">
+                                            <p className="truncate font-semibold text-slate-900 group-hover:text-primary" title={user.name}>{user.name}</p>
+                                            <p className="mt-0.5 truncate text-xs text-slate-500">{user.is_online ? t('Online') : t('Offline')}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="min-w-0 text-sm">
+                                        <p className="truncate font-medium text-slate-700" title={email ?? undefined}>{email || t('No email')}</p>
+                                        <p className="mt-0.5 truncate text-xs text-slate-500">{user.mobile_no || t('No mobile')}</p>
+                                    </div>
+
+                                    <div className="flex items-center justify-between gap-3 text-sm xl:block">
+                                        <span className="text-slate-500 xl:hidden">{t('Role')}</span>
+                                        <span className="inline-flex max-w-full items-center truncate rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium capitalize text-blue-700">{displayRole(user)}</span>
+                                    </div>
+
+                                    <div className="flex items-center justify-between gap-3 text-sm xl:block">
+                                        <span className="text-slate-500 xl:hidden">{t('Login')}</span>
+                                        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${user.is_enable_login ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
+                                            <span className={`h-1.5 w-1.5 rounded-full ${user.is_enable_login ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                                            {user.is_enable_login ? t('Enabled') : t('Disabled')}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex justify-end gap-0.5" onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
+                                        {can('edit-users') && (
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" title={t('Edit')} aria-label={t('Edit')} onClick={() => editUserOrParty(user)}>
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                        {hasMenu && (
+                                            <DropdownMenu modal={false}>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" title={t('More actions')} aria-label={t('More actions')}>
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="min-w-[210px]">
+                                                    {canImpersonate && <DropdownMenuItem onClick={() => router.post(route('users.impersonate', user.id))}><UserCheck className="mr-2 h-4 w-4" />{t('Login As User')}</DropdownMenuItem>}
+                                                    {canManagePassword && <DropdownMenuItem onClick={() => openModal('change-password', user)}><Key className="mr-2 h-4 w-4" />{t('Change Password')}</DropdownMenuItem>}
+                                                    {canManagePassword && <DropdownMenuItem onClick={() => sendPasswordReset(user)}><Mail className="mr-2 h-4 w-4" />{t('Send Password Reset Link')}</DropdownMenuItem>}
+                                                    {canChangePlan && <DropdownMenuItem onClick={() => openModal('change-plan', user)}><PackageOpen className="mr-2 h-4 w-4" />{t('Change Plan')}</DropdownMenuItem>}
+                                                    {canDelete && (
+                                                        <>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem className="text-rose-600 focus:text-rose-600" onClick={() => openDeleteDialog(user.id)}><Trash2 className="mr-2 h-4 w-4" />{t('Delete')}</DropdownMenuItem>
+                                                        </>
                                                     )}
-                                                    {user.mobile_no && (
-                                                        <div className="flex items-center gap-2 text-xs text-gray-600">
-                                                            <svg className="w-4 h-4 flex-shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                                                            </svg>
-                                                            <span className="font-medium">{user.mobile_no}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Action Buttons */}
-                                                <div className="flex items-center justify-center gap-1.5 pt-3 border-t border-gray-200">
-                                                    <TooltipProvider>
-                                                        {auth.user?.permissions?.includes('impersonate-users') && user.id !== auth.user?.id && user.is_enable_login && hasUsableLoginEmail(user) && (
-                                                            <Tooltip delayDuration={0}>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        onClick={() => router.post(route('users.impersonate', user.id))}
-                                                                        className="h-9 w-9 p-0 text-purple-600 hover:text-purple-700 rounded-lg transition-colors"
-                                                                    >
-                                                                        <UserCheck className="h-4 w-4" />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent><p>{t('Login As User')}</p></TooltipContent>
-                                                            </Tooltip>
-                                                        )}
-                                                        {auth.user?.permissions?.includes('change-password-users') && !user.linked_party && hasUsableLoginEmail(user) && (
-                                                            <Tooltip delayDuration={0}>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        onClick={() => openModal('change-password', user)}
-                                                                        className="h-9 w-9 p-0 text-orange-600 hover:text-orange-700 rounded-lg transition-colors"
-                                                                    >
-                                                                        <Key className="h-4 w-4" />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent><p>{t('Change Password')}</p></TooltipContent>
-                                                            </Tooltip>
-                                                        )}
-                                                        {auth.user?.permissions?.includes('change-password-users') && !user.linked_party && hasUsableLoginEmail(user) && (
-                                                            <Tooltip delayDuration={0}>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        onClick={() => sendPasswordReset(user)}
-                                                                        className="h-9 w-9 p-0 text-teal-600 hover:text-teal-700 rounded-lg transition-colors"
-                                                                    >
-                                                                        <Mail className="h-4 w-4" />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent><p>{t('Send Password Reset Link')}</p></TooltipContent>
-                                                            </Tooltip>
-                                                        )}
-                                                        {auth.user?.permissions?.includes('edit-users') && (
-                                                            <Tooltip delayDuration={0}>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        onClick={() => editUserOrParty(user)}
-                                                                        className="h-9 w-9 p-0 text-blue-600 hover:text-blue-700 rounded-lg transition-colors"
-                                                                    >
-                                                                        <Edit className="h-4 w-4" />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent><p>{t('Edit')}</p></TooltipContent>
-                                                            </Tooltip>
-                                                        )}
-                                                        {auth.user?.permissions?.includes('edit-users') && user.type === 'company' && plans.length > 0 && (
-                                                            <Tooltip delayDuration={0}>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        onClick={() => openModal('change-plan', user)}
-                                                                        className="h-9 w-9 p-0 text-emerald-600 hover:text-emerald-700 rounded-lg transition-colors"
-                                                                    >
-                                                                        <PackageOpen className="h-4 w-4" />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent><p>{t('Change Plan')}</p></TooltipContent>
-                                                            </Tooltip>
-                                                        )}
-                                                        {auth.user?.permissions?.includes('delete-users') && !user.linked_party && (
-                                                            <Tooltip delayDuration={0}>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        onClick={() => openDeleteDialog(user.id)}
-                                                                        className="h-9 w-9 p-0 text-red-600 hover:text-red-700 rounded-lg transition-colors"
-                                                                    >
-                                                                        <Trash2 className="h-4 w-4" />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent><p>{t('Delete')}</p></TooltipContent>
-                                                            </Tooltip>
-                                                        )}
-                                                    </TooltipProvider>
-                                                </div>
-                                            </div>
-                                        </Card>
-                                    ))}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        )}
+                                    </div>
                                 </div>
-                            ) : (
-                                <NoRecordsFound
-                                    icon={UsersIcon}
-                                    title={t('No users found')}
-                                    description={t('Get started by creating your first user.')}
-                                    hasFilters={!!(filters.name || filters.email || filters.role || filters.is_enable_login)}
-                                    onClearFilters={clearFilters}
-                                    createPermission="create-users"
-                                    onCreateClick={() => openModal('add')}
-                                    createButtonText={t('Create User')}
-                                />
-                            )}
+                            );
+                        })}
+
+                        {!users.data.length && (
+                            <NoRecordsFound
+                                icon={UsersIcon}
+                                title={t('No users found')}
+                                description={t('Get started by creating your first user.')}
+                                hasFilters={hasFilters}
+                                onClearFilters={clearAll}
+                                createPermission="create-users"
+                                onCreateClick={() => openModal('add')}
+                                createButtonText={t('Create User')}
+                                className="h-auto"
+                            />
+                        )}
+                    </div>
+
+                    {users.total > 0 && (
+                        <div className="border-t bg-slate-50/30 px-3">
+                            <Pagination data={users} onPageChange={page => navigate({ page })} />
                         </div>
                     )}
-                </CardContent>
-
-                {/* Pagination Footer */}
-                <CardContent className="px-4 py-2 border-t bg-gray-50/30">
-                    <Pagination
-                        data={users}
-                        routeName="users.index"
-                        filters={{...filters, per_page: perPage, view: viewMode}}
-                    />
-                </CardContent>
-            </Card>
+                </Card>
+            </div>
 
             <Dialog open={modalState.isOpen} onOpenChange={closeModal}>
                 {modalState.mode === 'add' && (

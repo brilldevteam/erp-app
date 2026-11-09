@@ -28,26 +28,41 @@ class UserController extends Controller
     public function index()
     {
         if(Auth::user()->can('manage-users')){
-            $users = User::query()
+            $visibleUsers = fn () => User::query()->where(function($q) {
+                if(Auth::user()->can('manage-any-users')) {
+                    $q->where('created_by', creatorId());
+                } elseif(Auth::user()->can('manage-own-users')) {
+                    $q->where('creator_id', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
+            });
+
+            $sortField = in_array(request('sort'), ['name', 'email', 'type', 'is_enable_login', 'created_at'], true) ? request('sort') : 'created_at';
+            $sortDirection = request('direction') === 'asc' ? 'asc' : 'desc';
+            $perPage = in_array((int) request('per_page'), [10, 25, 50, 100], true) ? (int) request('per_page') : 10;
+
+            $users = $visibleUsers()
                 ->with('roles:id,name,label')
-                ->where(function($q) {
-                    if(Auth::user()->can('manage-any-users')) {
-                        $q->where('created_by', creatorId());
-                    } elseif(Auth::user()->can('manage-own-users')) {
-                        $q->where('creator_id', Auth::id());
-                    } else {
-                        $q->whereRaw('1 = 0');
-                    }
+                ->when(request('search'), function ($q) {
+                    $search = '%' . trim((string) request('search')) . '%';
+                    $q->where(fn ($match) => $match
+                        ->where('users.name', 'like', $search)
+                        ->orWhere('users.email', 'like', $search)
+                        ->orWhere('users.mobile_no', 'like', $search));
                 })
+                ->when(in_array(request('view'), ['staff', 'client', 'vendor'], true), fn($q) => $q->where('users.type', request('view')))
+                ->when(request('view') === 'login_disabled', fn($q) => $q->where('users.is_enable_login', false))
                 ->when(request('name'), fn($q) => $q->where('name', 'like', '%' . request('name') . '%'))
                 ->when(request('email'), fn($q) => $q->where('email', 'like', '%' . request('email') . '%'))
                 ->when(request('role'), fn($q) => $q->join('model_has_roles', 'users.id', '=', 'model_has_roles.model_id')
                     ->where('model_has_roles.role_id', request('role'))
                     ->where('model_has_roles.model_type', User::class))
-                ->when(request('is_enable_login') !== null, fn($q) => $q->where('is_enable_login', request('is_enable_login')))
-                ->when(request('sort'), fn($q) => $q->orderBy(request('sort'), request('direction', 'asc')), fn($q) => $q->latest())
+                ->when(request()->filled('is_enable_login'), fn($q) => $q->where('is_enable_login', request('is_enable_login')))
+                ->orderBy('users.' . $sortField, $sortDirection)
+                ->orderBy('users.id', 'desc')
                 ->select('users.*')
-                ->paginate(request('per_page', 10))
+                ->paginate($perPage)
                 ->withQueryString();
 
             $customerLinks = Schema::hasTable('customers')
@@ -74,6 +89,12 @@ class UserController extends Controller
 
             return Inertia::render('users/index', [
                 'users' => $users,
+                'summary' => [
+                    'total' => $visibleUsers()->count(),
+                    'enabled' => $visibleUsers()->where('is_enable_login', true)->count(),
+                    'disabled' => $visibleUsers()->where('is_enable_login', false)->count(),
+                ],
+                'filters' => request()->only(['search', 'name', 'email', 'role', 'is_enable_login', 'view', 'sort', 'direction', 'per_page']),
                 'roles' => $roles,
                 'createRoles' => $createRoles,
                 'plans' => Auth::user()->can('manage-any-plans')

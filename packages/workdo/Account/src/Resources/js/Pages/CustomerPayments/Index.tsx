@@ -1,646 +1,400 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Head, usePage, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
+import { ArrowDownAZ, ArrowUpAZ, CheckCircle, ChevronDown, Clock3, CreditCard, Download, Eye, Filter, LoaderCircle, MoreHorizontal, Plus, Search, Trash2, WalletCards, X } from 'lucide-react';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
-
 import { useDeleteHandler } from '@/hooks/useDeleteHandler';
 import { usePageButtons } from '@/hooks/usePageButtons';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PerPageSelector } from '@/components/ui/per-page-selector';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
-import AuthenticatedLayout from "@/layouts/authenticated-layout";
+import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from "@/components/ui/card";
-import { DataTable } from "@/components/ui/data-table";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Dialog } from "@/components/ui/dialog";
-import { Eye, Trash2, CheckCircle, Plus, CreditCard, X, Download } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { FilterButton } from '@/components/ui/filter-button';
-import { Pagination } from "@/components/ui/pagination";
-import { SearchInput } from "@/components/ui/search-input";
-import { ListGridToggle } from '@/components/ui/list-grid-toggle';
-import { formatCurrency, formatDate, getCurrencySymbolForCode } from '@/utils/helpers';
+import { Dialog } from '@/components/ui/dialog';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { Pagination } from '@/components/ui/pagination';
+import { formatDate, getCurrencySymbolForCode } from '@/utils/helpers';
 import NoRecordsFound from '@/components/no-records-found';
 import Create from './Create';
 import View from './View';
 import { CustomerPaymentsIndexProps, CustomerPaymentModalState, CustomerPayment } from './types';
 
-interface CustomerPaymentFilters {
-    search: string;
-    customer_id: string;
-    status: string;
-    date_range: string;
-}
+type ListedPayment = CustomerPayment & {
+    customer_details?: { company_name?: string | null; contact_person_name?: string | null } | null;
+};
+
+type PageProps = Omit<CustomerPaymentsIndexProps, 'payments' | 'filters'> & {
+    payments: { data: ListedPayment[]; current_page: number; last_page: number; per_page: number; total: number; from: number; to: number };
+    summary: { total: number; cleared: number; pending: number };
+    filters: Record<string, string>;
+    companyAllSetting?: { defaultCurrency?: string };
+};
+
+const views = [['all', 'All payments'], ['cleared', 'Cleared'], ['pending', 'Pending'], ['cancelled', 'Cancelled']];
+const sorts = [['created_at', 'Created date'], ['payment_date', 'Received date'], ['payment_amount', 'Amount'], ['payment_number', 'Number'], ['status', 'Status']];
+const rowColumns = 'min-[1360px]:grid-cols-[minmax(180px,1fr)_minmax(150px,1.2fr)_minmax(125px,.8fr)_145px_85px_130px_104px]';
+
+const statusClasses = (status: string) => {
+    if (status === 'cleared') return 'bg-green-100 text-green-800';
+    if (status === 'pending') return 'bg-yellow-100 text-yellow-800';
+    return 'bg-red-100 text-red-800';
+};
+
+// Buttons added by other modules (Xero) stay on the row as they were.
+const CustomerPaymentActionButtons = ({ payment, auth }: { payment: ListedPayment; auth: any }) => {
+    const actionButtons = usePageButtons('xeroSyncCustomerPaymentBtn', { payment_id: payment.id, auth, status: payment.status });
+    return <>{actionButtons.map((button) => <div key={button.id}>{button.component}</div>)}</>;
+};
 
 export default function Index() {
     const { t } = useTranslation();
-    const pageProps = usePage<CustomerPaymentsIndexProps>().props as CustomerPaymentsIndexProps & { companyAllSetting?: { defaultCurrency?: string } };
-    const { payments, customers, bankAccounts, filters: initialFilters, auth } = pageProps;
+    const pageProps = usePage().props as unknown as PageProps;
+    const { payments, customers, bankAccounts, summary, filters = {}, auth } = pageProps;
     const baseCurrency = pageProps.companyAllSetting?.defaultCurrency || 'USD';
     // Each payment's own base currency decides whether a second (base) amount is shown.
     const baseOf = (payment: { base_currency_code?: string | null }) => (payment.base_currency_code || baseCurrency).toUpperCase();
     const formatMoney = (amount: number | string, currency: string) =>
         `${getCurrencySymbolForCode(currency, pageProps)} ${Number(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    const urlParams = new URLSearchParams(window.location.search);
 
-    const [filters, setFilters] = useState<CustomerPaymentFilters>({
-        search: initialFilters?.search || '',
-        customer_id: initialFilters?.customer_id || '',
-        status: initialFilters?.status || '',
-        date_range: (() => {
-            const fromDate = urlParams.get('date_from');
-            const toDate = urlParams.get('date_to');
-            return (fromDate && toDate) ? `${fromDate} - ${toDate}` : '';
-        })()
-    });
-
-    const [perPage] = useState(urlParams.get('per_page') || '10');
-    const [sortField, setSortField] = useState(urlParams.get('sort') || 'created_at');
-    const [sortDirection, setSortDirection] = useState(urlParams.get('direction') || 'desc');
-    const [viewMode, setViewMode] = useState<'list' | 'grid'>(urlParams.get('view') as 'list' | 'grid' || 'list');
-    const [showFilters, setShowFilters] = useState(false);
-    const [modalState, setModalState] = useState<CustomerPaymentModalState>({
-        isOpen: false,
-        mode: '',
-        data: null
-    });
-    const [viewingItem, setViewingItem] = useState<CustomerPayment | null>(null);
+    const [search, setSearch] = useState(filters.search || '');
+    const [isSearching, setIsSearching] = useState(false);
+    const [showAdvanced, setShowAdvanced] = useState(Boolean(filters.customer_id || filters.bank_account_id || filters.date_from));
+    const [modalState, setModalState] = useState<CustomerPaymentModalState>({ isOpen: false, mode: '', data: null });
+    const [viewingItem, setViewingItem] = useState<ListedPayment | null>(null);
 
     useFlashMessages();
-
-    // Component for customer payment action buttons
-    const CustomerPaymentActionButtons = ({ payment }: { payment: CustomerPayment }) => {
-        const actionButtons = usePageButtons('xeroSyncCustomerPaymentBtn', { payment_id: payment.id, auth, status: payment.status });
-
-        return (
-            <>
-                {actionButtons.map((button) => (
-                    <div key={button.id}>{button.component}</div>
-                ))}
-            </>
-        );
-    };
 
     const { deleteState, openDeleteDialog, closeDeleteDialog, confirmDelete } = useDeleteHandler({
         routeName: 'account.customer-payments.destroy',
         defaultMessage: t('Are you sure you want to delete this payment?')
     });
 
-    const getStatusBadgeClasses = (status: string) => {
-        switch (status) {
-            case 'pending': return 'inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800';
-            case 'cleared': return 'inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800';
-            default: return 'inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800';
-        }
+    const can = (permission: string) => Boolean(auth.user?.permissions?.includes(permission));
+    const activeView = filters.status || 'all';
+    const dateRange = filters.date_from && filters.date_to ? `${filters.date_from} - ${filters.date_to}` : '';
+    const activeFilterCount = [filters.customer_id, filters.bank_account_id, dateRange].filter(Boolean).length;
+    const hasFilters = Boolean(filters.search || activeFilterCount || filters.status);
+
+    const navigate = (extra: Record<string, string | number>) => router.get(route('account.customer-payments.index'), { ...filters, ...extra }, { preserveState: true, replace: true });
+    const clearAdvanced = () => navigate({ customer_id: '', bank_account_id: '', date_from: '', date_to: '', page: 1 });
+    const clearAll = () => {
+        setSearch('');
+        router.get(route('account.customer-payments.index'), { per_page: filters.per_page || '' }, { preserveState: true, replace: true });
+    };
+    const changeDateRange = (value: string) => {
+        const [from = '', to = ''] = value ? value.split(' - ') : [];
+        navigate({ date_from: from, date_to: to, page: 1 });
     };
 
-    const handleFilter = () => {
-        const filterParams = {...filters};
+    useEffect(() => {
+        const normalizedSearch = search.trim();
+        if (normalizedSearch === (filters.search || '')) return;
 
-        // Convert date_range to date_from and date_to for backend
-        if (filters.date_range) {
-            const [fromDate, toDate] = filters.date_range.split(' - ');
-            filterParams.date_from = fromDate;
-            filterParams.date_to = toDate;
-        }
-        delete filterParams.date_range;
+        setIsSearching(true);
+        const timeout = window.setTimeout(() => {
+            router.get(route('account.customer-payments.index'), { ...filters, search: normalizedSearch, page: 1 }, {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                only: ['payments', 'filters'],
+                onFinish: () => setIsSearching(false),
+            });
+        }, normalizedSearch ? 300 : 0);
 
-        router.get(route('account.customer-payments.index'), {...filterParams, per_page: perPage, sort: sortField, direction: sortDirection, view: viewMode}, {
-            preserveState: true,
-            replace: true
-        });
-    };
-
-    const handleSort = (field: string) => {
-        const direction = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
-        setSortField(field);
-        setSortDirection(direction);
-        router.get(route('account.customer-payments.index'), {...filters, per_page: perPage, sort: field, direction, view: viewMode}, {
-            preserveState: true,
-            replace: true
-        });
-    };
-
-    const clearFilters = () => {
-        setFilters({ search: '', customer_id: '', status: '', date_range: '' });
-        router.get(route('account.customer-payments.index'), {per_page: perPage, view: viewMode});
-    };
+        return () => window.clearTimeout(timeout);
+    }, [search, filters.search]);
 
     const handleStatusUpdate = (paymentId: number, status: string) => {
         router.patch(route('account.customer-payments.update-status', paymentId), { status });
     };
 
-    const downloadReceipt = (payment: CustomerPayment) => {
+    const downloadReceipt = (payment: ListedPayment) => {
         window.open(route('account.customer-payments.receipt', payment.id) + '?download=pdf', '_blank');
     };
 
-    const openModal = (mode: 'add', data: CustomerPayment | null = null) => {
-        setModalState({ isOpen: true, mode, data });
+    const openPayment = (payment: ListedPayment) => {
+        if (can('view-customer-payments')) setViewingItem(payment);
     };
 
-    const closeModal = () => {
-        setModalState({ isOpen: false, mode: '', data: null });
+    const customerName = (payment: ListedPayment) => payment.customer_details?.company_name || payment.customer_details?.contact_person_name || (payment as any).customer?.name || '-';
+    const customerContact = (payment: ListedPayment) => {
+        const contact = payment.customer_details?.contact_person_name || (payment as any).customer?.name;
+        return contact && contact !== customerName(payment) ? contact : null;
     };
+    const paymentMode = (payment: ListedPayment) => {
+        const mode = (payment as any).payment_mode as string | null | undefined;
+        if (!mode) return t('Payment');
+        return t(mode.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()));
+    };
+    const invoiceNumbers = (payment: ListedPayment) => (payment.allocations || []).map((allocation) => allocation.invoice?.invoice_number).filter(Boolean).join(', ');
 
-    const tableColumns = [
-        {
-            key: 'payment_number',
-            header: t('Payment Number'),
-            sortable: true,
-            render: (value: string, payment: CustomerPayment) =>
-                auth.user?.permissions?.includes('view-customer-payments') ? (
-                    <span className="text-blue-600 hover:text-blue-700 cursor-pointer" onClick={() => setViewingItem(payment)}>{value}</span>
-                ) : (
-                    value
-                )
-        },
-        {
-            key: 'customer',
-            header: t('Customer'),
-            render: (value: any) => value?.name || '-'
-        },
-        {
-            key: 'allocations',
-            header: t('Invoice'),
-            render: (_: any, payment: CustomerPayment) => payment.allocations?.length
-                ? payment.allocations.map((allocation) => allocation.invoice?.invoice_number).filter(Boolean).join(', ')
-                : '-'
-        },
-        {
-            key: 'payment_date',
-            header: t('Received Date'),
-            sortable: true,
-            render: (value: string) => formatDate(value)
-        },
-        {
-            key: 'payment_amount',
-            header: t('Amount'),
-            sortable: true,
-            render: (value: number, payment: CustomerPayment) => {
-                const currency = payment.currency_code || baseCurrency;
-                return <div className="font-normal text-gray-900">
-                    <div className="whitespace-nowrap" dir="ltr">{formatMoney(value, currency)}</div>
-                    {currency !== baseOf(payment) && (() => {
-                        // Base-currency amount actually settled: green for an exchange gain, red for a loss (a customer paying more base currency than the invoices were booked at is a gain).
-                        const difference = (payment.allocations || []).reduce((sum, allocation) => sum + Number(allocation.exchange_difference || 0), 0);
-                        const tone = Math.abs(difference) < 0.005 ? 'text-gray-500' : difference > 0 ? 'text-green-600' : 'text-red-600';
-                        return <div className={`mt-0.5 whitespace-nowrap text-xs font-medium ${tone}`} dir="ltr">
-                            {formatMoney(payment.base_amount ?? Number(value) * Number(payment.exchange_rate || 1), baseOf(payment))}
-                        </div>;
-                    })()}
-                </div>;
-            }
-        },
-        {
-            key: 'available_deposit',
-            header: t('Available Deposit'),
-            render: (value: number, payment: CustomerPayment) => {
-                if (Number(value) <= 0) return '-';
-                const currency = payment.currency_code || baseCurrency;
-                return <span className="whitespace-nowrap font-normal text-gray-900" dir="ltr">{formatMoney(value, currency)}</span>;
-            }
-        },
-        {
-            key: 'bank_account',
-            header: t('Bank Account'),
-            render: (value: any) => value?.account_name || '-'
-        },
-        {
-            key: 'status',
-            header: t('Status'),
-            sortable: true,
-            render: (value: string) => (
-                <span className={`px-2 py-1 rounded-full text-sm ${
-                    value === 'cleared' ? 'bg-green-100 text-green-800' :
-                    value === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                }`}>
-                    {t(value)}
-                </span>
-            )
-        },
-        ...(auth.user?.permissions?.some((p: string) => ['view-customer-payments', 'cleared-customer-payments', 'delete-customer-payments'].includes(p)) ? [{
-            key: 'actions',
-            header: t('Actions'),
-            render: (_: any, payment: CustomerPayment) => (
-                <div className="flex gap-1">
-                    <TooltipProvider>
-<CustomerPaymentActionButtons payment={payment} />
-                        {payment.status === 'pending' && auth.user?.permissions?.includes('cleared-customer-payments') && (
-                            <Tooltip delayDuration={0}>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleStatusUpdate(payment.id, 'cleared')}
-                                        className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
-                                    >
-                                        <CheckCircle className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t('Mark as Cleared')}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        )}
-                        {payment.status === 'pending' && auth.user?.permissions?.includes('cleared-customer-payments') && (
-                            <Tooltip delayDuration={0}>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleStatusUpdate(payment.id, 'cancelled')}
-                                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t('Cancel Payment')}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        )}
-                        {auth.user?.permissions?.includes('view-customer-payments') && (
-                            <>
-                                <Tooltip delayDuration={0}>
-                                    <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="sm" onClick={() => setViewingItem(payment)} className="h-8 w-8 p-0 text-green-600 hover:text-green-700">
-                                            <Eye className="h-4 w-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>{t('View')}</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                                <Tooltip delayDuration={0}>
-                                    <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="sm" onClick={() => downloadReceipt(payment)} className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700">
-                                            <Download className="h-4 w-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>{t('Download Receipt')}</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </>
-                        )}
-                        {payment.status === 'pending' && auth.user?.permissions?.includes('delete-customer-payments') && (
-                            <Tooltip delayDuration={0}>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => openDeleteDialog(payment.id)}
-                                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t('Delete')}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        )}
-                    </TooltipProvider>
-                </div>
-            )
-        }] : [])
+    const summaryCards = [
+        { label: t('Total payments'), value: summary.total, icon: WalletCards, tone: 'bg-blue-50 text-blue-600', valueTone: '' },
+        { label: t('Cleared'), value: summary.cleared, icon: CheckCircle, tone: 'bg-green-50 text-green-600', valueTone: '' },
+        { label: t('Pending'), value: summary.pending, icon: Clock3, tone: 'bg-amber-50 text-amber-700', valueTone: summary.pending > 0 ? 'text-amber-700' : '' },
     ];
 
     return (
         <AuthenticatedLayout
             breadcrumbs={[
-                {label: t('Accounting'), url: route('account.index')},
-                {label: t('Payment Received')}
+                { label: t('Accounting'), url: route('account.index') },
+                { label: t('Payment Received') }
             ]}
-            pageTitle={t('Manage Payment Received')}
+            pageTitle={t('Payment Received')}
             pageActions={
-                <div className="flex items-center gap-2">
-                    <TooltipProvider>
-                        {auth.user?.permissions?.includes('create-customer-payments') && (
-                            <Tooltip delayDuration={0}>
-                                <TooltipTrigger asChild>
-                                    <Button size="sm" onClick={() => openModal('add')}>
-                                        <Plus className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t('Create')}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        )}
-                    </TooltipProvider>
-                </div>
+                can('create-customer-payments') ? (
+                    <Button size="sm" onClick={() => setModalState({ isOpen: true, mode: 'add', data: null })}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        {t('New payment')}
+                    </Button>
+                ) : undefined
             }
         >
             <Head title={t('Payment Received')} />
 
-            <Card className="shadow-sm">
-                <CardContent className="p-6 border-b bg-gray-50/50">
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="flex-1 max-w-md">
-                            <SearchInput
-                                value={filters.search || ''}
-                                onChange={(value) => setFilters({...filters, search: value})}
-                                onSearch={handleFilter}
-                                placeholder={t('Search by payment number or customer...')}
-                            />
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <ListGridToggle
-                                currentView={viewMode}
-                                routeName="account.customer-payments.index"
-                                filters={{...filters, per_page: perPage}}
-                            />
-                            <PerPageSelector
-                                routeName="account.customer-payments.index"
-                                filters={{...filters, view: viewMode}}
-                            />
-                            <div className="relative">
-                                <FilterButton
-                                    showFilters={showFilters}
-                                    onToggle={() => setShowFilters(!showFilters)}
-                                />
-                                {(() => {
-                                    const activeFilters = [filters.customer_id, filters.status, filters.date_range].filter(Boolean).length;
-                                    return activeFilters > 0 && (
-                                        <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
-                                            {activeFilters}
-                                        </span>
-                                    );
-                                })()}
-                            </div>
-                        </div>
-                    </div>
-                </CardContent>
-
-                {showFilters && (
-                    <CardContent className="p-6 bg-blue-50/30 border-b">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('Customer')}</label>
-                                <Select value={filters.customer_id} onValueChange={(value) => setFilters({...filters, customer_id: value})}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={t('Filter by customer')} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {customers.map((customer) => (
-                                            <SelectItem key={customer.id} value={customer.id.toString()}>
-                                                {customer.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('Status')}</label>
-                                <Select value={filters.status} onValueChange={(value) => setFilters({...filters, status: value})}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={t('Filter by status')} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="pending">{t('Pending')}</SelectItem>
-                                        <SelectItem value="cleared">{t('Cleared')}</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('Date Range')}</label>
-                                <DateRangePicker
-                                    value={filters.date_range}
-                                    onChange={(value) => setFilters({...filters, date_range: value})}
-                                    placeholder={t('Select date range')}
-                                />
-                            </div>
-                            <div className="flex items-end gap-2">
-                                <Button onClick={handleFilter} size="sm">{t('Apply')}</Button>
-                                <Button variant="outline" onClick={clearFilters} size="sm">{t('Clear')}</Button>
-                            </div>
-                        </div>
-                    </CardContent>
-                )}
-
-                <CardContent className="p-0">
-                    {viewMode === 'list' ? (
-                        <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 max-h-[70vh] rounded-none w-full">
-                            <div className="min-w-[800px]">
-                                <DataTable
-                                    data={payments.data}
-                                    columns={tableColumns}
-                                    onSort={handleSort}
-                                    sortKey={sortField}
-                                    sortDirection={sortDirection as 'asc' | 'desc'}
-                                    className="rounded-none"
-                                    emptyState={
-                                        <NoRecordsFound
-                                            icon={CreditCard}
-                                            title={t('No payments found')}
-                                            description={t('Get started by creating your first customer payment.')}
-                                            hasFilters={!!(filters.search || filters.customer_id || filters.status || filters.date_range)}
-                                            onClearFilters={clearFilters}
-                                            createPermission="create-customer-payments"
-                                            onCreateClick={() => openModal('add')}
-                                            createButtonText={t('Create Payment')}
-                                            className="h-auto"
-                                        />
-                                    }
-                                />
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="overflow-auto max-h-[70vh] p-6">
-                            {payments.data.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-5 gap-4">
-                                    {payments.data.map((payment) => (
-                                        <Card key={payment.id} className="border border-gray-200 flex flex-col">
-                                            <div className="p-4 flex-1">
-                                                <div className="mb-3">
-                                                    {auth.user?.permissions?.includes('view-customer-payments') ? (
-                                                        <h3 className="font-semibold text-base text-blue-600 hover:text-blue-700 cursor-pointer" onClick={() => setViewingItem(payment)}>{payment.payment_number}</h3>
-                                                    ) : (
-                                                        <h3 className="font-semibold text-base text-gray-900">{payment.payment_number}</h3>
-                                                    )}
-                                                </div>
-
-                                                <div className="space-y-3 mb-3">
-                                                    <div>
-                                                        <p className="text-xs font-medium text-gray-600 mb-1">{t('Customer')}</p>
-                                                        <p className="text-sm text-gray-900 truncate font-medium">{payment.customer?.name}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs font-medium text-gray-600 mb-1">{t('Invoice')}</p>
-                                                        <p className="text-sm text-gray-900">{payment.allocations?.length ? payment.allocations.map((allocation) => allocation.invoice?.invoice_number).filter(Boolean).join(', ') : '-'}</p>
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-3">
-                                                        <div>
-                                                            <p className="text-xs font-medium text-gray-600 mb-1">{t('Date')}</p>
-                                                            <p className="text-xs text-gray-900">{formatDate(payment.payment_date)}</p>
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-xs font-medium text-gray-600 mb-1 text-end">{t('Bank Account')}</p>
-                                                            <p className="text-xs text-gray-900 text-end">{payment.bank_account?.account_name || '-'}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="bg-gray-50 rounded-lg p-3">
-                                                        <div className="flex justify-between items-center">
-                                                            <span className="text-sm font-semibold text-gray-900">{t('Amount')}</span>
-                                                            <div className="text-end">
-                                                                <div className="text-lg font-bold text-green-600">{formatMoney(payment.payment_amount, payment.currency_code || baseCurrency)}</div>
-                                                                {(payment.currency_code || baseCurrency) !== baseOf(payment) && <div className="text-xs text-gray-500">{formatMoney(payment.base_amount || 0, baseOf(payment))}</div>}
-                                                            </div>
-                                                        </div>
-                                                        {Number(payment.available_deposit) > 0 && (
-                                                            <div className="mt-2 flex justify-between border-t pt-2">
-                                                                <span className="text-xs text-gray-600">{t('Available Deposit')}</span>
-                                                                <div className="text-end">
-                                                                    <div className="text-sm font-semibold text-blue-600">{formatMoney(payment.available_deposit, payment.currency_code || baseCurrency)}</div>
-                                                                    {(payment.currency_code || baseCurrency) !== baseOf(payment) && <div className="text-xs text-gray-500">{formatMoney(payment.available_deposit_base || 0, baseOf(payment))}</div>}
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    {payment.notes && (
-                                                        <div>
-                                                            <p className="text-xs font-medium text-gray-600 mb-1">{t('Notes')}</p>
-                                                            <p className="text-xs text-gray-900 line-clamp-2">{payment.notes}</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center justify-between p-3 border-t bg-gray-50/50">
-                                                <span className={`px-2 py-1 rounded-full text-sm ${
-                                                    payment.status === 'cleared' ? 'bg-green-100 text-green-800' :
-                                                    payment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                    'bg-red-100 text-red-800'
-                                                }`}>
-                                                    {t(payment.status)}
-                                                </span>
-                                                <div className="flex gap-1">
-                                                    <TooltipProvider>
-<CustomerPaymentActionButtons payment={payment} />
-                                                        {payment.status === 'pending' && auth.user?.permissions?.includes('cleared-customer-payments') && (
-                                                            <Tooltip delayDuration={0}>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        onClick={() => handleStatusUpdate(payment.id, 'cleared')}
-                                                                        className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
-                                                                    >
-                                                                        <CheckCircle className="h-4 w-4" />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>{t('Mark as Cleared')}</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        )}
-                                                        {payment.status === 'pending' && auth.user?.permissions?.includes('cleared-customer-payments') && (
-                                                            <Tooltip delayDuration={0}>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        onClick={() => handleStatusUpdate(payment.id, 'cancelled')}
-                                                                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                                                                    >
-                                                                        <X className="h-4 w-4" />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>{t('Cancel Payment')}</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        )}
-                                                        {auth.user?.permissions?.includes('view-customer-payments') && (
-                                                            <>
-                                                                <Tooltip delayDuration={0}>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => setViewingItem(payment)}
-                                                                            className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
-                                                                        >
-                                                                            <Eye className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>
-                                                                        <p>{t('View')}</p>
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                                <Tooltip delayDuration={0}>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => downloadReceipt(payment)}
-                                                                            className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700"
-                                                                        >
-                                                                            <Download className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>
-                                                                        <p>{t('Download Receipt')}</p>
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                            </>
-                                                        )}
-                                                        {payment.status === 'pending' && auth.user?.permissions?.includes('delete-customer-payments') && (
-                                                            <Tooltip delayDuration={0}>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        onClick={() => openDeleteDialog(payment.id)}
-                                                                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                                                    >
-                                                                        <Trash2 className="h-4 w-4" />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>{t('Delete')}</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        )}
-                                                    </TooltipProvider>
-                                                </div>
-                                            </div>
-                                        </Card>
-                                    ))}
+            <div className="mx-auto max-w-[1600px] space-y-5 pb-8">
+                <section className="grid grid-cols-2 gap-3 sm:grid-cols-3" aria-label={t('Payment summary')}>
+                    {summaryCards.map((card, index) => (
+                        <div key={card.label} className={`rounded-2xl border bg-background p-4 shadow-sm shadow-slate-200/30 ${index === 0 ? 'col-span-2 sm:col-span-1' : ''}`}>
+                            <div className="flex items-center gap-3">
+                                <span className={`rounded-xl p-2.5 ${card.tone}`}><card.icon className="h-5 w-5" /></span>
+                                <div>
+                                    <p className="text-xs font-medium text-muted-foreground">{card.label}</p>
+                                    <p className={`mt-0.5 text-xl font-semibold tabular-nums ${card.valueTone}`}>{card.value}</p>
                                 </div>
-                            ) : (
-                                <NoRecordsFound
-                                    icon={CreditCard}
-                                    title={t('No payments found')}
-                                    description={t('Get started by creating your first customer payment.')}
-                                    hasFilters={!!(filters.search || filters.customer_id || filters.status || filters.date_range)}
-                                    onClearFilters={clearFilters}
-                                    createPermission="create-customer-payments"
-                                    onCreateClick={() => openModal('add')}
-                                    createButtonText={t('Create Payment')}
+                            </div>
+                        </div>
+                    ))}
+                </section>
+
+                <Card className="relative z-20 overflow-visible rounded-2xl border shadow-sm shadow-slate-200/40">
+                    <CardContent className="p-0">
+                        <div className="flex flex-col gap-3 p-4 sm:p-5 xl:flex-row xl:items-center">
+                            <form onSubmit={e => { e.preventDefault(); navigate({ search: search.trim(), page: 1 }); }} className="relative min-w-0 flex-1" role="search">
+                                <Search className="absolute left-3.5 top-3 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                    autoComplete="off"
+                                    placeholder={t('Search by payment number, reference or customer')}
+                                    className="h-10 border-slate-200 bg-slate-50/70 pl-10 pr-10 focus-visible:bg-background"
                                 />
-                            )}
+                                {isSearching ? (
+                                    <LoaderCircle className="absolute right-3.5 top-3 h-4 w-4 animate-spin text-primary" />
+                                ) : search && (
+                                    <button type="button" onClick={() => setSearch('')} className="absolute right-3 top-2.5 rounded-md p-1 text-muted-foreground hover:bg-slate-200 hover:text-foreground" aria-label={t('Clear search')}>
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                )}
+                            </form>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <label className="relative min-w-[160px] flex-1 sm:flex-none">
+                                    <span className="sr-only">{t('Sort payments')}</span>
+                                    <select value={filters.sort || 'created_at'} onChange={e => navigate({ sort: e.target.value, page: 1 })} className="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-background pl-3 pr-9 text-sm sm:w-48">
+                                        {sorts.map(([value, label]) => <option key={value} value={value}>{`${t('Sort')}: ${t(label)}`}</option>)}
+                                    </select>
+                                    <ChevronDown className="pointer-events-none absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                                </label>
+                                <Button variant="outline" size="icon" className="h-10 w-10 rounded-lg" title={filters.direction === 'asc' ? t('Ascending') : t('Descending')} onClick={() => navigate({ direction: filters.direction === 'asc' ? 'desc' : 'asc', page: 1 })}>
+                                    {filters.direction === 'asc' ? <ArrowUpAZ className="h-4 w-4" /> : <ArrowDownAZ className="h-4 w-4" />}
+                                </Button>
+                                <PerPageSelector routeName="account.customer-payments.index" filters={filters} className="h-10 w-36" />
+                                <Button variant={showAdvanced || activeFilterCount ? 'secondary' : 'outline'} className="h-10 rounded-lg" onClick={() => setShowAdvanced(value => !value)}>
+                                    <Filter className="mr-2 h-4 w-4" />
+                                    {t('Filters')}
+                                    {activeFilterCount > 0 && <span className="ml-2 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">{activeFilterCount}</span>}
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-1 overflow-x-auto border-t bg-slate-50/50 px-4 py-2 sm:px-5" role="tablist" aria-label={t('Payment views')}>
+                            {views.map(([value, label]) => (
+                                <button
+                                    key={value}
+                                    role="tab"
+                                    aria-selected={activeView === value}
+                                    onClick={() => navigate({ status: value === 'all' ? '' : value, page: 1 })}
+                                    className={`whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${activeView === value ? 'bg-background text-foreground shadow-sm ring-1 ring-slate-200' : 'text-muted-foreground hover:bg-background/70 hover:text-foreground'}`}
+                                >
+                                    {t(label)}
+                                </button>
+                            ))}
+                        </div>
+
+                        {showAdvanced && (
+                            <div className="grid gap-3 border-t bg-slate-50/30 p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-[1fr_1fr_1fr_auto]">
+                                <div className="space-y-1.5">
+                                    <span className="text-xs font-medium text-muted-foreground">{t('Customer')}</span>
+                                    <Select value={filters.customer_id || 'all'} onValueChange={value => navigate({ customer_id: value === 'all' ? '' : value, page: 1 })}>
+                                        <SelectTrigger aria-label={t('Filter by customer')} className="bg-background"><SelectValue placeholder={t('Any customer')} /></SelectTrigger>
+                                        <SelectContent searchable>
+                                            <SelectItem value="all">{t('Any customer')}</SelectItem>
+                                            {customers.map(customer => <SelectItem key={customer.id} value={customer.id.toString()}>{customer.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <span className="text-xs font-medium text-muted-foreground">{t('Bank Account')}</span>
+                                    <Select value={filters.bank_account_id || 'all'} onValueChange={value => navigate({ bank_account_id: value === 'all' ? '' : value, page: 1 })}>
+                                        <SelectTrigger aria-label={t('Filter by bank account')} className="bg-background"><SelectValue placeholder={t('Any bank account')} /></SelectTrigger>
+                                        <SelectContent searchable>
+                                            <SelectItem value="all">{t('Any bank account')}</SelectItem>
+                                            {bankAccounts.map(account => <SelectItem key={account.id} value={account.id.toString()}>{account.account_name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <span className="text-xs font-medium text-muted-foreground">{t('Received date')}</span>
+                                    <DateRangePicker value={dateRange} onChange={changeDateRange} placeholder={t('Select date range')} />
+                                </div>
+                                <Button variant="ghost" className="self-end text-muted-foreground" onClick={clearAdvanced} disabled={!activeFilterCount}>{t('Clear filters')}</Button>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card className="relative z-0 overflow-hidden rounded-2xl border shadow-sm shadow-slate-200/40">
+                    <div className={`hidden gap-3 border-b bg-slate-50/70 px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 min-[1360px]:grid ${rowColumns}`}>
+                        <span>{t('Payment')}</span>
+                        <span>{t('Customer')}</span>
+                        <span>{t('Invoice')}</span>
+                        <span>{t('Received')}</span>
+                        <span>{t('Status')}</span>
+                        <span className="text-right">{t('Amount')}</span>
+                        <span />
+                    </div>
+
+                    <div className="divide-y">
+                        {payments.data.map(payment => {
+                            const currency = payment.currency_code || baseCurrency;
+                            const difference = (payment.allocations || []).reduce((sum, allocation) => sum + Number(allocation.exchange_difference || 0), 0);
+                            // Base-currency amount actually settled: green for an exchange gain, red for a loss.
+                            const baseTone = Math.abs(difference) < 0.005 ? 'text-gray-500' : difference > 0 ? 'text-green-600' : 'text-red-600';
+                            const deposit = Number((payment as any).available_deposit || 0);
+                            const invoices = invoiceNumbers(payment);
+                            const canClear = payment.status === 'pending' && can('cleared-customer-payments');
+
+                            return (
+                                <div
+                                    key={payment.id}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPayment(payment); } }}
+                                    onClick={() => openPayment(payment)}
+                                    className={`group grid cursor-pointer gap-3 bg-background p-5 transition-colors hover:bg-blue-50/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary min-[1360px]:items-center min-[1360px]:px-6 min-[1360px]:py-4 ${rowColumns}`}
+                                >
+                                    <div className="flex min-w-0 items-center gap-3.5">
+                                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-700"><CreditCard className="h-5 w-5" /></span>
+                                        <div className="min-w-0">
+                                            <p className="truncate font-semibold text-slate-900 group-hover:text-primary">{payment.payment_number}</p>
+                                            <p className="mt-0.5 truncate text-xs text-slate-500">{paymentMode(payment)}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="min-w-0 text-sm">
+                                        <p className="truncate font-medium text-slate-700">{customerName(payment)}</p>
+                                        {customerContact(payment) && <p className="mt-0.5 truncate text-xs text-slate-500">{customerContact(payment)}</p>}
+                                    </div>
+
+                                    <div className="flex min-w-0 justify-between gap-3 text-sm min-[1360px]:block">
+                                        <span className="text-slate-500 min-[1360px]:hidden">{t('Invoice')}</span>
+                                        <span className="block truncate text-slate-700" title={invoices}>{invoices || '-'}</span>
+                                    </div>
+
+                                    <div className="flex min-w-0 justify-between gap-3 text-sm min-[1360px]:block">
+                                        <span className="text-slate-500 min-[1360px]:hidden">{t('Received')}</span>
+                                        <div className="min-w-0 text-right min-[1360px]:text-left">
+                                            <p className="text-slate-700">{formatDate(payment.payment_date)}</p>
+                                            <p className="mt-0.5 truncate text-xs text-slate-500" title={(payment as any).bank_account?.account_name}>{(payment as any).bank_account?.account_name || '-'}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                        <span className={`rounded-full px-2 py-1 text-xs ${statusClasses(payment.status)}`}>{t(payment.status.charAt(0).toUpperCase() + payment.status.slice(1))}</span>
+                                    </div>
+
+                                    <div className="flex justify-between text-sm min-[1360px]:block min-[1360px]:text-right">
+                                        <span className="text-slate-500 min-[1360px]:hidden">{t('Amount')}</span>
+                                        <div className="text-right">
+                                            <strong className="block whitespace-nowrap font-semibold tabular-nums text-slate-900" dir="ltr">{formatMoney(payment.payment_amount, currency)}</strong>
+                                            {currency !== baseOf(payment) && (
+                                                <span className={`mt-0.5 block whitespace-nowrap text-xs font-medium ${baseTone}`} dir="ltr">
+                                                    {formatMoney((payment as any).base_amount ?? Number(payment.payment_amount) * Number((payment as any).exchange_rate || 1), baseOf(payment))}
+                                                </span>
+                                            )}
+                                            {deposit > 0 && (
+                                                <span className="mt-0.5 block whitespace-nowrap text-xs text-slate-500" dir="ltr">{t('Deposit')} {formatMoney(deposit, currency)}</span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-wrap justify-end gap-0.5" onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
+                                        <TooltipProvider>
+                                            <CustomerPaymentActionButtons payment={payment} auth={auth} />
+                                        </TooltipProvider>
+                                        {can('view-customer-payments') && (
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" title={t('Download Receipt')} aria-label={t('Download Receipt')} onClick={() => downloadReceipt(payment)}>
+                                                <Download className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                        {(can('view-customer-payments') || canClear || (payment.status === 'pending' && can('delete-customer-payments'))) && (
+                                            <DropdownMenu modal={false}>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" title={t('More actions')} aria-label={t('More actions')}>
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="min-w-[190px]">
+                                                    {can('view-customer-payments') && <DropdownMenuItem onClick={() => setViewingItem(payment)}><Eye className="mr-2 h-4 w-4" />{t('View')}</DropdownMenuItem>}
+                                                    {canClear && <DropdownMenuItem onClick={() => handleStatusUpdate(payment.id, 'cleared')}><CheckCircle className="mr-2 h-4 w-4" />{t('Mark as Cleared')}</DropdownMenuItem>}
+                                                    {canClear && <DropdownMenuItem onClick={() => handleStatusUpdate(payment.id, 'cancelled')}><X className="mr-2 h-4 w-4" />{t('Cancel Payment')}</DropdownMenuItem>}
+                                                    {payment.status === 'pending' && can('delete-customer-payments') && (
+                                                        <>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem className="text-rose-600 focus:text-rose-600" onClick={() => openDeleteDialog(payment.id)}><Trash2 className="mr-2 h-4 w-4" />{t('Delete')}</DropdownMenuItem>
+                                                        </>
+                                                    )}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+
+                        {!payments.data.length && (
+                            <NoRecordsFound
+                                icon={CreditCard}
+                                title={t('No payments found')}
+                                description={t('Get started by recording your first payment.')}
+                                hasFilters={hasFilters}
+                                onClearFilters={clearAll}
+                                createPermission="create-customer-payments"
+                                onCreateClick={() => setModalState({ isOpen: true, mode: 'add', data: null })}
+                                createButtonText={t('New payment')}
+                                className="h-auto"
+                            />
+                        )}
+                    </div>
+
+                    {payments.total > 0 && (
+                        <div className="border-t bg-slate-50/30 px-3">
+                            <Pagination data={payments} onPageChange={page => navigate({ page })} />
                         </div>
                     )}
-                </CardContent>
+                </Card>
+            </div>
 
-                <CardContent className="px-4 py-2 border-t bg-gray-50/30">
-                    <Pagination
-                        data={{...payments, ...payments.meta}}
-                        routeName="account.customer-payments.index"
-                        filters={{...filters, per_page: perPage, view: viewMode}}
-                    />
-                </CardContent>
-            </Card>
-
-            <Dialog open={modalState.isOpen} onOpenChange={closeModal}>
+            <Dialog open={modalState.isOpen} onOpenChange={() => setModalState({ isOpen: false, mode: '', data: null })}>
                 {modalState.mode === 'add' && (
                     <Create
                         customers={customers}
                         bankAccounts={bankAccounts}
-                        onSuccess={closeModal}
+                        onSuccess={() => setModalState({ isOpen: false, mode: '', data: null })}
                     />
                 )}
             </Dialog>

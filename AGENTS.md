@@ -269,6 +269,101 @@ A work item is not complete until its code is committed, tests are recorded, aff
 
 ## Handoff Log
 
+### 2026-11-09 Asia/Colombo - Claude - UI upgrade branch published
+
+- Branch: `UI-upgrade-2026-11-09`, created from `New-feature/ui-upgrade-2026-11-07` at `b50e73e8e`. No pull request.
+- Commit: single commit on this branch, pushed to origin.
+- Files changed: list pages for Sales Invoices, Payment Received, Purchase Invoices, Vendor Payments and Users, the login eye toggle, the Quotations header tooltip fix, and return to Users after editing a client or vendor.
+- Database records/migrations affected: none new on this branch. It carries the earlier `terms` and `type` quotation migrations from its parent branch. Not deployed.
+- Decisions and assumptions: the Helpdesk work Codex started was reverted at the user's request before branching; no Helpdesk files or migrations are included.
+- Manual verification: the rebuilt pages were NOT seen in a browser by Claude because the test login expired. The user reviews them.
+- Files/areas still claimed: none.
+- Exact next step: user decides whether to merge or deploy.
+
+### 2026-11-08 Asia/Colombo - Claude - Users list redesigned like Customers
+
+- Branch: `New-feature/ui-upgrade-2026-11-07`.
+- Commit: none; changes remain local and are not pushed.
+- Files changed: `AGENTS.md`, `CHANGELOG.md`, `resources/js/pages/users/index.tsx` (rewritten), `app/Http/Controllers/UserController.php` (index only).
+- Database records/migrations affected: none.
+- What was implemented: summary cards (Total users, Login enabled, Login disabled), live search on name, email or mobile, sort, per-page, Filters panel (Role, Login status), tabs (All users, Staff, Clients, Vendors, Login disabled) and rows like Customers. Edit stays on the row and a row click opens Edit; Login As User, Change Password, Send Password Reset Link, Change Plan and Delete moved to the three-dot menu with their permission conditions unchanged. Grid view, which was the default, removed. Create, Edit, Change Password and Change Plan popups and the Login History button unchanged.
+- Decisions and assumptions: Codex owns security, so no user or password logic changed. Only list-query hardening was added: `sort` was passed straight to `orderBy` and is now a whitelist, direction and per-page are limited. An empty `is_enable_login` used to filter to disabled users; it is now ignored when empty. Super admins see only All users and Login disabled tabs because their list holds companies; this branch was not exercised.
+- Tests run and results: `npx tsc --noEmit` no errors in the page; 10 related unit tests / 44 assertions passed; `npm run build` passed. Temporary read-only test on local `erp_live_copy` (deleted afterwards) matched SQL for companies 950 and 664 on every tab and filter.
+- Manual verification: NOT seen in a browser, same login limit as the Sales Invoices entry below. Sensitive menu actions were not clicked.
+- Follow-up: Edit on a client or vendor row now passes `back=users` and the current Users query. `Customers/Index.tsx` and `Vendors/Index.tsx` return to Users when that popup closes by X, Cancel, Esc or save. Without `back=users` they behave as before. The Customer 360 Edit link is unchanged.
+- Known issues or blockers: user needs to view the page.
+- Deployment or rollback notes: no migration. Do not commit generated `public/build` or `public/hot`.
+- Files/areas still claimed: none.
+- Exact next step: user opens the Users page and reports anything off, then says when to commit and push.
+
+### 2026-11-08 Asia/Colombo - Claude - Purchase Invoices and Vendor Payments lists redesigned
+
+- Branch: `New-feature/ui-upgrade-2026-11-07`.
+- Commit: none; changes remain local and are not pushed.
+- Files changed: `AGENTS.md`, `CHANGELOG.md`, `resources/js/pages/Purchase/Index.tsx` and `packages/workdo/Account/src/Resources/js/Pages/VendorPayments/Index.tsx` (rewritten), `PurchaseInvoiceController.php` and `VendorPaymentController.php` (index), `app/Models/PurchaseInvoice.php`.
+- Database records/migrations affected: none.
+- What was implemented: same layout as Quotations and Sales Invoices. Purchase Invoices: cards Total invoices, Awaiting payment, Overdue; tabs All invoices, Unpaid, Paid, Overdue; Download, signature and Xero stay on the row; View, Edit, Post, Delete in the three-dot menu. Vendor Payments: cards Total payments, Cleared, Pending; tabs All payments, Cleared, Pending, Cancelled; Download Payment Voucher and Xero stay on the row; View, Mark as Cleared, Cancel Payment, Delete in the menu; View and Create stay popups. Grid views removed.
+- Decisions and assumptions: purchase invoices have no type column, so no Product/Service tabs. List Overdue uses posted, partial or overdue status, balance above 0, due before today, same as Sales Invoices; the old status filter missed rows with status `overdue`. `isOverdue()` and `display_status` were not changed. Vendor payment gain/loss colours stay reversed from customer payments and its status update stays POST. Sort and per-page are whitelisted on both.
+- Tests run and results: `npx tsc --noEmit` no errors in both pages; 28 related unit tests / 342 assertions passed; `npm run build` passed. Temporary read-only test on local `erp_live_copy` (deleted afterwards) matched SQL for companies 950 and 664 on every tab and filter.
+- Manual verification: NOT seen in a browser, same login limit as the Sales Invoices entry below.
+- Known issues or blockers: user needs to view the pages.
+- Deployment or rollback notes: no migration. Do not commit generated `public/build` or `public/hot`.
+- Files/areas still claimed: none.
+- Exact next step: user opens both pages and reports anything off, then says when to commit and push.
+
+### 2026-11-08 Asia/Colombo - Claude - Payment Received list redesigned like Quotations
+
+- Branch: `New-feature/ui-upgrade-2026-11-07`.
+- Commit: none; changes remain local and are not pushed.
+- Files changed: `AGENTS.md`, `CHANGELOG.md`, `packages/workdo/Account/src/Resources/js/Pages/CustomerPayments/Index.tsx` (rewritten), `CustomerPaymentController.php` (index).
+- Database records/migrations affected: none.
+- What was implemented: summary cards (Total payments, Cleared, Pending), live search, sort, per-page, Filters panel (Customer, Bank Account, Received date), tabs (All payments, Cleared, Pending, Cancelled) and clickable rows that open the existing View popup. Download Receipt and the Xero button stay on the row; View, Mark as Cleared, Cancel Payment and Delete moved to the three-dot menu. New payment still opens the existing Create popup. Exchange gain/loss colours and Available Deposit are kept. Grid view removed.
+- Decisions and assumptions: tabs use the existing `status` parameter, so the Status filter moved from the panel to the tabs. Bank Account filter added to the panel because the server already supported it. Sort field and direction are now whitelisted; before, a bad value reached `orderBy`. Payments have no due date, so no Overdue. Bank account shows under the received date and the deposit under the amount.
+- Tests run and results: `npx tsc --noEmit` no errors in the page; `npm run build` passed. Temporary read-only test on local `erp_live_copy` (deleted afterwards) matched SQL for companies 950 and 664 on every tab and filter.
+- Manual verification: NOT seen in a browser, same login limit as the Sales Invoices entry below.
+- Known issues or blockers: user needs to view the page.
+- Deployment or rollback notes: no migration. Do not commit generated `public/build` or `public/hot`.
+- Files/areas still claimed: none.
+- Exact next step: user opens Sales > Payment Received and reports anything off, then says when to commit and push.
+
+### 2026-11-08 Asia/Colombo - Claude - Sales Invoices list redesigned like Quotations
+
+- Branch: `New-feature/ui-upgrade-2026-11-07`.
+- Commit: none; changes remain local and are not pushed.
+- Files changed: `AGENTS.md`, `CHANGELOG.md`, `resources/js/pages/Sales/Index.tsx` (rewritten), `SalesInvoiceController.php` (index), `app/Models/SalesInvoice.php`, Quotations `Index.tsx`, new `tests/Unit/SalesInvoiceListPageTest.php`.
+- Database records/migrations affected: none.
+- What was implemented: summary cards (Total invoices, Awaiting payment, Overdue), live search, sort, per-page, Filters panel, tabs (All invoices, Product, Service, Overdue) and clickable rows with Total and Balance. Preview, Download and module buttons (signature, e-invoice, Xero) stay on the row; View, Edit, Post, Duplicate, Delete moved to the three-dot menu. Grid view removed, as on Quotations. Foreign-currency amounts still use `DualCurrencyAmount`.
+- Decisions and assumptions: list Overdue means status posted, partial or overdue, balance above 0, due before today. Drafts past due no longer show Overdue on this list. The old status filter missed rows with status `overdue`; it now uses the same rule. `isOverdue()` and `display_status` were not changed, so View and other pages keep their current behaviour. Also restored `TooltipProvider` around the Quotations header buttons: there is no global provider and removing it on 2026-11-07 risked a crash when a module adds a tooltip button.
+- Tests run and results: `npx tsc --noEmit` no errors in both pages; 31 related unit tests / 367 assertions passed before the new test; `npm run build` passed. Temporary read-only test on local `erp_live_copy` (deleted afterwards) matched SQL for companies 950 and 664 on all tabs and statuses.
+- Manual verification: NOT seen in a browser. The Playwright login expired and no test credential is recorded, so rendering, row click and menus are unverified. Do not reset passwords or mint sessions to get past this.
+- Known issues or blockers: user needs to view the page. Row order and status logic on other pages unchanged.
+- Deployment or rollback notes: no migration. Do not commit generated `public/build` or `public/hot`.
+- Files/areas still claimed: none.
+- Exact next step: user opens Sales > Sales Invoices and reports anything off, then says when to commit and push.
+
+### 2026-11-08 Asia/Colombo - Claude - Login password eye toggle
+
+- Branch: `New-feature/ui-upgrade-2026-11-07`.
+- Commit: none; changes remain local and are not pushed.
+- Files changed: `AGENTS.md`, `resources/js/pages/auth/login.tsx`.
+- Database records/migrations affected: none.
+- What was implemented: an eye button in the login password field shows and hides the password. Edge's built-in reveal icon is hidden so only one eye appears.
+- Tests run and results: `npx tsc --noEmit` no errors in the file; `npm run build` passed.
+- Manual verification: browser with a fake password, no login attempted: hidden by default, click shows and keeps the text and stays on the page, second click hides, Tab order is email, password, eye, remember, Log in, Forgot password. No page errors.
+- Known issues or blockers: real login not exercised. The toggle cannot submit the form because it is `type="button"`.
+- Deployment or rollback notes: no migration. Rollback is this one file.
+- Files/areas still claimed: none.
+- Exact next step: user checks the login page, then says when to commit and push.
+
+### 2026-11-07 Asia/Colombo - Claude - Local queue worker task disabled
+
+- Branch: `New-feature/ui-upgrade-2026-11-07`. Commit: none; this note is uncommitted.
+- Files changed: `AGENTS.md`. Database records/migrations affected: none.
+- What was done: at the user's request to stop everything, the Windows scheduled task `Wazely Zoho queue worker` was disabled. It runs every minute and restarted the `zoho-import-redesign` queue worker whenever it was stopped. Its files in `.worktrees` were not touched.
+- Known issues or blockers: local Bulk Import jobs on the `imports` queue will not run until the task is enabled again.
+- Deployment or rollback notes: local machine only. Rollback: `Enable-ScheduledTask -TaskName 'Wazely Zoho queue worker'`.
+- Exact next step: none unless the user needs local Bulk Import.
+
 ### 2026-11-07 Asia/Colombo - Claude - UI upgrade branch published
 
 - Branch: `New-feature/ui-upgrade-2026-11-07`, created from `feature/zoho-ui-upgrade-2026-11-04` at `dd3975f7f`. No pull request.

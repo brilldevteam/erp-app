@@ -1,4 +1,4 @@
-import { FormEventHandler, useEffect } from "react";
+import { FormEventHandler, useEffect, useState } from "react";
 import AuthLayout from "@/layouts/auth-layout";
 import { Head, Link, useForm, usePage } from "@inertiajs/react";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { useFormFields } from '@/hooks/useFormFields';
 import { usePageButtons } from '@/hooks/usePageButtons';
 import SocialAuthButtons from '@/components/social-auth-buttons';
-import { LockKeyhole, Mail } from 'lucide-react';
+import { Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react';
 
 export default function Login({
     status,
@@ -24,6 +24,7 @@ export default function Login({
 }) {
     const { t } = useTranslation();
     const { flash } = usePage().props as any;
+    const [showPassword, setShowPassword] = useState(false);
     const { data, setData, post, processing, errors, reset } = useForm({
         email: "",
         password: "",
@@ -104,7 +105,7 @@ export default function Login({
                             <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
                             <Input
                                 id="password"
-                                type="password"
+                                type={showPassword ? 'text' : 'password'}
                                 name="password"
                                 value={data.password}
                                 onChange={(e) => setData('password', e.target.value)}
@@ -112,8 +113,18 @@ export default function Login({
                                 tabIndex={2}
                                 autoComplete="current-password"
                                 placeholder={t('Password')}
-                                className="h-12 rounded-xl pl-10"
+                                className="h-12 rounded-xl pl-10 pr-11 [&::-ms-reveal]:hidden"
                             />
+                            <button
+                                type="button"
+                                tabIndex={2}
+                                onClick={() => setShowPassword((visible) => !visible)}
+                                aria-label={showPassword ? t('Hide password') : t('Show password')}
+                                aria-pressed={showPassword}
+                                className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
                         </div>
                         <InputError message={errors.password} />
                     </div>

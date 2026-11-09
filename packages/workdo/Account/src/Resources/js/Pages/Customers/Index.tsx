@@ -41,6 +41,18 @@ export default function Index() {
   const [isSearching, setIsSearching] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(Boolean(filters.currency || filters.portal || filters.activity_from));
   const [modal, setModal] = useState<{ open: boolean; mode: 'add' | 'edit'; customer?: Customer }>({ open: !!editCustomer, mode: editCustomer ? 'edit' : 'add', customer: editCustomer || undefined });
+  // Set when Edit was opened from the Users page, so closing it returns there.
+  const [usersQuery] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('back') === 'users' ? params.get('back_query') || '' : null;
+  });
+  const closeModal = () => {
+    if (usersQuery !== null) {
+      router.visit(route('users.index') + (usersQuery ? `?${usersQuery}` : ''));
+      return;
+    }
+    setModal(current => ({ ...current, open: false }));
+  };
   const { deleteState, openDeleteDialog, closeDeleteDialog, confirmDelete } = useDeleteHandler({ routeName: 'account.customers.destroy', defaultMessage: 'Are you sure you want to delete this customer?' });
   useFlashMessages();
 
@@ -128,7 +140,7 @@ export default function Index() {
       </Card>
     </div>
 
-    <Dialog open={modal.open} onOpenChange={open => setModal(current => ({ ...current, open }))}>{modal.mode === 'add' ? <Create onSuccess={() => setModal(current => ({ ...current, open: false }))} /> : modal.customer ? <Edit customer={modal.customer} onSuccess={() => setModal(current => ({ ...current, open: false }))} /> : null}</Dialog>
+    <Dialog open={modal.open} onOpenChange={open => { if (open) { setModal(current => ({ ...current, open })); } else { closeModal(); } }}>{modal.mode === 'add' ? <Create onSuccess={closeModal} /> : modal.customer ? <Edit customer={modal.customer} onSuccess={closeModal} /> : null}</Dialog>
     <ConfirmationDialog open={deleteState.isOpen} onOpenChange={closeDeleteDialog} title="Delete Customer" message={deleteState.message} confirmText="Delete" onConfirm={confirmDelete} variant="destructive" />
   </AuthenticatedLayout>;
 }

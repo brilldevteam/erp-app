@@ -92,19 +92,20 @@ class SalesInvoiceController extends Controller
     public function index(Request $request)
     {
         if(Auth::user()->can('manage-sales-invoices')){
-            $query = SalesInvoice::with(['customer', 'customerDetails', 'items'])
-                ->where(function($q) {
-                    if(Auth::user()->can('manage-any-sales-invoices')) {
-                        $q->where('created_by', creatorId());
-                    } elseif(Auth::user()->can('manage-own-sales-invoices')) {
-                        $q->where('creator_id', Auth::id())->orWhere('customer_id',Auth::id());
-                        if(Auth::user()->type == 'client') {
-                            $q->where('status','!=', 'draft');
-                        }
-                    } else {
-                        $q->whereRaw('1 = 0');
+            $visibleInvoices = fn () => SalesInvoice::where(function($q) {
+                if(Auth::user()->can('manage-any-sales-invoices')) {
+                    $q->where('created_by', creatorId());
+                } elseif(Auth::user()->can('manage-own-sales-invoices')) {
+                    $q->where('creator_id', Auth::id())->orWhere('customer_id',Auth::id());
+                    if(Auth::user()->type == 'client') {
+                        $q->where('status','!=', 'draft');
                     }
-                });
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
+            });
+
+            $query = $visibleInvoices()->with(['customer', 'customerDetails', 'items']);
 
             // Apply filters
             if ($request->customer_id) {
@@ -115,12 +116,15 @@ class SalesInvoiceController extends Controller
             }
             if ($request->status) {
                 if ($request->status === 'overdue') {
-                    $query->where('due_date', '<', now())
-                    ->whereIn('status', ['posted', 'partial'])
-                    ->where('balance_amount', '>', 0);
+                    $query->overdueReceivable();
                 } else {
                     $query->where('status', $request->status);
                 }
+            }
+            if (in_array($request->view, ['product', 'service'], true)) {
+                $query->where('type', $request->view);
+            } elseif ($request->view === 'overdue') {
+                $query->overdueReceivable();
             }
             if ($request->search) {
                 $search = trim($request->search);
@@ -143,7 +147,7 @@ class SalesInvoiceController extends Controller
 
         // Apply sorting
         $sortField = $request->get('sort', 'created_at');
-        $sortDirection = $request->get('direction', 'desc');
+        $sortDirection = $request->get('direction') === 'asc' ? 'asc' : 'desc';
 
         // Validate sort field to prevent SQL injection
         $allowedSortFields = ['invoice_number', 'invoice_date', 'due_date', 'subtotal', 'tax_amount', 'total_amount', 'balance_amount', 'status', 'created_at'];
@@ -151,10 +155,15 @@ class SalesInvoiceController extends Controller
             $sortField = 'created_at';
         }
 
-        $query->orderBy($sortField, $sortDirection);
+        // Imported invoices share timestamps, so the id keeps page order stable.
+        $query->orderBy($sortField, $sortDirection)->orderBy('id', 'desc');
 
-        $perPage = $request->get('per_page', 10);
-        $invoices = $query->paginate($perPage);
+        $perPage = in_array((int) $request->get('per_page'), [10, 25, 50, 100], true) ? (int) $request->get('per_page') : 10;
+        $invoices = $query->paginate($perPage)->through(function (SalesInvoice $invoice) {
+            $invoice->setAttribute('is_overdue', $invoice->isOverdueReceivable());
+
+            return $invoice;
+        });
         $customers = $this->invoiceCustomers();
         $warehouses = Warehouse::where('is_active', true)->select('id', 'name')->where('created_by', creatorId())->get();
 
@@ -162,7 +171,12 @@ class SalesInvoiceController extends Controller
                 'invoices' => $invoices,
                 'customers' => $customers,
                 'warehouses' => $warehouses,
-                'filters' => $request->only(['customer_id', 'warehouse_id', 'status', 'search', 'date_range'])
+                'summary' => [
+                    'total' => $visibleInvoices()->count(),
+                    'awaiting' => $visibleInvoices()->whereIn('status', SalesInvoice::RECEIVABLE_STATUSES)->where('balance_amount', '>', 0)->count(),
+                    'overdue' => $visibleInvoices()->overdueReceivable()->count(),
+                ],
+                'filters' => $request->only(['customer_id', 'warehouse_id', 'status', 'search', 'date_range', 'view', 'sort', 'direction', 'per_page'])
             ]);
         }
         else{

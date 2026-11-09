@@ -11,6 +11,10 @@ All notable changes to the Wazely ERP application are documented here.
 ## [Unreleased]
 
 ### Changed
+- The Users list now follows the Customers page, with summary cards, live search on name, email or mobile, sort, filters and tabs for staff, clients, vendors and disabled logins.
+- The Purchase Invoices and Vendor Payments lists now follow the Quotations page, with summary cards, live search, sort, filters and tabs. Overdue on the Purchase Invoices list means issued, unpaid and past its due date.
+- The Payment Received list now follows the Quotations page: summary cards, live search, sort, filters including Bank Account, and All, Cleared, Pending and Cancelled tabs.
+- The Sales Invoices list now follows the Quotations page: summary cards, live search, sort, filters, and All, Product, Service and Overdue tabs. Overdue on this list means issued, unpaid and past its due date.
 - Purchase Invoice details now use one aligned four-column layout on create and edit, with Notes at full width.
 - The Multi-Currency Transaction dropdown no longer lists the company default currency.
 - The Quotations list now follows the Customers page: summary cards, live search, sort, filters, and All, Product, Service and Overdue tabs. Overdue now applies only to draft or sent quotations past their due date that have not been converted.

@@ -11,6 +11,7 @@ import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Card, CardContent } from '@/components/ui/card';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Pagination } from '@/components/ui/pagination';
@@ -127,7 +128,7 @@ export default function Index() {
             breadcrumbs={[{ label: t('Quotations') }]}
             pageTitle={t('Quotations')}
             pageActions={
-                <div className="flex gap-2">
+                <TooltipProvider><div className="flex gap-2">
                     {dropboxBtn.map((button) => (
                         <div key={button.id}>{button.component}</div>
                     ))}
@@ -155,7 +156,7 @@ export default function Index() {
                     {pageButtons.map((button) => (
                         <div key={button.id}>{button.component}</div>
                     ))}
-                </div>
+                </div></TooltipProvider>
             }
         >
             <Head title={t('Quotations')} />

@@ -132,19 +132,20 @@ class PurchaseInvoiceController extends Controller
     public function index(Request $request)
     {
         if(Auth::user()->can('manage-purchase-invoices')){
-            $query = PurchaseInvoice::with(['vendor', 'vendorDetails', 'items'])
-                ->where(function($q) {
-                    if(Auth::user()->can('manage-any-purchase-invoices')) {
-                        $q->where('created_by', creatorId());
-                    } elseif(Auth::user()->can('manage-own-purchase-invoices')) {
-                        $q->where('creator_id', Auth::id())->orWhere('vendor_id',Auth::id());
-                        if(Auth::user()->type == 'vendor') {
-                            $q->where('status','!=', 'draft');
-                        }
-                    } else {
-                        $q->whereRaw('1 = 0');
+            $visibleInvoices = fn () => PurchaseInvoice::where(function($q) {
+                if(Auth::user()->can('manage-any-purchase-invoices')) {
+                    $q->where('created_by', creatorId());
+                } elseif(Auth::user()->can('manage-own-purchase-invoices')) {
+                    $q->where('creator_id', Auth::id())->orWhere('vendor_id',Auth::id());
+                    if(Auth::user()->type == 'vendor') {
+                        $q->where('status','!=', 'draft');
                     }
-                });
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
+            });
+
+            $query = $visibleInvoices()->with(['vendor', 'vendorDetails', 'items']);
 
             // Apply filters
             if ($request->vendor_id) {
@@ -155,12 +156,17 @@ class PurchaseInvoiceController extends Controller
             }
             if ($request->status) {
                 if ($request->status === 'overdue') {
-                    $query->where('due_date', '<', now())
-                    ->whereIn('status', ['posted', 'partial'])
-                    ->where('balance_amount', '>', 0);
+                    $query->overduePayable();
                 } else {
                     $query->where('status', $request->status);
                 }
+            }
+            if ($request->view === 'unpaid') {
+                $query->whereIn('status', PurchaseInvoice::PAYABLE_STATUSES)->where('balance_amount', '>', 0);
+            } elseif ($request->view === 'paid') {
+                $query->where('status', 'paid');
+            } elseif ($request->view === 'overdue') {
+                $query->overduePayable();
             }
             if ($request->search) {
                 $search = trim($request->search);
@@ -184,7 +190,7 @@ class PurchaseInvoiceController extends Controller
 
         // Apply sorting
         $sortField = $request->get('sort', 'created_at');
-        $sortDirection = $request->get('direction', 'desc');
+        $sortDirection = $request->get('direction') === 'asc' ? 'asc' : 'desc';
 
         // Validate sort field to prevent SQL injection
         $allowedSortFields = ['invoice_number', 'invoice_date', 'due_date', 'subtotal', 'tax_amount', 'total_amount', 'balance_amount', 'status', 'created_at'];
@@ -192,10 +198,15 @@ class PurchaseInvoiceController extends Controller
             $sortField = 'created_at';
         }
 
-        $query->orderBy($sortField, $sortDirection);
+        // Imported invoices share timestamps, so the id keeps page order stable.
+        $query->orderBy($sortField, $sortDirection)->orderBy('id', 'desc');
 
-        $perPage = $request->get('per_page', 10);
-        $invoices = $query->paginate($perPage);
+        $perPage = in_array((int) $request->get('per_page'), [10, 25, 50, 100], true) ? (int) $request->get('per_page') : 10;
+        $invoices = $query->paginate($perPage)->through(function (PurchaseInvoice $invoice) {
+            $invoice->setAttribute('is_overdue', $invoice->isOverduePayable());
+
+            return $invoice;
+        });
         $vendors = $this->invoiceVendors();
         $warehouses = Warehouse::where('is_active', true)->select('id', 'name')->where('created_by', creatorId())->get();
 
@@ -203,7 +214,12 @@ class PurchaseInvoiceController extends Controller
                 'invoices' => $invoices,
                 'vendors' => $vendors,
                 'warehouses' => $warehouses,
-                'filters' => $request->only(['vendor_id', 'warehouse_id', 'status', 'search', 'date_range'])
+                'summary' => [
+                    'total' => $visibleInvoices()->count(),
+                    'awaiting' => $visibleInvoices()->whereIn('status', PurchaseInvoice::PAYABLE_STATUSES)->where('balance_amount', '>', 0)->count(),
+                    'overdue' => $visibleInvoices()->overduePayable()->count(),
+                ],
+                'filters' => $request->only(['vendor_id', 'warehouse_id', 'status', 'search', 'date_range', 'view', 'sort', 'direction', 'per_page'])
             ]);
         }
         else{

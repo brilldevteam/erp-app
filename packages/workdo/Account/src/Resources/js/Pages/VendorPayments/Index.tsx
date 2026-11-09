@@ -1,669 +1,390 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Head, usePage, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
+import { ArrowDownAZ, ArrowUpAZ, CheckCircle, ChevronDown, Clock3, CreditCard, Download, Eye, Filter, LoaderCircle, MoreHorizontal, Plus, Search, Trash2, WalletCards, X } from 'lucide-react';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { useDeleteHandler } from '@/hooks/useDeleteHandler';
 import { usePageButtons } from '@/hooks/usePageButtons';
-import AuthenticatedLayout from "@/layouts/authenticated-layout";
+import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from "@/components/ui/card";
-import { DataTable } from "@/components/ui/data-table";
-import { Dialog } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Card, CardContent } from '@/components/ui/card';
+import { Dialog } from '@/components/ui/dialog';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Plus, Eye, Trash2, CreditCard, CheckCircle, X, Download } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { FilterButton } from '@/components/ui/filter-button';
-import { Pagination } from "@/components/ui/pagination";
-import { SearchInput } from "@/components/ui/search-input";
-import { ListGridToggle } from '@/components/ui/list-grid-toggle';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { Pagination } from '@/components/ui/pagination';
 import { Input } from '@/components/ui/input';
 import { PerPageSelector } from '@/components/ui/per-page-selector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
+import NoRecordsFound from '@/components/no-records-found';
+import { formatDate, getCurrencySymbolForCode } from '@/utils/helpers';
 import Create from './Create';
 import View from './View';
-import NoRecordsFound from '@/components/no-records-found';
 import { VendorPayment, VendorPaymentsIndexProps, VendorPaymentModalState } from './types';
 
-interface VendorPaymentFilters {
-    vendor_id: string;
-    status: string;
-    search: string;
-    date_range: string;
-    bank_account_id: string;
-}
-import { formatDate, formatCurrency, getCurrencySymbolForCode } from '@/utils/helpers';
+type PageProps = Omit<VendorPaymentsIndexProps, 'payments' | 'filters'> & {
+    payments: { data: VendorPayment[]; current_page: number; last_page: number; per_page: number; total: number; from: number; to: number };
+    summary: { total: number; cleared: number; pending: number };
+    filters: Record<string, string>;
+    companyAllSetting?: { defaultCurrency?: string };
+};
+
+const views = [['all', 'All payments'], ['cleared', 'Cleared'], ['pending', 'Pending'], ['cancelled', 'Cancelled']];
+const sorts = [['created_at', 'Created date'], ['payment_date', 'Payment date'], ['payment_amount', 'Amount'], ['payment_number', 'Number'], ['status', 'Status']];
+const rowColumns = 'min-[1360px]:grid-cols-[minmax(180px,1fr)_minmax(150px,1.2fr)_minmax(125px,.8fr)_145px_85px_130px_104px]';
+
+const statusClasses = (status: string) => {
+    if (status === 'cleared') return 'bg-green-100 text-green-800';
+    if (status === 'pending') return 'bg-yellow-100 text-yellow-800';
+    return 'bg-red-100 text-red-800';
+};
+
+// Buttons added by other modules (Xero) stay on the row as they were.
+const VendorPaymentActionButtons = ({ payment, auth }: { payment: VendorPayment; auth: any }) => {
+    const actionButtons = usePageButtons('xeroSyncVendorPaymentBtn', { payment_id: payment.id, auth, status: payment.status });
+    return <>{actionButtons.map((button) => <div key={button.id}>{button.component}</div>)}</>;
+};
 
 export default function Index() {
     const { t } = useTranslation();
-    const pageProps = usePage<VendorPaymentsIndexProps>().props as VendorPaymentsIndexProps & { companyAllSetting?: { defaultCurrency?: string } };
-    const { payments, vendors, bankAccounts, filters: initialFilters, auth } = pageProps;
+    const pageProps = usePage().props as unknown as PageProps;
+    const { payments, vendors, bankAccounts, summary, filters = {}, auth } = pageProps;
     const baseCurrency = pageProps.companyAllSetting?.defaultCurrency || 'USD';
     // Each payment's own base currency decides whether a second (base) amount is shown.
     const baseOf = (payment: { base_currency_code?: string | null }) => (payment.base_currency_code || baseCurrency).toUpperCase();
     const formatMoney = (amount: number | string, currency: string) =>
         `${getCurrencySymbolForCode(currency, pageProps)} ${Number(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    const urlParams = new URLSearchParams(window.location.search);
 
-    const [filters, setFilters] = useState<VendorPaymentFilters>({
-        vendor_id: initialFilters?.vendor_id || '',
-        status: initialFilters?.status || '',
-        search: initialFilters?.search || '',
-        date_range: (() => {
-            const fromDate = urlParams.get('date_from');
-            const toDate = urlParams.get('date_to');
-            return (fromDate && toDate) ? `${fromDate} - ${toDate}` : '';
-        })(),
-        bank_account_id: initialFilters?.bank_account_id || ''
-    });
-
-    const [perPage] = useState(urlParams.get('per_page') || '10');
-    const [sortField, setSortField] = useState(urlParams.get('sort') || 'created_at');
-    const [sortDirection, setSortDirection] = useState(urlParams.get('direction') || 'desc');
-    const [viewMode, setViewMode] = useState<'list' | 'grid'>(urlParams.get('view') as 'list' | 'grid' || 'list');
-    const [modalState, setModalState] = useState<VendorPaymentModalState>({
-        isOpen: false,
-        mode: '',
-        data: null
-    });
+    const [search, setSearch] = useState(filters.search || '');
+    const [isSearching, setIsSearching] = useState(false);
+    const [showAdvanced, setShowAdvanced] = useState(Boolean(filters.vendor_id || filters.bank_account_id || filters.date_from));
+    const [modalState, setModalState] = useState<VendorPaymentModalState>({ isOpen: false, mode: '', data: null });
     const [viewingItem, setViewingItem] = useState<VendorPayment | null>(null);
-    const [showFilters, setShowFilters] = useState(false);
 
     useFlashMessages();
-
-    // Component for vendor payment action buttons
-    const VendorPaymentActionButtons = ({ payment }: { payment: VendorPayment }) => {
-        const actionButtons = usePageButtons('xeroSyncVendorPaymentBtn', { payment_id: payment.id, auth, status: payment.status });
-
-        return (
-            <>
-                {actionButtons.map((button) => (
-                    <div key={button.id}>{button.component}</div>
-                ))}
-            </>
-        );
-    };
 
     const { deleteState, openDeleteDialog, closeDeleteDialog, confirmDelete } = useDeleteHandler({
         routeName: 'account.vendor-payments.destroy',
         defaultMessage: t('Are you sure you want to delete this payment?')
     });
 
-    const handleFilter = () => {
-        const filterParams: any = {
-            search: filters.search,
-            vendor_id: filters.vendor_id,
-            status: filters.status,
-            bank_account_id: filters.bank_account_id,
-            per_page: perPage,
-            sort: sortField,
-            direction: sortDirection,
-            view: viewMode
-        };
+    const can = (permission: string) => Boolean(auth.user?.permissions?.includes(permission));
+    const activeView = filters.status || 'all';
+    const dateRange = filters.date_from && filters.date_to ? `${filters.date_from} - ${filters.date_to}` : '';
+    const activeFilterCount = [filters.vendor_id, filters.bank_account_id, dateRange].filter(Boolean).length;
+    const hasFilters = Boolean(filters.search || activeFilterCount || filters.status);
 
-        // Convert date_range to date_from and date_to for backend
-        if (filters.date_range) {
-            const [fromDate, toDate] = filters.date_range.split(' - ');
-            filterParams.date_from = fromDate;
-            filterParams.date_to = toDate;
-        }
-
-        router.get(route('account.vendor-payments.index'), filterParams, {
-            preserveState: true,
-            replace: true
-        });
+    const navigate = (extra: Record<string, string | number>) => router.get(route('account.vendor-payments.index'), { ...filters, ...extra }, { preserveState: true, replace: true });
+    const clearAdvanced = () => navigate({ vendor_id: '', bank_account_id: '', date_from: '', date_to: '', page: 1 });
+    const clearAll = () => {
+        setSearch('');
+        router.get(route('account.vendor-payments.index'), { per_page: filters.per_page || '' }, { preserveState: true, replace: true });
+    };
+    const changeDateRange = (value: string) => {
+        const [from = '', to = ''] = value ? value.split(' - ') : [];
+        navigate({ date_from: from, date_to: to, page: 1 });
     };
 
-    const handleSort = (field: string) => {
-        const direction = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
-        setSortField(field);
-        setSortDirection(direction);
+    useEffect(() => {
+        const normalizedSearch = search.trim();
+        if (normalizedSearch === (filters.search || '')) return;
 
-        const filterParams = { ...filters };
+        setIsSearching(true);
+        const timeout = window.setTimeout(() => {
+            router.get(route('account.vendor-payments.index'), { ...filters, search: normalizedSearch, page: 1 }, {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                only: ['payments', 'filters'],
+                onFinish: () => setIsSearching(false),
+            });
+        }, normalizedSearch ? 300 : 0);
 
-        // Convert date_range to date_from and date_to for backend
-        if (filters.date_range) {
-            const [fromDate, toDate] = filters.date_range.split(' - ');
-            filterParams.date_from = fromDate;
-            filterParams.date_to = toDate;
-        }
-        delete filterParams.date_range;
-
-        router.get(route('account.vendor-payments.index'), {...filterParams, per_page: perPage, sort: field, direction, view: viewMode}, {
-            preserveState: true,
-            replace: true
-        });
-    };
-
-    const clearFilters = () => {
-        setFilters({
-            vendor_id: '',
-            status: '',
-            search: '',
-            date_range: '',
-            bank_account_id: ''
-        });
-        router.get(route('account.vendor-payments.index'), {per_page: perPage, sort: sortField, direction: sortDirection, view: viewMode});
-    };
-
-    const openModal = (mode: 'add', data: VendorPayment | null = null) => {
-        setModalState({ isOpen: true, mode, data });
-    };
-
-    const closeModal = () => {
-        setModalState({ isOpen: false, mode: '', data: null });
-    };
+        return () => window.clearTimeout(timeout);
+    }, [search, filters.search]);
 
     const downloadVoucher = (payment: VendorPayment) => {
         window.open(route('account.vendor-payments.voucher', payment.id) + '?download=pdf', '_blank');
     };
 
-    const tableColumns = [
-        {
-            key: 'payment_number',
-            header: t('Payment Number'),
-            sortable: true,
-            render: (value: string, payment: VendorPayment) =>
-                auth.user?.permissions?.includes('view-vendor-payments') ? (
-                    <span className="text-blue-600 hover:text-blue-700 cursor-pointer" onClick={() => setViewingItem(payment)}>{value}</span>
-                ) : (
-                    value
-                )
-        },
-        {
-            key: 'payment_date',
-            header: t('Received Date'),
-            sortable: true,
-            render: (value: string) => formatDate(value)
-        },
-        {
-            key: 'vendor.name',
-            header: t('Vendor'),
-            sortable: false,
-            render: (_: any, payment: VendorPayment) => payment.vendor?.name || '-'
-        },
-        {
-            key: 'allocations',
-            header: t('Invoice'),
-            sortable: false,
-            render: (_: any, payment: VendorPayment) => payment.allocations?.length
-                ? payment.allocations.map((allocation) => allocation.invoice?.invoice_number).filter(Boolean).join(', ')
-                : '-'
-        },
-        {
-            key: 'bankAccount.account_name',
-            header: t('Bank Account'),
-            sortable: false,
-            render: (_: any, payment: VendorPayment) => payment.bank_account?.account_name || '-'
-        },
-        {
-            key: 'payment_amount',
-            header: t('Amount'),
-            sortable: true,
-            render: (value: number, payment: VendorPayment) => {
-                const currency = payment.currency_code || baseCurrency;
-                return <div className="font-normal text-gray-900">
-                    <div className="whitespace-nowrap" dir="ltr">{formatMoney(value, currency)}</div>
-                    {currency !== baseOf(payment) && (() => {
-                        // Base-currency amount actually settled: green for an exchange gain, red for a loss (paying a vendor more base currency than the bills were booked at is a loss).
-                        const difference = (payment.allocations || []).reduce((sum, allocation) => sum + Number(allocation.exchange_difference || 0), 0);
-                        const tone = Math.abs(difference) < 0.005 ? 'text-gray-500' : difference < 0 ? 'text-green-600' : 'text-red-600';
-                        return <div className={`mt-0.5 whitespace-nowrap text-xs font-medium ${tone}`} dir="ltr">
-                            {formatMoney(payment.base_amount ?? Number(value) * Number(payment.exchange_rate || 1), baseOf(payment))}
-                        </div>;
-                    })()}
-                </div>;
-            }
-        },
-        {
-            key: 'status',
-            header: t('Status'),
-            sortable: true,
-            render: (value: string) => (
-                <span className={`px-2 py-1 rounded-full text-sm ${
-                    value === 'cleared' ? 'bg-green-100 text-green-800' :
-                    value === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                }`}>
-                    {t(value)}
-                </span>
-            )
-        },
-        ...(auth.user?.permissions?.some((p: string) => ['view-vendor-payments', 'delete-vendor-payments','cleared-vendor-payments'].includes(p)) ? [{
-            key: 'actions',
-            header: t('Actions'),
-            render: (_: any, payment: VendorPayment) => (
-                <div className="flex gap-1">
-                    <TooltipProvider>
-                        <VendorPaymentActionButtons payment={payment} />
-                    {auth.user?.permissions?.includes('cleared-vendor-payments') && payment.status === 'pending' && (
-                            <>
-                                <Tooltip delayDuration={0}>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => router.post(route('account.vendor-payments.update-status', payment.id), { status: 'cleared' })}
-                                            className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
-                                        >
-                                            <CheckCircle className="h-4 w-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>{t('Mark as Cleared')}</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                                <Tooltip delayDuration={0}>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => router.post(route('account.vendor-payments.update-status', payment.id), { status: 'cancelled' })}
-                                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>{t('Cancel Payment')}</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </>
-                        )}
-                        {auth.user?.permissions?.includes('view-vendor-payments') && (
-                            <>
-                                <Tooltip delayDuration={0}>
-                                    <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="sm" onClick={() => setViewingItem(payment)} className="h-8 w-8 p-0 text-green-600 hover:text-green-700">
-                                            <Eye className="h-4 w-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>{t('View')}</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                                <Tooltip delayDuration={0}>
-                                    <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="sm" onClick={() => downloadVoucher(payment)} className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700">
-                                            <Download className="h-4 w-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>{t('Download Payment Voucher')}</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </>
-                        )}
-                        {auth.user?.permissions?.includes('delete-vendor-payments') && payment.status === 'pending' && (
-                            <Tooltip delayDuration={0}>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => openDeleteDialog(payment.id)}
-                                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t('Delete')}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        )}
-                    </TooltipProvider>
-                </div>
-            )
-        }] : [])
+    const openPayment = (payment: VendorPayment) => {
+        if (can('view-vendor-payments')) setViewingItem(payment);
+    };
+
+    const vendorName = (payment: VendorPayment) => payment.vendor_details?.company_name || payment.vendor_details?.contact_person_name || payment.vendor?.name || '-';
+    const vendorContact = (payment: VendorPayment) => {
+        const contact = payment.vendor_details?.contact_person_name || payment.vendor?.name;
+        return contact && contact !== vendorName(payment) ? contact : null;
+    };
+    const paymentMode = (payment: VendorPayment) => {
+        const mode = payment.payment_mode as string | null | undefined;
+        if (!mode) return t('Payment');
+        return t(mode.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()));
+    };
+    const invoiceNumbers = (payment: VendorPayment) => (payment.allocations || []).map((allocation) => allocation.invoice?.invoice_number).filter(Boolean).join(', ');
+
+    const summaryCards = [
+        { label: t('Total payments'), value: summary.total, icon: WalletCards, tone: 'bg-blue-50 text-blue-600', valueTone: '' },
+        { label: t('Cleared'), value: summary.cleared, icon: CheckCircle, tone: 'bg-green-50 text-green-600', valueTone: '' },
+        { label: t('Pending'), value: summary.pending, icon: Clock3, tone: 'bg-amber-50 text-amber-700', valueTone: summary.pending > 0 ? 'text-amber-700' : '' },
     ];
 
     return (
         <AuthenticatedLayout
             breadcrumbs={[
-                {label: t('Accounting'), url: route('account.index')},
-                {label: t('Vendor Payments')}
+                { label: t('Accounting'), url: route('account.index') },
+                { label: t('Vendor Payments') }
             ]}
-            pageTitle={t('Manage Vendor Payments')}
+            pageTitle={t('Vendor Payments')}
             pageActions={
-                <div className="flex items-center gap-2">
-                    <TooltipProvider>
-                        {auth.user?.permissions?.includes('create-vendor-payments') && (
-                            <Tooltip delayDuration={0}>
-                                <TooltipTrigger asChild>
-                                    <Button size="sm" onClick={() => openModal('add')}>
-                                        <Plus className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t('Create')}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        )}
-                    </TooltipProvider>
-                </div>
+                can('create-vendor-payments') ? (
+                    <Button size="sm" onClick={() => setModalState({ isOpen: true, mode: 'add', data: null })}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        {t('New payment')}
+                    </Button>
+                ) : undefined
             }
         >
             <Head title={t('Vendor Payments')} />
 
-            <Card className="shadow-sm">
-                <CardContent className="p-6 border-b bg-gray-50/50">
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="flex-1 max-w-md">
-                            <SearchInput
-                                value={filters.search}
-                                onChange={(value) => setFilters({...filters, search: value})}
-                                onSearch={handleFilter}
-                                placeholder={t('Search by payment number or vendor...')}
-                            />
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <ListGridToggle
-                                currentView={viewMode}
-                                routeName="account.vendor-payments.index"
-                                filters={{...filters, per_page: perPage}}
-                            />
-                            <PerPageSelector
-                                routeName="account.vendor-payments.index"
-                                filters={{...filters, view: viewMode}}
-                            />
-                            <div className="relative">
-                                <FilterButton
-                                    showFilters={showFilters}
-                                    onToggle={() => setShowFilters(!showFilters)}
-                                />
-                                {(() => {
-                                    const filtersToCheck = auth.user?.permissions?.includes('manage-users')
-                                        ? [filters.vendor_id, filters.status, filters.date_range, filters.bank_account_id]
-                                        : [filters.status, filters.date_range, filters.bank_account_id];
-                                    const activeFilters = filtersToCheck.filter(f => f !== '').length;
-                                    return activeFilters > 0 && (
-                                        <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
-                                            {activeFilters}
-                                        </span>
-                                    );
-                                })()}
+            <div className="mx-auto max-w-[1600px] space-y-5 pb-8">
+                <section className="grid grid-cols-2 gap-3 sm:grid-cols-3" aria-label={t('Payment summary')}>
+                    {summaryCards.map((card, index) => (
+                        <div key={card.label} className={`rounded-2xl border bg-background p-4 shadow-sm shadow-slate-200/30 ${index === 0 ? 'col-span-2 sm:col-span-1' : ''}`}>
+                            <div className="flex items-center gap-3">
+                                <span className={`rounded-xl p-2.5 ${card.tone}`}><card.icon className="h-5 w-5" /></span>
+                                <div>
+                                    <p className="text-xs font-medium text-muted-foreground">{card.label}</p>
+                                    <p className={`mt-0.5 text-xl font-semibold tabular-nums ${card.valueTone}`}>{card.value}</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </CardContent>
+                    ))}
+                </section>
 
-                {showFilters && (
-                    <CardContent className="p-6 bg-blue-50/30 border-b">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                            {auth.user?.permissions?.includes('manage-users') && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('Vendor')}</label>
-                                    <Select value={filters.vendor_id} onValueChange={(value) => setFilters({...filters, vendor_id: value})}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder={t('Filter by Vendor')} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {vendors?.map((vendor) => (
-                                                <SelectItem key={vendor.id} value={vendor.id.toString()}>
-                                                    {vendor.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            )}
-                            {auth.user?.permissions?.includes('manage-bank-accounts') && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('Bank Account')}</label>
-                                    <Select value={filters.bank_account_id} onValueChange={(value) => setFilters({...filters, bank_account_id: value})}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder={t('Filter by bank account')} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {bankAccounts?.map((account) => (
-                                                <SelectItem key={account.id} value={account.id.toString()}>
-                                                    {account.account_name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            )}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('Status')}</label>
-                                <Select value={filters.status} onValueChange={(value) => setFilters({...filters, status: value})}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={t('Filter by Status')} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="pending">{t('Pending')}</SelectItem>
-                                        <SelectItem value="cleared">{t('Cleared')}</SelectItem>
-                                        <SelectItem value="cancelled">{t('Cancelled')}</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('Date Range')}</label>
-                                <DateRangePicker
-                                    value={filters.date_range}
-                                    onChange={(value) => setFilters({...filters, date_range: value})}
-                                    placeholder={t('Select date range')}
+                <Card className="relative z-20 overflow-visible rounded-2xl border shadow-sm shadow-slate-200/40">
+                    <CardContent className="p-0">
+                        <div className="flex flex-col gap-3 p-4 sm:p-5 xl:flex-row xl:items-center">
+                            <form onSubmit={e => { e.preventDefault(); navigate({ search: search.trim(), page: 1 }); }} className="relative min-w-0 flex-1" role="search">
+                                <Search className="absolute left-3.5 top-3 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                    autoComplete="off"
+                                    placeholder={t('Search by payment number, reference or vendor')}
+                                    className="h-10 border-slate-200 bg-slate-50/70 pl-10 pr-10 focus-visible:bg-background"
                                 />
-                            </div>
-                            <div className="flex items-end gap-2">
-                                <Button onClick={handleFilter} size="sm">{t('Apply')}</Button>
-                                <Button variant="outline" onClick={clearFilters} size="sm">{t('Clear')}</Button>
+                                {isSearching ? (
+                                    <LoaderCircle className="absolute right-3.5 top-3 h-4 w-4 animate-spin text-primary" />
+                                ) : search && (
+                                    <button type="button" onClick={() => setSearch('')} className="absolute right-3 top-2.5 rounded-md p-1 text-muted-foreground hover:bg-slate-200 hover:text-foreground" aria-label={t('Clear search')}>
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                )}
+                            </form>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <label className="relative min-w-[160px] flex-1 sm:flex-none">
+                                    <span className="sr-only">{t('Sort payments')}</span>
+                                    <select value={filters.sort || 'created_at'} onChange={e => navigate({ sort: e.target.value, page: 1 })} className="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-background pl-3 pr-9 text-sm sm:w-48">
+                                        {sorts.map(([value, label]) => <option key={value} value={value}>{`${t('Sort')}: ${t(label)}`}</option>)}
+                                    </select>
+                                    <ChevronDown className="pointer-events-none absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                                </label>
+                                <Button variant="outline" size="icon" className="h-10 w-10 rounded-lg" title={filters.direction === 'asc' ? t('Ascending') : t('Descending')} onClick={() => navigate({ direction: filters.direction === 'asc' ? 'desc' : 'asc', page: 1 })}>
+                                    {filters.direction === 'asc' ? <ArrowUpAZ className="h-4 w-4" /> : <ArrowDownAZ className="h-4 w-4" />}
+                                </Button>
+                                <PerPageSelector routeName="account.vendor-payments.index" filters={filters} className="h-10 w-36" />
+                                <Button variant={showAdvanced || activeFilterCount ? 'secondary' : 'outline'} className="h-10 rounded-lg" onClick={() => setShowAdvanced(value => !value)}>
+                                    <Filter className="mr-2 h-4 w-4" />
+                                    {t('Filters')}
+                                    {activeFilterCount > 0 && <span className="ml-2 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">{activeFilterCount}</span>}
+                                </Button>
                             </div>
                         </div>
+
+                        <div className="flex gap-1 overflow-x-auto border-t bg-slate-50/50 px-4 py-2 sm:px-5" role="tablist" aria-label={t('Payment views')}>
+                            {views.map(([value, label]) => (
+                                <button
+                                    key={value}
+                                    role="tab"
+                                    aria-selected={activeView === value}
+                                    onClick={() => navigate({ status: value === 'all' ? '' : value, page: 1 })}
+                                    className={`whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${activeView === value ? 'bg-background text-foreground shadow-sm ring-1 ring-slate-200' : 'text-muted-foreground hover:bg-background/70 hover:text-foreground'}`}
+                                >
+                                    {t(label)}
+                                </button>
+                            ))}
+                        </div>
+
+                        {showAdvanced && (
+                            <div className="grid gap-3 border-t bg-slate-50/30 p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-[1fr_1fr_1fr_auto]">
+                                {can('manage-users') && (
+                                    <div className="space-y-1.5">
+                                        <span className="text-xs font-medium text-muted-foreground">{t('Vendor')}</span>
+                                        <Select value={filters.vendor_id || 'all'} onValueChange={value => navigate({ vendor_id: value === 'all' ? '' : value, page: 1 })}>
+                                            <SelectTrigger aria-label={t('Filter by vendor')} className="bg-background"><SelectValue placeholder={t('Any vendor')} /></SelectTrigger>
+                                            <SelectContent searchable>
+                                                <SelectItem value="all">{t('Any vendor')}</SelectItem>
+                                                {vendors.map(vendor => <SelectItem key={vendor.id} value={vendor.id.toString()}>{vendor.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+                                <div className="space-y-1.5">
+                                    <span className="text-xs font-medium text-muted-foreground">{t('Bank Account')}</span>
+                                    <Select value={filters.bank_account_id || 'all'} onValueChange={value => navigate({ bank_account_id: value === 'all' ? '' : value, page: 1 })}>
+                                        <SelectTrigger aria-label={t('Filter by bank account')} className="bg-background"><SelectValue placeholder={t('Any bank account')} /></SelectTrigger>
+                                        <SelectContent searchable>
+                                            <SelectItem value="all">{t('Any bank account')}</SelectItem>
+                                            {bankAccounts.map(account => <SelectItem key={account.id} value={account.id.toString()}>{account.account_name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <span className="text-xs font-medium text-muted-foreground">{t('Payment date')}</span>
+                                    <DateRangePicker value={dateRange} onChange={changeDateRange} placeholder={t('Select date range')} />
+                                </div>
+                                <Button variant="ghost" className="self-end text-muted-foreground" onClick={clearAdvanced} disabled={!activeFilterCount}>{t('Clear filters')}</Button>
+                            </div>
+                        )}
                     </CardContent>
-                )}
+                </Card>
 
-                <CardContent className="p-0">
-                    {viewMode === 'list' ? (
-                        <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 max-h-[70vh] rounded-none w-full">
-                            <div className="min-w-[800px]">
-                                <DataTable
-                                    data={payments?.data || []}
-                                    columns={tableColumns}
-                                    onSort={handleSort}
-                                    sortKey={sortField}
-                                    sortDirection={sortDirection as 'asc' | 'desc'}
-                                    className="rounded-none"
-                                    emptyState={
-                                        <NoRecordsFound
-                                            icon={CreditCard}
-                                            title={t('No payments found')}
-                                            description={t('Get started by creating your first vendor payment.')}
-                                            hasFilters={!!(filters.search || filters.vendor_id || filters.status || filters.date_range || filters.bank_account_id)}
-                                            onClearFilters={clearFilters}
-                                            createPermission="create-vendor-payments"
-                                            onCreateClick={() => openModal('add')}
-                                            createButtonText={t('Create Payment')}
-                                            className="h-auto"
-                                        />
-                                    }
-                                />
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="overflow-auto max-h-[70vh] p-6">
-                            {payments?.data && payments.data.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-5 gap-4">
-                                    {payments.data.map((payment) => (
-                                        <Card key={payment.id} className="border border-gray-200 flex flex-col">
-                                            <div className="p-4 flex-1">
-                                                <div className="mb-3">
-                                                    {auth.user?.permissions?.includes('view-vendor-payments') ? (
-                                                        <h3 className="font-semibold text-base text-blue-600 hover:text-blue-700 cursor-pointer" onClick={() => setViewingItem(payment)}>{payment.payment_number}</h3>
-                                                    ) : (
-                                                        <h3 className="font-semibold text-base text-gray-900">{payment.payment_number}</h3>
-                                                    )}
-                                                </div>
+                <Card className="relative z-0 overflow-hidden rounded-2xl border shadow-sm shadow-slate-200/40">
+                    <div className={`hidden gap-3 border-b bg-slate-50/70 px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 min-[1360px]:grid ${rowColumns}`}>
+                        <span>{t('Payment')}</span>
+                        <span>{t('Vendor')}</span>
+                        <span>{t('Invoice')}</span>
+                        <span>{t('Paid')}</span>
+                        <span>{t('Status')}</span>
+                        <span className="text-right">{t('Amount')}</span>
+                        <span />
+                    </div>
 
-                                                <div className="space-y-3 mb-3">
-                                                    <div>
-                                                        <p className="text-xs font-medium text-gray-600 mb-1">{t('Vendor')}</p>
-                                                        <p className="text-sm text-gray-900 truncate font-medium">{payment.vendor?.name}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs font-medium text-gray-600 mb-1">{t('Invoice')}</p>
-                                                        <p className="text-sm text-gray-900">{payment.allocations?.length ? payment.allocations.map((allocation) => allocation.invoice?.invoice_number).filter(Boolean).join(', ') : '-'}</p>
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-3">
-                                                        <div>
-                                                            <p className="text-xs font-medium text-gray-600 mb-1">{t('Date')}</p>
-                                                            <p className="text-xs text-gray-900">{formatDate(payment.payment_date)}</p>
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-xs font-medium text-gray-600 mb-1 text-end">{t('Bank Account')}</p>
-                                                            <p className="text-xs text-gray-900 text-end">{payment.bank_account?.account_name}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="bg-gray-50 rounded-lg p-3">
-                                                        <div className="flex justify-between items-center">
-                                                            <span className="text-sm font-semibold text-gray-900">{t('Amount')}</span>
-                                                            <div className="text-end">
-                                                                <div className="text-lg font-bold text-green-600">{formatMoney(payment.payment_amount, payment.currency_code || baseCurrency)}</div>
-                                                                {(payment.currency_code || baseCurrency) !== baseOf(payment) && <div className="text-xs text-gray-500">{formatMoney(payment.base_amount || 0, baseOf(payment))}</div>}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    {payment.notes && (
-                                                        <div>
-                                                            <p className="text-xs font-medium text-gray-600 mb-1">{t('Notes')}</p>
-                                                            <p className="text-xs text-gray-900 line-clamp-2">{payment.notes}</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center justify-between p-3 border-t bg-gray-50/50">
-                                                <span className={`px-2 py-1 rounded-full text-sm ${
-                                                    payment.status === 'cleared' ? 'bg-green-100 text-green-800' :
-                                                    payment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                    'bg-red-100 text-red-800'
-                                                }`}>
-                                                    {t(payment.status)}
+                    <div className="divide-y">
+                        {payments.data.map(payment => {
+                            const currency = payment.currency_code || baseCurrency;
+                            const difference = (payment.allocations || []).reduce((sum, allocation) => sum + Number(allocation.exchange_difference || 0), 0);
+                            // Base-currency amount actually settled: green for an exchange gain, red for a loss (paying a vendor more base currency than the bills were booked at is a loss).
+                            const baseTone = Math.abs(difference) < 0.005 ? 'text-gray-500' : difference < 0 ? 'text-green-600' : 'text-red-600';
+                            const invoices = invoiceNumbers(payment);
+                            const canClear = payment.status === 'pending' && can('cleared-vendor-payments');
+
+                            return (
+                                <div
+                                    key={payment.id}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPayment(payment); } }}
+                                    onClick={() => openPayment(payment)}
+                                    className={`group grid cursor-pointer gap-3 bg-background p-5 transition-colors hover:bg-blue-50/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary min-[1360px]:items-center min-[1360px]:px-6 min-[1360px]:py-4 ${rowColumns}`}
+                                >
+                                    <div className="flex min-w-0 items-center gap-3.5">
+                                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-700"><CreditCard className="h-5 w-5" /></span>
+                                        <div className="min-w-0">
+                                            <p className="truncate font-semibold text-slate-900 group-hover:text-primary">{payment.payment_number}</p>
+                                            <p className="mt-0.5 truncate text-xs text-slate-500">{paymentMode(payment)}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="min-w-0 text-sm">
+                                        <p className="truncate font-medium text-slate-700">{vendorName(payment)}</p>
+                                        {vendorContact(payment) && <p className="mt-0.5 truncate text-xs text-slate-500">{vendorContact(payment)}</p>}
+                                    </div>
+
+                                    <div className="flex min-w-0 justify-between gap-3 text-sm min-[1360px]:block">
+                                        <span className="text-slate-500 min-[1360px]:hidden">{t('Invoice')}</span>
+                                        <span className="block truncate text-slate-700" title={invoices}>{invoices || '-'}</span>
+                                    </div>
+
+                                    <div className="flex min-w-0 justify-between gap-3 text-sm min-[1360px]:block">
+                                        <span className="text-slate-500 min-[1360px]:hidden">{t('Paid')}</span>
+                                        <div className="min-w-0 text-right min-[1360px]:text-left">
+                                            <p className="text-slate-700">{formatDate(payment.payment_date)}</p>
+                                            <p className="mt-0.5 truncate text-xs text-slate-500" title={payment.bank_account?.account_name}>{payment.bank_account?.account_name || '-'}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                        <span className={`rounded-full px-2 py-1 text-xs ${statusClasses(payment.status)}`}>{t(payment.status.charAt(0).toUpperCase() + payment.status.slice(1))}</span>
+                                    </div>
+
+                                    <div className="flex justify-between text-sm min-[1360px]:block min-[1360px]:text-right">
+                                        <span className="text-slate-500 min-[1360px]:hidden">{t('Amount')}</span>
+                                        <div className="text-right">
+                                            <strong className="block whitespace-nowrap font-semibold tabular-nums text-slate-900" dir="ltr">{formatMoney(payment.payment_amount, currency)}</strong>
+                                            {currency !== baseOf(payment) && (
+                                                <span className={`mt-0.5 block whitespace-nowrap text-xs font-medium ${baseTone}`} dir="ltr">
+                                                    {formatMoney(payment.base_amount ?? Number(payment.payment_amount) * Number(payment.exchange_rate || 1), baseOf(payment))}
                                                 </span>
-                                                <div className="flex gap-1">
-                                                    <TooltipProvider>
-                                                        <VendorPaymentActionButtons payment={payment} />
-                                                        {payment.status === 'pending' && auth.user?.permissions?.includes('cleared-vendor-payments') && (
-                                                            <>
-                                                                <Tooltip delayDuration={0}>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => router.post(route('account.vendor-payments.update-status', payment.id), { status: 'cleared' })}
-                                                                            className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
-                                                                        >
-                                                                            <CheckCircle className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>
-                                                                        <p>{t('Mark as Cleared')}</p>
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                                <Tooltip delayDuration={0}>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => router.post(route('account.vendor-payments.update-status', payment.id), { status: 'cancelled' })}
-                                                                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                                                                        >
-                                                                            <X className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>
-                                                                        <p>{t('Cancel Payment')}</p>
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                            </>
-                                                        )}
-                                                        {auth.user?.permissions?.includes('view-vendor-payments') && (
-                                                            <>
-                                                                <Tooltip delayDuration={0}>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => setViewingItem(payment)}
-                                                                            className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
-                                                                        >
-                                                                            <Eye className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>
-                                                                        <p>{t('View')}</p>
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                                <Tooltip delayDuration={0}>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => downloadVoucher(payment)}
-                                                                            className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700"
-                                                                        >
-                                                                            <Download className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>
-                                                                        <p>{t('Download Payment Voucher')}</p>
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                            </>
-                                                        )}
-                                                        {payment.status === 'pending' && auth.user?.permissions?.includes('delete-vendor-payments') && (
-                                                            <Tooltip delayDuration={0}>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        onClick={() => openDeleteDialog(payment.id)}
-                                                                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                                                    >
-                                                                        <Trash2 className="h-4 w-4" />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>{t('Delete')}</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        )}
-                                                    </TooltipProvider>
-                                                </div>
-                                            </div>
-                                        </Card>
-                                    ))}
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-wrap justify-end gap-0.5" onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
+                                        <TooltipProvider>
+                                            <VendorPaymentActionButtons payment={payment} auth={auth} />
+                                        </TooltipProvider>
+                                        {can('view-vendor-payments') && (
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" title={t('Download Payment Voucher')} aria-label={t('Download Payment Voucher')} onClick={() => downloadVoucher(payment)}>
+                                                <Download className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                        {(can('view-vendor-payments') || canClear || (payment.status === 'pending' && can('delete-vendor-payments'))) && (
+                                            <DropdownMenu modal={false}>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" title={t('More actions')} aria-label={t('More actions')}>
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="min-w-[190px]">
+                                                    {can('view-vendor-payments') && <DropdownMenuItem onClick={() => setViewingItem(payment)}><Eye className="mr-2 h-4 w-4" />{t('View')}</DropdownMenuItem>}
+                                                    {canClear && <DropdownMenuItem onClick={() => router.post(route('account.vendor-payments.update-status', payment.id), { status: 'cleared' })}><CheckCircle className="mr-2 h-4 w-4" />{t('Mark as Cleared')}</DropdownMenuItem>}
+                                                    {canClear && <DropdownMenuItem onClick={() => router.post(route('account.vendor-payments.update-status', payment.id), { status: 'cancelled' })}><X className="mr-2 h-4 w-4" />{t('Cancel Payment')}</DropdownMenuItem>}
+                                                    {payment.status === 'pending' && can('delete-vendor-payments') && (
+                                                        <>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem className="text-rose-600 focus:text-rose-600" onClick={() => openDeleteDialog(payment.id)}><Trash2 className="mr-2 h-4 w-4" />{t('Delete')}</DropdownMenuItem>
+                                                        </>
+                                                    )}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        )}
+                                    </div>
                                 </div>
-                            ) : (
-                                <NoRecordsFound
-                                    icon={CreditCard}
-                                    title={t('No payments found')}
-                                    description={t('Get started by creating your first vendor payment.')}
-                                    hasFilters={!!(filters.search || filters.vendor_id || filters.status || filters.date_range || filters.bank_account_id)}
-                                    onClearFilters={clearFilters}
-                                    createPermission="create-vendor-payments"
-                                    onCreateClick={() => openModal('add')}
-                                    createButtonText={t('Create Payment')}
-                                />
-                            )}
+                            );
+                        })}
+
+                        {!payments.data.length && (
+                            <NoRecordsFound
+                                icon={CreditCard}
+                                title={t('No payments found')}
+                                description={t('Get started by creating your first vendor payment.')}
+                                hasFilters={hasFilters}
+                                onClearFilters={clearAll}
+                                createPermission="create-vendor-payments"
+                                onCreateClick={() => setModalState({ isOpen: true, mode: 'add', data: null })}
+                                createButtonText={t('Create Payment')}
+                                className="h-auto"
+                            />
+                        )}
+                    </div>
+
+                    {payments.total > 0 && (
+                        <div className="border-t bg-slate-50/30 px-3">
+                            <Pagination data={payments} onPageChange={page => navigate({ page })} />
                         </div>
                     )}
-                </CardContent>
+                </Card>
+            </div>
 
-                <CardContent className="px-4 py-2 border-t bg-gray-50/30">
-                    <Pagination
-                        data={payments || { data: [], links: [], meta: {} }}
-                        routeName="account.vendor-payments.index"
-                        filters={{...filters, per_page: perPage, view: viewMode}}
-                    />
-                </CardContent>
-            </Card>
-
-            <Dialog open={modalState.isOpen} onOpenChange={closeModal}>
+            <Dialog open={modalState.isOpen} onOpenChange={() => setModalState({ isOpen: false, mode: '', data: null })}>
                 {modalState.mode === 'add' && (
                     <Create
                         vendors={vendors}
                         bankAccounts={bankAccounts}
-                        onSuccess={closeModal}
+                        onSuccess={() => setModalState({ isOpen: false, mode: '', data: null })}
                     />
                 )}
             </Dialog>

@@ -50,6 +50,8 @@ class PurchaseInvoice extends Model
         'base_amount' => 'decimal:2'
     ];
 
+    public const PAYABLE_STATUSES = ['posted', 'partial', 'overdue'];
+
     protected $appends = ['display_status'];
 
     public function items(): HasMany
@@ -102,6 +104,21 @@ class PurchaseInvoice extends Model
     public function isOverdue(): bool
     {
         return $this->due_date < now() && $this->status !== 'paid';
+    }
+
+    /** Issued, still has money owing, and past its due date. Drafts are not owed yet. */
+    public function scopeOverduePayable($query)
+    {
+        return $query->whereIn('status', self::PAYABLE_STATUSES)
+            ->where('balance_amount', '>', 0)
+            ->whereDate('due_date', '<', today());
+    }
+
+    public function isOverduePayable(): bool
+    {
+        return in_array($this->status, self::PAYABLE_STATUSES, true)
+            && (float) $this->balance_amount > 0
+            && $this->due_date?->lt(today());
     }
 
     public function getDisplayStatusAttribute(): string

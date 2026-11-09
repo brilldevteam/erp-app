@@ -38,16 +38,17 @@ class CustomerPaymentController extends Controller
     public function index(Request $request)
     {
         if(Auth::user()->can('manage-customer-payments')){
-            $query = CustomerPayment::with($this->paymentRelations())
-                ->where(function($q) {
-                    if(Auth::user()->can('manage-any-customer-payments')) {
-                        $q->where('created_by', creatorId());
-                    } elseif(Auth::user()->can('manage-own-customer-payments')) {
-                        $q->where('creator_id', Auth::id())->orWhere('customer_id',Auth::id());
-                    } else {
-                        $q->whereRaw('1 = 0');
-                    }
-                });
+            $visiblePayments = fn () => CustomerPayment::where(function($q) {
+                if(Auth::user()->can('manage-any-customer-payments')) {
+                    $q->where('created_by', creatorId());
+                } elseif(Auth::user()->can('manage-own-customer-payments')) {
+                    $q->where('creator_id', Auth::id())->orWhere('customer_id',Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
+            });
+
+            $query = $visiblePayments()->with($this->paymentRelations());
 
             // Apply filters
             if ($request->customer_id) {
@@ -79,10 +80,15 @@ class CustomerPaymentController extends Controller
             }
 
             $sortField = $request->get('sort', 'created_at');
-            $sortDirection = $request->get('direction', 'desc');
-            $query->orderBy($sortField, $sortDirection);
+            $sortDirection = $request->get('direction') === 'asc' ? 'asc' : 'desc';
+            if (!in_array($sortField, ['payment_number', 'payment_date', 'payment_amount', 'status', 'created_at'], true)) {
+                $sortField = 'created_at';
+            }
+            // Imported payments share timestamps, so the id keeps page order stable.
+            $query->orderBy($sortField, $sortDirection)->orderBy('id', 'desc');
 
-            $payments = $query->paginate($request->get('per_page', 10));
+            $perPage = in_array((int) $request->get('per_page'), [10, 25, 50, 100], true) ? (int) $request->get('per_page') : 10;
+            $payments = $query->paginate($perPage);
             $customers = User::query()
                 ->accountingCustomers(creatorId())
                 ->orderBy('name')
@@ -97,7 +103,12 @@ class CustomerPaymentController extends Controller
                 'payments' => $payments,
                 'customers' => $customers,
                 'bankAccounts' => $bankAccounts,
-                'filters' => $request->only(['customer_id', 'status', 'search', 'bank_account_id'])
+                'summary' => [
+                    'total' => $visiblePayments()->count(),
+                    'cleared' => $visiblePayments()->where('status', 'cleared')->count(),
+                    'pending' => $visiblePayments()->where('status', 'pending')->count(),
+                ],
+                'filters' => $request->only(['customer_id', 'status', 'search', 'bank_account_id', 'date_from', 'date_to', 'sort', 'direction', 'per_page'])
             ]);
         }
         else{

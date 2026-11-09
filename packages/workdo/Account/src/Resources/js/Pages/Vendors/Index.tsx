@@ -97,7 +97,17 @@ export default function Index() {
         setModalState({ isOpen: true, mode, data });
     };
 
+    // Set when Edit was opened from the Users page, so closing it returns there.
+    const [usersQuery] = useState(() => {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('back') === 'users' ? params.get('back_query') || '' : null;
+    });
+
     const closeModal = () => {
+        if (usersQuery !== null) {
+            router.visit(route('users.index') + (usersQuery ? `?${usersQuery}` : ''));
+            return;
+        }
         setModalState({ isOpen: false, mode: '', data: null });
     };
 
