@@ -132,11 +132,11 @@ export default function Index() {
             header: t('Name'),
             sortable: true
         },
-        {
+        ...(catalogType === 'service' ? [] : [{
             key: 'sku',
             header: t('SKU'),
             sortable: true
-        },
+        }]),
         {
             key: 'sale_price',
             header: t('Sale Price'),
@@ -404,7 +404,7 @@ export default function Index() {
                                                 </div>
 
                                                 <div className="space-y-2 mb-3 flex-1">
-                                                    {item.sku && (
+                                                    {catalogType !== 'service' && item.sku && (
                                                         <div className="flex justify-between">
                                                             <span className="text-sm text-gray-600">{t('SKU')}</span>
                                                             <span className="text-sm font-medium">{item.sku}</span>

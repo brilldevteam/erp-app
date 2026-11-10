@@ -68,6 +68,8 @@ export default function Edit({ ticket, onSuccess }: { ticket: any; onSuccess: ()
                             <SelectContent>
                                 <SelectItem value="open">{t('Open')}</SelectItem>
                                 <SelectItem value="in_progress">{t('In Progress')}</SelectItem>
+                                <SelectItem value="waiting_customer">{t('Waiting on Customer')}</SelectItem>
+                                <SelectItem value="waiting_internal">{t('Waiting Internally')}</SelectItem>
                                 <SelectItem value="resolved">{t('Resolved')}</SelectItem>
                                 <SelectItem value="closed">{t('Closed')}</SelectItem>
                             </SelectContent>

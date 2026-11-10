@@ -18,7 +18,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { InputError } from '@/components/ui/input-error';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Separator } from '@/components/ui/separator';
 import { CalendarDays, Building2, User, FileText, Package } from 'lucide-react';
@@ -63,12 +62,13 @@ interface CreateProps {
         notes: string;
         items: SalesInvoiceItem[];
     };
+    salespersons?: Array<{ id: number; name: string; is_active: boolean }>;
     [key: string]: any;
 }
 
 export default function Create() {
     const { t } = useTranslation();
-    const { customers, taxes = [], warehouses, documentTemplates = [], productCatalog, revenueAccounts = [], auth, initialInvoice, initialProducts = [], companyAllSetting } = usePage<CreateProps>().props;
+    const { customers, taxes = [], warehouses, documentTemplates = [], productCatalog, revenueAccounts = [], auth, initialInvoice, initialProducts = [], companyAllSetting, salespersons = [] } = usePage<CreateProps>().props;
     const baseCurrency = companyAllSetting?.defaultCurrency || 'USD';
     const [availableProducts, setAvailableProducts] = useState<QuotationProduct[]>(initialProducts);
     const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
@@ -80,15 +80,20 @@ export default function Create() {
     useEffect(() => setCustomerOptions(customers), [customers]);
 
     useFlashMessages();
+    // "New invoice" menu opens the form as a product or service invoice; a converted quotation keeps its own type.
+    const requestedType: 'product' | 'service' = new URLSearchParams(window.location.search).get('type') === 'service' ? 'service' : 'product';
+    const initialType = initialInvoice?.type ?? requestedType;
+    const pageTitle = initialType === 'service' ? t('Create Service Invoice') : t('Create Product Invoice');
     const { data, setData, post, processing, errors, clearErrors } = useForm({
         quotation_id: initialInvoice?.quotation_id ?? null,
         invoice_date: initialInvoice?.invoice_date ?? new Date().toISOString().split('T')[0],
         due_date: initialInvoice?.due_date ?? '',
         customer_id: initialInvoice?.customer_id ?? '',
+        salesperson_id: (initialInvoice as any)?.salesperson_id ?? '',
         warehouse_id: initialInvoice?.warehouse_id ?? '',
         document_template_id: initialInvoice?.document_template_id ?? documentTemplates.find((template) => template.is_default)?.id?.toString() ?? '',
-        type: initialInvoice?.type ?? 'product',
-        revenue_account_id: defaultRevenueAccountId(revenueAccounts, initialInvoice?.type ?? 'product'),
+        type: initialType,
+        revenue_account_id: defaultRevenueAccountId(revenueAccounts, initialType),
         payment_terms: initialInvoice?.payment_terms ?? '',
         sales_order_reference: (initialInvoice as any)?.sales_order_reference ?? '',
         subject: initialInvoice?.subject ?? '',
@@ -193,34 +198,6 @@ export default function Create() {
         }
     };
 
-    const handleTypeChange = async (type: 'product' | 'service') => {
-        setData('type', type);
-        setData('revenue_account_id', defaultRevenueAccountId(revenueAccounts, type));
-
-        if (type === 'service') {
-            setData('warehouse_id', '');
-            await loadAvailableProducts('service', '');
-        } else {
-            setData('warehouse_id', '');
-            await loadAvailableProducts('product', '');
-        }
-
-        // Reset items when type changes
-        setData('items', [{
-            product_id: 0,
-            quantity: 1,
-            unit_price: 0,
-            description: '',
-            discount_type: 'percentage' as const,
-            discount_value: 0,
-            discount_percentage: 0,
-            discount_amount: 0,
-            tax_percentage: 0,
-            tax_amount: 0,
-            total_amount: 0
-        }]);
-    };
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         post(route('sales-invoices.store'));
@@ -246,9 +223,9 @@ export default function Create() {
                 { label: t('Sales Invoice'), url: route('sales-invoices.index') },
                 { label: t('Create Sales Invoice') }
             ]}
-            pageTitle={t('Create Sales Invoice')}
+            pageTitle={pageTitle}
         >
-            <Head title={t('Create Sales Invoice')} />
+            <Head title={pageTitle} />
 
             <div>
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -259,22 +236,6 @@ export default function Create() {
                                     <CalendarDays className="h-5 w-5" />
                                     {t('Sales Invoice Details')}
                                 </CardTitle>
-                                <div className="flex items-center gap-2">
-                                    <RadioGroup
-                                        value={data.type}
-                                        onValueChange={(value) => handleTypeChange(value as 'product' | 'service')}
-                                        className="flex gap-4"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <RadioGroupItem value="product" id="type-product" />
-                                            <Label htmlFor="type-product" className="cursor-pointer font-normal">{t('Product Wise')}</Label>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <RadioGroupItem value="service" id="type-service" />
-                                            <Label htmlFor="type-service" className="cursor-pointer font-normal">{t('Service Wise')}</Label>
-                                        </div>
-                                    </RadioGroup>
-                                </div>
                             </div>
                         </CardHeader>
                         <CardContent>
@@ -357,6 +318,24 @@ export default function Create() {
                                     </Select>
                                     <InputError message={errors.customer_id} />
                                     <InputError message={(errors as any).quotation_id} />
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="salesperson_id">{t('Salesperson')}</Label>
+                                    <Select value={data.salesperson_id || 'none'} onValueChange={(value) => setData('salesperson_id', value === 'none' ? '' : value)}>
+                                        <SelectTrigger id="salesperson_id">
+                                            <SelectValue placeholder={t('Select Salesperson')} />
+                                        </SelectTrigger>
+                                        <SelectContent searchable>
+                                            <SelectItem value="none">{t('No salesperson')}</SelectItem>
+                                            {salespersons.map((person) => (
+                                                <SelectItem key={person.id} value={String(person.id)}>
+                                                    {person.name}{person.is_active ? '' : ` (${t('Inactive')})`}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={(errors as any).salesperson_id} />
                                 </div>
 
                                 {data.type === 'product' && (
@@ -593,7 +572,6 @@ export default function Create() {
                         onAdd={addProducts}
                         onProductCreated={product => setAvailableProducts(current => [...current, product])}
                     />
-
 
 
                     <div className="flex justify-between items-center">

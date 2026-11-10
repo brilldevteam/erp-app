@@ -93,7 +93,7 @@ class ProductServiceItemController extends Controller
             $validated = $request->validated();
             $item = new ProductServiceItem();
             $item->name = $validated['name'];
-            $item->sku = $validated['sku'];
+            $item->sku = $validated['sku'] ?? null;
             $item->tax_ids = (!empty($validated['tax_ids'])) ? array_map('intval', $validated['tax_ids']) : null;
             $item->category_id = $validated['category_id'] === 'none' ? null : $validated['category_id'];
             $item->description = $validated['description'] ?? null;
@@ -234,7 +234,7 @@ class ProductServiceItemController extends Controller
             $validated = $request->validated();
 
             $item->name = $validated['name'];
-            $item->sku = $validated['sku'];
+            $item->sku = $validated['sku'] ?? null;
             $item->tax_ids = (!empty($validated['tax_ids'])) ? array_map('intval', $validated['tax_ids']) : null;
             $item->category_id = $validated['category_id'] === 'none' ? null : $validated['category_id'];
             $item->description = $validated['description'];

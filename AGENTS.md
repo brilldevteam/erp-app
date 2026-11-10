@@ -64,6 +64,8 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `UI-upgrade-2026-11-09` | Helpdesk Step 5 pop-up notifications: database notifications for ticket creation, assignment, replies and resolution; recipient-safe polling/read-dismiss endpoints; persistent global top-right stack; focused tests, changelog and handoff. Claude's Steps 1/3 and completed Steps 2/4 are preserved. | 2026-11-10 | Taken over by Claude on 2026-11-10 after Codex hit its usage limit; Steps 5-7 complete locally, not committed |
+| Claude | `UI-upgrade-2026-11-09` | Helpdesk security fixes and private reply attachments: HelpdeskTicketController, HelpdeskReplyController, reply request, Helpdesk models, reply form and message UI, new attachment table, routes and tests. Agents, requester and pop-ups are not included. | 2026-11-09 | Complete - locally verified; not committed or pushed |
 | Codex | `feature/zoho-ui-upgrade-2026-11-04` | Salesperson workspace and Create Quotation UX: clickable directory rows, tenant-scoped overview/quotations/payments data, quotation/invoice drill-through, two-row details layout, and editable template-prefilled Notes/Terms persisted on quotations and PDFs. Focused tests, migration, changelog and handoff included. Existing statement and salesperson work is preserved; generated `public/build` and `public/hot` remain excluded. | 2026-11-05 | Complete - locally migrated and verified; not committed or pushed |
 | Codex | `feature/zoho-ui-upgrade-2026-11-04` | Salesperson management submenu/page and required quotation salesperson selection: Quotation routes/controller/menu/forms/validation, focused tests, changelog and handoff. Existing statement-template changes are preserved; generated `public/build` and `public/hot` remain excluded. | 2026-11-05 | Complete - locally verified; not committed or pushed |
 | Codex | `feature/zoho-ui-upgrade-2026-11-04` | Customer Statement document-template type and branded Customer 360 statement PDF: template catalogue/form/preview, dedicated filtered PDF route/controller/page, focused regression coverage, changelog and handoff. Generated `public/build` and `public/hot` remain excluded. | 2026-11-05 | Complete - locally verified; not committed or pushed |
@@ -268,6 +270,134 @@ Zoho export inventory (Claude, 2026-10-28, read-only). Full detail with exact pa
 A work item is not complete until its code is committed, tests are recorded, affected workflows are manually checked when applicable, migrations and deployment steps are documented, the changelog is updated when required, and this coordination file contains a handoff entry.
 
 ## Handoff Log
+
+### 2026-11-10 Asia/Colombo - Claude - Invoice items buttons aligned
+
+- Branch: `UI-upgrade-2026-11-09`. Commit: none; local only.
+- `resources/js/pages/Sales/components/InvoiceItemsTable.tsx`: Add New Row / Add Multiple Items row got `px-4` so it lines up with the table cells (which use `px-4`). Shared by Sales invoice create/edit and Sales Proposal create/edit; Purchase uses its own table and is unchanged.
+- Verification: `npm run build` passed. Not seen in a browser.
+
+### 2026-11-10 Asia/Colombo - Claude - New invoice menu (Product / Service)
+
+- Branch: `UI-upgrade-2026-11-09`. Commit: none; local only.
+- `resources/js/pages/Sales/Index.tsx`: "New invoice" is now a dropdown like Quotations: Product Invoice / Service Invoice -> `sales-invoices.create?type=product|service`.
+- `resources/js/pages/Sales/Create.tsx`: reads `?type=service` to start as a service invoice (and its default revenue account); a converted quotation still uses its own type. Follow-up at user request: the Product Wise / Service Wise radio and its `handleTypeChange` were removed (type comes from the menu, like quotations); the page title is now "Create Product Invoice" / "Create Service Invoice". Edit had no switch and is unchanged. Links without `?type` (e.g. the empty-state button) open a product invoice.
+- Verification: tsc clean, `npm run build` passed. Not seen in a browser.
+
+### 2026-11-10 Asia/Colombo - Claude - Salesperson on invoices and salesperson Statement
+
+- Branch: `UI-upgrade-2026-11-09`. Commit: none; local only.
+- Request (senior, via user): typed/manual lines must not go into Products & Services; they must appear in a statement linked to the salesperson, for quotations and invoices, with full line details.
+- Migration `database/migrations/2026_11_10_000007_add_salesperson_to_sales_invoices.php`: nullable `sales_invoices.salesperson_id` -> `quotation_salespersons` (null on delete). Run on local `erp_live_copy` only. No backfill: existing rows untouched.
+- Invoices: `SalesInvoice::salesperson()`, fillable; Store/Update requests accept an optional same-company salesperson (active for new invoices); `SalesInvoiceService::create` uses the chosen salesperson or the converted quotation's; `SalesInvoiceController::update` saves it; create/edit and `QuotationController::convertToInvoice` pass `salespersons` (convert also pre-fills the quotation's salesperson). `resources/js/pages/Sales/Create.tsx` and `Edit.tsx`: optional Salesperson select after Customer.
+- Statement: `QuotationSalespersonController::show` adds `statement` (every quotation line for the salesperson plus every invoice line whose invoice has that salesperson, or no salesperson and a quotation with it). `Salespersons/Show.tsx` new Statement tab: All/Quotations/Invoices, date range, search, totals in base currency, typed-line badge, CSV export, links to the documents.
+- Tests: new `tests/Smoke/SalespersonStatementTest.php` 3/3 (phpunit.smoke.xml, rolls back); related unit/feature tests 26/26. tsc clean, build passed. Not seen in a browser.
+- Live: needs migration 000007 with the other pending migrations.
+- User browser test 2026-11-10 (Test COMPANY): statement quotation lines, typed invoice line, conversion pre-filling the salesperson, filters/export and moving an invoice from Sample001 to Sample002 all worked. Follow-up: statement search box widened `lg:w-64` -> `lg:w-80` so the placeholder fits.
+
+### 2026-11-10 Asia/Colombo - Claude - Journal Entry report shows Reversed
+
+- Branch: `UI-upgrade-2026-11-09`. Commit: none; local only.
+- `packages/workdo/DoubleEntry/src/Resources/js/Pages/Reports/JournalEntry.tsx` and `Reports/Print/JournalEntry.tsx`: entries with status `reversed` (from invoice revert to draft) were labelled "Draft" because the report only knew posted vs anything else. They now show "Reversed" (grey badge on screen). Label only; data was already correct (checked JE-2026-179/180 on `erp_live_copy`: both `reversed`).
+- Verification: tsc clean, `npm run build` passed. Not seen in a browser.
+
+### 2026-11-10 Asia/Colombo - Claude - Bulk Import products and services tabs; services without SKU
+
+- Branch: `UI-upgrade-2026-11-09`. Commit: none; local only.
+- `resources/js/pages/zoho-migrations/index.tsx`: the Products and services "Enter one by one" form has Products and Services tabs. Products keep the old fields (type Product/Part only). Services show Name, Category, Selling Price, Purchase Price, Tax and Description and are sent with type `service`, no SKU and no unit. `FilePreview` shows All / Products / Services tabs (with counts) when the file has a `type`/`item type`/`product type` column; the Services tab hides SKU and unit columns. It filters the preview rows only.
+- `app/Services/BulkImport/Definitions/ProductServiceDefinition.php` (shared with the general Bulk Import): SKU no longer required for type `service`; a service without SKU is identified as `service:<name>` and matched to existing services without SKU by name (case-insensitive); SKU stored as null when empty. Products and parts still require SKU.
+- `app/Services/ZohoMigration/ZohoManualPrerequisiteService.php`: in-file and ERP duplicate checks use that identity ("Service name is duplicated / already exists" for SKU-less services); template notes updated.
+- Tests: new `test_services_need_no_sku_and_are_matched_by_name_but_products_need_one`; `ZohoManualPrerequisiteImportTest`, `ZohoManualProductUploadTest`, `BulkImportSpreadsheetTest` 17/17 pass (DatabaseTransactions). tsc clean, build passed. Not seen in a browser.
+
+### 2026-11-10 Asia/Colombo - Claude - Bulk Import boxes get rounded corners
+
+- Branch: `UI-upgrade-2026-11-09`. Commit: none; local only.
+- `resources/js/pages/zoho-migrations/index.tsx`: class-only change. Create form, metrics strip, progress bar, Import journey and step panel (now two separate rounded cards with a gap), upload box, issue list, manual-entry forms, result boxes, preview tables, Source preview, warnings and notices now use `rounded-lg`/`rounded-xl` with full borders (former top/bottom-only `border-y` panels got full borders so the corners show). Divider lines inside cards are unchanged. No logic change.
+- Verification: tsc clean, `npm run build` passed. Not seen in a browser.
+
+### 2026-11-10 Asia/Colombo - Claude - Ticket Records breakdowns in separate cards
+
+- Branch: `UI-upgrade-2026-11-09`. Commit: none; local only.
+- `resources/js/pages/helpdesk/records/index.tsx`: By status, By priority and By category (plus By company and By agent on the support side) are now separate cards in a grid instead of columns in one card. Data unchanged.
+- Verification: tsc clean, `npm run build` passed. Not seen in a browser.
+
+### 2026-11-10 Asia/Colombo - Claude - Header shows Agent for support staff
+
+- Branch: `UI-upgrade-2026-11-09`. Commit: none; local only.
+- `HandleInertiaRequests.php` shares `auth.user.is_platform_support` (from `User::isPlatformSupport()`); `resources/js/components/nav-user.tsx` shows "Agent" (or "Support Manager" for the support-manager role) under the name instead of "staff". Other users still see their type. Display only; no permission change.
+- Verification: PHP lint clean, `npm run build` passed. Not seen in a browser.
+
+### 2026-11-10 Asia/Colombo - Claude - Ticket Records first for agents
+
+- Branch: `UI-upgrade-2026-11-09`. Commit: none; local only.
+- `resources/js/utils/menus/company-menu.ts`: Ticket Records order 2951 -> 2949 so it sits above Helpdesk (2950). This menu is shared, so company users who see both links also get Ticket Records first.
+- `app/Http/Controllers/HomeController.php`: platform support staff (agents and managers) landing on the dashboard now go to `helpdesk-tickets.records` instead of `helpdesk-tickets.index`.
+- Verification: `npm run build` passed. Not re-tested in a browser.
+
+### 2026-11-10 Asia/Colombo - Claude - Bulk Import create form uses app dropdowns and date picker
+
+- Branch: `UI-upgrade-2026-11-09`. Commit: none; local only.
+- `resources/js/pages/zoho-migrations/index.tsx`: the Create migration workspace form's Workflow, Accounting mode and Zoho date format now use the app `Select` (same as Base currency, posted through a hidden input); Inventory cutover uses the shared `DatePicker` instead of the browser date input, and the form says "Choose the inventory cutover date." when it is empty. Values sent to the server are unchanged (`yyyy-MM-dd` date, same option values, first option is the default as before).
+- Verification: tsc clean for the file, `npm run build` passed. Not seen in a browser.
+
+### 2026-11-10 Asia/Colombo - Claude - Services need no Type or SKU
+
+- Branch: `UI-upgrade-2026-11-09`. Commit: none; local only.
+- User request: the Create New Service pop-up should not show Type (it is already a service) and services do not need an SKU.
+- Changed: `resources/js/components/product-picker-dialog.tsx` (Type hidden when the dialog is locked to services; SKU hidden and sent as null for services; Tax spans the row only in service mode), `packages/workdo/ProductService/src/Resources/js/Pages/Items/Index.tsx` (no SKU column or card line on the Services list), `Items/Create.tsx` and `Items/Edit.tsx` (SKU field and its required check only for products), `Store/UpdateProductServiceItemRequest.php` (`sku` is `nullable|required_unless:type,service`), `ProductServiceItemController.php` (`$validated['sku'] ?? null`). Products still require SKU. The `sku` column was already nullable; existing service SKUs are kept in the database (editing a service keeps its old SKU).
+- Verification: tsc clean for the changed files, PHP lint clean, `npm run build` passed. Not seen in a browser.
+
+### 2026-11-10 Asia/Colombo - Claude - Helpdesk Steps 5-7 finished and role escalation closed
+
+- Branch: `UI-upgrade-2026-11-09`.
+- Commit: none; changes remain local and are not pushed. Codex's Steps 2, 4, 5 and 6 and Claude's Steps 1 and 3 are all uncommitted in this tree.
+- Takeover: Codex stopped mid Step 5 at its usage limit. Its pop-up and queued-email code (Steps 5-6) was reviewed and found complete against the prompt: top-right stacked pop-ups polling every 15 seconds with View and close, recipient-scoped; queued `SendHelpdeskEmail` on the `emails` queue with 3 tries, a delivery log, de-duplication, placeholder-address skipping and no email for internal notes.
+- Step 7 Ticket Records: new `helpdesk-tickets.records` route, `HelpdeskTicketController::records`, `resources/js/pages/helpdesk/records/index.tsx`, menu links for the super admin and the company menu. Summary cards, breakdowns by status, priority and category (plus company and agent for the support side), averages for first response and resolution, search, filters, status tabs, server-side sort and paging. The summary follows the filters and is calculated in the database. Each role sees only its own scope. The ticket page now shows status history to everyone who can see the ticket, and assignment history to the support side only.
+- Security fix: the role editor accepted any existing permission name, so a company admin could grant `view-all-support-tickets`, `manage-support-team` or internal-note permissions and see other companies' tickets. Store and Update role requests now only accept permissions the user holds, and reject the names `superadmin`, `support-agent` and `support-manager` for non-super-admins. `User::isPlatformSupport()` (staff owned by the super admin with a support role) now replaces every `hasAnyRole(['support-agent', 'support-manager'])` check, and cross-company visibility, the Support Agents page and internal notes also require it.
+- Tests run and results: `tests/Smoke/HelpdeskSecurityTest.php` passed 25 tests / 144 assertions (Codex's 18 plus 7 new), run with `phpunit -c phpunit.smoke.xml` on the local copy with rollback. Unit suite 169 tests with the same 5 older failures (Bulk Import, address and project property validation). `npx tsc --noEmit` clean; `npm run build` passed. Whole-site page check result is in the session report.
+- Manual verification: NOT seen in a browser; the test login expired. Pop-ups, Ticket Records, the Support Agents page and an agent login need a real browser pass.
+- Known issues or blockers: a staff member with `edit-roles` can no longer save a role that holds permissions they lack themselves. Support roles skip the plan module check for every route; their access rests on permissions alone.
+- Deployment or rollback notes: back up the database, deploy, run the six `2026_11_09/10` Helpdesk migrations, clear permission, config and application caches, rebuild, and run a queue worker that includes the `emails` queue. `storage/app/private` must be writable and persist. Migration `000003` grants Helpdesk permissions to client roles in every company.
+- Files/areas still claimed: none.
+- Exact next step: user does the browser pass with separate super admin, agent, company and customer logins, then says when to commit and push.
+
+### 2026-11-10 Asia/Colombo - Codex - Helpdesk Step 4 agents and assignment
+
+- Branch: `UI-upgrade-2026-11-09`; no commit, push or PR.
+- Files changed: support-role migration, `SupportAgentController`, Helpdesk ticket policy/controller/model and UI, tenant and plan middleware, dashboard redirect, routes, menus, Support Agents page, Helpdesk smoke tests, changelog and this handoff. Claude's Steps 1/3 and Codex Step 2 remain preserved.
+- Database records/migrations affected: local `erp_live_copy` only. `2026_11_09_000004_create_helpdesk_support_roles` was rolled back and reapplied after removing dashboard access from support roles. No live database was touched.
+- What was implemented: platform-level Support Agent/Support Manager roles, isolated account creation, assignment/reassignment with history, permission-based internal notes, assigned-only agent scope, a narrow Helpdesk-only tenant-middleware exception, normal-login support accounts, and direct Helpdesk landing instead of ERP dashboard access.
+- Decisions and assumptions: support agents are staff owned by the superadmin, never fake companies; ordinary agents see assigned tickets only, managers can see all and manage the team; support roles receive no user impersonation, invoice/customer/settings permissions or dashboard permission.
+- Tests run and results: `tests/Smoke/HelpdeskSecurityTest.php` passed 15 tests / 74 assertions; `npx tsc --noEmit` passed. The agent test covers assigned access, internal notes, forbidden ERP permissions, assignment history and access loss after reassignment.
+- Manual verification: browser verification remains for the final integrated pass.
+- Known issues or blockers: none for Step 4. Pop-up notifications, queued email and Ticket Records remain Steps 5-7.
+- Deployment or rollback notes: back up the database, deploy source, run migrations, clear permission/config/application caches and rebuild assets. Rollback application code before reversing migration 000004; doing so removes the two support roles and seven Step 4 permissions, so preserve or reassign any created support accounts first.
+- Files/areas still claimed: Step 5 notification files described in Current Claims.
+- Exact next step: implement persistent, recipient-scoped Helpdesk notifications with polling and the global top-right stack.
+
+### 2026-11-09 Asia/Colombo - Codex - Helpdesk Step 2 data and access
+
+- Branch: `UI-upgrade-2026-11-09`; no commit or push.
+- Preserved Claude's uncommitted Steps 1 and 3. Added requester/agent lifecycle fields, soft deletes, safe foreign keys and sender snapshots, assignment/status history models and tables, one ticket policy/shared visibility scope, requester UI/status options, user/company deletion protection, and client-role Helpdesk access for existing and future companies.
+- Local migrations run only on `erp_live_copy`: `2026_11_09_000002_add_helpdesk_lifecycle_and_history` (batch 69) and `2026_11_09_000003_grant_helpdesk_access_to_client_roles` (batch 70). No live database was touched.
+- Verification: `tests/Smoke/HelpdeskSecurityTest.php` passed 14 tests / 59 assertions; `npx tsc --noEmit` passed; isolated Vite build to `tmp/helpdesk-step2-build` passed (4,020 modules). Standard `public/build` output was not changed intentionally and failed to clear its pre-existing locked assets with Windows `EPERM`.
+- Deployment: back up database/config, deploy source, run migrations, clear permission/config/application caches, rebuild assets and smoke-test superadmin/company/customer scopes. Rollback application code first; migration 000002 is reversible after preserving any new lifecycle/history data. Migration 000003 intentionally does not revoke client access on down to avoid removing independently granted permissions; revoke those six Helpdesk permissions manually only if the product rollback requires it.
+- Browser verification remains for the final integrated Helpdesk pass.
+
+### 2026-11-09 Asia/Colombo - Claude - Helpdesk security fixes and private attachments
+
+- Branch: `UI-upgrade-2026-11-09`.
+- Commit: none; changes remain local and are not pushed.
+- Files changed: `AGENTS.md`, `CHANGELOG.md`, `HelpdeskTicketController.php`, `HelpdeskReplyController.php`, new `HelpdeskAttachmentController.php`, `StoreHelpdeskReplyRequest.php`, `HelpdeskTicket.php`, `HelpdeskReply.php`, new `HelpdeskAttachment.php`, `routes/web.php`, Helpdesk `ReplyForm.tsx`, `ChatMessage.tsx`, `types.ts`, new migration, new `tests/Smoke/HelpdeskSecurityTest.php`.
+- Database records/migrations affected: new `2026_11_09_000001_create_helpdesk_attachments_table`, run on local `erp_live_copy` only. Not on live.
+- What was implemented: internal notes filtered on the server in `show()` and `today()`; internal notes never emailed; only the super admin can set `is_internal`; closed tickets refuse replies on the server; reply checks the ticket; a mail failure returns JSON success and is logged; user-entered Helpdesk email values are escaped; ticket list sort, direction and per_page limited. New reply attachments go to the private `local` disk through an authorized route, with internal-note files hidden from companies. Allowed types: images, pdf, Office, csv, txt; 5 files, 10 MB each.
+- Decisions and assumptions: the media-library picker was removed from the reply form because it creates public files. Old `attachments` JSON stays readable and is not migrated. `/media-file` is unchanged.
+- Tests run and results: `HelpdeskSecurityTest` passed 10 tests / 36 assertions through real routes on the local copy with rollback, run with `phpunit -c phpunit.smoke.xml`. See the session report for the other checks.
+- Manual verification: NOT seen in a browser; test login expired. The screens and a real upload in the form need user checking.
+- Known issues or blockers: NOT fixed here: a customer with ticket permission still sees every ticket in the tenant because there is no requester field; `helpdesk_*.created_by` still cascade on delete; email is still sent during the request; the one existing old attachment stays at a public URL. These belong to the Helpdesk build prompt Steps 2 and 6. That prompt's Steps 1 and 3 are now done, so tell Codex to verify rather than rebuild them.
+- Deployment or rollback notes: backup first, run the new migration, rebuild. `storage/app/private` must be writable and persist across deploys. Rollback: revert files and drop `helpdesk_attachments`.
+- Files/areas still claimed: none.
+- Exact next step: user checks a ticket reply with a file, then says when to commit and push.
 
 ### 2026-11-09 Asia/Colombo - Claude - UI upgrade branch published
 

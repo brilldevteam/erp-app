@@ -20,6 +20,7 @@ class StoreSalesInvoiceRequest extends FormRequest
             'invoice_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:invoice_date',
             'customer_id' => ['required', 'integer', new TenantAccountingCustomer(creatorId())],
+            'salesperson_id' => ['nullable', 'integer', Rule::exists('quotation_salespersons', 'id')->where(fn ($query) => $query->where('created_by', creatorId())->where('is_active', true))],
             'quotation_id' => ['nullable', 'integer', Rule::exists('sales_quotations', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
             'document_template_id' => ['nullable', 'integer', Rule::exists('document_templates', 'id')->where(fn ($query) => $query->where('company_id', creatorId())->where('type', 'invoice'))],
             'type' => 'required|in:product,service',

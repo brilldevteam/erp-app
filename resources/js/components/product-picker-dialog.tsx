@@ -128,6 +128,7 @@ export default function ProductPickerDialog(props: Props) {
         try {
             const payload = {
                 ...form,
+                sku: form.type === 'service' ? null : form.sku,
                 warehouse_id: form.type === 'service' ? null : (warehouseId || null),
                 unit: form.type === 'service' ? null : form.unit,
                 quantity: form.type === 'service' ? null : Number(form.quantity || 0),
@@ -197,7 +198,7 @@ export default function ProductPickerDialog(props: Props) {
                     <form onSubmit={saveProduct} className="min-h-0 space-y-3 overflow-y-auto overscroll-contain pr-1">
                         <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
                             <Field label={t('Name')} error={formErrors.name?.[0]}><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required /></Field>
-                            <Field label={t('SKU')} error={formErrors.sku?.[0]}>
+                            {form.type !== 'service' && <Field label={t('SKU')} error={formErrors.sku?.[0]}>
                                 <div className="flex gap-2">
                                     <Input value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })} required />
                                     <Button
@@ -208,10 +209,10 @@ export default function ProductPickerDialog(props: Props) {
                                         {t('Generate')}
                                     </Button>
                                 </div>
-                            </Field>
-                            <Field label={t('Type')} error={formErrors.type?.[0]}>
-                                <Select value={form.type} onValueChange={value => setForm({ ...form, type: value })} disabled={props.catalogMode === 'service'}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{props.catalogMode !== 'service' && <SelectItem value="product">{t('Product')}</SelectItem>}{props.catalogMode !== 'stock' && <SelectItem value="service">{t('Service')}</SelectItem>}{props.catalogMode !== 'service' && !props.createOnly && <SelectItem value="part">{t('Part')}</SelectItem>}</SelectContent></Select>
-                            </Field>
+                            </Field>}
+                            {props.catalogMode !== 'service' && <Field label={t('Type')} error={formErrors.type?.[0]}>
+                                <Select value={form.type} onValueChange={value => setForm({ ...form, type: value })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="product">{t('Product')}</SelectItem>{props.catalogMode !== 'stock' && <SelectItem value="service">{t('Service')}</SelectItem>}{!props.createOnly && <SelectItem value="part">{t('Part')}</SelectItem>}</SelectContent></Select>
+                            </Field>}
                             <Field label={t('Category')} error={formErrors.category_id?.[0]}>
                                 <Select value={form.category_id} onValueChange={value => setForm({ ...form, category_id: value })}><SelectTrigger><SelectValue placeholder={t('Select Category')} /></SelectTrigger><SelectContent>{props.categories.map(option => <SelectItem key={option.id} value={String(option.id)}>{option.name}</SelectItem>)}</SelectContent></Select>
                             </Field>
@@ -220,7 +221,7 @@ export default function ProductPickerDialog(props: Props) {
                             {form.type !== 'service' && <Field label={t('Unit')} error={formErrors.unit?.[0]}><Select value={form.unit} onValueChange={value => setForm({ ...form, unit: value })}><SelectTrigger><SelectValue placeholder={t('Select Unit')} /></SelectTrigger><SelectContent>{props.units.map(option => <SelectItem key={option.id} value={String(option.id)}>{option.unit_name}</SelectItem>)}</SelectContent></Select></Field>}
                             {form.type !== 'service' && <Field label={t('Warehouse')} error={formErrors.warehouse_id?.[0]}><Select value={form.warehouse_id} onValueChange={value => setForm({ ...form, warehouse_id: value })} disabled={Boolean(props.warehouseId)}><SelectTrigger><SelectValue placeholder={t('Select Warehouse')} /></SelectTrigger><SelectContent>{props.warehouses.map(warehouse => <SelectItem key={warehouse.id} value={String(warehouse.id)}>{warehouse.name}</SelectItem>)}</SelectContent></Select></Field>}
                             {form.type !== 'service' && <Field label={t('Opening Stock')} error={formErrors.quantity?.[0]}><Input type="number" min={props.catalogMode === 'stock' && !props.createOnly ? 1 : 0} step="1" value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} /></Field>}
-                            <div className={form.type === 'service' ? 'sm:col-span-2' : undefined}><Label>{t('Tax')}</Label><Select value={form.tax_ids[0] || 'none'} onValueChange={value => setForm({ ...form, tax_ids: value === 'none' ? [] : [value] })}><SelectTrigger><SelectValue placeholder="_" /></SelectTrigger><SelectContent><SelectItem value="none">_</SelectItem>{props.taxes.filter(tax => !(Number(tax.rate) === 0 && tax.tax_name.trim().toLowerCase() === 'no tax')).map(tax => <SelectItem key={tax.id} value={String(tax.id)}>{tax.tax_name} ({tax.rate}%)</SelectItem>)}</SelectContent></Select></div>
+                            <div className={form.type === 'service' && props.catalogMode === 'service' ? 'sm:col-span-2' : undefined}><Label>{t('Tax')}</Label><Select value={form.tax_ids[0] || 'none'} onValueChange={value => setForm({ ...form, tax_ids: value === 'none' ? [] : [value] })}><SelectTrigger><SelectValue placeholder="_" /></SelectTrigger><SelectContent><SelectItem value="none">_</SelectItem>{props.taxes.filter(tax => !(Number(tax.rate) === 0 && tax.tax_name.trim().toLowerCase() === 'no tax')).map(tax => <SelectItem key={tax.id} value={String(tax.id)}>{tax.tax_name} ({tax.rate}%)</SelectItem>)}</SelectContent></Select></div>
                         </div>
                         <Field label={t('Description')} error={formErrors.description?.[0]}><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} className="min-h-[60px]" /></Field>
                         {formErrors.form?.[0] && <p className="text-sm text-destructive">{formErrors.form[0]}</p>}

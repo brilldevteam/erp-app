@@ -146,10 +146,25 @@ export default function Index() {
                             <div key={button.id}>{button.component}</div>
                         ))}
                         {can('create-sales-invoices') && (
-                            <Button size="sm" onClick={() => router.visit(route('sales-invoices.create'))}>
-                                <Plus className="mr-2 h-4 w-4" />
-                                {t('New invoice')}
-                            </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button size="sm">
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        {t('New invoice')}
+                                        <ChevronDown className="ml-2 h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => router.visit(route('sales-invoices.create', { type: 'product' }))}>
+                                        <Package className="mr-2 h-4 w-4" />
+                                        {t('Product Invoice')}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => router.visit(route('sales-invoices.create', { type: 'service' }))}>
+                                        <Wrench className="mr-2 h-4 w-4" />
+                                        {t('Service Invoice')}
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         )}
                     </div>
                 </TooltipProvider>

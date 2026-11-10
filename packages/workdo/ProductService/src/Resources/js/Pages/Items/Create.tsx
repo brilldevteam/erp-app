@@ -59,7 +59,7 @@ export default function Create() {
 
     const validateDetailsTab = () => {
         return data.name.trim() !== '' &&
-               data.sku.trim() !== '' &&
+               (catalogType === 'service' || (data.sku ?? '').trim() !== '') &&
                data.category_id !== '';
     };
 
@@ -144,7 +144,7 @@ export default function Create() {
                                     </div>
 
                                     <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                                        <div>
+                                        {catalogType !== 'service' && (<div>
                                             <Label htmlFor="sku">{t('SKU')}</Label>
                                             <div className="flex gap-2">
                                                 <Input
@@ -163,7 +163,7 @@ export default function Create() {
                                                 </Button>
                                             </div>
                                             <InputError message={errors.sku} />
-                                        </div>
+                                        </div>)}
                                         <div>
                                             <Label htmlFor="tax_ids">{t('Tax')}</Label>
                                             <Select

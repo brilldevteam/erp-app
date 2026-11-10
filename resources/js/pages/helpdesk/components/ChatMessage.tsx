@@ -38,7 +38,7 @@ export default function ChatMessage({ reply, isOwnMessage, onDelete, canDelete }
                                     ? 'text-orange-700'
                                     : isOwnMessage ? 'text-blue-100' : 'text-gray-600'
                             }`}>
-                                {reply.creator?.name}
+                                {reply.creator?.name || reply.sender_name || t('Deleted user')}
                             </span>
                             {reply.is_internal && (
                                 <span className="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full font-medium">
@@ -125,6 +125,27 @@ export default function ChatMessage({ reply, isOwnMessage, onDelete, canDelete }
                             </div>
                         ) : null;
                     })()}
+
+                    {(reply.files?.length ?? 0) > 0 && (
+                        <div className="mt-2 space-y-1">
+                            {reply.files!.map((file) => {
+                                const fileUrl = route('helpdesk-attachments.show', file.id);
+                                return (
+                                    <div key={file.id} className={`flex items-center gap-2 p-2 rounded ${isOwnMessage ? 'bg-blue-600/20' : 'bg-gray-200'}`}>
+                                        {file.mime_type?.startsWith('image/') ? (
+                                            <img src={`${fileUrl}?inline=1`} alt={file.original_name} className="w-16 h-16 object-cover rounded" />
+                                        ) : (
+                                            <Paperclip className="h-4 w-4 shrink-0" />
+                                        )}
+                                        <span className="min-w-0 flex-1 truncate text-sm" title={file.original_name}>{file.original_name}</span>
+                                        <a href={fileUrl} aria-label={`${t('Download')} ${file.original_name}`} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded hover:bg-black/10">
+                                            <Download className="h-4 w-4" />
+                                        </a>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
 
                 <div className={`text-xs text-gray-500 mt-1 ${

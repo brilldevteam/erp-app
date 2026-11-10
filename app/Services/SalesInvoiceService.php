@@ -46,6 +46,7 @@ class SalesInvoiceService
             $invoice->sales_order_reference = $data['sales_order_reference'] ?? null;
             $invoice->due_date = $data['due_date'];
             $invoice->customer_id = $data['customer_id'];
+            $invoice->salesperson_id = ($data['salesperson_id'] ?? null) ?: $quotation?->salesperson_id;
             $invoice->warehouse_id = $data['type'] === 'product'
                 ? ($data['warehouse_id'] ?? null)
                 : null;

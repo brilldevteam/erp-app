@@ -15,8 +15,8 @@ class StoreHelpdeskReplyRequest extends FormRequest
     {
         return [
             'message' => 'required|string',
-            'attachments' => 'nullable|array',
-            'attachments.*' => 'nullable|string',
+            'files' => 'nullable|array|max:5',
+            'files.*' => 'file|max:10240|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,csv,txt',
             'is_internal' => 'boolean',
         ];
     }

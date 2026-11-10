@@ -219,11 +219,11 @@ export default function Today() {
                             {ticket.category && <span className="text-gray-300">•</span>}
 
                             {/* Creator */}
-                            {ticket.creator && (
+                            {(ticket.requester || ticket.creator) && (
                                 <div className="flex items-center gap-1">
                                     <User className="h-3 w-3" />
-                                    <span className="truncate max-w-[100px]" title={ticket.creator.name}>
-                                        {ticket.creator.name}
+                                    <span className="truncate max-w-[100px]" title={ticket.requester?.name || ticket.creator?.name}>
+                                        {ticket.requester?.name || ticket.creator?.name || t('Unknown (legacy ticket)')}
                                     </span>
                                 </div>
                             )}
@@ -246,7 +246,7 @@ export default function Today() {
                                     <div className="flex items-center gap-1">
                                         <MessageSquare className="h-3 w-3" />
                                         <span className={lastReplyByAdmin ? 'text-blue-600 font-medium' : 'text-gray-600'}>
-                                            {lastReply.creator?.name}: {lastReplyTime}
+                                            {lastReply.creator?.name || lastReply.sender_name || t('Deleted user')}: {lastReplyTime}
                                         </span>
                                     </div>
                                 </>

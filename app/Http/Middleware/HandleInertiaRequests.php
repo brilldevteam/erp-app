@@ -62,6 +62,7 @@ class HandleInertiaRequests extends Middleware
                         [
                             'permissions' => $this->getUserPermissions($request->user()),
                             'roles' => $this->getUserRoles($request->user()),
+                            'is_platform_support' => $request->user()->isPlatformSupport(),
                             'activatedPackages' => ActivatedModule(),
                         ]
                     )

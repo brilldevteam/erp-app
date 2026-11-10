@@ -36,13 +36,14 @@ interface EditProps {
     };
     revenueAccounts?: RevenueAccountOption[];
     auth: { user: { permissions?: string[] } };
+    salespersons?: Array<{ id: number; name: string; is_active: boolean }>;
     [key: string]: any;
 }
 
 export default function Edit() {
     const { t } = useTranslation();
     const page = usePage<EditProps>().props;
-    const { invoice, customers, taxes = [], warehouses, documentTemplates = [], productCatalog, revenueAccounts = [], auth } = page;
+    const { invoice, customers, taxes = [], warehouses, documentTemplates = [], productCatalog, revenueAccounts = [], auth, salespersons = [] } = page;
     const [availableProducts, setAvailableProducts] = useState<QuotationProduct[]>([]);
     const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
     const [productPickerView, setProductPickerView] = useState<'browse' | 'create'>('browse');
@@ -59,6 +60,7 @@ export default function Edit() {
         currency_code: initialCurrency,
         exchange_rate: initialCurrency === baseCurrency ? '1.00000000' : String(invoice.exchange_rate),
         customer_id: invoice.customer_id.toString(),
+        salesperson_id: (invoice as any).salesperson_id ? String((invoice as any).salesperson_id) : '',
         warehouse_id: invoice.warehouse_id?.toString() || '',
         document_template_id: invoice.document_template_id?.toString() || '',
         type: invoice.type || 'product',
@@ -248,6 +250,24 @@ export default function Edit() {
                                         </SelectContent>
                                     </Select>
                                     <InputError message={errors.customer_id} />
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="salesperson_id">{t('Salesperson')}</Label>
+                                    <Select value={data.salesperson_id || 'none'} onValueChange={(value) => setData('salesperson_id', value === 'none' ? '' : value)}>
+                                        <SelectTrigger id="salesperson_id">
+                                            <SelectValue placeholder={t('Select Salesperson')} />
+                                        </SelectTrigger>
+                                        <SelectContent searchable>
+                                            <SelectItem value="none">{t('No salesperson')}</SelectItem>
+                                            {salespersons.map((person) => (
+                                                <SelectItem key={person.id} value={String(person.id)}>
+                                                    {person.name}{person.is_active ? '' : ` (${t('Inactive')})`}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={(errors as any).salesperson_id} />
                                 </div>
 
                                 {data.type === 'product' && (

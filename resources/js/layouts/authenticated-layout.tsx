@@ -22,6 +22,7 @@ import { UserX, Bot } from "lucide-react";
 import { useFormFields } from '@/hooks/useFormFields';
 import { getImagePath } from '@/utils/helpers';
 import { SessionRevocationProvider } from '@/contexts/session-revocation-context';
+import HelpdeskPopupNotifications from '@/components/helpdesk-popup-notifications';
 
 function AuthenticatedLayoutContent({
     header,
@@ -146,6 +147,7 @@ function AuthenticatedLayoutContent({
             </SidebarInset>
         </SidebarProvider>
         <CookieConsent settings={adminAllSetting || {}} />
+        <HelpdeskPopupNotifications />
         {generalAlerts.map((alert) => (
             <div key={alert.id}>{alert.component}</div>
         ))}

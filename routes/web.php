@@ -23,9 +23,12 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\EmailTemplateController;
 use App\Http\Controllers\NotificationTemplateController;
+use App\Http\Controllers\HelpdeskAttachmentController;
 use App\Http\Controllers\HelpdeskCategoryController;
 use App\Http\Controllers\HelpdeskTicketController;
 use App\Http\Controllers\HelpdeskReplyController;
+use App\Http\Controllers\HelpdeskPopupNotificationController;
+use App\Http\Controllers\SupportAgentController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\TransferController;
@@ -147,11 +150,19 @@ Route::middleware(['auth', 'auth.session.current', 'verified', 'PlanModuleCheck'
     // Helpdesk Routes
     Route::resource('helpdesk-categories', HelpdeskCategoryController::class);
     Route::get('helpdesk-ticket/today', [HelpdeskTicketController::class, 'today'])->name('helpdesk-tickets.today');
+    Route::get('helpdesk-ticket/records', [HelpdeskTicketController::class, 'records'])->name('helpdesk-tickets.records');
     Route::resource('helpdesk-tickets', HelpdeskTicketController::class);
+    Route::put('helpdesk-tickets/{helpdeskTicket}/assign', [HelpdeskTicketController::class, 'assign'])->name('helpdesk-tickets.assign');
+    Route::get('support-agents', [SupportAgentController::class, 'index'])->name('support-agents.index');
+    Route::post('support-agents', [SupportAgentController::class, 'store'])->name('support-agents.store');
+    Route::get('helpdesk-popup-notifications', [HelpdeskPopupNotificationController::class, 'index'])->name('helpdesk-popup-notifications.index');
+    Route::patch('helpdesk-popup-notifications/{notification}/viewed', [HelpdeskPopupNotificationController::class, 'viewed'])->name('helpdesk-popup-notifications.viewed');
+    Route::patch('helpdesk-popup-notifications/{notification}/dismiss', [HelpdeskPopupNotificationController::class, 'dismiss'])->name('helpdesk-popup-notifications.dismiss');
 
     // Helpdesk Replies (AJAX endpoints)
     Route::post('helpdesk-tickets/{ticket}/replies', [HelpdeskReplyController::class, 'store'])->name('helpdesk-replies.store');
     Route::delete('helpdesk-replies/{reply}', [HelpdeskReplyController::class, 'destroy'])->name('helpdesk-replies.destroy');
+    Route::get('helpdesk-attachments/{attachment}', [HelpdeskAttachmentController::class, 'show'])->name('helpdesk-attachments.show');
     Route::resource('plans', PlanController::class);
     Route::resource('coupons', CouponController::class);
     Route::resource('orders', OrderController::class)->only(['index', 'show']);

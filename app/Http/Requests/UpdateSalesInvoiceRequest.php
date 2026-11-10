@@ -23,6 +23,7 @@ class UpdateSalesInvoiceRequest extends FormRequest
             'exchange_rate' => 'required|numeric|gt:0',
             'line_amounts_are_base_currency' => 'sometimes|accepted',
             'sales_order_reference' => 'nullable|string|max:255',
+            'salesperson_id' => ['nullable', 'integer', Rule::exists('quotation_salespersons', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],
             'customer_id' => ['required', 'integer', new TenantAccountingCustomer(creatorId())],
             'document_template_id' => ['nullable', 'integer', Rule::exists('document_templates', 'id')->where(fn ($query) => $query->where('company_id', creatorId())->where('type', 'invoice'))],
             'warehouse_id' => ['nullable', 'integer', Rule::exists('warehouses', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))],

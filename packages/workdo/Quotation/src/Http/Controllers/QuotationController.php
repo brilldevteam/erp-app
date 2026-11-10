@@ -568,6 +568,10 @@ class QuotationController extends Controller
 
         return Inertia::render('Sales/Create', [
             'customers' => $customers,
+            'salespersons' => \Workdo\Quotation\Models\QuotationSalesperson::where('created_by', creatorId())
+                ->where(fn ($query) => $query->where('is_active', true)->when($quotation->salesperson_id, fn ($query) => $query->orWhere('id', $quotation->salesperson_id)))
+                ->orderBy('name')
+                ->get(['id', 'name', 'is_active']),
             'warehouses' => $warehouses,
             'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_INVOICE),
             'productCatalog' => $this->productCatalog(),
@@ -601,6 +605,7 @@ class QuotationController extends Controller
                 'invoice_date' => $quotation->quotation_date->format('Y-m-d'),
                 'due_date' => $quotation->due_date->format('Y-m-d'),
                 'customer_id' => (string) $quotation->customer_id,
+                'salesperson_id' => $quotation->salesperson_id ? (string) $quotation->salesperson_id : '',
                 'warehouse_id' => $type === 'product' && $quotation->warehouse_id
                     ? (string) $quotation->warehouse_id
                     : '',

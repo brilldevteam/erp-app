@@ -173,9 +173,9 @@ export default function JournalEntry({ financialYear }: JournalEntryProps) {
                                                 <td className="px-4 py-3 text-sm text-right">{formatCurrency(entry.total_credit)}</td>
                                                 <td className="px-4 py-3 text-sm text-center">
                                                     <span className={`px-2 py-1 rounded-full text-sm ${
-                                                        entry.status === 'posted' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                                        entry.status === 'posted' ? 'bg-green-100 text-green-800' : entry.status === 'reversed' ? 'bg-slate-200 text-slate-700' : 'bg-yellow-100 text-yellow-800'
                                                     }`}>
-                                                        {t(entry.status === 'posted' ? 'Posted' : 'Draft')}
+                                                        {t(entry.status === 'posted' ? 'Posted' : entry.status === 'reversed' ? 'Reversed' : 'Draft')}
                                                     </span>
                                                     {!entry.is_balanced && (
                                                         <span className="px-2 py-1 rounded-full text-sm bg-red-100 text-red-800 ml-2">{t('Unbalanced')}</span>

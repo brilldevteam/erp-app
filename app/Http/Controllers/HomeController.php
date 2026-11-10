@@ -15,6 +15,10 @@ class HomeController extends Controller
 {
     public function Dashboard(Request $request)
     {
+        if (Auth::user()->isPlatformSupport()) {
+            return redirect()->route('helpdesk-tickets.records');
+        }
+
         if(Auth::user()->type === 'superadmin') {
             return $this->superAdminDashboard();
         }

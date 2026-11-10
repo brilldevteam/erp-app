@@ -24,6 +24,9 @@ class PlanModuleCheck
         // Skip check for superadmin
         if ($user->hasRole('superadmin')) {
             return $next($request);
+        } elseif ($user->isPlatformSupport()) {
+            // Platform support users are not members of a customer company plan.
+            return $next($request);
         } elseif ($user->hasRole('company')) {
             $planExpired = $user->plan_expire_date && now()->gt($user->plan_expire_date);
             $isTrialActive = ($user->is_trial_done == 2);

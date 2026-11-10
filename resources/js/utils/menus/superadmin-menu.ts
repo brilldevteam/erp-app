@@ -33,10 +33,20 @@ export const getSuperAdminMenu = (t: (key: string) => string): NavItem[] => [
                 permission: 'manage-any-helpdesk-tickets',
             },
             {
+                title: t('Ticket Records'),
+                href: route('helpdesk-tickets.records'),
+                permission: 'view-helpdesk-tickets',
+            },
+            {
                 title: t('Categories'),
                 href: route('helpdesk-categories.index'),
                 permission: 'manage-helpdesk-categories',
-            }
+            },
+            {
+                title: t('Support Agents'),
+                href: route('support-agents.index'),
+                permission: 'manage-support-team',
+            },
         ]
     },
     {

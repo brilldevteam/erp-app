@@ -184,6 +184,17 @@ class SalesInvoiceController extends Controller
         }
     }
 
+    /**
+     * Active salespersons for the invoice form, plus the invoice's current one if it was since deactivated.
+     */
+    private function invoiceSalespersons(?int $currentId = null)
+    {
+        return \Workdo\Quotation\Models\QuotationSalesperson::where('created_by', creatorId())
+            ->where(fn ($query) => $query->where('is_active', true)->when($currentId, fn ($query) => $query->orWhere('id', $currentId)))
+            ->orderBy('name')
+            ->get(['id', 'name', 'is_active']);
+    }
+
     public function create()
     {
         if(Auth::user()->can('create-sales-invoices')){
@@ -192,6 +203,7 @@ class SalesInvoiceController extends Controller
 
             return Inertia::render('Sales/Create', [
                 'customers' => $customers,
+                'salespersons' => $this->invoiceSalespersons(),
                 'taxes' => $this->invoiceTaxes(),
                 'warehouses' => $warehouses,
                 'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_INVOICE),
@@ -305,6 +317,7 @@ class SalesInvoiceController extends Controller
             return Inertia::render('Sales/Edit', [
                 'invoice' => $salesInvoice,
                 'customers' => $customers,
+                'salespersons' => $this->invoiceSalespersons($salesInvoice->salesperson_id),
                 'taxes' => $this->invoiceTaxes(),
                 'warehouses' => $warehouses,
                 'documentTemplates' => $this->activeTemplates(DocumentTemplate::TYPE_INVOICE),
@@ -345,6 +358,7 @@ class SalesInvoiceController extends Controller
                 ? $request->warehouse_id
                 : null;
             $salesInvoice->revenue_account_id = $request->revenue_account_id;
+            $salesInvoice->salesperson_id = $request->filled('salesperson_id') ? $request->salesperson_id : null;
             $salesInvoice->payment_terms = $request->payment_terms;
             $salesInvoice->subject = $request->subject;
             $salesInvoice->notes = $request->notes;

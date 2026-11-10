@@ -6,7 +6,7 @@ export interface HelpdeskTicket {
     ticket_id: string;
     title: string;
     description: string;
-    status: 'open' | 'in_progress' | 'resolved' | 'closed';
+    status: 'open' | 'in_progress' | 'waiting_customer' | 'waiting_internal' | 'resolved' | 'closed';
     priority: 'low' | 'medium' | 'high' | 'urgent';
     category_id: number;
     category?: HelpdeskCategory;
@@ -16,12 +16,24 @@ export interface HelpdeskTicket {
         name: string;
         email: string;
     };
-    assignedTo?: {
+    requester_user_id?: number | null;
+    requester?: {
         id: number;
         name: string;
         email: string;
-    };
+    } | null;
+    assigned_agent_id?: number | null;
+    assigned_agent?: {
+        id: number;
+        name: string;
+        email: string;
+    } | null;
+    status_histories?: Array<{ id: number; from_status: string | null; to_status: string; changed_by_name: string | null; created_at: string }>;
+    assignment_histories?: Array<{ id: number; from_agent_name: string | null; to_agent_name: string | null; changed_by_name: string | null; created_at: string }>;
     resolved_at?: string;
+    first_response_at?: string;
+    closed_at?: string;
+    last_reply_at?: string;
     created_at: string;
     replies?: HelpdeskReply[];
 }
@@ -31,6 +43,7 @@ export interface HelpdeskReply {
     ticket_id: number;
     message: string;
     attachments?: string[];
+    files?: Array<{ id: number; original_name: string; mime_type?: string | null; size: number }>;
     is_internal: boolean;
     created_by: number;
     creator?: {
@@ -38,6 +51,7 @@ export interface HelpdeskReply {
         name: string;
         email: string;
     };
+    sender_name?: string | null;
     created_at: string;
 }
 
@@ -52,7 +66,7 @@ export interface CreateHelpdeskTicketFormData {
 export interface EditHelpdeskTicketFormData {
     title: string;
     description: string;
-    status: 'open' | 'in_progress' | 'resolved' | 'closed';
+    status: 'open' | 'in_progress' | 'waiting_customer' | 'waiting_internal' | 'resolved' | 'closed';
     priority: 'low' | 'medium' | 'high' | 'urgent';
     category_id: number;
 }
@@ -105,6 +119,8 @@ export interface TodayTicketsProps {
         low: number;
         open: number;
         in_progress: number;
+        waiting_customer: number;
+        waiting_internal: number;
     };
     categories: HelpdeskCategory[];
     auth: AuthContext;
@@ -113,6 +129,7 @@ export interface TodayTicketsProps {
 
 export interface ShowHelpdeskTicketProps {
     ticket: HelpdeskTicket;
+    supportAgents: Array<{ id: number; name: string; email: string }>;
     auth: AuthContext;
     [key: string]: unknown;
 }

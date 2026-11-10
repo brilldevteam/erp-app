@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Models\HelpdeskTicket;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -30,6 +31,10 @@ class EnsureRouteModelsBelongToCompany
         $companyId = $user->type === 'company' ? (int) $user->id : (int) $user->created_by;
         foreach ($request->route()->parameters() as $parameter) {
             if (!$parameter instanceof Model || !array_key_exists('created_by', $parameter->getAttributes())) {
+                continue;
+            }
+
+            if ($parameter instanceof HelpdeskTicket && $user->isPlatformSupport()) {
                 continue;
             }
 

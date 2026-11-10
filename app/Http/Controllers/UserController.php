@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use App\Events\CreateUser;
 use App\Models\EmailTemplate;
+use App\Models\HelpdeskTicket;
 use App\Services\AuthSessionService;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
@@ -288,6 +289,9 @@ class UserController extends Controller
     public function destroy(User $user)
     {
         if(Auth::user()->can('delete-users')){
+            if ($user->type === 'company' && HelpdeskTicket::withTrashed()->where('created_by', $user->id)->exists()) {
+                return back()->with('error', __('This company has support tickets and cannot be deleted. The ticket history must be preserved.'));
+            }
             if ($this->linkedParty($user)) {
                 return back()->with('error', __('This account is linked to a customer or vendor and cannot be deleted here.'));
             }

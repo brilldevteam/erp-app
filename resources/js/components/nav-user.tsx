@@ -74,7 +74,7 @@ export function NavUser({
             </Avatar>
             <div className="hidden md:flex flex-col items-start">
               <span className="text-sm font-medium leading-none">{user.name}</span>
-              <span className="text-xs text-muted-foreground leading-none mt-0.5">{(user as any).type || 'User'}</span>
+              <span className="text-xs text-muted-foreground leading-none mt-0.5">{(user as any).is_platform_support ? ((user as any).roles?.includes('support-manager') ? 'Support Manager' : 'Agent') : ((user as any).type || 'User')}</span>
             </div>
             <ChevronsUpDown className="hidden h-4 w-4 text-muted-foreground sm:block" />
           </Button>

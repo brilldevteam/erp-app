@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreHelpdeskTicketRequest extends FormRequest
 {
@@ -18,7 +19,10 @@ class StoreHelpdeskTicketRequest extends FormRequest
             'description' => 'required|string',
             'priority' => 'required|in:low,medium,high,urgent',
             'category_id' => 'required|exists:helpdesk_categories,id',
-            'company_id' => 'nullable|exists:users,id',
+            'company_id' => [
+                'nullable',
+                Rule::exists('users', 'id')->where(fn ($query) => $query->where('type', 'company')),
+            ],
         ];
     }
 }

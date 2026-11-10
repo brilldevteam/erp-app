@@ -5,77 +5,102 @@ namespace App\Http\Controllers;
 use App\Events\CreateHelpdeskReply;
 use App\Events\DestroyHelpdeskReply;
 use App\Http\Requests\StoreHelpdeskReplyRequest;
-use App\Models\EmailTemplate;
 use App\Models\HelpdeskReply;
 use App\Models\HelpdeskTicket;
-use App\Models\User;
+use App\Services\HelpdeskNotificationService;
+use App\Services\HelpdeskEmailService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 
 class HelpdeskReplyController extends Controller
 {
-    public function store(StoreHelpdeskReplyRequest $request, HelpdeskTicket $ticket)
+    public function store(StoreHelpdeskReplyRequest $request, HelpdeskTicket $ticket, HelpdeskNotificationService $notifications, HelpdeskEmailService $emails)
     {
         if(Auth::user()->can('create-helpdesk-replies')){
-            $validated = $request->validated();
-
-            $reply = new HelpdeskReply();
-            $reply->ticket_id = $ticket->id;
-            $reply->message = $validated['message'];
-
-            // Handle multiple attachments
-            if (isset($validated['attachments']) && $validated['attachments']) {
-                $attachmentPaths = is_array($validated['attachments']) ? $validated['attachments'] : [$validated['attachments']];
-                $filenames = array_map('basename', array_filter($attachmentPaths));
-                $reply->attachments = !empty($filenames) ? json_encode($filenames) : null;
+            if (Gate::denies('reply', $ticket)) {
+                return response()->json(['error' => __('Ticket not found')], 404);
+            }
+            if ($ticket->status === 'closed') {
+                return response()->json(['error' => __('This ticket is closed.')], 422);
             }
 
-            $reply->is_internal = $request->boolean('is_internal', false);
-            $reply->created_by = Auth::id();
-            $reply->save();
+            $validated = $request->validated();
+            $storedFiles = [];
+
+            try {
+                $reply = DB::transaction(function () use ($request, $ticket, $validated, &$storedFiles) {
+                    $reply = new HelpdeskReply();
+                    $reply->ticket_id = $ticket->id;
+                    $reply->message = $validated['message'];
+                    $reply->is_internal = Auth::user()->isSupportSide() && Auth::user()->can('create-helpdesk-internal-notes') && $request->boolean('is_internal');
+                    $reply->created_by = Auth::id();
+                    $reply->sender_name = Auth::user()->name;
+                    $reply->save();
+
+                    foreach ($request->file('files', []) as $file) {
+                        $path = $file->store('helpdesk/' . $ticket->id, 'local');
+                        if (!$path) {
+                            throw new \RuntimeException('The attachment could not be stored.');
+                        }
+                        $storedFiles[] = $path;
+                        $reply->files()->create([
+                            'ticket_id' => $ticket->id,
+                            'uploaded_by' => Auth::id(),
+                            'disk' => 'local',
+                            'path' => $path,
+                            'original_name' => basename($file->getClientOriginalName()),
+                            'mime_type' => $file->getMimeType(),
+                            'size' => $file->getSize(),
+                        ]);
+                    }
+
+                    return $reply;
+                });
+            } catch (\Throwable $th) {
+                Storage::disk('local')->delete($storedFiles);
+                report($th);
+
+                return response()->json(['error' => __('The reply could not be saved. Please try again.')], 500);
+            }
+
+            $wasResolved = $ticket->status === 'resolved';
+            $isRequesterSide = Auth::user()->type !== 'superadmin'
+                && (int) $ticket->assigned_agent_id !== (int) Auth::id();
+
+            $ticket->last_reply_at = now();
+            if (!$ticket->first_response_at && !$isRequesterSide) {
+                $ticket->first_response_at = now();
+            }
+            if ($wasResolved && $isRequesterSide) {
+                $ticket->status = 'open';
+                $ticket->resolved_at = null;
+                $ticket->closed_at = null;
+            }
+            $ticket->save();
+
+            if ($wasResolved && $isRequesterSide) {
+                $ticket->statusHistories()->create([
+                    'from_status' => 'resolved',
+                    'to_status' => 'open',
+                    'changed_by' => Auth::id(),
+                    'changed_by_name' => Auth::user()->name,
+                ]);
+            }
 
             CreateHelpdeskReply::dispatch($request, $reply);
 
-            // Ensure attachments is always an array for frontend
-            $replyData = $reply->load('creator')->toArray();
-            if (isset($replyData['attachments']) && is_string($replyData['attachments'])) {
-                $replyData['attachments'] = json_decode($replyData['attachments'], true) ?: [];
-            }
-            try {
-                $adminUser = User::where('type', 'superadmin')->first();
-
-                if(admin_setting('Helpdesk Ticket Reply') == 'on') {
-                    if(Auth::user()->type === 'superadmin') {
-                        $ticketCreator = User::find($ticket->created_by);
-                        $toEmail = company_setting('company_email', $ticket->created_by) ?: $ticketCreator?->email;
-                        $name = company_setting('company_name', $ticket->created_by) ?: $ticketCreator?->name;
-                    } else {
-                        $toEmail = $adminUser->email;
-                        $name = $adminUser->name;
-                    }
-
-                    $emailData = [
-                        'company_name' => $name,                         
-                        'ticket_name' => $ticket->title ?? null,
-                        'ticket_id' => $reply->ticket_id ?? null,
-                        'ticket_url' => route('helpdesk-tickets.show', $ticket->id) ?? null,
-                        'ticket_description' => strip_tags($reply->message ?? ''),
-                    ];
-                    
-                    $message = EmailTemplate::sendEmailTemplate('Helpdesk Ticket Reply', [$toEmail], $emailData, $adminUser->id);
-                    if($message['is_success'] == false && !empty($message['error'])) {
-                        return back()
-                            ->with('success', __('Reply added successfully.'))
-                            ->with('error', $message['error']);
-                    }
-                }
-            } catch (\Throwable $th) {
-                return back()->with('error', $th->getMessage());
+            if (!$reply->is_internal) {
+                $ticket = $ticket->fresh(['requester', 'assignedAgent', 'creator', 'category']);
+                $notifications->replied($ticket, Auth::user());
+                $emails->replied($ticket, $reply, Auth::user());
             }
 
             return response()->json([
                 'success' => true,
                 'message' => __('Reply added successfully'),
-                'reply' => $replyData
+                'reply' => $reply->load(['creator', 'files'])->toArray(),
             ]);
         }
         else{
@@ -83,14 +108,11 @@ class HelpdeskReplyController extends Controller
         }
     }
 
-    public function destroy($id)
+    public function destroy(HelpdeskReply $reply)
     {
         if(Auth::user()->can('delete-helpdesk-replies')){
-            $helpdeskReply = HelpdeskReply::find($id);
-            // The super admin manages every ticket; companies only replies on their own tickets.
-            $ownsTicket = $helpdeskReply && (Auth::user()->type === 'superadmin'
-                || HelpdeskTicket::whereKey($helpdeskReply->ticket_id)->where('created_by', creatorId())->exists());
-            if (!$ownsTicket) {
+            $helpdeskReply = $reply->load('ticket');
+            if (!$helpdeskReply->ticket || Gate::denies('deleteReply', $helpdeskReply->ticket)) {
                 return response()->json(['error' => __('Reply not found')], 404);
             }
             DestroyHelpdeskReply::dispatch($helpdeskReply);

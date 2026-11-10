@@ -69,6 +69,7 @@ class ProductServiceDefinition implements EntityDefinition
             'Separate multiple tax names with commas, semicolons, or pipes.',
             'warehouse and quantity are optional; service stock values are ignored.',
             'SKU is the duplicate key and is matched without case sensitivity.',
+            'Services may leave SKU empty; a service without SKU is matched by its name.',
         ];
     }
 
@@ -83,13 +84,24 @@ class ProductServiceDefinition implements EntityDefinition
 
     public function identity(array $row): string
     {
-        return strtolower($this->text($row['sku'] ?? ''));
+        $sku = strtolower($this->text($row['sku'] ?? ''));
+        if ($sku !== '' || !$this->isService($row)) {
+            return $sku;
+        }
+
+        $name = mb_strtolower($this->text($row['name'] ?? ''));
+
+        return $name === '' ? '' : 'service:'.$name;
     }
 
     public function validate(array $row, int $tenantId): array
     {
         $errors = [];
         foreach ($this->requiredFields() as $field) {
+            // Services carry no SKU, like the ERP service form.
+            if ($field === 'sku' && $this->isService($row)) {
+                continue;
+            }
             if ($this->text($row[$field] ?? '') === '') {
                 $errors[] = ucfirst(str_replace('_', ' ', $field)).' is required.';
             }
@@ -135,16 +147,12 @@ class ProductServiceDefinition implements EntityDefinition
 
     public function duplicate(array $row, int $tenantId): bool
     {
-        return ProductServiceItem::where('created_by', $tenantId)
-            ->whereRaw('LOWER(sku) = ?', [$this->identity($row)])
-            ->exists();
+        return $this->existingItem($row, $tenantId) !== null;
     }
 
     public function import(array $row, string $strategy, int $tenantId, int $actorId): string
     {
-        $item = ProductServiceItem::where('created_by', $tenantId)
-            ->whereRaw('LOWER(sku) = ?', [$this->identity($row)])
-            ->first();
+        $item = $this->existingItem($row, $tenantId);
         $existingItem = (bool) $item;
 
         if ($item && $strategy === 'skip') {
@@ -163,7 +171,7 @@ class ProductServiceDefinition implements EntityDefinition
 
         $values = [
             'name' => $this->text($row['name']),
-            'sku' => $this->text($row['sku']),
+            'sku' => $this->nullableText($row['sku'] ?? null),
             'type' => strtolower($this->text($row['type'])),
             'category_id' => $category?->id,
             'unit' => $unit ? (string) $unit->id : null,
@@ -220,6 +228,33 @@ class ProductServiceDefinition implements EntityDefinition
         }
 
         return $result;
+    }
+
+    /**
+     * Items are matched by SKU. A service without SKU is matched by name among the company's services without SKU.
+     */
+    private function existingItem(array $row, int $tenantId): ?ProductServiceItem
+    {
+        $sku = strtolower($this->text($row['sku'] ?? ''));
+        $query = ProductServiceItem::where('created_by', $tenantId);
+        if ($sku !== '') {
+            return $query->whereRaw('LOWER(sku) = ?', [$sku])->first();
+        }
+
+        $name = mb_strtolower($this->text($row['name'] ?? ''));
+        if (!$this->isService($row) || $name === '') {
+            return null;
+        }
+
+        return $query->where('type', 'service')
+            ->where(fn ($items) => $items->whereNull('sku')->orWhere('sku', ''))
+            ->whereRaw('LOWER(name) = ?', [$name])
+            ->first();
+    }
+
+    private function isService(array $row): bool
+    {
+        return strtolower($this->text($row['type'] ?? '')) === 'service';
     }
 
     private function isMapped(array $row, string $field): bool

@@ -117,7 +117,7 @@ export default function Print() {
                                 <p className="text-sm text-gray-700">{entry.description}</p>
                             </div>
                             <div className="text-right">
-                                <p className="text-sm font-semibold">{entry.status === 'posted' ? t('Posted') : t('Draft')}</p>
+                                <p className="text-sm font-semibold">{entry.status === 'posted' ? t('Posted') : entry.status === 'reversed' ? t('Reversed') : t('Draft')}</p>
                                 {!entry.is_balanced && <p className="text-sm text-red-600 font-semibold">{t('Unbalanced')}</p>}
                             </div>
                         </div>

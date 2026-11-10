@@ -10,7 +10,14 @@ All notable changes to the Wazely ERP application are documented here.
 
 ## [Unreleased]
 
+### Security
+- Companies can no longer grant their roles permissions they do not hold, or use the platform support role names. Cross-company ticket access, internal notes and the Support Agents page now require a real platform support account.
+- Added Ticket Records: all tickets the user may see, kept as permanent records, with a summary by status, priority, category, company and agent, and average response and resolution times.
+- Helpdesk internal notes no longer reach customers' browsers or email, and only the super admin can create them. New reply attachments are stored privately and require access to the ticket. Closed tickets refuse replies on the server, ticket email text is escaped, and a mail failure no longer looks like a failed reply.
+
 ### Changed
+- Helpdesk now has isolated platform Support Agent and Support Manager accounts, assigned-ticket access, assignment history, permission-based internal notes, and a Support Agents manager. Support staff enter Helpdesk directly and do not inherit customer-company plans or ERP dashboard access.
+- Helpdesk tickets now preserve the real requester, optional assigned agent, response/closure/reply timestamps, soft deletion, status and assignment histories, and sender names after user deletion. Customer access is limited to each customer's own tickets, company admins retain tenant-wide visibility, client roles receive ticket/reply access only, resolved tickets reopen when their requester replies, and companies with ticket history cannot be deleted.
 - The Users list now follows the Customers page, with summary cards, live search on name, email or mobile, sort, filters and tabs for staff, clients, vendors and disabled logins.
 - The Purchase Invoices and Vendor Payments lists now follow the Quotations page, with summary cards, live search, sort, filters and tabs. Overdue on the Purchase Invoices list means issued, unpaid and past its due date.
 - The Payment Received list now follows the Quotations page: summary cards, live search, sort, filters including Bank Account, and All, Cleared, Pending and Cancelled tabs.

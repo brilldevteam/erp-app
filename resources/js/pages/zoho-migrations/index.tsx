@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { DatePicker } from '@/components/ui/date-picker';
 import {
     AlertTriangle, ArrowUpRight, Check, CheckCircle2, ChevronRight, Circle,
     Clock3, Download, FileSpreadsheet, History, Import, Info, Loader2, LockKeyhole,
@@ -140,9 +141,13 @@ export default function ZohoMigrations({ batches: initialBatches, permissions }:
 
     const createBatch = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        const values = new FormData(event.currentTarget);
+        if (!values.get('inventory_cutover_at')) {
+            setError('Choose the inventory cutover date.');
+            return;
+        }
         setBusy(true);
         setError(null);
-        const values = new FormData(event.currentTarget);
         try {
             const response = await axios.post<Batch>(route('zoho-migrations.store'), Object.fromEntries(values.entries()));
             setBatches(current => [response.data, ...current]);
@@ -273,7 +278,7 @@ export default function ZohoMigrations({ batches: initialBatches, permissions }:
                 </header>
 
                 {showCreate && (
-                    <form onSubmit={createBatch} className="mt-5 border-b border-slate-200 bg-white pb-6">
+                    <form onSubmit={createBatch} className="mt-5 rounded-xl border border-slate-200 bg-white p-5">
                         <div className="mb-4 flex items-center justify-between"><h2 className="text-base font-semibold">Create migration workspace</h2><Button type="button" variant="ghost" onClick={() => setShowCreate(false)}>Cancel</Button></div>
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                             <Field label="Migration name"><Input name="name" required placeholder="Company data migration" /></Field>
@@ -282,7 +287,7 @@ export default function ZohoMigrations({ batches: initialBatches, permissions }:
                             <Field label="Base currency"><BaseCurrencySelect name="base_currency" defaultValue="QAR" /></Field>
                             <Field label="Zoho organization ID"><Input name="zoho_organization_id" placeholder="Optional" /></Field>
                             <Field label="Zoho date format"><NativeSelect name="source_date_format" options={[["dd/MM/yyyy", 'DD/MM/YYYY'], ["MM/dd/yyyy", 'MM/DD/YYYY'], ["yyyy-MM-dd", 'YYYY-MM-DD'], ["dd-MM-yyyy", 'DD-MM-YYYY']]} /></Field>
-                            <Field label="Inventory cutover"><Input name="inventory_cutover_at" type="date" required /></Field>
+                            <Field label="Inventory cutover"><CutoverDatePicker name="inventory_cutover_at" /></Field>
                             <input type="hidden" name="duplicate_strategy" value="block" />
                             <input type="hidden" name="ai_enabled" value="0" />
                         </div>
@@ -307,16 +312,16 @@ export default function ZohoMigrations({ batches: initialBatches, permissions }:
 
                 {selectedBatch ? (
                     <>
-                        <section className="grid grid-cols-2 gap-px border-b border-slate-200 bg-slate-200 sm:grid-cols-4">
+                        <section className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 sm:grid-cols-4">
                             <Metric label="Overall progress" value={`${progress}%`} accent="text-emerald-700" />
                             <Metric label="Validated rows" value={String(imported)} />
                             <Metric label="Rejected" value={String(rejected)} accent={rejected ? 'text-red-600' : undefined} />
                             <Metric label="Warnings" value={String(warnings)} accent={warnings ? 'text-amber-600' : undefined} />
                         </section>
-                        <div className="h-1.5 bg-slate-200"><div className="h-full bg-emerald-500 transition-all" style={{ width: `${progress}%` }} /></div>
+                        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${progress}%` }} /></div>
 
-                        <div className="grid gap-0 lg:grid-cols-[minmax(360px,0.9fr)_minmax(0,1.5fr)]">
-                            <section className="border-r border-slate-200 bg-white px-3 py-5 sm:px-5">
+                        <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(360px,0.9fr)_minmax(0,1.5fr)]">
+                            <section className="rounded-xl border border-slate-200 bg-white px-3 py-5 sm:px-5">
                                 <div className="mb-5 flex items-center gap-2"><Import className="h-4 w-4 text-slate-500" /><h2 className="text-sm font-semibold uppercase text-slate-700">Import journey</h2></div>
                                 <div>
                                     {selectedBatch.stages.map((stage, index) => <TimelineStage key={stage.key} stage={stage} isSelected={selectedStage?.key === stage.key} connectorComplete={stage.status === 'completed'} isLast={index === selectedBatch.stages.length - 1} onSelect={() => setSelectedStageKey(stage.key)} />)}
@@ -371,7 +376,7 @@ function StagePanel({ stage, batch, permissions, busy, error, uploadProgress, fi
     const confirmedUnused = Boolean(stage.summary?.no_records_used || stage.summary?.no_taxes_used);
     const usedExisting = Boolean(stage.summary?.existing_records_used);
 
-    return <section className="min-w-0 bg-slate-50 px-4 py-6 sm:px-7 lg:px-8">
+    return <section className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-4 py-6 sm:px-7 lg:px-8">
         <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-start sm:justify-between">
             <div><p className={`text-xs font-semibold uppercase ${style.text}`}>{style.label}</p><h2 className="mt-1 text-xl font-semibold text-slate-950">{stage.title}</h2><p className="mt-2 max-w-2xl text-sm text-slate-600">{stage.description}</p></div>
             {stage.destination_url && <Button variant="outline" asChild><a href={stage.destination_url}>View ERP records<ArrowUpRight className="ml-2 h-4 w-4" /></a></Button>}
@@ -396,7 +401,7 @@ function StagePanel({ stage, batch, permissions, busy, error, uploadProgress, fi
         )}
 
         {canUpload && (
-            <div className="mt-6 border border-dashed border-slate-300 bg-white p-5">
+            <div className="mt-6 rounded-xl border border-dashed border-slate-300 bg-white p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div><h3 className="text-sm font-semibold">Add import file</h3><p className="mt-1 text-xs text-slate-500">Upload an original Zoho export, or fill the Wazely XLSX/CSV template for data from another ERP.{guide && <> <button type="button" className="ml-1 font-medium text-sky-700 hover:underline" onClick={() => setGuideOpen(true)}>View columns and templates</button></>}</p>{stage.top_up && stage.status === 'completed' ? <p className="mt-1 text-xs font-medium text-amber-700">Already imported. To add newer records, upload a new full export: records imported earlier are checked and skipped, and only the new ones are imported.</p> : latestFile && <p className="mt-1 text-xs font-medium text-amber-700">{stage.multi_source ? 'This step takes more than one file. Adding a file of the same kind replaces the earlier one; the others stay.' : 'Choosing another file replaces the current unimported source and restarts validation.'}</p>}</div>
                     <div><input ref={fileInput} className="hidden" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={event => event.target.files?.[0] && onUpload(event.target.files[0])} /><Button disabled={busy} onClick={chooseFile}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}{stage.top_up && stage.status === 'completed' ? 'Upload newer export' : latestFile ? (stage.multi_source ? 'Add file' : 'Replace file') : 'Choose file'}</Button></div>
@@ -429,7 +434,7 @@ function StagePanel({ stage, batch, permissions, busy, error, uploadProgress, fi
             </div>
             {currentFiles.map(file => <FilePreview key={file.id} file={file} />)}
         </>}
-        {stageIssues.length > 0 && <div className="mt-6"><SectionTitle icon={AlertTriangle} title="Correct these before import" /><p className="mt-2 text-sm text-slate-600">Fix the source Excel and upload it again, or add the missing reference in ERP and choose Recheck corrections. No rows will be imported while errors remain.</p><div className="mt-3 divide-y divide-slate-200 border-y border-slate-200 bg-white">{stageIssues.map((issue: any) => <div key={issue.id} className="flex items-start justify-between gap-4 px-4 py-3"><div><p className="text-sm font-medium text-slate-800">{issue.message}</p>{issue.source_value && <p className="mt-1 text-xs text-slate-500">{issue.field}: {issue.source_value}</p>}</div>{issue.resolution_url && <a className="shrink-0 text-sm font-medium text-sky-700" href={issue.resolution_url}>Fix in ERP</a>}</div>)}</div></div>}
+        {stageIssues.length > 0 && <div className="mt-6"><SectionTitle icon={AlertTriangle} title="Correct these before import" /><p className="mt-2 text-sm text-slate-600">Fix the source Excel and upload it again, or add the missing reference in ERP and choose Recheck corrections. No rows will be imported while errors remain.</p><div className="mt-3 divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white">{stageIssues.map((issue: any) => <div key={issue.id} className="flex items-start justify-between gap-4 px-4 py-3"><div><p className="text-sm font-medium text-slate-800">{issue.message}</p>{issue.source_value && <p className="mt-1 text-xs text-slate-500">{issue.field}: {issue.source_value}</p>}</div>{issue.resolution_url && <a className="shrink-0 text-sm font-medium text-sky-700" href={issue.resolution_url}>Fix in ERP</a>}</div>)}</div></div>}
         <div className="mt-7"><SectionTitle icon={History} title="Activity" /><div className="mt-3 space-y-3">{stageEvents.length ? stageEvents.map(event => <div key={event.id} className="flex gap-3 text-sm"><span className="mt-1 h-2 w-2 rounded-full bg-slate-300" /><div><p className="text-slate-700">{event.message}</p><p className="mt-0.5 text-xs text-slate-400">{new Date(event.created_at).toLocaleString()}</p></div></div>) : <p className="text-sm text-slate-500">No activity recorded for this stage.</p>}</div></div>
     </section>;
 }
@@ -565,7 +570,7 @@ function RowEditor({ title, noun, fields, rows, onChange }: { title: string; nou
             <Button type="button" variant="outline" onClick={() => onChange([...rows, emptyEntryRow(fields, rows)])}><Plus className="mr-2 h-4 w-4" />Add {noun}</Button>
         </div>
         {secondLine.length > 0
-            ? <div className="space-y-3">{rows.map((row, index) => <div key={index} className="space-y-2 border border-slate-200 p-3">
+            ? <div className="space-y-3">{rows.map((row, index) => <div key={index} className="space-y-2 rounded-lg border border-slate-200 p-3">
                 {line(firstLine, row, index, removeButton(index))}
                 {line(secondLine, row, index, null)}
             </div>)}</div>
@@ -617,7 +622,7 @@ function RowEntryPanel({ config, busy, onImport }: { config: RowEntryConfig; bus
     };
     const hasCompleteRows = rows.length > 0 && rows.every(row => isCompleteEntryRow(config.fields, row));
 
-    return <div className="mt-6 border-y border-slate-200 bg-white px-4 py-5">
+    return <div className="mt-6 rounded-xl border border-slate-200 bg-white px-4 py-5">
         {config.none && <label className="mb-5 flex items-start gap-3 border-b border-slate-200 pb-4 text-sm text-slate-700">
             <input type="checkbox" checked={noRecordsUsed} onChange={event => { setNoRecordsUsed(event.target.checked); setConfirmed(false); }} className="mt-0.5 h-4 w-4" />
             <span><strong className="block font-semibold text-slate-900">{config.none.title}</strong>{config.none.text}</span>
@@ -663,7 +668,7 @@ function CategoriesUnitsPanel({ busy, onImport }: { busy: boolean; onImport: Man
         }
     };
 
-    return <div className="mt-6 border-y border-slate-200 bg-white px-4 py-5">
+    return <div className="mt-6 rounded-xl border border-slate-200 bg-white px-4 py-5">
         <RowEditor title="Categories" noun="category" fields={categoryFields} rows={categories} onChange={next => { setCategories(next); setConfirmed(false); }} />
         <div className="mt-6 border-t border-slate-200 pt-5">
             <RowEditor title="Units" noun="unit" fields={unitFields} rows={units} onChange={next => { setUnits(next); setConfirmed(false); }} />
@@ -688,7 +693,8 @@ type ReferenceData = {
 
 const emptyProduct = (): ProductEntry => ({ type: 'product', name: '', sku: '', tax: 'none', category: '', unit: '', sale_price: '', purchase_price: '0', description: '' });
 // Mirrors the ERP item form: services have no unit; everything else needs one.
-const isCompleteProduct = (product: ProductEntry) => product.name.trim() !== '' && product.sku.trim() !== '' && product.category !== ''
+const emptyService = (): ProductEntry => ({ ...emptyProduct(), type: 'service' });
+const isCompleteProduct = (product: ProductEntry) => product.name.trim() !== '' && (product.type === 'service' || product.sku.trim() !== '') && product.category !== ''
     && product.sale_price.trim() !== '' && product.purchase_price.trim() !== '' && (product.type === 'service' || product.unit !== '');
 
 function FormField({ label, htmlFor, required, children }: { label: string; htmlFor?: string; required?: boolean; children: React.ReactNode }) {
@@ -749,8 +755,8 @@ function ProductUploadPanel({ batchId, busy, onUpload }: { batchId: number; busy
     const templateUrl = (format: 'xlsx' | 'csv') => route('zoho-migrations.stages.manual-template', { zohoMigration: batchId, stageKey: 'items', format });
     const sortedRows = preview ? [...preview.rows].sort((a, b) => Number(b.result === 'invalid') - Number(a.result === 'invalid')).slice(0, 100) : [];
 
-    return <div className="mt-4 border-y border-slate-200 bg-white px-4 py-5">
-        {result && <div className={`mb-4 border p-3 text-sm ${result.rejected > 0 ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
+    return <div className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-5">
+        {result && <div className={`mb-4 rounded-lg border p-3 text-sm ${result.rejected > 0 ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
             {result.rejected > 0
                 ? `${result.rejected} rows failed validation, so nothing was imported. See the issues below.`
                 : `Imported ${result.imported}, updated ${result.updated} and linked ${result.linked} existing items.`}
@@ -773,9 +779,9 @@ function ProductUploadPanel({ batchId, busy, onUpload }: { batchId: number; busy
             <p className="text-sm font-medium text-slate-900">{file?.name}</p>
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
                 {([['Total', preview.total], ['Valid', preview.valid], ['Invalid', preview.invalid], ['New', preview.new], ['Existing', preview.existing]] as const).map(([name, value]) =>
-                    <div key={name} className="border border-slate-200 p-3 text-center"><div className="text-xl font-semibold text-slate-900">{value}</div><div className="text-xs text-slate-500">{name}</div></div>)}
+                    <div key={name} className="rounded-lg border border-slate-200 p-3 text-center"><div className="text-xl font-semibold text-slate-900">{value}</div><div className="text-xs text-slate-500">{name}</div></div>)}
             </div>
-            <div className="mt-4 max-h-64 overflow-auto border border-slate-200">
+            <div className="mt-4 max-h-64 overflow-auto rounded-lg border border-slate-200">
                 <table className="w-full text-sm">
                     <thead className="sticky top-0 bg-slate-50"><tr><th className="p-2 text-left">Row</th><th className="p-2 text-left">Result</th><th className="p-2 text-left">Details</th></tr></thead>
                     <tbody>{sortedRows.map(row => <tr key={row.row_number} className="border-t border-slate-200">
@@ -789,7 +795,7 @@ function ProductUploadPanel({ batchId, busy, onUpload }: { batchId: number; busy
             {preview.existing > 0 && <p className="mt-3 text-xs text-slate-500">Existing SKUs follow this migration's duplicate setting.</p>}
 
             {preview.invalid > 0
-                ? <div className="mt-4 border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                ? <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
                     Fix the {preview.invalid} invalid {preview.invalid === 1 ? 'row' : 'rows'} in your file, then choose it again. Nothing is imported while errors remain.
                     <div className="mt-2"><Button variant="outline" size="sm" onClick={downloadErrorReport}><Download className="mr-2 h-4 w-4" />Download Error Report</Button></div>
                 </div>
@@ -806,9 +812,11 @@ function ProductUploadPanel({ batchId, busy, onUpload }: { batchId: number; busy
 
 function ProductEntryPanel({ batchId, busy, onImport, onUpload }: { batchId: number; busy: boolean; onImport: ManualImport; onUpload: ManualUpload }) {
     const [mode, setMode] = useState<'form' | 'upload'>('form');
+    const [tab, setTab] = useState<'product' | 'service'>('product');
     const [reference, setReference] = useState<ReferenceData | null>(null);
     const [referenceError, setReferenceError] = useState<string | null>(null);
     const [products, setProducts] = useState<ProductEntry[]>([emptyProduct()]);
+    const [services, setServices] = useState<ProductEntry[]>([emptyService()]);
     const [confirmed, setConfirmed] = useState(false);
     const [localBusy, setLocalBusy] = useState(false);
     const [localError, setLocalError] = useState<string | null>(null);
@@ -819,12 +827,14 @@ function ProductEntryPanel({ batchId, busy, onImport, onUpload }: { batchId: num
             .catch(() => setReferenceError('The categories, units and taxes could not be loaded. Refresh the page to try again.'));
     }, [batchId]);
 
+    const isService = tab === 'service';
+    const rows = isService ? services : products;
+    const setRows = isService ? setServices : setProducts;
+    const noun = isService ? 'service' : 'item';
+    const switchTab = (next: 'product' | 'service') => { setTab(next); setConfirmed(false); setLocalError(null); };
+
     const update = (index: number, field: keyof ProductEntry, value: string) => {
-        setProducts(current => current.map((product, productIndex) => productIndex !== index ? product : {
-            ...product,
-            [field]: value,
-            ...(field === 'type' && value === 'service' ? { unit: '' } : {}),
-        }));
+        setRows(current => current.map((row, rowIndex) => rowIndex !== index ? row : { ...row, [field]: value }));
         setConfirmed(false);
     };
     const submit = async () => {
@@ -833,22 +843,34 @@ function ProductEntryPanel({ batchId, busy, onImport, onUpload }: { batchId: num
         try {
             const pastedData = [
                 manualHeaders.items.join('\t'),
-                ...products.map(product => [
-                    product.name, product.sku, product.type, product.category,
-                    product.type === 'service' ? '' : product.unit,
-                    product.tax === 'none' ? '' : product.tax,
-                    product.sale_price, product.purchase_price, product.description,
+                ...rows.map(row => [
+                    row.name, isService ? '' : row.sku, isService ? 'service' : row.type, row.category,
+                    isService ? '' : row.unit,
+                    row.tax === 'none' ? '' : row.tax,
+                    row.sale_price, row.purchase_price, row.description,
                 ].map(cleanCell).join('\t')),
             ].join('\n');
             await onImport(pastedData);
             setConfirmed(false);
         } catch (exception: any) {
-            setLocalError(importErrorMessage(exception, 'The products and services could not be imported.'));
+            setLocalError(importErrorMessage(exception, isService ? 'The services could not be imported.' : 'The products could not be imported.'));
         } finally {
             setLocalBusy(false);
         }
     };
-    const allComplete = products.every(isCompleteProduct);
+    const allComplete = rows.every(isCompleteProduct);
+
+    const taxSelect = (row: ProductEntry, index: number) => <Select value={row.tax} onValueChange={value => update(index, 'tax', value)}>
+        <SelectTrigger aria-label={`Tax ${index + 1}`}><SelectValue /></SelectTrigger>
+        <SelectContent>
+            <SelectItem value="none">No tax</SelectItem>
+            {reference?.taxes.map(tax => <SelectItem key={tax.tax_name} value={tax.tax_name}>{tax.tax_name} ({Number(tax.rate)}%)</SelectItem>)}
+        </SelectContent>
+    </Select>;
+    const categorySelect = (row: ProductEntry, index: number) => <Select value={row.category} onValueChange={value => update(index, 'category', value)}>
+        <SelectTrigger aria-label={`Category ${index + 1}`}><SelectValue placeholder="Select Category" /></SelectTrigger>
+        <SelectContent>{reference?.categories.map(category => <SelectItem key={category} value={category}>{category}</SelectItem>)}</SelectContent>
+    </Select>;
 
     return <div className="mt-6">
         <div className="flex flex-wrap gap-2">
@@ -858,73 +880,77 @@ function ProductEntryPanel({ batchId, busy, onImport, onUpload }: { batchId: num
 
         {mode === 'upload' && <ProductUploadPanel batchId={batchId} busy={busy} onUpload={onUpload} />}
 
-        {mode === 'form' && <div className="mt-4 border-y border-slate-200 bg-white px-4 py-5">
+        {mode === 'form' && <div className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-5">
+            <div className="mb-5 inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1" role="tablist">
+                {([['product', 'Products'], ['service', 'Services']] as const).map(([value, label]) => <button key={value} type="button" role="tab" aria-selected={tab === value} onClick={() => switchTab(value)}
+                    className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${tab === value ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>{label}</button>)}
+            </div>
             {referenceError && <p className="mb-4 text-sm font-medium text-red-700">{referenceError}</p>}
-            {reference && (reference.categories.length === 0 || reference.units.length === 0) && <p className="mb-4 text-sm font-medium text-amber-700">
-                {reference.categories.length === 0 ? 'No categories exist yet. ' : ''}{reference.units.length === 0 ? 'No units exist yet. ' : ''}Complete the Categories and units step first.
+            {reference && (reference.categories.length === 0 || (!isService && reference.units.length === 0)) && <p className="mb-4 text-sm font-medium text-amber-700">
+                {reference.categories.length === 0 ? 'No categories exist yet. ' : ''}{!isService && reference.units.length === 0 ? 'No units exist yet. ' : ''}Complete the Categories and units step first.
             </p>}
-            <div className="space-y-4">{products.map((product, index) => {
-                const id = (field: string) => `product-${index}-${field}`;
+            <div className="space-y-4">{rows.map((row, index) => {
+                const id = (field: string) => `${tab}-${index}-${field}`;
 
-                return <div key={index} className="border border-slate-200 p-4">
+                return <div key={`${tab}-${index}`} className="rounded-lg border border-slate-200 p-4">
                     <div className="mb-4 flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-slate-900">Item {index + 1}</h3>
-                        <Button type="button" variant="ghost" size="icon" title="Remove item" disabled={products.length === 1} onClick={() => { setProducts(current => current.filter((_, productIndex) => productIndex !== index)); setConfirmed(false); }}><Trash2 className="h-4 w-4" /></Button>
+                        <h3 className="text-sm font-semibold text-slate-900">{isService ? 'Service' : 'Item'} {index + 1}</h3>
+                        <Button type="button" variant="ghost" size="icon" title={`Remove ${noun}`} disabled={rows.length === 1} onClick={() => { setRows(current => current.filter((_, rowIndex) => rowIndex !== index)); setConfirmed(false); }}><Trash2 className="h-4 w-4" /></Button>
                     </div>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <FormField label="Item Type (Product / Service / Part)">
-                            <Select value={product.type} onValueChange={value => update(index, 'type', value)}>
-                                <SelectTrigger aria-label={`Item type ${index + 1}`}><SelectValue /></SelectTrigger>
-                                <SelectContent><SelectItem value="product">Product</SelectItem><SelectItem value="service">Service</SelectItem><SelectItem value="part">Part</SelectItem></SelectContent>
-                            </Select>
-                        </FormField>
-                        <FormField label="Name" htmlFor={id('name')} required><Input id={id('name')} value={product.name} onChange={event => update(index, 'name', event.target.value)} placeholder="Enter Name" /></FormField>
-                    </div>
-                    <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-                        <FormField label="SKU" htmlFor={id('sku')} required>
-                            <div className="flex gap-2">
-                                <Input id={id('sku')} value={product.sku} onChange={event => update(index, 'sku', event.target.value)} placeholder="Enter SKU" />
-                                <Button type="button" variant="outline" onClick={() => update(index, 'sku', `SKU-${Date.now()}`)}>Generate</Button>
-                            </div>
-                        </FormField>
-                        <FormField label="Tax">
-                            <Select value={product.tax} onValueChange={value => update(index, 'tax', value)}>
-                                <SelectTrigger aria-label={`Tax ${index + 1}`}><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">No tax</SelectItem>
-                                    {reference?.taxes.map(tax => <SelectItem key={tax.tax_name} value={tax.tax_name}>{tax.tax_name} ({Number(tax.rate)}%)</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </FormField>
-                        <FormField label="Category" required>
-                            <Select value={product.category} onValueChange={value => update(index, 'category', value)}>
-                                <SelectTrigger aria-label={`Category ${index + 1}`}><SelectValue placeholder="Select Category" /></SelectTrigger>
-                                <SelectContent>{reference?.categories.map(category => <SelectItem key={category} value={category}>{category}</SelectItem>)}</SelectContent>
-                            </Select>
-                        </FormField>
-                    </div>
-                    <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-                        <FormField label="Sale Price" htmlFor={id('sale-price')} required><Input id={id('sale-price')} type="number" min="0" step="0.01" value={product.sale_price} onChange={event => update(index, 'sale_price', event.target.value)} placeholder="0.00" /></FormField>
-                        <FormField label="Purchase Price" htmlFor={id('purchase-price')} required><Input id={id('purchase-price')} type="number" min="0" step="0.01" value={product.purchase_price} onChange={event => update(index, 'purchase_price', event.target.value)} placeholder="0.00" /></FormField>
-                        {product.type === 'service'
-                            ? <FormField label="Unit"><p className="flex h-10 items-center text-sm text-slate-500">Services have no unit.</p></FormField>
-                            : <FormField label="Unit" required>
-                                <Select value={product.unit} onValueChange={value => update(index, 'unit', value)}>
+                    {isService ? <>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <FormField label="Name" htmlFor={id('name')} required><Input id={id('name')} value={row.name} onChange={event => update(index, 'name', event.target.value)} placeholder="Enter Name" /></FormField>
+                            <FormField label="Category" required>{categorySelect(row, index)}</FormField>
+                        </div>
+                        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <FormField label="Selling Price" htmlFor={id('sale-price')} required><Input id={id('sale-price')} type="number" min="0" step="0.01" value={row.sale_price} onChange={event => update(index, 'sale_price', event.target.value)} placeholder="0.00" /></FormField>
+                            <FormField label="Purchase Price" htmlFor={id('purchase-price')} required><Input id={id('purchase-price')} type="number" min="0" step="0.01" value={row.purchase_price} onChange={event => update(index, 'purchase_price', event.target.value)} placeholder="0.00" /></FormField>
+                        </div>
+                        <div className="mt-4"><FormField label="Tax">{taxSelect(row, index)}</FormField></div>
+                        <div className="mt-4">
+                            <FormField label="Description" htmlFor={id('description')}><Textarea id={id('description')} rows={2} value={row.description} onChange={event => update(index, 'description', event.target.value)} placeholder="Enter Description" /></FormField>
+                        </div>
+                    </> : <>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <FormField label="Item Type (Product / Part)">
+                                <Select value={row.type} onValueChange={value => update(index, 'type', value)}>
+                                    <SelectTrigger aria-label={`Item type ${index + 1}`}><SelectValue /></SelectTrigger>
+                                    <SelectContent><SelectItem value="product">Product</SelectItem><SelectItem value="part">Part</SelectItem></SelectContent>
+                                </Select>
+                            </FormField>
+                            <FormField label="Name" htmlFor={id('name')} required><Input id={id('name')} value={row.name} onChange={event => update(index, 'name', event.target.value)} placeholder="Enter Name" /></FormField>
+                        </div>
+                        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                            <FormField label="SKU" htmlFor={id('sku')} required>
+                                <div className="flex gap-2">
+                                    <Input id={id('sku')} value={row.sku} onChange={event => update(index, 'sku', event.target.value)} placeholder="Enter SKU" />
+                                    <Button type="button" variant="outline" onClick={() => update(index, 'sku', `SKU-${Date.now()}`)}>Generate</Button>
+                                </div>
+                            </FormField>
+                            <FormField label="Tax">{taxSelect(row, index)}</FormField>
+                            <FormField label="Category" required>{categorySelect(row, index)}</FormField>
+                        </div>
+                        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                            <FormField label="Sale Price" htmlFor={id('sale-price')} required><Input id={id('sale-price')} type="number" min="0" step="0.01" value={row.sale_price} onChange={event => update(index, 'sale_price', event.target.value)} placeholder="0.00" /></FormField>
+                            <FormField label="Purchase Price" htmlFor={id('purchase-price')} required><Input id={id('purchase-price')} type="number" min="0" step="0.01" value={row.purchase_price} onChange={event => update(index, 'purchase_price', event.target.value)} placeholder="0.00" /></FormField>
+                            <FormField label="Unit" required>
+                                <Select value={row.unit} onValueChange={value => update(index, 'unit', value)}>
                                     <SelectTrigger aria-label={`Unit ${index + 1}`}><SelectValue placeholder="Select Unit" /></SelectTrigger>
                                     <SelectContent>{reference?.units.map(unit => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}</SelectContent>
                                 </Select>
-                            </FormField>}
-                    </div>
-                    <div className="mt-4">
-                        <FormField label="Short Description" htmlFor={id('description')}><Textarea id={id('description')} rows={2} value={product.description} onChange={event => update(index, 'description', event.target.value)} placeholder="Enter Short Description" /></FormField>
-                    </div>
+                            </FormField>
+                        </div>
+                        <div className="mt-4">
+                            <FormField label="Short Description" htmlFor={id('description')}><Textarea id={id('description')} rows={2} value={row.description} onChange={event => update(index, 'description', event.target.value)} placeholder="Enter Short Description" /></FormField>
+                        </div>
+                    </>}
                 </div>;
             })}</div>
-            <Button type="button" variant="outline" className="mt-4" onClick={() => { setProducts(current => [...current, emptyProduct()]); setConfirmed(false); }}><Plus className="mr-2 h-4 w-4" />Add item</Button>
-            <ConfirmCheckbox checked={confirmed} onChange={setConfirmed} text="I checked every item, price, category, unit and tax against the approved source." />
+            <Button type="button" variant="outline" className="mt-4" onClick={() => { setRows(current => [...current, isService ? emptyService() : emptyProduct()]); setConfirmed(false); }}><Plus className="mr-2 h-4 w-4" />{isService ? 'Add service' : 'Add item'}</Button>
+            <ConfirmCheckbox checked={confirmed} onChange={setConfirmed} text={isService ? 'I checked every service, price, category and tax against the approved source.' : 'I checked every item, price, category, unit and tax against the approved source.'} />
             {localError && <p className="mt-3 text-sm font-medium text-red-700">{localError}</p>}
             <SubmitButton disabled={busy || !confirmed || !allComplete} busy={busy || localBusy} onClick={submit}
-                label={`Import ${products.length} ${products.length === 1 ? 'item' : 'items'}`} />
+                label={`Import ${rows.length} ${rows.length === 1 ? noun : `${noun}s`}`} />
         </div>}
     </div>;
 }
@@ -976,7 +1002,7 @@ function ManualPrerequisitePanel({ stage, batchId, busy, onImport }: { stage: St
         }
     };
 
-    return <div className="mt-6 border-y border-amber-300 bg-amber-50">
+    return <div className="mt-6 overflow-hidden rounded-xl border border-amber-300 bg-amber-50">
         <div className="flex gap-3 border-b border-amber-200 px-4 py-4">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
             <div>
@@ -985,7 +1011,7 @@ function ManualPrerequisitePanel({ stage, batchId, busy, onImport }: { stage: St
             </div>
         </div>
         <div className="bg-white px-4 py-5">
-            <label className="flex items-start gap-3 border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700">
+            <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700">
                 <input type="checkbox" checked={noneHeld} onChange={event => { setNoneHeld(event.target.checked); setConfirmed(false); setLocalError(null); }} className="mt-0.5 h-4 w-4" />
                 <span><span className="font-medium text-slate-900">No stock to enter</span><br />This company holds no stock: all its items are services.</span>
             </label>
@@ -1000,7 +1026,7 @@ function ManualPrerequisitePanel({ stage, batchId, busy, onImport }: { stage: St
                         <p className="text-sm text-slate-600">{items.length} stock-tracked {items.length === 1 ? 'product' : 'products'}. Type each opening quantity; leave a box empty when there is none.</p>
                         {items.length > 8 && <Input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search name or SKU" className="h-9 sm:max-w-xs" />}
                     </div>
-                    <div className="mt-3 max-h-[420px] overflow-auto border border-slate-200">
+                    <div className="mt-3 max-h-[420px] overflow-auto rounded-lg border border-slate-200">
                         <table className="w-full min-w-[480px] text-sm">
                             <thead className="sticky top-0 bg-slate-50 text-slate-600"><tr>
                                 <th className="p-2 text-left font-medium">Product</th>
@@ -1116,20 +1142,50 @@ function ColumnGuide({ label, tone, columns, notes = {} }: { label: string; tone
     return <div><p className="mb-1 font-medium text-slate-700">{label}</p><div className="flex flex-wrap gap-1">{columns.map((column, index) => <code key={`${column}-${index}`} title={notes[column]} className={`rounded px-1.5 py-0.5 text-[11px] ${tone}`}>{column.trim()}{notes[column] && <span className="font-sans"> — {notes[column]}</span>}</code>)}</div></div>;
 }
 
+const itemTypeHeaders = ['type', 'item type', 'product type'];
+const hiddenForServices = ['sku', 'unit', 'usage unit', 'stock on hand', 'opening stock'];
+
 function FilePreview({ file }: { file: MigrationFile }) {
-    const headers = file.headers?.slice(0, 6) ?? [];
+    const [filter, setFilter] = useState<'all' | 'product' | 'service'>('all');
+    const typeHeader = file.headers?.find(header => itemTypeHeaders.includes(header.trim().toLowerCase()));
+    const isServiceRow = (row: MigrationFile['preview_rows'][number]) => typeHeader !== undefined && String(row.original_values[typeHeader] ?? '').trim().toLowerCase() === 'service';
+    const rows = !typeHeader || filter === 'all' ? file.preview_rows : file.preview_rows.filter(row => (filter === 'service') === isServiceRow(row));
+    const headers = (filter === 'service' ? (file.headers ?? []).filter(header => !hiddenForServices.includes(header.trim().toLowerCase())) : file.headers ?? []).slice(0, 6);
+    const counts = { all: file.preview_rows.length, service: file.preview_rows.filter(isServiceRow).length, product: file.preview_rows.filter(row => !isServiceRow(row)).length };
+
     return <div className="mt-6">
         <SectionTitle icon={FileSpreadsheet} title="Source preview" />
-        <div className="mt-3 overflow-hidden border border-slate-200 bg-white">
+        <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white">
             <div className="flex flex-col gap-2 border-b border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-slate-900">{file.original_filename}</p><p className="text-xs text-slate-500">{file.profile_key ? `${file.profile_key} · ${file.row_count} rows · ${file.detection_confidence}% match` : file.status}</p></div>{file.failure_message && <span className="text-xs font-medium text-red-600">{file.failure_message}</span>}</div>
-            {file.preview_rows.length > 0 && <div className="overflow-x-auto"><table className="w-full min-w-[680px] text-left text-xs"><thead className="bg-slate-50 text-slate-500"><tr><th className="px-3 py-2">Row</th>{headers.map(header => <th key={header} className="px-3 py-2 font-medium">{header}</th>)}</tr></thead><tbody className="divide-y divide-slate-100">{file.preview_rows.map(row => <tr key={row.source_row_number}><td className="px-3 py-2 text-slate-400">{row.source_row_number}</td>{headers.map(header => <td key={header} className="max-w-[180px] truncate px-3 py-2 text-slate-700">{String(row.original_values[header] ?? '')}</td>)}</tr>)}</tbody></table></div>}
+            {typeHeader && file.preview_rows.length > 0 && <div className="border-b border-slate-200 px-4 py-2.5">
+                <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1" role="tablist">
+                    {([['all', 'All'], ['product', 'Products'], ['service', 'Services']] as const).map(([value, label]) => <button key={value} type="button" role="tab" aria-selected={filter === value} onClick={() => setFilter(value)}
+                        className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${filter === value ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>{label} <span className="text-slate-400">{counts[value]}</span></button>)}
+                </div>
+            </div>}
+            {rows.length > 0 && <div className="overflow-x-auto"><table className="w-full min-w-[680px] text-left text-xs"><thead className="bg-slate-50 text-slate-500"><tr><th className="px-3 py-2">Row</th>{headers.map(header => <th key={header} className="px-3 py-2 font-medium">{header}</th>)}</tr></thead><tbody className="divide-y divide-slate-100">{rows.map(row => <tr key={row.source_row_number}><td className="px-3 py-2 text-slate-400">{row.source_row_number}</td>{headers.map(header => <td key={header} className="max-w-[180px] truncate px-3 py-2 text-slate-700">{String(row.original_values[header] ?? '')}</td>)}</tr>)}</tbody></table></div>}
+            {typeHeader && file.preview_rows.length > 0 && rows.length === 0 && <p className="px-4 py-6 text-center text-sm text-slate-500">{filter === 'service' ? 'No services in this preview.' : 'No products in this preview.'}</p>}
         </div>
     </div>;
 }
-
 function Metric({ label, value, accent = 'text-slate-950' }: { label: string; value: string; accent?: string }) { return <div className="bg-white px-5 py-4"><p className="text-xs font-medium uppercase text-slate-500">{label}</p><p className={`mt-1 text-xl font-semibold ${accent}`}>{value}</p></div>; }
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return <div className="space-y-1.5"><Label>{label}</Label>{children}</div>; }
-function NativeSelect({ name, options }: { name: string; options: Array<[string, string]> }) { return <select name={name} required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">{options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>; }
+function NativeSelect({ name, options }: { name: string; options: Array<[string, string]> }) {
+    const [value, setValue] = useState(options[0]?.[0] ?? '');
+
+    return <>
+        <input type="hidden" name={name} value={value} />
+        <Select value={value} onValueChange={setValue}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{options.map(([optionValue, label]) => <SelectItem key={optionValue} value={optionValue}>{label}</SelectItem>)}</SelectContent>
+        </Select>
+    </>;
+}
+function CutoverDatePicker({ name }: { name: string }) {
+    const [value, setValue] = useState('');
+
+    return <DatePicker name={name} value={value} onChange={setValue} placeholder="Select date" ariaLabel="Inventory cutover" required />;
+}
 function BaseCurrencySelect({ name, defaultValue }: { name: string; defaultValue: string }) {
     const currencies = ((usePage().props as any).currencies || []) as Array<{ code: string; name: string }>;
     const [value, setValue] = useState(defaultValue);
@@ -1144,5 +1200,5 @@ function BaseCurrencySelect({ name, defaultValue }: { name: string; defaultValue
         </Select>
     </>;
 }
-function Notice({ icon: Icon, title, text }: { icon: typeof Circle; title: string; text: string }) { return <div className="mt-6 flex gap-3 border-l-4 border-slate-300 bg-white px-4 py-4"><Icon className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" /><div><h3 className="text-sm font-semibold text-slate-900">{title}</h3><p className="mt-1 text-sm text-slate-600">{text}</p></div></div>; }
+function Notice({ icon: Icon, title, text }: { icon: typeof Circle; title: string; text: string }) { return <div className="mt-6 flex gap-3 rounded-lg border-l-4 border-slate-300 bg-white px-4 py-4"><Icon className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" /><div><h3 className="text-sm font-semibold text-slate-900">{title}</h3><p className="mt-1 text-sm text-slate-600">{text}</p></div></div>; }
 function SectionTitle({ icon: Icon, title }: { icon: typeof Circle; title: string }) { return <div className="flex items-center gap-2"><Icon className="h-4 w-4 text-slate-500" /><h3 className="text-sm font-semibold text-slate-900">{title}</h3></div>; }

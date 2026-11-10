@@ -10,6 +10,7 @@ class SalesInvoice extends Model
 {
     protected $fillable = [
         'quotation_id',
+        'salesperson_id',
         'currency_code',
         'base_currency_code',
         'exchange_rate',
@@ -67,6 +68,11 @@ class SalesInvoice extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class, 'warehouse_id');
+    }
+
+    public function salesperson(): BelongsTo
+    {
+        return $this->belongsTo(\Workdo\Quotation\Models\QuotationSalesperson::class, 'salesperson_id');
     }
 
     public function quotation(): BelongsTo

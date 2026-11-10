@@ -133,6 +133,13 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
         order: 2950,
     },
     {
+        title: t('Ticket Records'),
+        href: route('helpdesk-tickets.records'),
+        icon: Headphones,
+        permission: 'view-helpdesk-tickets',
+        order: 2949,
+    },
+    {
         title: t('Plan'),
         icon: CreditCard,
         permission: 'manage-plans',

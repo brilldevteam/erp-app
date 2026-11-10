@@ -9,6 +9,7 @@ use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Workdo\Quotation\Models\QuotationSalesperson;
+use App\Models\SalesInvoice;
 use Workdo\Quotation\Models\SalesQuotation;
 
 class QuotationSalespersonController extends Controller
@@ -88,6 +89,7 @@ class QuotationSalespersonController extends Controller
             'salesperson' => $salesperson->only(['id', 'name', 'email', 'is_active']),
             'quotations' => $quotationRows,
             'payments' => $payments,
+            'statement' => $this->statementLines($salesperson),
             'summary' => [
                 'quotation_count' => $quotations->count(),
                 'quoted_base' => round($quotationRows->sum('base_amount'), 2),
@@ -97,6 +99,63 @@ class QuotationSalespersonController extends Controller
                 'status_counts' => $quotationRows->countBy('status'),
             ],
         ]);
+    }
+
+    /**
+     * Every quotation and invoice line credited to the salesperson, typed lines included.
+     * An invoice belongs to the salesperson set on it, or, when it has none, to its quotation's salesperson.
+     */
+    private function statementLines(QuotationSalesperson $salesperson): array
+    {
+        $line = static function ($item, string $type, $document, ?string $number, $date) {
+            $rate = (float) ($document->exchange_rate ?: 1);
+
+            return [
+                'key' => "{$type}-{$item->id}",
+                'document_type' => $type,
+                'document_id' => $document->id,
+                'document_number' => $number,
+                'date' => optional($date)->format('Y-m-d'),
+                'customer_name' => $document->customerDetails?->company_name ?: $document->customer?->name ?: __('Unknown customer'),
+                'status' => $type === 'quotation' && $document->converted_to_invoice ? 'converted' : $document->status,
+                'currency_code' => $document->currency_code,
+                'item_name' => $item->product?->name ?: $item->item_name ?: __('Item'),
+                'typed' => !$item->product_id,
+                'description' => $item->description,
+                'quantity' => (float) $item->quantity,
+                'unit_price' => (float) $item->unit_price,
+                'discount_amount' => (float) $item->discount_amount,
+                'tax_amount' => (float) $item->tax_amount,
+                'total_amount' => (float) $item->total_amount,
+                'base_total' => round((float) $item->total_amount * $rate, 2),
+            ];
+        };
+        $documentRelations = ['customer:id,name', 'customerDetails:user_id,company_name', 'items.product:id,name'];
+
+        $quotationLines = SalesQuotation::query()
+            ->where('created_by', creatorId())
+            ->where('salesperson_id', $salesperson->id)
+            ->with($documentRelations)
+            ->get()
+            ->flatMap(fn (SalesQuotation $quotation) => $quotation->items->map(
+                fn ($item) => $line($item, 'quotation', $quotation, $quotation->quotation_number, $quotation->quotation_date)
+            ));
+
+        $invoiceLines = SalesInvoice::query()
+            ->where('created_by', creatorId())
+            ->where(fn ($query) => $query->where('salesperson_id', $salesperson->id)
+                ->orWhere(fn ($query) => $query->whereNull('salesperson_id')
+                    ->whereHas('quotation', fn ($quotation) => $quotation->where('salesperson_id', $salesperson->id))))
+            ->with($documentRelations)
+            ->get()
+            ->flatMap(fn (SalesInvoice $invoice) => $invoice->items->map(
+                fn ($item) => $line($item, 'invoice', $invoice, $invoice->invoice_number, $invoice->invoice_date)
+            ));
+
+        return $quotationLines->concat($invoiceLines)
+            ->sortBy([['date', 'desc'], ['document_number', 'desc']])
+            ->values()
+            ->all();
     }
 
     public function store(Request $request): JsonResponse

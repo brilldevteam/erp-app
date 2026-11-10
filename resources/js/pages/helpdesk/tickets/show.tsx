@@ -11,9 +11,12 @@ import ChatMessage from '../components/ChatMessage';
 import ReplyForm from '../components/ReplyForm';
 import { formatDate } from '@/utils/helpers';
 import { ShowHelpdeskTicketProps, HelpdeskReply } from './types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const statusLabel = (status: string) => status.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 export default function Show() {
-    const { ticket, auth } = usePage<ShowHelpdeskTicketProps>().props;
+    const { ticket, auth, supportAgents } = usePage<ShowHelpdeskTicketProps>().props;
     const { t } = useTranslation();
     const [replies, setReplies] = useState<HelpdeskReply[]>(ticket.replies || []);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -67,6 +70,8 @@ export default function Show() {
         const colors = {
             open: 'bg-blue-100 text-blue-800',
             in_progress: 'bg-yellow-100 text-yellow-800',
+            waiting_customer: 'bg-cyan-100 text-cyan-800',
+            waiting_internal: 'bg-purple-100 text-purple-800',
             resolved: 'bg-green-100 text-green-800',
             closed: 'bg-gray-100 text-gray-800'
         };
@@ -123,24 +128,75 @@ export default function Show() {
                                     <p className="text-sm font-medium text-gray-900 mt-1">{ticket.category?.name || '-'}</p>
                                 </div>
                                 <div>
-                                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('Created By')}</label>
-                                    <p className="text-sm font-medium text-gray-900 mt-1">{ticket.creator?.name}</p>
+                                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('Requester')}</label>
+                                    <p className="text-sm font-medium text-gray-900 mt-1">{ticket.requester?.name || t('Unknown (legacy ticket)')}</p>
                                 </div>
                             </div>
                             <div>
                                 <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('Created At')}</label>
                                 <p className="text-sm font-medium text-gray-900 mt-1">{formatDate(ticket.created_at)}</p>
                             </div>
-                            {ticket.assignedTo && (
+                            {ticket.assigned_agent && (
                                 <div>
                                     <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('Assigned To')}</label>
-                                    <p className="text-sm font-medium text-gray-900 mt-1">{ticket.assignedTo.name}</p>
+                                    <p className="text-sm font-medium text-gray-900 mt-1">{ticket.assigned_agent.name}</p>
+                                </div>
+                            )}
+                            {auth.user?.permissions?.includes('assign-helpdesk-tickets') && (
+                                <div>
+                                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('Assigned Agent')}</label>
+                                    <Select
+                                        value={ticket.assigned_agent_id?.toString() || 'unassigned'}
+                                        onValueChange={(value) => router.put(route('helpdesk-tickets.assign', ticket.id), { assigned_agent_id: value === 'unassigned' ? null : Number(value) }, { preserveScroll: true })}
+                                    >
+                                        <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="unassigned">{t('Unassigned')}</SelectItem>
+                                            {supportAgents.map((agent) => <SelectItem key={agent.id} value={agent.id.toString()}>{agent.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             )}
                         </div>
                     </div>
                 </CardContent>
             </Card>
+
+            {((ticket.status_histories?.length ?? 0) > 0 || (ticket.assignment_histories?.length ?? 0) > 0) && (
+                <Card className="mb-6">
+                    <CardHeader className="border-b bg-gray-50/50 py-4">
+                        <CardTitle className="text-lg font-semibold">{t('History')}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid gap-6 p-6 md:grid-cols-2">
+                        {(ticket.status_histories?.length ?? 0) > 0 && (
+                            <div>
+                                <h3 className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">{t('Status changes')}</h3>
+                                <ul className="space-y-2 text-sm">
+                                    {ticket.status_histories!.map((entry) => (
+                                        <li key={entry.id} className="flex flex-wrap justify-between gap-2 border-b pb-2 last:border-0">
+                                            <span>{entry.from_status ? `${t(statusLabel(entry.from_status))} \u2192 ` : ''}<strong>{t(statusLabel(entry.to_status))}</strong>{entry.changed_by_name ? ` \u00b7 ${entry.changed_by_name}` : ''}</span>
+                                            <span className="text-gray-500">{formatDate(entry.created_at)}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                        {(ticket.assignment_histories?.length ?? 0) > 0 && (
+                            <div>
+                                <h3 className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">{t('Assignments')}</h3>
+                                <ul className="space-y-2 text-sm">
+                                    {ticket.assignment_histories!.map((entry) => (
+                                        <li key={entry.id} className="flex flex-wrap justify-between gap-2 border-b pb-2 last:border-0">
+                                            <span>{entry.from_agent_name || t('Unassigned')}{' \u2192 '}<strong>{entry.to_agent_name || t('Unassigned')}</strong>{entry.changed_by_name ? ` \u00b7 ${entry.changed_by_name}` : ''}</span>
+                                            <span className="text-gray-500">{formatDate(entry.created_at)}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Full Page Conversation */}
             <Card className="flex flex-col" style={{ height: 'calc(100vh - 50px)' }}>
@@ -172,7 +228,7 @@ export default function Show() {
                             ) : (
                                 <>
                                     {replies
-                                        .filter(reply => !reply.is_internal || auth.user?.type === 'superadmin')
+                                        .filter(reply => !reply.is_internal || auth.user?.permissions?.includes('view-helpdesk-internal-notes'))
                                         .map((reply) => (
                                         <ChatMessage
                                             key={reply.id}

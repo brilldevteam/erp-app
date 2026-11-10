@@ -318,7 +318,7 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
             </div>
 
             {showAddButton && (
-                <div className="flex flex-wrap justify-start gap-2">
+                <div className="flex flex-wrap justify-start gap-2 px-4">
                     <Button
                         type="button"
                         onClick={addItem}

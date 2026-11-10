@@ -96,6 +96,8 @@ export default function Index() {
         const colors = {
             open: 'bg-blue-100 text-blue-800',
             in_progress: 'bg-yellow-100 text-yellow-800',
+            waiting_customer: 'bg-cyan-100 text-cyan-800',
+            waiting_internal: 'bg-purple-100 text-purple-800',
             resolved: 'bg-green-100 text-green-800',
             closed: 'bg-gray-100 text-gray-800'
         };
@@ -168,8 +170,8 @@ export default function Index() {
         },
         {
             key: 'creator',
-            header: t('Created By'),
-            render: (_: any, ticket: any) => ticket.creator?.name || '-'
+            header: t('Requester'),
+            render: (_: any, ticket: any) => ticket.requester?.name || t('Unknown (legacy ticket)')
         },
         ...(auth.user?.permissions?.some((p: string) => ['view-helpdesk-tickets', 'edit-helpdesk-tickets', 'delete-helpdesk-tickets'].includes(p)) ? [{
             key: 'actions',
@@ -297,6 +299,8 @@ export default function Index() {
                                     <SelectContent>
                                         <SelectItem value="open">{t('Open')}</SelectItem>
                                         <SelectItem value="in_progress">{t('In Progress')}</SelectItem>
+                                        <SelectItem value="waiting_customer">{t('Waiting on Customer')}</SelectItem>
+                                        <SelectItem value="waiting_internal">{t('Waiting Internally')}</SelectItem>
                                         <SelectItem value="resolved">{t('Resolved')}</SelectItem>
                                         <SelectItem value="closed">{t('Closed')}</SelectItem>
                                     </SelectContent>
@@ -447,8 +451,8 @@ export default function Index() {
                                                             )}
                                                         </div>
                                                         <div>
-                                                            <p className="text-xs font-medium text-gray-600 mb-1">{t('Created By')}</p>
-                                                            <p className="text-xs text-gray-900 truncate">{ticket.creator?.name || '-'}</p>
+                                                            <p className="text-xs font-medium text-gray-600 mb-1">{t('Requester')}</p>
+                                                            <p className="text-xs text-gray-900 truncate">{ticket.requester?.name || t('Unknown (legacy ticket)')}</p>
                                                         </div>
                                                     </div>
                                                 </div>

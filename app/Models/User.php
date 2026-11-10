@@ -132,6 +132,26 @@ class User extends Authenticatable implements MustVerifyEmail
         'case initiator'
     ];
 
+    private ?bool $platformSupport = null;
+
+    /**
+     * Support agents and managers are staff owned by the super admin. Holding a role with the same name inside a
+     * company is not enough, because companies can create roles of their own.
+     */
+    public function isPlatformSupport(): bool
+    {
+        return $this->platformSupport ??= $this->type === 'staff'
+            && $this->created_by
+            && static::whereKey($this->created_by)->where('type', 'superadmin')->exists()
+            && $this->hasAnyRole(['support-agent', 'support-manager']);
+    }
+
+    /** The super admin and platform support staff: the only people who may see internal notes or other companies' tickets. */
+    public function isSupportSide(): bool
+    {
+        return $this->type === 'superadmin' || $this->isPlatformSupport();
+    }
+
     public function scopeEmp($query, $additionalTypes = [], $includeTypes = [])
     {
         $excludeTypes = array_diff(array_merge($this->not_emp_type, $additionalTypes), $includeTypes);
@@ -280,6 +300,12 @@ class User extends Authenticatable implements MustVerifyEmail
                 'print-sales-proposals',
                 'accept-sales-proposals',
                 'reject-sales-proposals',
+                'manage-helpdesk-tickets',
+                'manage-own-helpdesk-tickets',
+                'view-helpdesk-tickets',
+                'create-helpdesk-tickets',
+                'manage-helpdesk-replies',
+                'create-helpdesk-replies',
             ])->get();
 
             $clientRole->givePermissionTo($permissions);

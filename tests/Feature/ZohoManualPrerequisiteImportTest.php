@@ -197,6 +197,32 @@ class ZohoManualPrerequisiteImportTest extends TestCase
         $this->assertSame('completed', $batch->stages()->where('stage_key', 'items')->value('status'));
     }
 
+    public function test_services_need_no_sku_and_are_matched_by_name_but_products_need_one(): void
+    {
+        Storage::fake('local');
+        [$company, $batch] = $this->catalogBatch();
+        ProductServiceCategory::create(['name' => 'General', 'color' => '#000000', 'creator_id' => $company->id, 'created_by' => $company->id]);
+        $service = app(ZohoManualPrerequisiteService::class);
+        $header = "name\tsku\ttype\tcategory\tunit\ttaxes\tsale_price\tpurchase_price\tdescription";
+
+        $productWithoutSku = $service->import($batch, 'items', "{$header}\nWidget\t\tproduct\tGeneral\t\t\t10\t5\t", $company->id);
+        $this->assertSame(1, $productWithoutSku['rejected']);
+
+        $accepted = $service->import($batch, 'items', "{$header}\nPromotion reels\t\tservice\tGeneral\t\t\t500\t0\tMonthly reels", $company->id);
+        $this->assertSame(1, $accepted['imported']);
+        $created = ProductServiceItem::where('created_by', $company->id)->where('name', 'Promotion reels')->firstOrFail();
+        $this->assertNull($created->sku);
+        $this->assertSame('service', $created->type);
+
+        $sameNameTwice = $service->import($batch, 'items', "{$header}\nLogo design\t\tservice\tGeneral\t\t\t100\t0\t\nlogo design\t\tservice\tGeneral\t\t\t100\t0\t", $company->id);
+        $this->assertSame(1, $sameNameTwice['rejected']);
+        $this->assertLessThanOrEqual(1, ProductServiceItem::where('created_by', $company->id)->whereRaw('LOWER(name) = ?', ['logo design'])->count());
+
+        $alreadyInErp = $service->import($batch, 'items', "{$header}\nPROMOTION REELS\t\tservice\tGeneral\t\t\t500\t0\t", $company->id);
+        $this->assertSame(1, $alreadyInErp['rejected']);
+        $this->assertSame(1, ProductServiceItem::where('created_by', $company->id)->whereRaw('LOWER(name) = ?', ['promotion reels'])->count());
+    }
+
     private function catalogBatch(): array
     {
         $company = User::factory()->create(['type' => 'company', 'created_by' => null]);

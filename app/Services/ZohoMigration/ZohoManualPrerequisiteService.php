@@ -151,11 +151,11 @@ class ZohoManualPrerequisiteService
         return $this->spreadsheets->template($definition['headers'], $example, [
             'Fill one row per product or service. Delete the example row before uploading.',
             'Keep the column names in the first row; column order does not matter.',
-            'type is product, service or part. Services need no unit; products and parts do.',
+            'type is product, service or part. Services need no SKU or unit; products and parts do.',
             'category, unit and taxes must exactly match names already in ERP (see the "ERP names" sheet).',
             'Separate several taxes with commas. Leave taxes empty for no tax.',
             'sale_price and purchase_price are numbers of zero or more.',
-            'SKU must be unique. Spreadsheet formulas are not accepted.',
+            'SKU must be unique. A service without SKU is matched by its name. Spreadsheet formulas are not accepted.',
             'Files may contain at most '.SpreadsheetService::MAX_ROWS.' data rows.',
         ], $format, ['ERP names' => $referenceRows]);
     }
@@ -401,7 +401,9 @@ class ZohoManualPrerequisiteService
             $original = $row['values'];
             $values = $this->products->prepare($row['values']);
             $values = $this->repairLegacyProductTemplateNames($values, $batch->tenant_id);
-            $sku = mb_strtolower(trim((string) ($values['sku'] ?? '')));
+            // SKU, or the name for a service without SKU.
+            $key = $this->products->identity($values);
+            $label = str_starts_with($key, 'service:') ? 'Service name' : 'SKU';
             $errors = $this->products->validate($values, $batch->tenant_id);
             foreach (['type', 'category', 'unit', 'sale_price', 'purchase_price'] as $requiredField) {
                 // Matches the ERP item form: services carry no unit.
@@ -412,14 +414,14 @@ class ZohoManualPrerequisiteService
                     $errors[] = ucfirst(str_replace('_', ' ', $requiredField)).' is required for the manual product master.';
                 }
             }
-            if ($sku !== '' && isset($seen[$sku])) {
-                $errors[] = "SKU is duplicated in pasted rows {$seen[$sku]} and {$row['source_row_number']}.";
+            if ($key !== '' && isset($seen[$key])) {
+                $errors[] = "{$label} is duplicated in pasted rows {$seen[$key]} and {$row['source_row_number']}.";
             }
-            if ($sku !== '') {
-                $seen[$sku] = $row['source_row_number'];
+            if ($key !== '') {
+                $seen[$key] = $row['source_row_number'];
             }
-            if ($sku !== '' && $batch->duplicate_strategy === 'block' && $this->products->duplicate($values, $batch->tenant_id)) {
-                $errors[] = 'SKU already exists in ERP and this migration is configured to block duplicates.';
+            if ($key !== '' && $batch->duplicate_strategy === 'block' && $this->products->duplicate($values, $batch->tenant_id)) {
+                $errors[] = "{$label} already exists in ERP and this migration is configured to block duplicates.";
             }
 
             return $row + ['values' => $values, 'errors' => array_values(array_unique($errors))];
