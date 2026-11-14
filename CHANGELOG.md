@@ -1,5 +1,6 @@
 # Changelog
 
+- The inline Helpdesk ticket status dropdown now sits directly below Requester in the ticket header, keeping status changes visible beside the requester details.
 - Client navigation now groups Helpdesk and Ticket Records under one Helpdesk menu. Ticket Records uses its own `View Helpdesk Records` role permission, which can be granted or removed independently while existing company/client roles retain access by default.
 - Helpdesk support users can now change a ticket's status directly from its detail page. Inline changes use the same authorization, lifecycle timestamps, history, notifications and email behavior as the full edit form.
 

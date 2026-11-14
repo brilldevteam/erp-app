@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `UI-upgrade-2026-11-14` | Helpdesk ticket header status layout: move the existing authorized status dropdown directly below Requester; frontend verification, changelog and handoff. | 2026-11-14 | Released - pushed without PR |
 | Codex | `UI-upgrade-2026-11-14` | Helpdesk client navigation and Ticket Records permission: grouped Helpdesk submenu, enforce existing `view-helpdesk-records`, default role grants, focused tests, changelog and handoff. | 2026-11-14 | Released - pushed without PR |
 | Codex | `UI-upgrade-2026-11-14` | Inline Helpdesk ticket status control: support-only status endpoint, ticket detail selector, shared lifecycle/history behavior, focused smoke coverage, changelog and handoff. Preserve all completed Helpdesk Steps 1-7. | 2026-11-14 | Released - pushed without PR |
 | Codex | `UI-upgrade-2026-11-09` | Helpdesk Step 5 pop-up notifications: database notifications for ticket creation, assignment, replies and resolution; recipient-safe polling/read-dismiss endpoints; persistent global top-right stack; focused tests, changelog and handoff. Claude's Steps 1/3 and completed Steps 2/4 are preserved. | 2026-11-10 | Taken over by Claude on 2026-11-10 after Codex hit its usage limit; Steps 5-7 complete locally, not committed |
@@ -272,6 +273,13 @@ Zoho export inventory (Claude, 2026-10-28, read-only). Full detail with exact pa
 A work item is not complete until its code is committed, tests are recorded, affected workflows are manually checked when applicable, migrations and deployment steps are documented, the changelog is updated when required, and this coordination file contains a handoff entry.
 
 ## Handoff Log
+
+### 2026-11-14 Asia/Colombo - Codex - Ticket status below Requester
+
+- Branch: `UI-upgrade-2026-11-14`. Released on this branch without a PR.
+- Moved the existing authorized inline status selector into the Requester column of the ticket header, directly below Requester. Created At now stays below Category and assignment information remains below the two-column metadata grid.
+- Files changed for this follow-up: `resources/js/pages/helpdesk/tickets/show.tsx`, `CHANGELOG.md` and this handoff. No backend behavior, migrations, permissions or data changed.
+- Verification: `npx tsc --noEmit` passed. Generated `public/build`, `public/hot`, storage and unrelated files were not included.
 
 ### 2026-11-14 Asia/Colombo - Codex - Helpdesk submenu and Ticket Records permission
 

@@ -124,50 +124,54 @@ export default function Show() {
 
                         <div className="lg:w-80 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('Category')}</label>
-                                    <p className="text-sm font-medium text-gray-900 mt-1">{ticket.category?.name || '-'}</p>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('Category')}</label>
+                                        <p className="text-sm font-medium text-gray-900 mt-1">{ticket.category?.name || '-'}</p>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('Created At')}</label>
+                                        <p className="text-sm font-medium text-gray-900 mt-1">{formatDate(ticket.created_at)}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('Requester')}</label>
-                                    <p className="text-sm font-medium text-gray-900 mt-1">{ticket.requester?.name || t('Unknown (legacy ticket)')}</p>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('Requester')}</label>
+                                        <p className="text-sm font-medium text-gray-900 mt-1">{ticket.requester?.name || t('Unknown (legacy ticket)')}</p>
+                                    </div>
+                                    {canChangeStatus && (
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('Status')}</label>
+                                            <Select
+                                                value={ticket.status}
+                                                disabled={statusUpdating}
+                                                onValueChange={(status) => {
+                                                    setStatusUpdating(true);
+                                                    router.patch(
+                                                        route('helpdesk-tickets.status', ticket.id),
+                                                        { status },
+                                                        {
+                                                            preserveScroll: true,
+                                                            onFinish: () => setStatusUpdating(false),
+                                                        },
+                                                    );
+                                                }}
+                                            >
+                                                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    {['open', 'in_progress', 'waiting_customer', 'waiting_internal', 'resolved', 'closed'].map((status) => (
+                                                        <SelectItem key={status} value={status}>{t(statusLabel(status))}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
-                            <div>
-                                <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('Created At')}</label>
-                                <p className="text-sm font-medium text-gray-900 mt-1">{formatDate(ticket.created_at)}</p>
                             </div>
                             {ticket.assigned_agent && (
                                 <div>
                                     <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('Assigned To')}</label>
                                     <p className="text-sm font-medium text-gray-900 mt-1">{ticket.assigned_agent.name}</p>
-                                </div>
-                            )}
-                            {canChangeStatus && (
-                                <div>
-                                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('Status')}</label>
-                                    <Select
-                                        value={ticket.status}
-                                        disabled={statusUpdating}
-                                        onValueChange={(status) => {
-                                            setStatusUpdating(true);
-                                            router.patch(
-                                                route('helpdesk-tickets.status', ticket.id),
-                                                { status },
-                                                {
-                                                    preserveScroll: true,
-                                                    onFinish: () => setStatusUpdating(false),
-                                                },
-                                            );
-                                        }}
-                                    >
-                                        <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            {['open', 'in_progress', 'waiting_customer', 'waiting_internal', 'resolved', 'closed'].map((status) => (
-                                                <SelectItem key={status} value={status}>{t(statusLabel(status))}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
                                 </div>
                             )}
                             {auth.user?.permissions?.includes('assign-helpdesk-tickets') && (
