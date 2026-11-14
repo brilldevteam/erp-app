@@ -127,17 +127,22 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
     },
     {
         title: t('Helpdesk'),
-        href: route('helpdesk-tickets.index'),
         icon: Headphones,
         permission: 'manage-helpdesk-tickets',
+        anyPermission: ['view-helpdesk-records'],
         order: 2950,
-    },
-    {
-        title: t('Ticket Records'),
-        href: route('helpdesk-tickets.records'),
-        icon: Headphones,
-        permission: 'view-helpdesk-tickets',
-        order: 2949,
+        children: [
+            {
+                title: t('Helpdesk'),
+                href: route('helpdesk-tickets.index'),
+                permission: 'manage-helpdesk-tickets',
+            },
+            {
+                title: t('Ticket Records'),
+                href: route('helpdesk-tickets.records'),
+                permission: 'view-helpdesk-records',
+            },
+        ],
     },
     {
         title: t('Plan'),

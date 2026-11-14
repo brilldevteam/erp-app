@@ -153,6 +153,7 @@ Route::middleware(['auth', 'auth.session.current', 'verified', 'PlanModuleCheck'
     Route::get('helpdesk-ticket/records', [HelpdeskTicketController::class, 'records'])->name('helpdesk-tickets.records');
     Route::resource('helpdesk-tickets', HelpdeskTicketController::class);
     Route::put('helpdesk-tickets/{helpdeskTicket}/assign', [HelpdeskTicketController::class, 'assign'])->name('helpdesk-tickets.assign');
+    Route::patch('helpdesk-tickets/{helpdeskTicket}/status', [HelpdeskTicketController::class, 'updateStatus'])->name('helpdesk-tickets.status');
     Route::get('support-agents', [SupportAgentController::class, 'index'])->name('support-agents.index');
     Route::post('support-agents', [SupportAgentController::class, 'store'])->name('support-agents.store');
     Route::get('helpdesk-popup-notifications', [HelpdeskPopupNotificationController::class, 'index'])->name('helpdesk-popup-notifications.index');

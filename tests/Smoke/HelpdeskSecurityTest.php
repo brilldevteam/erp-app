@@ -270,6 +270,47 @@ class HelpdeskSecurityTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $this->company->id]);
     }
 
+    public function test_support_users_can_change_status_inline_but_company_users_cannot(): void
+    {
+        $ticket = HelpdeskTicket::create([
+            'title' => 'Inline status',
+            'description' => 'Body',
+            'status' => 'open',
+            'priority' => 'low',
+            'created_by' => $this->company->id,
+            'requester_user_id' => $this->company->id,
+        ]);
+
+        $this->as($this->admin)
+            ->patch(route('helpdesk-tickets.status', $ticket), ['status' => 'resolved'])
+            ->assertRedirect();
+
+        $ticket->refresh();
+        $this->assertSame('resolved', $ticket->status);
+        $this->assertNotNull($ticket->resolved_at);
+        $this->assertDatabaseHas('helpdesk_status_histories', [
+            'ticket_id' => $ticket->id,
+            'from_status' => 'open',
+            'to_status' => 'resolved',
+            'changed_by' => $this->admin->id,
+        ]);
+
+        $this->as($this->company)
+            ->patch(route('helpdesk-tickets.status', $ticket), ['status' => 'closed'])
+            ->assertForbidden();
+        $this->assertSame('resolved', $ticket->fresh()->status);
+
+        $agent = User::factory()->create(['type' => 'staff', 'created_by' => $this->admin->id, 'is_enable_login' => 1]);
+        $agent->assignRole('support-agent');
+        $ticket->update(['assigned_agent_id' => $agent->id]);
+
+        $this->as($agent)
+            ->patch(route('helpdesk-tickets.status', $ticket), ['status' => 'in_progress'])
+            ->assertRedirect();
+        $this->assertSame('in_progress', $ticket->fresh()->status);
+        $this->assertNull($ticket->fresh()->resolved_at);
+    }
+
     public function test_support_agent_only_reaches_assigned_tickets_and_loses_access_after_reassignment(): void
     {
         $firstAgent = User::factory()->create(['type' => 'staff', 'created_by' => $this->admin->id, 'is_enable_login' => 1]);
@@ -356,6 +397,7 @@ class HelpdeskSecurityTest extends TestCase
 
     private function records(User $user, array $query = []): array
     {
+        $user->givePermissionTo('view-helpdesk-records');
         $response = $this->as($user)->get(route('helpdesk-tickets.records', $query + ['search' => 'RecChk', 'per_page' => 100]));
         $response->assertOk();
 
@@ -391,6 +433,16 @@ class HelpdeskSecurityTest extends TestCase
         $this->assertArrayNotHasKey('by_company', $customer['summary']);
         $this->assertSame(1, $customer['summary']['total']);
         $this->assertSame([], $customer['companies']);
+    }
+
+    public function test_ticket_records_require_their_own_permission(): void
+    {
+        $customer = User::factory()->create(['type' => 'client', 'created_by' => $this->company->id, 'is_enable_login' => 1]);
+        $customer->givePermissionTo(['manage-helpdesk-tickets', 'view-helpdesk-tickets', 'view-helpdesk-records']);
+        $this->as($customer)->get(route('helpdesk-tickets.records'))->assertOk();
+
+        $customer->revokePermissionTo('view-helpdesk-records');
+        $this->as($customer)->get(route('helpdesk-tickets.records'))->assertForbidden();
     }
 
     public function test_ticket_records_keep_closed_and_old_tickets_and_the_summary_matches_the_list(): void

@@ -64,6 +64,8 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `UI-upgrade-2026-11-14` | Helpdesk client navigation and Ticket Records permission: grouped Helpdesk submenu, enforce existing `view-helpdesk-records`, default role grants, focused tests, changelog and handoff. | 2026-11-14 | Released - pushed without PR |
+| Codex | `UI-upgrade-2026-11-14` | Inline Helpdesk ticket status control: support-only status endpoint, ticket detail selector, shared lifecycle/history behavior, focused smoke coverage, changelog and handoff. Preserve all completed Helpdesk Steps 1-7. | 2026-11-14 | Released - pushed without PR |
 | Codex | `UI-upgrade-2026-11-09` | Helpdesk Step 5 pop-up notifications: database notifications for ticket creation, assignment, replies and resolution; recipient-safe polling/read-dismiss endpoints; persistent global top-right stack; focused tests, changelog and handoff. Claude's Steps 1/3 and completed Steps 2/4 are preserved. | 2026-11-10 | Taken over by Claude on 2026-11-10 after Codex hit its usage limit; Steps 5-7 complete locally, not committed |
 | Claude | `UI-upgrade-2026-11-09` | Helpdesk security fixes and private reply attachments: HelpdeskTicketController, HelpdeskReplyController, reply request, Helpdesk models, reply form and message UI, new attachment table, routes and tests. Agents, requester and pop-ups are not included. | 2026-11-09 | Complete - locally verified; not committed or pushed |
 | Codex | `feature/zoho-ui-upgrade-2026-11-04` | Salesperson workspace and Create Quotation UX: clickable directory rows, tenant-scoped overview/quotations/payments data, quotation/invoice drill-through, two-row details layout, and editable template-prefilled Notes/Terms persisted on quotations and PDFs. Focused tests, migration, changelog and handoff included. Existing statement and salesperson work is preserved; generated `public/build` and `public/hot` remain excluded. | 2026-11-05 | Complete - locally migrated and verified; not committed or pushed |
@@ -270,6 +272,32 @@ Zoho export inventory (Claude, 2026-10-28, read-only). Full detail with exact pa
 A work item is not complete until its code is committed, tests are recorded, affected workflows are manually checked when applicable, migrations and deployment steps are documented, the changelog is updated when required, and this coordination file contains a handoff entry.
 
 ## Handoff Log
+
+### 2026-11-14 Asia/Colombo - Codex - Helpdesk submenu and Ticket Records permission
+
+- Branch: `UI-upgrade-2026-11-14`. Released on this branch without a PR.
+- Company/client navigation now has one Helpdesk parent with `Helpdesk` and `Ticket Records` children. Superadmin Ticket Records also uses the dedicated permission.
+- Activated the existing `view-helpdesk-records` permission end to end: menu visibility, server-side route enforcement, permission catalogue/default role setup and future client-role creation. Migration `2026_11_14_000008_grant_helpdesk_records_permission.php` preserves current behavior by granting it to existing company/client roles; administrators can remove it from roles afterward.
+- Files changed for this item: company/superadmin menu definitions, `HelpdeskTicketController.php`, `PermissionRoleSeeder.php`, `User.php`, the new permission migration, `HelpdeskSecurityTest.php`, `CHANGELOG.md` and this handoff.
+- Verification: migration/controller PHP syntax clean; `tests/Smoke/HelpdeskSecurityTest.php` passed 27 tests / 155 assertions using `phpunit.smoke.xml`; `npx tsc --noEmit` passed; `git diff --check` passed.
+- Deployment: back up the database, deploy source, run migrations, clear Spatie permission/application caches, then rebuild frontend assets. No local data migration was run and no generated build/storage files were changed for this item.
+
+### 2026-11-14 Asia/Colombo - Codex - Inline Helpdesk ticket status control
+
+- Branch: `UI-upgrade-2026-11-14`. Released on this branch without a PR.
+- Added a support-side-only status selector to the ticket detail page and a narrow `helpdesk-tickets.status` endpoint, so super admins and assigned authorized support agents can change status without opening Edit. Company and customer users cannot call the endpoint.
+- Reused one controller lifecycle path for both full edits and inline changes. Status timestamps, status history, resolved pop-ups, status emails and the existing update event remain consistent; selecting the current status is a no-op.
+- Files changed for this item: `app/Http/Controllers/HelpdeskTicketController.php`, `routes/web.php`, `resources/js/pages/helpdesk/tickets/show.tsx`, `resources/js/pages/helpdesk/tickets/types.ts`, `tests/Smoke/HelpdeskSecurityTest.php`, `CHANGELOG.md` and this handoff.
+- Verification: PHP syntax clean; named route registered; `tests/Smoke/HelpdeskSecurityTest.php` passed 26 tests / 153 assertions using `phpunit.smoke.xml`; `npx tsc --noEmit` passed.
+- No migrations, database changes, generated `public/build`, `public/hot`, `tmp` or storage files were created or modified for this item.
+
+### 2026-11-10 Asia/Colombo - Claude - Branch Feature/UI-upgrade-2026-11-10 pushed
+
+- Commit `610f53202` "Helpdesk takeover, salesperson statement and UI upgrades" (78 files) on top of `UI-upgrade-2026-11-09` (`3f1a88a9b`). Pushed to GitHub as `Feature/UI-upgrade-2026-11-10`. No PR.
+- Contains Codex Helpdesk Steps 2/4/5/6 and Claude Steps 1/3/7, the role-permission fix, services without SKU/type, Bulk Import tabs and styling, Ticket Records/Agent changes, Journal Entry "Reversed" label, salesperson on invoices and the salesperson Statement, New invoice menu and item button alignment, and the two new smoke tests.
+- Excluded: `public/build`, `public/hot`, `tmp/`, storage and all unrelated untracked folders. `origin/main` (`5d4cb305d`) is an ancestor, so it merges cleanly; the only `public/` path vs main is the earlier deletion of `public/hot`.
+- Windows note: a local `feature/` ref folder already exists, so the local branch is `feature/UI-upgrade-2026-11-10` (lowercase) tracking `origin/Feature/UI-upgrade-2026-11-10`. Do not create capital `Feature/` branches locally; push with `HEAD:refs/heads/Feature/...` instead.
+- Live still needs: backup, migrations 2026_11_09_000001-000004 and 2026_11_10_000005-000007, permission/config cache clear, build, queue worker for `emails`, writable `storage/app/private`.
 
 ### 2026-11-10 Asia/Colombo - Claude - Invoice items buttons aligned
 

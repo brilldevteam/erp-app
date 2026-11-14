@@ -162,6 +162,7 @@ class PermissionRoleSeeder extends Seeder
             ['name' => 'manage-any-helpdesk-tickets', 'module' => 'helpdesk-tickets', 'label' => 'Manage All Helpdesk Tickets'],
             ['name' => 'manage-own-helpdesk-tickets', 'module' => 'helpdesk-tickets', 'label' => 'Manage Own Helpdesk Tickets'],
             ['name' => 'view-helpdesk-tickets', 'module' => 'helpdesk-tickets', 'label' => 'View Helpdesk Tickets'],
+            ['name' => 'view-helpdesk-records', 'module' => 'helpdesk-tickets', 'label' => 'View Helpdesk Records'],
             ['name' => 'create-helpdesk-tickets', 'module' => 'helpdesk-tickets', 'label' => 'Create Helpdesk Tickets'],
             ['name' => 'edit-helpdesk-tickets', 'module' => 'helpdesk-tickets', 'label' => 'Edit Helpdesk Tickets'],
             ['name' => 'delete-helpdesk-tickets', 'module' => 'helpdesk-tickets', 'label' => 'Delete Helpdesk Tickets'],
@@ -296,7 +297,7 @@ class PermissionRoleSeeder extends Seeder
                 'permissions' => [
                     'manage-dashboard',
                     'manage-users', 'manage-any-users', 'manage-own-users', 'create-users', 'edit-users', 'delete-users', 'change-password-users', 'toggle-status-users', 'impersonate-users', 'view-login-history',
-                    'manage-helpdesk-tickets', 'manage-any-helpdesk-tickets', 'view-helpdesk-tickets', 'create-helpdesk-tickets', 'edit-helpdesk-tickets','delete-helpdesk-tickets',
+                    'manage-helpdesk-tickets', 'manage-any-helpdesk-tickets', 'view-helpdesk-tickets', 'view-helpdesk-records', 'create-helpdesk-tickets', 'edit-helpdesk-tickets','delete-helpdesk-tickets',
                     'manage-helpdesk-categories', 'create-helpdesk-categories', 'edit-helpdesk-categories', 'delete-helpdesk-categories',
                     'manage-helpdesk-replies', 'create-helpdesk-replies', 'delete-helpdesk-replies',
                     'manage-settings', 'edit-settings', 'manage-brand-settings', 'edit-brand-settings', 'manage-system-settings', 'edit-system-settings', 'manage-currency-settings', 'edit-currency-settings', 'manage-cache-settings', 'clear-cache', 'manage-cookie-settings', 'edit-cookie-settings', 'manage-seo-settings', 'edit-seo-settings', 'manage-storage-settings', 'edit-storage-settings', 'manage-email-settings', 'edit-email-settings', 'test-email','manage-email-notification-settings','manage-pusher-settings', 'edit-pusher-settings', 'edit-social-login-settings','manage-notification-templates','edit-notification-templates','manage-bank-transfer-settings', 'edit-bank-transfer-settings',
@@ -321,7 +322,7 @@ class PermissionRoleSeeder extends Seeder
 
 
 
-                    'manage-helpdesk-tickets', 'manage-own-helpdesk-tickets', 'view-helpdesk-tickets', 'create-helpdesk-tickets',  'edit-helpdesk-tickets',
+                    'manage-helpdesk-tickets', 'manage-own-helpdesk-tickets', 'view-helpdesk-tickets', 'view-helpdesk-records', 'create-helpdesk-tickets',  'edit-helpdesk-tickets',
                     'manage-helpdesk-replies', 'create-helpdesk-replies',
                     'manage-settings', 'edit-settings', 'manage-brand-settings', 'edit-brand-settings', 'manage-company-settings', 'edit-company-settings', 'manage-system-settings', 'edit-system-settings', 'manage-email-settings', 'edit-email-settings', 'test-email','manage-email-notification-settings','manage-ai-agent-settings', 'edit-ai-agent-settings','manage-ai-agent',
                     'manage-currency-settings', 'edit-currency-settings', 'manage-media', 'manage-own-media', 'create-media', 'download-media', 'delete-media', 'manage-media-directories', 'manage-own-media-directories', 'create-media-directories', 'edit-media-directories', 'delete-media-directories',

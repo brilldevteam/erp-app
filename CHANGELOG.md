@@ -1,5 +1,8 @@
 # Changelog
 
+- Client navigation now groups Helpdesk and Ticket Records under one Helpdesk menu. Ticket Records uses its own `View Helpdesk Records` role permission, which can be granted or removed independently while existing company/client roles retain access by default.
+- Helpdesk support users can now change a ticket's status directly from its detail page. Inline changes use the same authorization, lifecycle timestamps, history, notifications and email behavior as the full edit form.
+
 ## 2026-10-26 - Account dashboard bank balance
 
 - Changed the Account Dashboard bank balance to use the current posted-ledger balances of active checking and savings accounts linked to chart-of-account records.

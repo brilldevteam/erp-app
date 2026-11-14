@@ -141,11 +141,8 @@ class HelpdeskTicketController extends Controller
     /** Every ticket the signed-in user may see, kept as permanent records, with a summary that follows the filters. */
     public function records(Request $request)
     {
-        if (!Gate::allows('viewAny', HelpdeskTicket::class)) {
-            return back()->with('error', __('Permission denied'));
-        }
-
         $user = Auth::user();
+        abort_unless($user->can('view-helpdesk-records') && Gate::allows('viewAny', HelpdeskTicket::class), 403);
         $supportSide = $user->type === 'superadmin' || ($user->isPlatformSupport() && $user->can('view-all-support-tickets'));
         $date = fn ($value) => is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) ? $value : null;
 
@@ -232,6 +229,7 @@ class HelpdeskTicketController extends Controller
 
             return Inertia::render('helpdesk/tickets/show', [
                 'ticket' => $helpdeskTicket,
+                'canChangeStatus' => Auth::user()->isSupportSide() && Gate::allows('update', $helpdeskTicket),
                 'supportAgents' => Auth::user()->can('assign-helpdesk-tickets')
                     ? User::where('type', 'staff')->whereHas('roles', fn ($query) => $query->whereIn('name', ['support-agent', 'support-manager']))->orderBy('name')->get(['id', 'name', 'email'])
                     : [],
@@ -274,40 +272,12 @@ class HelpdeskTicketController extends Controller
     {
         if(Gate::allows('update', $helpdeskTicket)){
             $validated = $request->validated();
-            $oldStatus = $helpdeskTicket->status;
-
             $helpdeskTicket->title = $validated['title'];
             $helpdeskTicket->description = $validated['description'];
-            $helpdeskTicket->status = $validated['status'];
             $helpdeskTicket->priority = $validated['priority'];
             $helpdeskTicket->category_id = $validated['category_id'];
-
-
-            if($validated['status'] === 'resolved' && !$helpdeskTicket->resolved_at) {
-                $helpdeskTicket->resolved_at = now();
-            }
-            if($validated['status'] === 'closed' && !$helpdeskTicket->closed_at) {
-                $helpdeskTicket->closed_at = now();
-            }
-            if(!in_array($validated['status'], ['resolved', 'closed'], true)) {
-                $helpdeskTicket->resolved_at = null;
-                $helpdeskTicket->closed_at = null;
-            }
-
             $helpdeskTicket->save();
-
-            if ($oldStatus !== $helpdeskTicket->status) {
-                $history = $helpdeskTicket->statusHistories()->create([
-                    'from_status' => $oldStatus,
-                    'to_status' => $helpdeskTicket->status,
-                    'changed_by' => Auth::id(),
-                    'changed_by_name' => Auth::user()->name,
-                ]);
-                if ($helpdeskTicket->status === 'resolved') {
-                    $notifications->resolved($helpdeskTicket);
-                }
-                $emails->statusChanged($helpdeskTicket->loadMissing(['requester', 'creator', 'category']), $history);
-            }
+            $this->changeStatus($helpdeskTicket, $validated['status'], $notifications, $emails);
 
             UpdateHelpdeskTicket::dispatch($request, $helpdeskTicket);
 
@@ -316,6 +286,52 @@ class HelpdeskTicketController extends Controller
         else{
             return redirect()->route('helpdesk-tickets.index')->with('error', __('Permission denied'));
         }
+    }
+
+    public function updateStatus(Request $request, HelpdeskTicket $helpdeskTicket, HelpdeskNotificationService $notifications, HelpdeskEmailService $emails)
+    {
+        abort_unless(Auth::user()->isSupportSide() && Gate::allows('update', $helpdeskTicket), 403);
+
+        $validated = $request->validate([
+            'status' => ['required', 'in:open,in_progress,waiting_customer,waiting_internal,resolved,closed'],
+        ]);
+
+        $this->changeStatus($helpdeskTicket, $validated['status'], $notifications, $emails);
+        UpdateHelpdeskTicket::dispatch($request, $helpdeskTicket);
+
+        return back()->with('success', __('Ticket status updated.'));
+    }
+
+    private function changeStatus(HelpdeskTicket $helpdeskTicket, string $status, HelpdeskNotificationService $notifications, HelpdeskEmailService $emails): void
+    {
+        $oldStatus = $helpdeskTicket->status;
+        if ($oldStatus === $status) {
+            return;
+        }
+
+        $helpdeskTicket->status = $status;
+        if ($status === 'resolved' && !$helpdeskTicket->resolved_at) {
+            $helpdeskTicket->resolved_at = now();
+        }
+        if ($status === 'closed' && !$helpdeskTicket->closed_at) {
+            $helpdeskTicket->closed_at = now();
+        }
+        if (!in_array($status, ['resolved', 'closed'], true)) {
+            $helpdeskTicket->resolved_at = null;
+            $helpdeskTicket->closed_at = null;
+        }
+        $helpdeskTicket->save();
+
+        $history = $helpdeskTicket->statusHistories()->create([
+            'from_status' => $oldStatus,
+            'to_status' => $status,
+            'changed_by' => Auth::id(),
+            'changed_by_name' => Auth::user()->name,
+        ]);
+        if ($status === 'resolved') {
+            $notifications->resolved($helpdeskTicket);
+        }
+        $emails->statusChanged($helpdeskTicket->loadMissing(['requester', 'creator', 'category']), $history);
     }
 
     public function destroy(HelpdeskTicket $helpdeskTicket)

@@ -35,7 +35,7 @@ export const getSuperAdminMenu = (t: (key: string) => string): NavItem[] => [
             {
                 title: t('Ticket Records'),
                 href: route('helpdesk-tickets.records'),
-                permission: 'view-helpdesk-tickets',
+                permission: 'view-helpdesk-records',
             },
             {
                 title: t('Categories'),

@@ -130,6 +130,7 @@ export interface TodayTicketsProps {
 export interface ShowHelpdeskTicketProps {
     ticket: HelpdeskTicket;
     supportAgents: Array<{ id: number; name: string; email: string }>;
+    canChangeStatus: boolean;
     auth: AuthContext;
     [key: string]: unknown;
 }

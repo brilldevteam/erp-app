@@ -303,6 +303,7 @@ class User extends Authenticatable implements MustVerifyEmail
                 'manage-helpdesk-tickets',
                 'manage-own-helpdesk-tickets',
                 'view-helpdesk-tickets',
+                'view-helpdesk-records',
                 'create-helpdesk-tickets',
                 'manage-helpdesk-replies',
                 'create-helpdesk-replies',

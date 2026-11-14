@@ -16,11 +16,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 const statusLabel = (status: string) => status.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 export default function Show() {
-    const { ticket, auth, supportAgents } = usePage<ShowHelpdeskTicketProps>().props;
+    const { ticket, auth, supportAgents, canChangeStatus } = usePage<ShowHelpdeskTicketProps>().props;
     const { t } = useTranslation();
     const [replies, setReplies] = useState<HelpdeskReply[]>(ticket.replies || []);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, replyId: null as number | null });
+    const [statusUpdating, setStatusUpdating] = useState(false);
 
     useFlashMessages();
 
@@ -140,6 +141,33 @@ export default function Show() {
                                 <div>
                                     <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('Assigned To')}</label>
                                     <p className="text-sm font-medium text-gray-900 mt-1">{ticket.assigned_agent.name}</p>
+                                </div>
+                            )}
+                            {canChangeStatus && (
+                                <div>
+                                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('Status')}</label>
+                                    <Select
+                                        value={ticket.status}
+                                        disabled={statusUpdating}
+                                        onValueChange={(status) => {
+                                            setStatusUpdating(true);
+                                            router.patch(
+                                                route('helpdesk-tickets.status', ticket.id),
+                                                { status },
+                                                {
+                                                    preserveScroll: true,
+                                                    onFinish: () => setStatusUpdating(false),
+                                                },
+                                            );
+                                        }}
+                                    >
+                                        <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            {['open', 'in_progress', 'waiting_customer', 'waiting_internal', 'resolved', 'closed'].map((status) => (
+                                                <SelectItem key={status} value={status}>{t(statusLabel(status))}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             )}
                             {auth.user?.permissions?.includes('assign-helpdesk-tickets') && (
