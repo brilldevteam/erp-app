@@ -311,6 +311,37 @@ class HelpdeskSecurityTest extends TestCase
         $this->assertNull($ticket->fresh()->resolved_at);
     }
 
+    public function test_client_requester_can_change_own_ticket_status_but_another_client_cannot(): void
+    {
+        $requester = User::factory()->create(['type' => 'client', 'created_by' => $this->company->id, 'is_enable_login' => 1]);
+        $otherClient = User::factory()->create(['type' => 'client', 'created_by' => $this->company->id, 'is_enable_login' => 1]);
+        $permissions = ['manage-helpdesk-tickets', 'view-helpdesk-tickets'];
+        $requester->givePermissionTo($permissions);
+        $otherClient->givePermissionTo($permissions);
+        $ticket = HelpdeskTicket::create([
+            'title' => 'Client status',
+            'description' => 'Body',
+            'status' => 'open',
+            'priority' => 'low',
+            'created_by' => $this->company->id,
+            'requester_user_id' => $requester->id,
+        ]);
+
+        $page = $this->as($requester)->get(route('helpdesk-tickets.show', $ticket));
+        $page->assertOk();
+        $this->assertTrue($page->viewData('page')['props']['canChangeStatus']);
+
+        $this->as($requester)
+            ->patch(route('helpdesk-tickets.status', $ticket), ['status' => 'in_progress'])
+            ->assertRedirect();
+        $this->assertSame('in_progress', $ticket->fresh()->status);
+
+        $this->as($otherClient)
+            ->patch(route('helpdesk-tickets.status', $ticket), ['status' => 'resolved'])
+            ->assertForbidden();
+        $this->assertSame('in_progress', $ticket->fresh()->status);
+    }
+
     public function test_support_agent_only_reaches_assigned_tickets_and_loses_access_after_reassignment(): void
     {
         $firstAgent = User::factory()->create(['type' => 'staff', 'created_by' => $this->admin->id, 'is_enable_login' => 1]);

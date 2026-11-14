@@ -229,7 +229,7 @@ class HelpdeskTicketController extends Controller
 
             return Inertia::render('helpdesk/tickets/show', [
                 'ticket' => $helpdeskTicket,
-                'canChangeStatus' => Auth::user()->isSupportSide() && Gate::allows('update', $helpdeskTicket),
+                'canChangeStatus' => $this->canChangeStatus($helpdeskTicket),
                 'supportAgents' => Auth::user()->can('assign-helpdesk-tickets')
                     ? User::where('type', 'staff')->whereHas('roles', fn ($query) => $query->whereIn('name', ['support-agent', 'support-manager']))->orderBy('name')->get(['id', 'name', 'email'])
                     : [],
@@ -290,7 +290,7 @@ class HelpdeskTicketController extends Controller
 
     public function updateStatus(Request $request, HelpdeskTicket $helpdeskTicket, HelpdeskNotificationService $notifications, HelpdeskEmailService $emails)
     {
-        abort_unless(Auth::user()->isSupportSide() && Gate::allows('update', $helpdeskTicket), 403);
+        abort_unless($this->canChangeStatus($helpdeskTicket), 403);
 
         $validated = $request->validate([
             'status' => ['required', 'in:open,in_progress,waiting_customer,waiting_internal,resolved,closed'],
@@ -300,6 +300,16 @@ class HelpdeskTicketController extends Controller
         UpdateHelpdeskTicket::dispatch($request, $helpdeskTicket);
 
         return back()->with('success', __('Ticket status updated.'));
+    }
+
+    private function canChangeStatus(HelpdeskTicket $helpdeskTicket): bool
+    {
+        $user = Auth::user();
+
+        return ($user->isSupportSide() && Gate::allows('update', $helpdeskTicket))
+            || ($user->type === 'client'
+                && (int) $helpdeskTicket->requester_user_id === (int) $user->id
+                && Gate::allows('view', $helpdeskTicket));
     }
 
     private function changeStatus(HelpdeskTicket $helpdeskTicket, string $status, HelpdeskNotificationService $notifications, HelpdeskEmailService $emails): void

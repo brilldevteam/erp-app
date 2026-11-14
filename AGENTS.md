@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `UI-upgrade-2026-11-14` | Client requester inline ticket status: expose the existing header dropdown to the ticket's client requester, preserve tenant isolation, focused tests, changelog and handoff. | 2026-11-14 | Released - pushed without PR |
 | Codex | `UI-upgrade-2026-11-14` | Helpdesk ticket header status layout: move the existing authorized status dropdown directly below Requester; frontend verification, changelog and handoff. | 2026-11-14 | Released - pushed without PR |
 | Codex | `UI-upgrade-2026-11-14` | Helpdesk client navigation and Ticket Records permission: grouped Helpdesk submenu, enforce existing `view-helpdesk-records`, default role grants, focused tests, changelog and handoff. | 2026-11-14 | Released - pushed without PR |
 | Codex | `UI-upgrade-2026-11-14` | Inline Helpdesk ticket status control: support-only status endpoint, ticket detail selector, shared lifecycle/history behavior, focused smoke coverage, changelog and handoff. Preserve all completed Helpdesk Steps 1-7. | 2026-11-14 | Released - pushed without PR |
@@ -273,6 +274,13 @@ Zoho export inventory (Claude, 2026-10-28, read-only). Full detail with exact pa
 A work item is not complete until its code is committed, tests are recorded, affected workflows are manually checked when applicable, migrations and deployment steps are documented, the changelog is updated when required, and this coordination file contains a handoff entry.
 
 ## Handoff Log
+
+### 2026-11-14 Asia/Colombo - Codex - Client requester status dropdown access
+
+- Branch: `UI-upgrade-2026-11-14`. Released on this branch without a PR.
+- Corrected the inline ticket status authorization so the actual `client` requester sees and can use the dropdown on their own ticket. Platform support access remains unchanged; company users and unrelated clients cannot use the narrow status endpoint.
+- Files changed: `HelpdeskTicketController.php`, `HelpdeskSecurityTest.php`, `CHANGELOG.md` and this handoff. No migration or data changes.
+- Verification: controller PHP syntax clean; `tests/Smoke/HelpdeskSecurityTest.php` passed 28 tests / 161 assertions. Generated assets and `public/hot` are excluded.
 
 ### 2026-11-14 Asia/Colombo - Codex - Ticket status below Requester
 
