@@ -22,11 +22,9 @@ WHERE u.type = 'company'
 
 ## Apply
 
-Run inside a transaction after deploying the application:
+Create the backup table after deploying the application. MySQL commits `CREATE TABLE ... AS SELECT` immediately, so this must happen before the update transaction:
 
 ```sql
-START TRANSACTION;
-
 CREATE TABLE settings_scope_20261115_backup AS
 SELECT s.*
 FROM settings s
@@ -38,6 +36,8 @@ WHERE u.type = 'company'
     'sidebarVariant', 'sidebarStyle', 'layoutDirection', 'themeMode',
     'themeColor', 'customColor'
   );
+
+START TRANSACTION;
 
 UPDATE settings s
 INNER JOIN users u ON u.id = s.created_by

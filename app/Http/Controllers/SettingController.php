@@ -22,15 +22,15 @@ class SettingController extends Controller
 {
     private const SETTING_KEYS = [
         'brand' => ['logo_dark', 'logo_light', 'favicon', 'titleText', 'footerText', 'sidebarVariant', 'sidebarStyle', 'layoutDirection', 'themeMode', 'themeColor', 'customColor'],
-        'company' => ['company_name', 'company_address', 'company_city', 'company_state', 'company_country', 'company_zipcode', 'company_telephone', 'company_email_from_name', 'registration_number', 'company_email'],
+        'company' => ['company_name', 'company_address', 'company_city', 'company_state', 'company_country', 'company_zipcode', 'company_telephone', 'company_email_from_name', 'registration_number', 'company_email', 'vat_gst_number_switch', 'tax_type', 'tax_number'],
         'system' => ['defaultLanguage', 'dateFormat', 'timeFormat', 'calendarStartDay', 'enableRegistration', 'enableEmailVerification', 'landingPageEnabled', 'termsConditionsUrl'],
-        'currency' => ['defaultCurrency', 'decimalFormat', 'decimalSeparator', 'thousandsSeparator', 'floatNumber', 'currencySymbolSpace', 'currencySymbolPosition'],
-        'cookie' => ['enableLogging', 'strictlyNecessaryCookies', 'cookieTitle', 'strictlyCookieTitle', 'cookieDescription', 'strictlyCookieDescription', 'contactUsDescription', 'contactUsUrl'],
+        'currency' => ['defaultCurrency', 'decimalFormat', 'decimalSeparator', 'thousandsSeparator', 'floatNumber', 'currencySymbolSpace', 'currencySymbolPosition', 'currencySymbol', 'currencyName'],
+        'cookie' => ['enableCookiePopup', 'enableLogging', 'strictlyNecessaryCookies', 'cookieTitle', 'strictlyCookieTitle', 'cookieDescription', 'strictlyCookieDescription', 'contactUsDescription', 'contactUsUrl'],
         'email' => ['provider', 'driver', 'host', 'port', 'username', 'password', 'clear_password', 'encryption', 'fromAddress'],
         'seo' => ['metaKeywords', 'metaTitle', 'metaDescription', 'metaImage'],
         'storage' => ['storageType', 'allowedFileTypes', 'maxUploadSize', 'awsAccessKeyId', 'awsSecretAccessKey', 'clearAwsSecretAccessKey', 'awsDefaultRegion', 'awsBucket', 'awsUrl', 'awsEndpoint', 'wasabiAccessKey', 'wasabiSecretKey', 'clearWasabiSecretKey', 'wasabiRegion', 'wasabiBucket', 'wasabiUrl', 'wasabiRoot'],
         'bank_transfer' => ['bankTransferEnabled', 'instructions'],
-        'pusher' => ['app_id', 'app_key', 'app_secret', 'clear_app_secret', 'app_cluster'],
+        'pusher' => ['app_id', 'app_key', 'app_secret', 'clear_app_secret', 'app_cluster', 'enabled'],
         'social_login' => ['social_login_enabled', 'google_login_enabled', 'google_client_id', 'google_client_secret', 'clear_google_client_secret', 'microsoft_login_enabled', 'microsoft_client_id', 'microsoft_client_secret', 'clear_microsoft_client_secret', 'microsoft_tenant_id'],
         'ai_agent' => ['ai_agent_provider', 'ai_agent_model', 'ai_agent_api_key', 'clear_ai_agent_api_key'],
     ];
@@ -163,6 +163,9 @@ class SettingController extends Controller
                 'settings.company_email_from_name' => 'nullable|string|max:255',
                 'settings.registration_number' => 'nullable|string|max:100',
                 'settings.company_email' => 'nullable|email|max:255',
+                'settings.vat_gst_number_switch' => 'required|string|in:on,off',
+                'settings.tax_type' => 'nullable|string|max:50',
+                'settings.tax_number' => 'nullable|string|max:100',
             ], [
                 'settings.company_name.string' => __('Company name must be a valid string.'),
                 'settings.company_name.max' => __('Company name must not exceed 255 characters.'),
@@ -184,6 +187,12 @@ class SettingController extends Controller
                 'settings.registration_number.max' => __('Registration number must not exceed 100 characters.'),
                 'settings.company_email.email' => __('Please enter a valid email address.'),
                 'settings.company_email.max' => __('Email must not exceed 255 characters.'),
+                'settings.vat_gst_number_switch.required' => __('Tax number setting is required.'),
+                'settings.vat_gst_number_switch.in' => __('Tax number setting must be on or off.'),
+                'settings.tax_type.string' => __('Tax type must be a valid string.'),
+                'settings.tax_type.max' => __('Tax type must not exceed 50 characters.'),
+                'settings.tax_number.string' => __('Tax number must be a valid string.'),
+                'settings.tax_number.max' => __('Tax number must not exceed 100 characters.'),
             ]);
 
             $settings = Arr::only($request->input('settings', []), self::SETTING_KEYS['company']);
@@ -264,6 +273,8 @@ class SettingController extends Controller
                 'settings.floatNumber' => 'required|boolean',
                 'settings.currencySymbolSpace' => 'required|boolean',
                 'settings.currencySymbolPosition' => 'required|string|max:10',
+                'settings.currencySymbol' => 'required|string|max:10',
+                'settings.currencyName' => 'nullable|string|max:100',
             ], [
                 'settings.defaultCurrency.required' => __('Default currency is required.'),
                 'settings.defaultCurrency.string' => __('Default currency must be a valid string.'),
@@ -284,12 +295,17 @@ class SettingController extends Controller
                 'settings.currencySymbolSpace.boolean' => __('Currency symbol space must be true or false.'),
                 'settings.currencySymbolPosition.required' => __('Currency symbol position is required.'),
                 'settings.currencySymbolPosition.max' => __('Currency symbol position must not exceed 10 characters.'),
+                'settings.currencySymbol.required' => __('Currency symbol is required.'),
+                'settings.currencySymbol.string' => __('Currency symbol must be a valid string.'),
+                'settings.currencySymbol.max' => __('Currency symbol must not exceed 10 characters.'),
+                'settings.currencyName.string' => __('Currency name must be a valid string.'),
+                'settings.currencyName.max' => __('Currency name must not exceed 100 characters.'),
             ]);
 
             $settings = Arr::only($request->input('settings', []), self::SETTING_KEYS['currency']);
 
             foreach ($settings as $key => $value) {
-                setSetting($key, $value, null, false);
+                setSetting($key, $value, null, Auth::user()->type === 'superadmin');
             }
 
             return redirect()->back()->with('success', __('Currency settings save successfully.'));
@@ -371,6 +387,7 @@ class SettingController extends Controller
         {
             $this->rejectUnknownSettingKeys($request, self::SETTING_KEYS['cookie']);
             $request->validate([
+                'settings.enableCookiePopup' => 'required|boolean',
                 'settings.enableLogging' => 'required|boolean',
                 'settings.strictlyNecessaryCookies' => 'required|boolean',
                 'settings.cookieTitle' => 'required|string|max:255',
@@ -380,6 +397,8 @@ class SettingController extends Controller
                 'settings.contactUsDescription' => 'required|string|max:1000',
                 'settings.contactUsUrl' => 'required|url|max:500',
             ], [
+                'settings.enableCookiePopup.required' => __('Cookie popup setting is required.'),
+                'settings.enableCookiePopup.boolean' => __('Cookie popup setting must be true or false.'),
                 'settings.enableLogging.required' => __('Enable logging setting is required.'),
                 'settings.enableLogging.boolean' => __('Enable logging must be true or false.'),
                 'settings.strictlyNecessaryCookies.required' => __('Strictly necessary cookies setting is required.'),
@@ -763,6 +782,7 @@ class SettingController extends Controller
                 'settings.app_secret' => 'nullable|string|max:100',
                 'settings.clear_app_secret' => 'nullable|boolean',
                 'settings.app_cluster' => 'required|string|max:20',
+                'settings.enabled' => 'required|boolean',
             ], [
                 'settings.app_id.required' => __('Pusher App ID is required.'),
                 'settings.app_id.string' => __('Pusher App ID must be a valid string.'),
@@ -775,6 +795,8 @@ class SettingController extends Controller
                 'settings.app_cluster.required' => __('Pusher App Cluster is required.'),
                 'settings.app_cluster.string' => __('Pusher App Cluster must be a valid string.'),
                 'settings.app_cluster.max' => __('Pusher App Cluster must not exceed 20 characters.'),
+                'settings.enabled.required' => __('Pusher enabled setting is required.'),
+                'settings.enabled.boolean' => __('Pusher enabled setting must be true or false.'),
             ]);
 
             $settings = Arr::only($request->input('settings', []), self::SETTING_KEYS['pusher']);

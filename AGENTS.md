@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `security/settings-scope-2026-11-15` | Phase 1 follow-up: `SettingController.php`, settings payload compatibility/security tests, `docs/security-settings-scope-deployment.md`, `CHANGELOG.md` and handoff. Preserve the released Phase 1 controls and exclude generated/runtime files. | 2026-11-15 | Released - verified; push recorded below |
 | Codex | `security/settings-scope-2026-11-15` | Settings scope and security Phase 1: `HandleInertiaRequests.php`, `SettingController.php`, `Helper.php` (`setSetting` only), `AIAssistantSettingsController.php`, related security tests, deploy data-step documentation, changelog and handoff. | 2026-11-15 | Released - pushed without PR |
 | Codex | `fix/email-notification-toggles-2026-11-15` | Superadmin email notification toggles: persist/reload private notification settings correctly, enforce authorized keys, make Helpdesk dispatch respect switches, focused tests/build, changelog and handoff. | 2026-11-15 | Released - pushed without PR |
 | Codex | `UI-upgrade-2026-11-14` | Ticket Records summary correction: retain the five KPI cards while removing only the three breakdown panels; frontend build and local verification. | 2026-11-15 | Released - pushed without PR |
@@ -278,6 +279,21 @@ Zoho export inventory (Claude, 2026-10-28, read-only). Full detail with exact pa
 A work item is not complete until its code is committed, tests are recorded, affected workflows are manually checked when applicable, migrations and deployment steps are documented, the changelog is updated when required, and this coordination file contains a handoff entry.
 
 ## Handoff Log
+
+### 2026-11-15 Asia/Colombo - Codex - Settings scope Phase 1 follow-up
+
+- Branch: `security/settings-scope-2026-11-15`; released without a PR.
+- Commit: included in this handoff commit.
+- Files changed: `app/Http/Controllers/SettingController.php`, `tests/Unit/SettingsFormPayloadCompatibilityTest.php`, `docs/security-settings-scope-deployment.md`, `CHANGELOG.md` and `AGENTS.md`.
+- Database records/migrations affected: none. No live access or data changes were performed.
+- What was implemented: restored the exact Company, Currency, Cookie and Pusher form payloads to their endpoint allowlists with validation; Pusher `enabled` persists as `pusher_enabled`; superadmin currency is public for guest pricing while company currency and company information remain private; audited every remaining Settings form against its allowlist; added exact POST-payload contract coverage for all Settings sections.
+- Decisions and assumptions: no guest page reads superadmin company, registration or tax fields, so those remain private. Existing secret-preservation and clear controls remain unchanged, and no credential value was read or printed.
+- Tests run and results: settings security/unit suite passed 36 tests and 138 assertions; `SecurityRoleMatrixTest` passed 1 test and 11 assertions; Helpdesk smoke passed 30 tests and 168 assertions; PHP syntax, `npx tsc --noEmit`, `npm run build` and `git diff --check` passed.
+- Manual verification: all Settings TSX state objects were compared with their server allowlists; the deployment SQL now creates its MySQL backup table before starting the update transaction.
+- Known issues or blockers: none for this follow-up.
+- Deployment or rollback notes: follow `docs/security-settings-scope-deployment.md`; generated `public/build`, `public/hot`, `tmp` and storage files are excluded.
+- Files/areas still claimed: none after this release.
+- Exact next step: review and deploy the branch, then perform the documented backup/update/cache-clear verification steps.
 
 ### 2026-11-15 Asia/Colombo - Codex - Settings scope and security Phase 1
 
