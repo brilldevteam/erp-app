@@ -1,5 +1,6 @@
 # Changelog
 
+- Superadmin email notification toggles now reload their saved private values correctly, accept only authorized notification keys, and control whether Helpdesk ticket and reply emails are queued.
 - The client Helpdesk menu now labels its main ticket list as Tickets. Ticket Records retains its five KPI cards, removes the three detailed breakdown panels, and includes the same permission-aware create-ticket action as Manage Tickets.
 - The actual client requester can now use the inline status dropdown on their own Helpdesk ticket; unrelated clients remain blocked by requester and tenant authorization.
 - The inline Helpdesk ticket status dropdown now sits directly below Requester in the ticket header, keeping status changes visible beside the requester details.

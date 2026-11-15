@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `fix/email-notification-toggles-2026-11-15` | Superadmin email notification toggles: persist/reload private notification settings correctly, enforce authorized keys, make Helpdesk dispatch respect switches, focused tests/build, changelog and handoff. | 2026-11-15 | Released - pushed without PR |
 | Codex | `UI-upgrade-2026-11-14` | Ticket Records summary correction: retain the five KPI cards while removing only the three breakdown panels; frontend build and local verification. | 2026-11-15 | Released - pushed without PR |
 | Codex | `UI-upgrade-2026-11-14` | Helpdesk Ticket Records UI simplification: rename the client submenu to Tickets, remove records summary panels, add the permission-aware create-ticket action, frontend/local verification, changelog and handoff. | 2026-11-15 | Released - pushed without PR |
 | Codex | `UI-upgrade-2026-11-14` | Client requester inline ticket status: expose the existing header dropdown to the ticket's client requester, preserve tenant isolation, focused tests, changelog and handoff. | 2026-11-14 | Released - pushed without PR |
@@ -276,6 +277,15 @@ Zoho export inventory (Claude, 2026-10-28, read-only). Full detail with exact pa
 A work item is not complete until its code is committed, tests are recorded, affected workflows are manually checked when applicable, migrations and deployment steps are documented, the changelog is updated when required, and this coordination file contains a handoff entry.
 
 ## Handoff Log
+
+### 2026-11-15 Asia/Colombo - Codex - Email notification toggle persistence
+
+- Branch: `fix/email-notification-toggles-2026-11-15`. Released on this branch without a PR.
+- Fixed the Settings page to return only its authorized private mail-notification values alongside the safe settings payload, so enabled switches remain enabled after save and refresh without exposing them application-wide.
+- Hardened the save endpoint with the existing `manage-email-notification-settings` permission, on/off validation and an allowlist derived from visible notification records.
+- Helpdesk ticket and reply delivery now checks the matching superadmin notification switch before creating a queued delivery.
+- Files changed: `SettingController.php`, `HelpdeskEmailService.php`, `email-notification-settings.tsx`, `HelpdeskSecurityTest.php`, `CHANGELOG.md` and this handoff. No migration or manual data changes.
+- Verification: PHP syntax passed for all changed PHP files; two focused Helpdesk smoke tests passed independently; `npx tsc --noEmit` and `git diff --check` passed.
 
 ### 2026-11-15 Asia/Colombo - Codex - Ticket Records UI simplification
 

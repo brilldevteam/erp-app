@@ -9,6 +9,7 @@ use App\Models\HelpdeskReply;
 use App\Models\HelpdeskTicket;
 use App\Models\HelpdeskPopupNotification;
 use App\Models\HelpdeskEmailDelivery;
+use App\Models\Notification;
 use App\Models\User;
 use App\Services\AuthSessionService;
 use App\Services\HelpdeskNotificationService;
@@ -18,6 +19,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -71,6 +73,49 @@ class HelpdeskSecurityTest extends TestCase
             DB::table('settings')->updateOrInsert(['key' => $key, 'created_by' => $this->admin->id], ['value' => $value, 'is_public' => 0]);
         }
         cache()->flush();
+    }
+
+    public function test_superadmin_email_notification_setting_persists_in_the_settings_page(): void
+    {
+        $notification = Notification::where('type', 'mail')->where('module', 'general')->where('action', 'Helpdesk Ticket')->first();
+        if (!$notification || !$this->admin->can($notification->permissions)) {
+            $this->markTestSkipped('The Helpdesk Ticket notification permission is not available locally.');
+        }
+
+        $this->as($this->admin)->post(route('email.notification.setting.store'), [
+            'mail_noti' => ['Helpdesk Ticket' => 'on'],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('settings', [
+            'key' => 'Helpdesk Ticket',
+            'value' => 'on',
+            'created_by' => $this->admin->id,
+            'is_public' => 0,
+        ]);
+
+        $page = $this->as($this->admin)->get(route('settings.index'));
+        $page->assertOk();
+        $this->assertSame('on', $page->viewData('page')['props']['globalSettings']['Helpdesk Ticket'] ?? null);
+    }
+
+    public function test_helpdesk_email_switch_controls_delivery_queueing(): void
+    {
+        Queue::fake();
+        $ticket = $this->ticket->fresh(['creator', 'category']);
+
+        DB::table('settings')->updateOrInsert(
+            ['key' => 'Helpdesk Ticket', 'created_by' => $this->admin->id],
+            ['value' => 'off', 'is_public' => 0]
+        );
+        cache()->flush();
+        app(HelpdeskEmailService::class)->ticketCreated($ticket);
+        $this->assertSame(0, HelpdeskEmailDelivery::where('delivery_key', "ticket-created:{$ticket->id}")->count());
+
+        DB::table('settings')->where('key', 'Helpdesk Ticket')->where('created_by', $this->admin->id)->update(['value' => 'on']);
+        cache()->flush();
+        app(HelpdeskEmailService::class)->ticketCreated($ticket);
+        $this->assertSame(1, HelpdeskEmailDelivery::where('delivery_key', "ticket-created:{$ticket->id}")->count());
+        Queue::assertPushed(\App\Jobs\SendHelpdeskEmail::class);
     }
 
     public function test_internal_notes_never_reach_a_company_page(): void

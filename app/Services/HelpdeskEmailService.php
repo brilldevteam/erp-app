@@ -56,6 +56,10 @@ class HelpdeskEmailService
 
     private function queue(string $key, HelpdeskTicket $ticket, string $event, string $template, array $recipients, array $payload): void
     {
+        if (admin_setting($template) !== 'on') {
+            return;
+        }
+
         $recipients = collect($recipients)
             ->filter(fn ($email) => is_string($email) && filter_var($email, FILTER_VALIDATE_EMAIL) && !str_ends_with(strtolower($email), '@import.local'))
             ->unique()->values()->all();

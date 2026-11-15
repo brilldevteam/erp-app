@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Services\SocialAuthSettingsService;
 use App\Services\BrowserSettingsPayloadService;
 use App\Services\SensitiveSettingAuditService;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 
 class SettingController extends Controller
@@ -25,7 +26,7 @@ class SettingController extends Controller
     {
         if(Auth::user()->can('manage-settings'))
         {
-            $globalSettings = $browserSettings->settingsPage(getCompanyAllSetting());
+            $allSettings = getCompanyAllSetting();
             $emailProviders = config('email-providers');
 
             if(Auth::user()->hasRole('superadmin'))
@@ -37,6 +38,11 @@ class SettingController extends Controller
                $notifications = \App\Models\Notification::where('type','mail')->get()->groupBy('module');
             }
 
+            $notificationKeys = $notifications->flatten()->pluck('action')->all();
+            $globalSettings = array_merge(
+                $browserSettings->settingsPage($allSettings),
+                Arr::only($allSettings, $notificationKeys)
+            );
 
 
             return Inertia::render('settings/index', [
@@ -868,12 +874,27 @@ class SettingController extends Controller
 
     public function mailNotificationStore(Request $request)
     {
-        // mail notification save
-        if ($request->has('mail_noti')) {
-            foreach ($request->mail_noti as $key => $notification) {
-                setSetting($key, $notification, null, false);
-            }
+        abort_unless($request->user()?->can('manage-email-notification-settings'), 403);
+
+        $submitted = $request->validate([
+            'mail_noti' => ['required', 'array'],
+            'mail_noti.*' => ['required', 'in:on,off'],
+        ])['mail_noti'];
+
+        $notifications = \App\Models\Notification::query()
+            ->where('type', 'mail')
+            ->when($request->user()->hasRole('superadmin'), fn ($query) => $query->where('module', 'general'))
+            ->get()
+            ->filter(fn ($notification) => $request->user()->can($notification->permissions));
+
+        $allowedActions = $notifications->pluck('action')->all();
+        $unknownActions = array_diff(array_keys($submitted), $allowedActions);
+        abort_if($unknownActions !== [], 422, __('Invalid mail notification setting.'));
+
+        foreach ($submitted as $key => $notification) {
+            setSetting($key, $notification, null, false);
         }
+
         return redirect()->back()->with('success', __('Mail Notification Setting save sucessfully.'));
     }
 

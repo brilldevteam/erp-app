@@ -7,7 +7,7 @@ import { Mail, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { router, usePage } from '@inertiajs/react';
 import { toast } from 'sonner';
-import { getCompanySetting, getPackageAlias } from '@/utils/helpers';
+import { getPackageAlias } from '@/utils/helpers';
 interface Notification {
   id: number;
   module: string;
@@ -18,7 +18,7 @@ interface Notification {
 }
 
 interface EmailNotificationSettingsProps {
-  userSettings?: any;
+  userSettings?: Record<string, string>;
   canEdit?: boolean;
   isSuperAdmin?: boolean;
 }
@@ -39,7 +39,7 @@ export default function EmailNotificationSettings({
     const initial: Record<string, string> = {};
     Object.values(notifications || {}).forEach((moduleNotifications: any) => {
       moduleNotifications.forEach((notification: Notification) => {
-        initial[notification.action] = getCompanySetting(notification.action, pageProps) || 'off';
+        initial[notification.action] = userSettings?.[notification.action] || 'off';
       });
     });
     return initial;
