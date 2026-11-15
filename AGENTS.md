@@ -282,6 +282,17 @@ A work item is not complete until its code is committed, tests are recorded, aff
 
 ## Handoff Log
 
+### 2026-11-15 Asia/Colombo - Claude - Settings scope Phase 4: release preparation and rehearsal
+
+- Branch: `security/helpdesk-notifications-phase3-2026-11-16` (release branch for Phases 1-3); runbook commit pushed without a PR. No code changes in this step.
+- Release checks: branch contains Phase 1 (`07e7a2b75`, `3d8891823`), Phase 2 (`63a976bd8`) and Phase 3 (`a77dfcec2`); `origin/main` is an ancestor and the merge is clean; only `public/` path vs main is the intended `public/hot` deletion. The branch is 129 commits / 621 files ahead of `main`, so the deploy brings all work since the commit live runs.
+- Migrations: 16 since `release/zoho-and-security` (22 since `10a5f68f`), including 3 module migrations; all already applied on local `erp_live_copy`, none pending.
+- Dependencies: composer unchanged; package.json/lock changed (fonts) so the server needs `npm ci` before `npm run build`.
+- Data-step rehearsal on `erp_live_copy` inside a rolled-back transaction (temporary tables): Phase 1 110 company brand rows backed up/updated/0 left public, super admin keeps 11 public brand rows for the login page; Phase 2 4 company AI key rows backed up/cleared; both rollback statements restored everything; settings checksum unchanged afterwards.
+- `php artisan security:check` locally: only the expected local failures (APP_ENV local, APP_DEBUG on, an untracked dump in `backups/`); live must report all checks passed.
+- New: `docs/security-settings-scope-release-runbook.md` (pre-flight, backup, code, migrations, both data steps with counts, caches/queue, post-deploy configuration, verification, rollback, cleanup).
+- Next (user/server operator): confirm live commit, prepare rotated credentials, back up, run the runbook, verify, revoke old credentials.
+
 ### 2026-11-15 Asia/Colombo - Claude - Settings scope Phase 3: Helpdesk notifications
 
 - Branch: `security/helpdesk-notifications-phase3-2026-11-16` (from Phase 2 `63a976bd8`); pushed without a PR.
