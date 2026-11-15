@@ -1,5 +1,6 @@
 # Changelog
 
+- Settings scope Phase 2 centralizes AI credentials on a new superadmin AI Settings page (companies keep only AI Agent and AI Assistant on/off switches, and AI buttons show only when the central AI is available), limits company Brand and System settings to company-level fields, and makes company SMTP optional: any company email falls back to the central SMTP with the company name as sender and the company email as reply-to, while Helpdesk email stays central.
 - Settings scope Phase 1 follow-up restores the full payload contract for Company, Currency, Cookie and Pusher forms, keeps superadmin currency public for guest pricing while company currency stays private, and adds exact form-payload regression coverage for every Settings section.
 - Settings scope Phase 1 now keeps anonymous login branding tied to an allowlisted superadmin brand, stores company branding privately, rejects unknown setting keys, restricts platform operations to superadmins, and blocks company SMTP tests from private or internal hosts without exposing raw mail errors.
 - Superadmin email notification toggles now reload their saved private values correctly, accept only authorized notification keys, and control whether Helpdesk ticket and reply emails are queued.

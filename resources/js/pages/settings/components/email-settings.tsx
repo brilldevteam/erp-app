@@ -33,24 +33,25 @@ interface EmailSettingsProps {
   }>;
 }
 
-const getInitialSettings = (userSettings?: Record<string, string>): EmailSettings => ({
-  provider: userSettings?.email_provider || 'smtp',
-  driver: userSettings?.email_driver || 'smtp',
-  host: userSettings?.email_host || 'smtp.example.com',
-  port: userSettings?.email_port || '587',
-  username: userSettings?.email_username || 'user@example.com',
+const getInitialSettings = (userSettings?: Record<string, string>, isSuperAdmin = false): EmailSettings => ({
+  provider: userSettings?.email_provider || (isSuperAdmin ? 'smtp' : ''),
+  driver: userSettings?.email_driver || (isSuperAdmin ? 'smtp' : ''),
+  host: userSettings?.email_host || '',
+  port: userSettings?.email_port || (isSuperAdmin ? '587' : ''),
+  username: userSettings?.email_username || '',
   password: '',
   clear_password: false,
-  encryption: userSettings?.email_encryption || 'tls',
-  fromAddress: userSettings?.email_fromAddress || 'noreply@example.com'
+  encryption: userSettings?.email_encryption || (isSuperAdmin ? 'tls' : ''),
+  fromAddress: userSettings?.email_fromAddress || ''
 });
 
 export default function EmailSettings({ userSettings, auth, emailProviders = {} }: EmailSettingsProps) {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const canEdit = auth?.user?.permissions?.includes('edit-email-settings');
+  const isSuperAdmin = auth?.user?.type === 'superadmin';
 
-  const [settings, setSettings] = useState<EmailSettings>(() => getInitialSettings(userSettings));
+  const [settings, setSettings] = useState<EmailSettings>(() => getInitialSettings(userSettings, isSuperAdmin));
   const [showPassword, setShowPassword] = useState(false);
   const [testEmail, setTestEmail] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -58,9 +59,9 @@ export default function EmailSettings({ userSettings, auth, emailProviders = {} 
 
   useEffect(() => {
     if (userSettings) {
-      setSettings(getInitialSettings(userSettings));
+      setSettings(getInitialSettings(userSettings, isSuperAdmin));
     }
-  }, [userSettings]);
+  }, [userSettings, isSuperAdmin]);
 
   const handleChange = (name: string, value: string) => {
     if (name === 'provider' && emailProviders[value]) {
@@ -149,10 +150,12 @@ export default function EmailSettings({ userSettings, auth, emailProviders = {} 
         <div className="order-1 rtl:order-2">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Mail className="h-5 w-5" />
-            {t('Email Settings')}
+            {isSuperAdmin ? t('Email Settings') : t('Use Your Own Sending Email')}
           </CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            {t('Configure email server settings for system notifications and communications')}
+            {isSuperAdmin
+              ? t('Configure email server settings for system notifications and communications')
+              : t('Optional. When left empty, emails are sent through Wazely with your company email as the reply-to address.')}
           </p>
         </div>
         {canEdit && (

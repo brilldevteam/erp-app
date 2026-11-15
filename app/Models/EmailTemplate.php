@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use App\Models\EmailTemplateLang;
@@ -62,18 +63,47 @@ class EmailTemplate extends Model
                 $content->content = self::replaceVariable($content->content, $obj);
                 $content->subject = self::replaceVariable($content->subject, $obj);
                 // send email
-                $companySettings = getCompanyAllSetting($user_id);
-                if (!empty($companySettings['email_fromAddress'] ?? '')) {
-                    if (!empty($user_id)) {
-                        $setconfing = SetConfigEmail($user_id);
-                    } else {
-                        $setconfing = SetConfigEmail();
-                    }
+                $tenant = $usr;
+                if ($tenant && !in_array($tenant->type, ['company', 'superadmin'], true)) {
+                    $tenant = User::find($tenant->created_by);
+                }
+                $tenantId = $tenant?->id;
+                $companySettings = getCompanyAllSetting($tenantId);
+                $usesCompanySmtp = $tenant?->type === 'company'
+                    && filled($companySettings['email_host'] ?? null)
+                    && filled($companySettings['email_fromAddress'] ?? null);
+                $mailerOwnerId = $usesCompanySmtp
+                    ? $tenantId
+                    : User::where('type', 'superadmin')->orderBy('id')->value('id');
+                $mailerSettings = getCompanyAllSetting($mailerOwnerId);
+
+                if (filled($mailerSettings['email_host'] ?? null) && filled($mailerSettings['email_fromAddress'] ?? null)) {
+                    $setconfing = SetConfigEmail($mailerOwnerId);
                     if ($setconfing == true) {
                         try {
-                            Mail::to($mailTo)->send(new CommonEmailTemplate($content, $user_id));
+                            $fromName = $usesCompanySmtp
+                                ? ($companySettings['company_email_from_name'] ?? $tenant?->name)
+                                : ($companySettings['company_name'] ?? $tenant?->name);
+                            $replyTo = $usesCompanySmtp ? null : ($companySettings['company_email'] ?? null);
+                            Mail::to($mailTo)->send(new CommonEmailTemplate(
+                                $content,
+                                $mailerOwnerId,
+                                $mailerSettings['email_fromAddress'],
+                                $fromName,
+                                $replyTo
+                            ));
                         } catch (\Exception $e) {
-                            $error = $e->getMessage();
+                            if ($usesCompanySmtp) {
+                                $error = $e->getMessage();
+                            } else {
+                                // Central mailer details must not reach company users.
+                                Log::warning('Email delivery through the central mailer failed.', [
+                                    'template' => $emailTemplate,
+                                    'tenant_id' => $tenantId,
+                                    'exception' => get_class($e),
+                                ]);
+                                $error = __('The email could not be sent. Please try again later.');
+                            }
                         }
                     } else {
                         $error = __('Something went wrong please try again ');
@@ -538,13 +568,13 @@ class EmailTemplate extends Model
             $content = (object)$content;
             $user_id = Auth::user()->id;
 
-            if (!isset($companySettings['email_fromAddress']) || empty($companySettings['email_fromAddress'])) {
-                throw new \Exception(__('E-Mail has been not sent due to SMTP configuration'));
-            }
-
+            // Company SMTP is optional: SetConfigEmail falls back to the central mailer when it is missing.
             $setconfing = SetConfigEmail();
             if ($setconfing != true) {
                 throw new \Exception(__('Something went wrong please try again'));
+            }
+            if (blank(config('mail.mailers.smtp.host'))) {
+                throw new \Exception(__('E-Mail has been not sent due to SMTP configuration'));
             }
 
             Mail::to($to)->send(new CommonEmailTemplate($content, $user_id));
@@ -568,13 +598,13 @@ class EmailTemplate extends Model
             ];
             $content = (object)$content;
 
-            if (!isset($companySettings['email_fromAddress']) || empty($companySettings['email_fromAddress'])) {
-                throw new \Exception(__('E-Mail has been not sent due to SMTP configuration'));
-            }
-
+            // Company SMTP is optional: SetConfigEmail falls back to the central mailer when it is missing.
             $setconfing = SetConfigEmail($reminder->created_by);
             if ($setconfing != true) {
                 throw new \Exception(__('Something went wrong please try again'));
+            }
+            if (blank(config('mail.mailers.smtp.host'))) {
+                throw new \Exception(__('E-Mail has been not sent due to SMTP configuration'));
             }
 
             Mail::to($to)->send(new CommonEmailTemplate($content, $reminder->created_by));

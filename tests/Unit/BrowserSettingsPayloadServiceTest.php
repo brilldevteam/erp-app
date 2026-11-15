@@ -21,8 +21,9 @@ class BrowserSettingsPayloadServiceTest extends TestCase
 
         $this->assertSame('Wazely ERP', $payload['titleText']);
         $this->assertSame('QAR', $payload['defaultCurrency']);
-        $this->assertTrue($payload['ai_api_key_configured']);
-        $this->assertTrue($payload['ai_agent_api_key_configured']);
+        // AI credentials are central; per-company key state is not shared at all.
+        $this->assertArrayNotHasKey('ai_api_key_configured', $payload);
+        $this->assertArrayNotHasKey('ai_agent_api_key_configured', $payload);
         $this->assertArrayNotHasKey('email_password', $payload);
         $this->assertArrayNotHasKey('ai_api_key', $payload);
         $this->assertArrayNotHasKey('ai_agent_api_key', $payload);
@@ -48,7 +49,7 @@ class BrowserSettingsPayloadServiceTest extends TestCase
             'paypal_secret_key' => 'paypal-secret',
             'paypal_mode' => 'sandbox',
             'unknown_setting' => 'not-allowlisted',
-        ]);
+        ], true);
 
         $this->assertSame('smtp.example.com', $payload['email_host']);
         $this->assertSame('visible-identifier', $payload['awsAccessKeyId']);

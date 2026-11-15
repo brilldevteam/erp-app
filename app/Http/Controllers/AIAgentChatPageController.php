@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use App\Models\AIAgentChatSession;
 use App\Models\AIAgentChatMessage;
+use App\Services\CentralAISettingsService;
 
 class AIAgentChatPageController extends Controller
 {
@@ -43,12 +44,8 @@ class AIAgentChatPageController extends Controller
         if (Auth::user()->can('manage-ai-agent'))
         {
             // Check if AI Agent is configured
-            $provider = company_setting('ai_agent_provider');
-            $model    = company_setting('ai_agent_model');
-            $apiKey   = company_setting('ai_agent_api_key');
-
-            if (!$provider || !$model || !$apiKey) {
-                return response()->json(['error' => __('AI Agent is not configured. Please configure it in settings first.')], 400);
+            if (!app(CentralAISettingsService::class)->agentConfig()) {
+                return response()->json(['error' => __('AI Agent is unavailable or disabled.')], 400);
             }
 
             $session = AIAgentChatSession::create([

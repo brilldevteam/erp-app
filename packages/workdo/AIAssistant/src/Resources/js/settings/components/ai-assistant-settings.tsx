@@ -1,217 +1,38 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
-import { Bot, Save, Eye, EyeOff, Trash2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { useEffect, useState } from 'react';
 import { router } from '@inertiajs/react';
+import { Bot, Save } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 
-interface AIAssistantSettingsProps {
-    userSettings?: Record<string, string>;
-    auth?: any;
-}
+interface Props { userSettings?: Record<string, string>; auth?: any; }
 
-interface Provider {
-    name: string;
-    models: string[];
-}
+export default function AIAssistantSettings({ userSettings = {}, auth }: Props) {
+  const { t } = useTranslation();
+  const canEdit = auth?.user?.permissions?.includes('edit-ai-assistant-settings');
+  const initial = userSettings.ai_assistant_enabled !== '0' && userSettings.ai_assistant_enabled !== 'false';
+  const [enabled, setEnabled] = useState(initial);
+  const [saving, setSaving] = useState(false);
 
-export default function AIAssistantSettings({ userSettings = {}, auth }: AIAssistantSettingsProps) {
-    const { t } = useTranslation();
-    const [isLoading, setIsLoading] = useState(false);
-    const [providers, setProviders] = useState<Record<string, Provider>>({});
-    const [showApiKey, setShowApiKey] = useState(false);
-    const canEdit = auth?.user?.permissions?.includes('edit-ai-assistant-settings');
+  useEffect(() => setEnabled(userSettings.ai_assistant_enabled !== '0' && userSettings.ai_assistant_enabled !== 'false'), [userSettings.ai_assistant_enabled]);
 
-    const [aiSettings, setAiSettings] = useState({
-        ai_provider: userSettings?.ai_provider || '',
-        ai_model: userSettings?.ai_model || '',
-        ai_api_key: '',
-        clear_ai_api_key: false
+  const save = () => {
+    setSaving(true);
+    router.post(route('ai-assistant.settings.store'), { settings: { ai_assistant_enabled: enabled } }, {
+      preserveScroll: true,
+      onSuccess: () => toast.success(t('AI Assistant settings saved successfully.')),
+      onError: (errors) => toast.error(Object.values(errors).join(', ')),
+      onFinish: () => setSaving(false),
     });
+  };
 
-    useEffect(() => {
-        setAiSettings({
-            ai_provider: userSettings?.ai_provider || '',
-            ai_model: userSettings?.ai_model || '',
-            ai_api_key: '',
-            clear_ai_api_key: false
-        });
-    }, [userSettings]);
-
-    useEffect(() => {
-        fetch(route('ai-assistant.settings.index'))
-            .then(response => response.json())
-            .then(data => {
-                setProviders(data.providers || {});
-            })
-            .catch(error => {
-                toast.error(t('Error fetching AI providers'));
-            });
-    }, []);
-
-    const handleSettingsChange = (field: string, value: string) => {
-        setAiSettings(prev => ({
-            ...prev,
-            [field]: value
-        }));
-
-        // Reset model when provider changes
-        if (field === 'ai_provider') {
-            setAiSettings(prev => ({
-                ...prev,
-                ai_model: ''
-            }));
-        }
-    };
-
-    const saveAISettings = () => {
-        setIsLoading(true);
-
-        router.post(route('ai-assistant.settings.store'), {
-            settings: aiSettings
-        }, {
-            preserveScroll: true,
-            onSuccess: (page) => {
-                setIsLoading(false);
-                const successMessage = (page.props.flash as any)?.success;
-                const errorMessage = (page.props.flash as any)?.error;
-
-                if (successMessage) {
-                    toast.success(successMessage);
-                } else if (errorMessage) {
-                    toast.error(errorMessage);
-                }
-            },
-            onError: (errors) => {
-                setIsLoading(false);
-                const errorMessage = errors.error || Object.values(errors).join(', ') || t('Failed to save AI Assistant settings');
-                toast.error(errorMessage);
-            }
-        });
-    };
-
-    const selectedProvider = providers[aiSettings.ai_provider];
-
-    return (
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-                <div className="order-1 rtl:order-2">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                        <Bot className="h-5 w-5" />
-                        {t('AI Assistant Settings')}
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">
-                        {t('Configure AI provider and model settings')}
-                    </p>
-                </div>
-                {canEdit && (
-                    <Button className="order-2 rtl:order-1" onClick={saveAISettings} disabled={isLoading} size="sm">
-                        <Save className="h-4 w-4 mr-2" />
-                        {isLoading ? t('Saving...') : t('Save Changes')}
-                    </Button>
-                )}
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-6">
-                    {/* AI Provider Selection */}
-                    <div className="space-y-3">
-                        <Label htmlFor="ai_provider">{t('AI Provider')}</Label>
-                        <Select
-                            value={aiSettings.ai_provider}
-                            onValueChange={(value) => handleSettingsChange('ai_provider', value)}
-                            disabled={!canEdit}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder={t('Select AI Provider')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {Object.entries(providers).map(([key, provider]) => (
-                                    <SelectItem key={key} value={key}>
-                                        {provider.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {/* Model Selection */}
-                    {selectedProvider && (
-                        <div className="space-y-3">
-                            <Label htmlFor="ai_model">{t('AI Model')}</Label>
-                            <Select
-                                value={aiSettings.ai_model}
-                                onValueChange={(value) => handleSettingsChange('ai_model', value)}
-                                disabled={!canEdit}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder={t('Select AI Model')} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {selectedProvider.models.map((model) => (
-                                        <SelectItem key={model} value={model}>
-                                            {model}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
-
-                    {/* API Key */}
-                    <div className="space-y-3">
-                        <Label htmlFor="ai_api_key">{t('API Key')}</Label>
-                        <div className="flex gap-2">
-                            <div className="relative flex-1">
-                            <Input
-                                id="ai_api_key"
-                                type={showApiKey ? 'text' : 'password'}
-                                value={aiSettings.ai_api_key}
-                                onChange={(e) => setAiSettings(prev => ({ ...prev, ai_api_key: e.target.value, clear_ai_api_key: false }))}
-                                placeholder={aiSettings.clear_ai_api_key
-                                    ? t('Credential will be cleared')
-                                    : userSettings?.ai_api_key_configured
-                                        ? t('Configured - leave blank to keep')
-                                        : t('Enter API Key')}
-                                disabled={!canEdit || aiSettings.clear_ai_api_key}
-                                className="pr-10"
-                            />
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                onClick={() => setShowApiKey(!showApiKey)}
-                                disabled={!canEdit || aiSettings.clear_ai_api_key}
-                            >
-                                {showApiKey ? (
-                                    <EyeOff className="h-4 w-4 text-gray-500" />
-                                ) : (
-                                    <Eye className="h-4 w-4 text-gray-500" />
-                                )}
-                            </Button>
-                            </div>
-                            {canEdit && userSettings?.ai_api_key_configured && (
-                                <Button
-                                    type="button"
-                                    variant={aiSettings.clear_ai_api_key ? 'destructive' : 'outline'}
-                                    onClick={() => setAiSettings(prev => ({
-                                        ...prev,
-                                        ai_api_key: '',
-                                        clear_ai_api_key: !prev.clear_ai_api_key
-                                    }))}
-                                >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    {aiSettings.clear_ai_api_key ? t('Will clear') : t('Clear')}
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-    );
+  return <Card>
+    <CardHeader className="flex flex-row items-center justify-between">
+      <div><CardTitle className="flex items-center gap-2 text-lg"><Bot className="h-5 w-5" />{t('AI Assistant')}</CardTitle><p className="mt-1 text-sm text-muted-foreground">{t('Allow this company to use the centrally managed AI Assistant.')}</p></div>
+      {canEdit && <Button size="sm" onClick={save} disabled={saving}><Save className="mr-2 h-4 w-4" />{t('Save Changes')}</Button>}
+    </CardHeader>
+    <CardContent className="flex items-center justify-between rounded-md border p-4"><span>{t('Enable AI Assistant')}</span><Switch checked={enabled} onCheckedChange={setEnabled} disabled={!canEdit} /></CardContent>
+  </Card>;
 }

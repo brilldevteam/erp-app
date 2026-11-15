@@ -36,13 +36,19 @@ class SettingsFormPayloadCompatibilityTest extends TestCase
         $platform = ['superadmin'];
 
         return [
-            'brand' => ['brand', [
+            'superadmin brand' => ['brand_platform', [
                 'logo_dark' => '', 'logo_light' => '', 'favicon' => '',
                 'titleText' => 'Wazely ERP', 'footerText' => 'Copyright',
                 'sidebarVariant' => 'inset', 'sidebarStyle' => 'plain',
                 'layoutDirection' => 'ltr', 'themeMode' => 'light',
                 'themeColor' => 'green', 'customColor' => '#10b981',
-            ], $shared],
+            ], $platform],
+            'company brand' => ['brand_company', [
+                'logo_dark' => '', 'logo_light' => '',
+                'sidebarVariant' => 'inset', 'sidebarStyle' => 'plain',
+                'layoutDirection' => 'ltr', 'themeMode' => 'light',
+                'themeColor' => 'green', 'customColor' => '#10b981',
+            ], ['company']],
             'company' => ['company', [
                 'company_name' => 'Example Company', 'company_address' => '',
                 'company_city' => '', 'company_state' => '', 'company_country' => '',
@@ -51,12 +57,16 @@ class SettingsFormPayloadCompatibilityTest extends TestCase
                 'company_email' => 'company@example.test',
                 'vat_gst_number_switch' => 'off', 'tax_type' => '', 'tax_number' => '',
             ], $shared],
-            'system' => ['system', [
+            'superadmin system' => ['system_platform', [
                 'defaultLanguage' => 'en', 'dateFormat' => 'Y-m-d',
                 'timeFormat' => 'H:i', 'calendarStartDay' => '0',
                 'enableRegistration' => 'off', 'enableEmailVerification' => 'off',
                 'landingPageEnabled' => 'on', 'termsConditionsUrl' => '',
-            ], $shared],
+            ], $platform],
+            'company system' => ['system_company', [
+                'defaultLanguage' => 'en', 'dateFormat' => 'Y-m-d',
+                'timeFormat' => 'H:i', 'calendarStartDay' => '0',
+            ], ['company']],
             'currency' => ['currency', [
                 'decimalFormat' => '2', 'defaultCurrency' => 'QAR',
                 'decimalSeparator' => '.', 'thousandsSeparator' => ',',
@@ -108,23 +118,27 @@ class SettingsFormPayloadCompatibilityTest extends TestCase
                 'microsoft_tenant_id' => 'common',
             ], $platform],
             'AI agent' => ['ai_agent', [
+                'ai_agent_enabled' => true,
+            ], ['company']],
+            'platform AI' => ['central_ai', [
                 'ai_agent_provider' => 'openai', 'ai_agent_model' => 'gpt-4o',
                 'ai_agent_api_key' => '', 'clear_ai_agent_api_key' => false,
-            ], $shared],
+                'ai_provider' => 'openai', 'ai_model' => 'gpt-4',
+                'ai_api_key' => '', 'clear_ai_api_key' => false,
+            ], $platform],
         ];
     }
 
     public function test_ai_assistant_form_payload_matches_its_controller_allowlist(): void
     {
         $payload = [
-            'ai_provider' => 'openai', 'ai_model' => 'gpt-4',
-            'ai_api_key' => '', 'clear_ai_api_key' => false,
+            'ai_assistant_enabled' => true,
         ];
         $source = file_get_contents(base_path(
             'packages/workdo/AIAssistant/src/Http/Controllers/AIAssistantSettingsController.php'
         ));
 
-        foreach (['superadmin', 'company'] as $role) {
+        foreach (['company'] as $role) {
             foreach (array_keys($payload) as $key) {
                 $this->assertStringContainsString("'{$key}'", $source, "{$role}: {$key}");
             }

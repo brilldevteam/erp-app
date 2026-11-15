@@ -1,4 +1,4 @@
-import { Palette, Building,SettingsIcon, Mail, DollarSign, CreditCard, Bot } from 'lucide-react';
+import { Palette, Building,SettingsIcon, Mail, DollarSign, Bot } from 'lucide-react';
 
 export interface SettingMenuItem {
   order: number;
@@ -65,13 +65,5 @@ export const getCompanySettings = (t: (key: string) => string): SettingMenuItem[
     icon: Mail,
     permission: 'manage-email-notification-settings',
     component: 'email-notification-settings'
-  },
-  {
-    order: 1000,
-    title: t('Bank Transfer Settings'),
-    href: '#bank-transfer-settings',
-    icon: CreditCard,
-    permission: 'manage-bank-transfer-settings',
-    component: 'bank-transfer-settings'
   }
 ];

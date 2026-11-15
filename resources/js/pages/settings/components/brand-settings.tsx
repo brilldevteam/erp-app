@@ -37,6 +37,7 @@ export default function BrandSettings({ userSettings, auth }: BrandSettingsProps
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const canEdit = auth?.user?.permissions?.includes('edit-brand-settings');
+  const isSuperAdmin = auth?.user?.type === 'superadmin';
   const [activeSection, setActiveSection] = useState<'logos' | 'text' | 'theme'>('logos');
   const [settings, setSettings] = useState<BrandSettings>({
     logo_dark: userSettings?.logo_dark || '',
@@ -93,8 +94,11 @@ export default function BrandSettings({ userSettings, auth }: BrandSettingsProps
   const saveSettings = () => {
     setIsLoading(true);
 
+    const submittedSettings = isSuperAdmin
+      ? settings
+      : Object.fromEntries(Object.entries(settings).filter(([key]) => !['favicon', 'titleText', 'footerText'].includes(key)));
     router.post(route('settings.brand.update'), {
-      settings: settings
+      settings: submittedSettings
     }, {
       preserveScroll: true,
       onSuccess: (page) => {
@@ -150,7 +154,8 @@ export default function BrandSettings({ userSettings, auth }: BrandSettingsProps
                 <Upload className="h-4 w-4 mr-2" />
                 {t('Logos')}
               </Button>
-              <Button
+              {/* Title and footer text are platform branding; only the super admin sets them. */}
+              {isSuperAdmin && <Button
                 variant={activeSection === 'text' ? "default" : "outline"}
                 size="sm"
                 onClick={() => setActiveSection('text')}
@@ -158,7 +163,7 @@ export default function BrandSettings({ userSettings, auth }: BrandSettingsProps
               >
                 <FileText className="h-4 w-4 mr-2" />
                 {t('Text')}
-              </Button>
+              </Button>}
               <Button
                 variant={activeSection === 'theme' ? "default" : "outline"}
                 size="sm"
@@ -234,7 +239,7 @@ export default function BrandSettings({ userSettings, auth }: BrandSettingsProps
                     </div>
                   </div>
 
-                  <div className="space-y-3">
+                  {isSuperAdmin && <div className="space-y-3">
                     <Label>{t('Favicon')}</Label>
                     <div className="flex flex-col gap-3">
                       <div className="border rounded-md p-4 flex items-center justify-center bg-muted/30 h-20">
@@ -261,13 +266,13 @@ export default function BrandSettings({ userSettings, auth }: BrandSettingsProps
                         disabled={!canEdit}
                       />
                     </div>
-                  </div>
+                  </div>}
                 </div>
               </div>
             )}
 
             {/* Text Section */}
-            {activeSection === 'text' && (
+            {isSuperAdmin && activeSection === 'text' && (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 gap-6">
                   <div className="space-y-3">

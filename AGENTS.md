@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `security/settings-scope-phase2-2026-11-16` | Settings scope Phase 2: central AI settings/readers, company AI toggles, platform/company Brand and System separation, settings menus/payloads, optional company SMTP fallback and mail metadata, permission migration/seeding, focused tests, deployment runbook, changelog and handoff. | 2026-11-16 | Released - taken over and completed by Claude on 2026-11-15 after Codex hit its usage limit; committed and pushed without a PR (see handoff). |
 | Codex | `security/settings-scope-2026-11-15` | Phase 1 follow-up: `SettingController.php`, settings payload compatibility/security tests, `docs/security-settings-scope-deployment.md`, `CHANGELOG.md` and handoff. Preserve the released Phase 1 controls and exclude generated/runtime files. | 2026-11-15 | Released - verified; push recorded below |
 | Codex | `security/settings-scope-2026-11-15` | Settings scope and security Phase 1: `HandleInertiaRequests.php`, `SettingController.php`, `Helper.php` (`setSetting` only), `AIAssistantSettingsController.php`, related security tests, deploy data-step documentation, changelog and handoff. | 2026-11-15 | Released - pushed without PR |
 | Codex | `fix/email-notification-toggles-2026-11-15` | Superadmin email notification toggles: persist/reload private notification settings correctly, enforce authorized keys, make Helpdesk dispatch respect switches, focused tests/build, changelog and handoff. | 2026-11-15 | Released - pushed without PR |
@@ -279,6 +280,22 @@ Zoho export inventory (Claude, 2026-10-28, read-only). Full detail with exact pa
 A work item is not complete until its code is committed, tests are recorded, affected workflows are manually checked when applicable, migrations and deployment steps are documented, the changelog is updated when required, and this coordination file contains a handoff entry.
 
 ## Handoff Log
+
+### 2026-11-15 Asia/Colombo - Claude - Settings scope Phase 2 takeover and completion
+
+- Branch: `security/settings-scope-phase2-2026-11-16` (from `security/settings-scope-2026-11-15` @ `3d8891823`); pushed without a PR.
+- Takeover: Codex hit its usage limit mid-Phase 2 with 28 files edited and nothing committed. Claude reviewed every Codex change against the Phase 2 prompt and kept them: `CentralAISettingsService`, super admin AI Settings endpoint/page/permissions (migration `2026_11_16_000001` + seeder), company AI Agent/AI Assistant reduced to on/off switches, AI readers on central credentials, Brand/System company vs platform allowlists, optional company SMTP with fallback envelope in `EmailTemplate::sendEmailTemplate`/`CommonEmailTemplate`, settings menus, tests and runbook.
+- Claude fixes on top of Codex's work:
+  1. AI Assistant buttons would have disappeared for every company: `fields.tsx` needed `ai_provider`/`ai_model`/company key flag, which Phase 2 removed from the browser. Now `CentralAISettingsService::availability()` adds booleans `ai_assistant_available`/`ai_agent_available` to `companyAllSetting` (HandleInertiaRequests); the old per-company `ai_*_api_key_configured` flags are no longer shared.
+  2. Company Brand form was half-hidden (Logos tab hidden, light logo hidden, empty Text tab). Companies now see both logos and Theme; favicon and the Text tab are super admin only.
+  3. SMTP fallback only covered template emails. `SetConfigEmail()` now falls back to the central super admin SMTP when the company lacks host or sender address (company name as sender name, company email as global reply-to, mailer purged so the config applies). Covers all ~15 direct senders (password change, user/portal invites, leads, video production, imported clients, workflows, reminders). Workflow/reminder pre-checks now test the effective mailer; `CommonEmailTemplate` falls back to the active mailer's sender.
+  4. Raw central-SMTP errors are no longer returned to company users; the exception class is logged.
+- Files (Claude): `app/Helpers/Helper.php` (SetConfigEmail), `app/Models/EmailTemplate.php`, `app/Mail/CommonEmailTemplate.php`, `app/Services/BrowserSettingsPayloadService.php`, `app/Services/CentralAISettingsService.php`, `app/Http/Middleware/HandleInertiaRequests.php`, `packages/workdo/AIAssistant/src/Resources/js/fields/fields.tsx`, `resources/js/pages/settings/components/brand-settings.tsx`, `tests/Unit/BrowserSettingsPayloadServiceTest.php`, `tests/Smoke/SettingsScopePhase2Test.php` (+3 tests), `docs/security-settings-scope-phase2-deployment.md` (behaviour notes), `CHANGELOG.md`.
+- Database: migration `2026_11_16_000001` run on local `erp_live_copy` only (2 permissions granted to superadmin) and permission cache reset. Nothing on live.
+- Tests: settings unit suite 46/46; Phase 2 smoke 8/8 (phpunit.smoke.xml); SecurityRoleMatrixTest 1/1; Helpdesk smoke 30/30; full unit suite 196 tests with the same 5 pre-existing unrelated failures; PageSmokeTest 333 pages, 0 server errors; `npx tsc` clean for changed files; `npm run build` passed; `git diff --check` clean.
+- Not seen in a browser.
+- Deploy: follow `docs/security-settings-scope-phase2-deployment.md` after Phase 1. AI stays unavailable until the super admin enters the rotated central keys; companies without SMTP start sending through the central mailbox.
+- Next: user browser check (super admin AI Settings, company Brand/System/Email/AI switches, one invoice email from a company without SMTP), then Phase 3 (Helpdesk mailbox and per-event switches) on the user's go-ahead.
 
 ### 2026-11-15 Asia/Colombo - Codex - Settings scope Phase 1 follow-up
 

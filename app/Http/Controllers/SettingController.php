@@ -21,9 +21,11 @@ use Illuminate\Validation\ValidationException;
 class SettingController extends Controller
 {
     private const SETTING_KEYS = [
-        'brand' => ['logo_dark', 'logo_light', 'favicon', 'titleText', 'footerText', 'sidebarVariant', 'sidebarStyle', 'layoutDirection', 'themeMode', 'themeColor', 'customColor'],
+        'brand_company' => ['logo_dark', 'logo_light', 'sidebarVariant', 'sidebarStyle', 'layoutDirection', 'themeMode', 'themeColor', 'customColor'],
+        'brand_platform' => ['logo_dark', 'logo_light', 'favicon', 'titleText', 'footerText', 'sidebarVariant', 'sidebarStyle', 'layoutDirection', 'themeMode', 'themeColor', 'customColor'],
         'company' => ['company_name', 'company_address', 'company_city', 'company_state', 'company_country', 'company_zipcode', 'company_telephone', 'company_email_from_name', 'registration_number', 'company_email', 'vat_gst_number_switch', 'tax_type', 'tax_number'],
-        'system' => ['defaultLanguage', 'dateFormat', 'timeFormat', 'calendarStartDay', 'enableRegistration', 'enableEmailVerification', 'landingPageEnabled', 'termsConditionsUrl'],
+        'system_company' => ['defaultLanguage', 'dateFormat', 'timeFormat', 'calendarStartDay'],
+        'system_platform' => ['defaultLanguage', 'dateFormat', 'timeFormat', 'calendarStartDay', 'enableRegistration', 'enableEmailVerification', 'landingPageEnabled', 'termsConditionsUrl'],
         'currency' => ['defaultCurrency', 'decimalFormat', 'decimalSeparator', 'thousandsSeparator', 'floatNumber', 'currencySymbolSpace', 'currencySymbolPosition', 'currencySymbol', 'currencyName'],
         'cookie' => ['enableCookiePopup', 'enableLogging', 'strictlyNecessaryCookies', 'cookieTitle', 'strictlyCookieTitle', 'cookieDescription', 'strictlyCookieDescription', 'contactUsDescription', 'contactUsUrl'],
         'email' => ['provider', 'driver', 'host', 'port', 'username', 'password', 'clear_password', 'encryption', 'fromAddress'],
@@ -32,7 +34,8 @@ class SettingController extends Controller
         'bank_transfer' => ['bankTransferEnabled', 'instructions'],
         'pusher' => ['app_id', 'app_key', 'app_secret', 'clear_app_secret', 'app_cluster', 'enabled'],
         'social_login' => ['social_login_enabled', 'google_login_enabled', 'google_client_id', 'google_client_secret', 'clear_google_client_secret', 'microsoft_login_enabled', 'microsoft_client_id', 'microsoft_client_secret', 'clear_microsoft_client_secret', 'microsoft_tenant_id'],
-        'ai_agent' => ['ai_agent_provider', 'ai_agent_model', 'ai_agent_api_key', 'clear_ai_agent_api_key'],
+        'ai_agent' => ['ai_agent_enabled'],
+        'central_ai' => ['ai_agent_provider', 'ai_agent_model', 'ai_agent_api_key', 'clear_ai_agent_api_key', 'ai_provider', 'ai_model', 'ai_api_key', 'clear_ai_api_key'],
     ];
 
     public function index(
@@ -56,7 +59,7 @@ class SettingController extends Controller
 
             $notificationKeys = $notifications->flatten()->pluck('action')->all();
             $globalSettings = array_merge(
-                $browserSettings->settingsPage($allSettings),
+                $browserSettings->settingsPage($allSettings, Auth::user()->type === 'superadmin'),
                 Arr::only($allSettings, $notificationKeys)
             );
 
@@ -82,20 +85,27 @@ class SettingController extends Controller
     {
         if(Auth::user()->can('edit-brand-settings'))
         {
-            $this->rejectUnknownSettingKeys($request, self::SETTING_KEYS['brand']);
-            $request->validate([
+            $isSuperAdmin = Auth::user()->type === 'superadmin';
+            $allowedKeys = self::SETTING_KEYS[$isSuperAdmin ? 'brand_platform' : 'brand_company'];
+            $this->rejectUnknownSettingKeys($request, $allowedKeys);
+            $rules = [
                 'settings.logo_dark' => 'nullable|string|max:500',
                 'settings.logo_light' => 'nullable|string|max:500',
-                'settings.favicon' => 'nullable|string|max:500',
-                'settings.titleText' => 'required|string|max:255',
-                'settings.footerText' => 'required|string|max:500',
                 'settings.sidebarVariant' => 'nullable|string|max:50',
                 'settings.sidebarStyle' => 'nullable|string|max:50',
                 'settings.layoutDirection' => 'nullable|string|max:50',
                 'settings.themeMode' => 'nullable|string|max:50',
                 'settings.themeColor' => 'nullable|string|max:50',
                 'settings.customColor' => 'nullable|string|max:50',
-            ], [
+            ];
+            if ($isSuperAdmin) {
+                $rules += [
+                    'settings.favicon' => 'nullable|string|max:500',
+                    'settings.titleText' => 'required|string|max:255',
+                    'settings.footerText' => 'required|string|max:500',
+                ];
+            }
+            $request->validate($rules, [
                 'settings.titleText.required' => __('Title text is required.'),
                 'settings.titleText.string' => __('Title text must be a valid string.'),
                 'settings.titleText.max' => __('Title text must not exceed 255 characters.'),
@@ -122,7 +132,7 @@ class SettingController extends Controller
                 'settings.customColor.max' => __('Custom color must not exceed 50 characters.'),
             ]);
 
-            $settings = Arr::only($request->input('settings', []), self::SETTING_KEYS['brand']);
+            $settings = Arr::only($request->input('settings', []), $allowedKeys);
             if (isset($settings['logo_dark']) ) {
                 $settings['logo_dark'] = basename($settings['logo_dark']);
             }
@@ -213,17 +223,24 @@ class SettingController extends Controller
     {
         if(Auth::user()->can('edit-system-settings'))
         {
-            $this->rejectUnknownSettingKeys($request, self::SETTING_KEYS['system']);
-            $request->validate([
+            $isSuperAdmin = Auth::user()->type === 'superadmin';
+            $allowedKeys = self::SETTING_KEYS[$isSuperAdmin ? 'system_platform' : 'system_company'];
+            $this->rejectUnknownSettingKeys($request, $allowedKeys);
+            $rules = [
                 'settings.defaultLanguage' => 'required|string|max:10',
                 'settings.dateFormat' => 'required|string|max:50',
                 'settings.timeFormat' => 'required|string|max:50',
                 'settings.calendarStartDay' => 'required|string|max:20',
-                'settings.enableRegistration' => 'required|string|in:on,off',
-                'settings.enableEmailVerification' => 'required|string|in:on,off',
-                'settings.landingPageEnabled' => 'required|string|in:on,off',
-                'settings.termsConditionsUrl' => 'nullable|url|max:500',
-            ], [
+            ];
+            if ($isSuperAdmin) {
+                $rules += [
+                    'settings.enableRegistration' => 'required|string|in:on,off',
+                    'settings.enableEmailVerification' => 'required|string|in:on,off',
+                    'settings.landingPageEnabled' => 'required|string|in:on,off',
+                    'settings.termsConditionsUrl' => 'nullable|url|max:500',
+                ];
+            }
+            $request->validate($rules, [
                 'settings.defaultLanguage.required' => __('Default language is required.'),
                 'settings.defaultLanguage.string' => __('Default language must be a valid string.'),
                 'settings.defaultLanguage.max' => __('Default language must not exceed 10 characters.'),
@@ -246,7 +263,7 @@ class SettingController extends Controller
                 'settings.termsConditionsUrl.max' => __('Terms and conditions URL must not exceed 500 characters.'),
             ]);
 
-            $settings = Arr::only($request->input('settings', []), self::SETTING_KEYS['system']);
+            $settings = Arr::only($request->input('settings', []), $allowedKeys);
 
             foreach ($settings as $key => $value) {
                 setSetting($key, $value, null, true);
@@ -442,16 +459,17 @@ class SettingController extends Controller
         if(Auth::user()->can('edit-email-settings'))
         {
             $this->rejectUnknownSettingKeys($request, self::SETTING_KEYS['email']);
+            $required = Auth::user()->type === 'superadmin' ? 'required' : 'nullable';
             $request->validate([
-                'settings.provider' => 'required|string|max:50',
-                'settings.driver' => 'required|string|max:50',
-                'settings.host' => 'required|string|max:255',
-                'settings.port' => 'required|string|max:10',
-                'settings.username' => 'required|string|max:255',
+                'settings.provider' => "{$required}|string|max:50",
+                'settings.driver' => "{$required}|string|max:50",
+                'settings.host' => "{$required}|string|max:255",
+                'settings.port' => "{$required}|string|max:10",
+                'settings.username' => 'nullable|string|max:255',
                 'settings.password' => 'nullable|string|max:255',
                 'settings.clear_password' => 'nullable|boolean',
-                'settings.encryption' => 'required|string|max:10',
-                'settings.fromAddress' => 'required|email|max:255',
+                'settings.encryption' => "{$required}|string|max:10",
+                'settings.fromAddress' => "{$required}|email|max:255",
             ], [
                 'settings.provider.required' => __('Email provider is required.'),
                 'settings.provider.string' => __('Email provider must be a valid string.'),
@@ -479,7 +497,9 @@ class SettingController extends Controller
             ]);
 
             $settings = Arr::only($request->input('settings', []), self::SETTING_KEYS['email']);
-            $this->rejectUnsafeCompanySmtpHost($settings['host']);
+            if (filled($settings['host'] ?? null)) {
+                $this->rejectUnsafeCompanySmtpHost($settings['host']);
+            }
 
             $clearPassword = (bool) ($settings['clear_password'] ?? false);
             $wasConfigured = filled(company_setting('email_password'));
@@ -518,10 +538,15 @@ class SettingController extends Controller
             ]);
 
             try {
-                $this->rejectUnsafeCompanySmtpHost((string) company_setting('email_host'));
-
-                // Apply dynamic mail configuration
-                SetConfigEmail();
+                $host = company_setting('email_host');
+                $fromAddress = company_setting('email_fromAddress');
+                if (Auth::user()->type !== 'superadmin' && (blank($host) || blank($fromAddress))) {
+                    $adminId = \App\Models\User::where('type', 'superadmin')->orderBy('id')->value('id');
+                    SetConfigEmail($adminId);
+                } else {
+                    $this->rejectUnsafeCompanySmtpHost((string) $host);
+                    SetConfigEmail();
+                }
 
                 Mail::to($request->email)->send(new TestMail());
 
@@ -866,42 +891,20 @@ class SettingController extends Controller
         return back()->with('success', __('Social login settings saved successfully.'));
     }
 
-    public function updateAIAgentSettings(Request $request, SensitiveSettingAuditService $audit)
+    public function updateAIAgentSettings(Request $request)
     {
         if(Auth::user()->can('edit-ai-agent-settings'))
         {
             $this->rejectUnknownSettingKeys($request, self::SETTING_KEYS['ai_agent']);
             $request->validate([
-                'settings.ai_agent_provider' => 'required|string|in:openai,anthropic,google',
-                'settings.ai_agent_model' => 'required|string|max:255',
-                'settings.ai_agent_api_key' => 'nullable|string|max:255',
-                'settings.clear_ai_agent_api_key' => 'nullable|boolean',
+                'settings.ai_agent_enabled' => 'required|boolean',
             ]);
 
             $settings = Arr::only($request->input('settings', []), self::SETTING_KEYS['ai_agent']);
 
-            $clearApiKey = (bool) ($settings['clear_ai_agent_api_key'] ?? false);
-            $wasConfigured = filled(company_setting('ai_agent_api_key'));
-            $this->rejectReplacementAndClear($settings['ai_agent_api_key'] ?? null, $clearApiKey, 'settings.ai_agent_api_key');
-            unset($settings['clear_ai_agent_api_key']);
-
-            if ($clearApiKey) {
-                $settings['ai_agent_api_key'] = null;
-            } elseif (blank($settings['ai_agent_api_key'] ?? null)) {
-                unset($settings['ai_agent_api_key']);
-
-                if (blank(company_setting('ai_agent_api_key'))) {
-                    return back()->withErrors([
-                        'settings.ai_agent_api_key' => __('An API key is required before enabling the AI Agent.'),
-                    ]);
-                }
-            }
-
             foreach ($settings as $key => $value) {
                 setSetting($key, $value,null, false);
             }
-
-            $audit->recordSubmittedSecret('ai_agent', 'ai_agent_api_key', $wasConfigured, $request->input('settings.ai_agent_api_key'), $clearApiKey);
 
             return redirect()->back()->with('success', __('AI Agent settings saved successfully.'));
         }
@@ -909,6 +912,61 @@ class SettingController extends Controller
         {
             return back()->with('error', __('Permission denied'));
         }
+    }
+
+    public function updateCentralAISettings(Request $request, SensitiveSettingAuditService $audit)
+    {
+        abort_unless(
+            Auth::user()?->type === 'superadmin' && Auth::user()->can('edit-platform-ai-settings'),
+            403
+        );
+
+        $this->rejectUnknownSettingKeys($request, self::SETTING_KEYS['central_ai']);
+        $request->validate([
+            'settings.ai_agent_provider' => 'required|string|in:openai,anthropic,google',
+            'settings.ai_agent_model' => 'required|string|max:255',
+            'settings.ai_agent_api_key' => 'nullable|string|max:255',
+            'settings.clear_ai_agent_api_key' => 'nullable|boolean',
+            'settings.ai_provider' => 'required|string|in:openai,anthropic,google',
+            'settings.ai_model' => 'required|string|max:255',
+            'settings.ai_api_key' => 'nullable|string|max:255',
+            'settings.clear_ai_api_key' => 'nullable|boolean',
+        ]);
+
+        $settings = Arr::only($request->input('settings', []), self::SETTING_KEYS['central_ai']);
+        $auditEntries = [];
+
+        foreach ([
+            ['secret' => 'ai_agent_api_key', 'clear' => 'clear_ai_agent_api_key', 'audit' => 'ai_agent'],
+            ['secret' => 'ai_api_key', 'clear' => 'clear_ai_api_key', 'audit' => 'ai_assistant'],
+        ] as $credential) {
+            $secretKey = $credential['secret'];
+            $clearKey = $credential['clear'];
+            $clear = (bool) ($settings[$clearKey] ?? false);
+            $replacement = $settings[$secretKey] ?? null;
+            $wasConfigured = filled(admin_setting($secretKey));
+
+            $this->rejectReplacementAndClear($replacement, $clear, "settings.{$secretKey}");
+            unset($settings[$clearKey]);
+
+            if ($clear) {
+                $settings[$secretKey] = null;
+            } elseif (blank($replacement)) {
+                unset($settings[$secretKey]);
+            }
+
+            $auditEntries[] = [$credential['audit'], $secretKey, $wasConfigured, $replacement, $clear];
+        }
+
+        foreach ($settings as $key => $value) {
+            setSetting($key, $value, Auth::id(), false);
+        }
+
+        foreach ($auditEntries as $entry) {
+            $audit->recordSubmittedSecret(...$entry);
+        }
+
+        return back()->with('success', __('AI settings saved successfully.'));
     }
 
     public function getAIAgentProviders()

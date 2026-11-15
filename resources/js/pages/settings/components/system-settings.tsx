@@ -90,9 +90,17 @@ export default function SystemSettings({ userSettings, auth }: SystemSettingsPro
 
   const saveSettings = () => {
     setIsLoading(true);
+    const submittedSettings = isSuperAdmin
+      ? settings
+      : {
+          defaultLanguage: settings.defaultLanguage,
+          dateFormat: settings.dateFormat,
+          timeFormat: settings.timeFormat,
+          calendarStartDay: settings.calendarStartDay,
+        };
 
     router.post(route('settings.system.update'), {
-      settings: settings as any
+      settings: submittedSettings as any
     }, {
       preserveScroll: true,
       onSuccess: (page) => {

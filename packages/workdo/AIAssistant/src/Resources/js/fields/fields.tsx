@@ -23,14 +23,8 @@ export const aiField = (data: any, setData: any, errors: any, mode: string = 'cr
     // Check if AIAssistant package is available and active
     const isAIPackageActive = auth?.user?.activatedPackages?.includes('AIAssistant');
 
-    // Check if AI is configured using existing settings
-    const aiProvider = companyAllSetting?.ai_provider;
-    const aiModel = companyAllSetting?.ai_model;
-    const isAIConfigured = !!(
-        aiProvider
-        && aiModel
-        && companyAllSetting?.ai_api_key_configured
-    );
+    // AI credentials are central; the server reports only whether the AI Assistant is usable for this company.
+    const isAIConfigured = companyAllSetting?.ai_assistant_available === true;
 
     // Return empty array if package not active or not configured
     if (!isAIPackageActive || !isAIConfigured) {

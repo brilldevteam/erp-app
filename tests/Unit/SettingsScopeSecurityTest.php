@@ -45,7 +45,7 @@ class SettingsScopeSecurityTest extends TestCase
         $source = file_get_contents(app_path('Http/Controllers/SettingController.php'));
 
         foreach ([
-            'brand', 'company', 'system', 'currency', 'cookie', 'email', 'seo',
+            'company', 'currency', 'cookie', 'email', 'seo',
             'storage', 'bank_transfer', 'pusher', 'social_login', 'ai_agent',
         ] as $section) {
             $this->assertStringContainsString(
@@ -54,6 +54,10 @@ class SettingsScopeSecurityTest extends TestCase
                 "Missing submitted-key validation for {$section}."
             );
         }
+
+        $this->assertStringContainsString("self::SETTING_KEYS[\$isSuperAdmin ? 'brand_platform' : 'brand_company']", $source);
+        $this->assertStringContainsString("self::SETTING_KEYS[\$isSuperAdmin ? 'system_platform' : 'system_company']", $source);
+        $this->assertStringContainsString("self::SETTING_KEYS['central_ai']", $source);
 
         $assistantSource = file_get_contents(
             base_path('packages/workdo/AIAssistant/src/Http/Controllers/AIAssistantSettingsController.php')

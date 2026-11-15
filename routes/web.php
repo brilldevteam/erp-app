@@ -200,6 +200,7 @@ Route::middleware(['auth', 'auth.session.current', 'verified', 'PlanModuleCheck'
     Route::post('settings/social-login', [SettingController::class, 'updateSocialLoginSettings'])->name('settings.social-login.update');
     Route::post('settings/bank-transfer', [SettingController::class, 'updateBankTransferSettings'])->name('settings.bank-transfer.update');
     Route::post('settings/ai-agent', [SettingController::class, 'updateAIAgentSettings'])->name('settings.ai-agent.update');
+    Route::post('settings/platform-ai', [SettingController::class, 'updateCentralAISettings'])->name('settings.platform-ai.update');
     Route::get('settings/ai-agent/providers', [SettingController::class, 'getAIAgentProviders'])->name('settings.ai-agent.providers');
     Route::post('email-notification-settings-save', [SettingController::class, 'mailNotificationStore'])->name('email.notification.setting.store');
 

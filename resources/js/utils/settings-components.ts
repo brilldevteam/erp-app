@@ -15,6 +15,7 @@ const coreComponents = {
   'bank-transfer-settings': lazy(() => import('@/pages/settings/components/bank-transfer-settings')),
   'cache-settings': lazy(() => import('@/pages/settings/components/cache-settings')),
   'ai-agent-settings': lazy(() => import('@/pages/settings/components/ai-agent-settings')),
+  'platform-ai-settings': lazy(() => import('@/pages/settings/components/platform-ai-settings')),
   'social-login-settings': lazy(() => import('@/pages/settings/components/social-login-settings')),
 };
 

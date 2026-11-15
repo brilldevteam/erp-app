@@ -520,23 +520,46 @@ if (!function_exists('SetConfigEmail')) {
                 $user_id = User::where('type', 'superadmin')->first()->id;
                 $company_settings = getCompanyAllSetting($user_id);
             }
-            if(empty($company_settings['email_host'])) {
-                // throw new \Exception(__('Email host is not configured'));
+            // Company SMTP is optional. Without a complete own setup (host and sender address), the company
+            // sends through the central super admin mailer, keeping its own name and its email as reply-to.
+            $mailer_settings = $company_settings;
+            $uses_central_mailer = false;
+            if (blank($company_settings['email_host'] ?? null) || blank($company_settings['email_fromAddress'] ?? null)) {
+                $central_owner_id = User::where('type', 'superadmin')->orderBy('id')->value('id');
+                $central_settings = $central_owner_id ? getCompanyAllSetting($central_owner_id) : [];
+                if (filled($central_settings['email_host'] ?? null) && filled($central_settings['email_fromAddress'] ?? null)) {
+                    $mailer_settings = $central_settings;
+                    $uses_central_mailer = true;
+                }
+            }
+
+            $from_name = $company_settings['company_email_from_name'] ?? null;
+            if ($uses_central_mailer && blank($from_name)) {
+                $from_name = $company_settings['company_name'] ?? null;
             }
 
             config([
-                'mail.default' => $company_settings['email_driver'] ?? 'smtp',
-                'mail.mailers.smtp.host' => $company_settings['email_host'],
-                'mail.mailers.smtp.port' => $company_settings['email_port'] ?? 587,
-                'mail.mailers.smtp.encryption' => $company_settings['email_encryption'] ?? 'tls',
-                'mail.mailers.smtp.username' => $company_settings['email_username'] ?? '',
-                'mail.mailers.smtp.password' => $company_settings['email_password'] ?? '',
-                'mail.from.address' => $company_settings['email_fromAddress'] ?? 'noreply@example.com',
-                'mail.from.name' => !empty($company_settings['company_email_from_name'])
-                    && !preg_match('/work\s*do\s*dash/i', $company_settings['company_email_from_name'])
-                        ? $company_settings['company_email_from_name']
+                'mail.default' => $mailer_settings['email_driver'] ?? 'smtp',
+                'mail.mailers.smtp.host' => $mailer_settings['email_host'] ?? null,
+                'mail.mailers.smtp.port' => $mailer_settings['email_port'] ?? 587,
+                'mail.mailers.smtp.encryption' => $mailer_settings['email_encryption'] ?? 'tls',
+                'mail.mailers.smtp.username' => $mailer_settings['email_username'] ?? '',
+                'mail.mailers.smtp.password' => $mailer_settings['email_password'] ?? '',
+                'mail.from.address' => $mailer_settings['email_fromAddress'] ?? 'noreply@example.com',
+                'mail.from.name' => !empty($from_name) && !preg_match('/work\s*do\s*dash/i', $from_name)
+                        ? $from_name
                         : 'Wazely ERP',
+                'mail.reply_to' => $uses_central_mailer && filter_var($company_settings['company_email'] ?? null, FILTER_VALIDATE_EMAIL)
+                    ? ['address' => $company_settings['company_email'], 'name' => $from_name ?: null]
+                    : null,
             ]);
+
+            // Drop any mailer built earlier in this process so the configuration above is used.
+            if (app()->resolved('mail.manager') && app('mail.manager') instanceof \Illuminate\Mail\MailManager) {
+                app('mail.manager')->purge('smtp');
+                app('mail.manager')->purge(config('mail.default'));
+            }
+
             return true;
         } catch (\Exception $e) {
             // throw new \Exception($e->getMessage());

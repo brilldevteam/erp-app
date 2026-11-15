@@ -162,19 +162,7 @@ class AIAgentService
     // Get AI configuration
     private function getAIConfig(): ?array
     {
-        $provider = company_setting('ai_agent_provider');
-        $model    = company_setting('ai_agent_model');
-        $apiKey   = company_setting('ai_agent_api_key');
-
-        if (!$provider || !$model || !$apiKey) {
-            return null;
-        }
-
-        return [
-            'provider' => $provider,
-            'model'    => $model,
-            'api_key'  => $apiKey,
-        ];
+        return app(CentralAISettingsService::class)->agentConfig();
     }
 
     // Build system prompt

@@ -2,24 +2,23 @@
 
 namespace Workdo\AIAssistant\Services;
 
+use App\Services\CentralAISettingsService;
 use Illuminate\Support\Facades\Http;
 
 class AIService
 {
     public function generateContent($fieldType, $settings, $context = [])
     {
-        $provider = company_setting('ai_provider');
-        $model    = company_setting('ai_model');
-        $apiKey   = company_setting('ai_api_key');
+        $config = app(CentralAISettingsService::class)->assistantConfig();
 
-        if (!$provider || !$model || !$apiKey) {
-            throw new \Exception(__('AI configuration not found'));
+        if (!$config) {
+            throw new \Exception(__('AI Assistant is unavailable or disabled'));
         }
 
         $promptBuilder = new PromptBuilder();
         $prompt        = $promptBuilder->buildPrompt($fieldType, $settings, $context);
 
-        return $this->callAI($provider, $model, $apiKey, $prompt, $settings);
+        return $this->callAI($config['provider'], $config['model'], $config['api_key'], $prompt, $settings);
     }
 
     private function callAI($provider, $model, $apiKey, $prompt, $settings)

@@ -10,6 +10,7 @@ use App\Classes\Module;
 use App\Services\SocialAuthSettingsService;
 use App\Services\TimeClockDeviceService;
 use App\Services\BrowserSettingsPayloadService;
+use App\Services\CentralAISettingsService;
 use Illuminate\Support\Arr;
 
 class HandleInertiaRequests extends Middleware
@@ -82,7 +83,10 @@ class HandleInertiaRequests extends Middleware
                 ? $browserSettings->shared(getAdminAllSetting())
                 : $browserSettings->shared(getAdminAllSetting(true)),
             'companyAllSetting' => $request->user()
-                ? $browserSettings->shared(getCompanyAllSetting($request->user()->id))
+                ? [
+                    ...$browserSettings->shared(getCompanyAllSetting($request->user()->id)),
+                    ...app(CentralAISettingsService::class)->availability(),
+                ]
                 : [],
             'loginBrandSetting' => $request->user() ? [] : $this->getPublicLoginBrandSetting(),
             'imageUrlPrefix' =>  getImageUrlPrefix(),

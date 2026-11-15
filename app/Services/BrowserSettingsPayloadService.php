@@ -55,10 +55,8 @@ class BrowserSettingsPayloadService
         'vat_gst_number_switch',
         'tax_type',
         'tax_number',
-        'ai_provider',
-        'ai_model',
-        'ai_agent_provider',
-        'ai_agent_model',
+        'ai_agent_enabled',
+        'ai_assistant_enabled',
     ];
 
     private const SETTINGS_PAGE_KEYS = [
@@ -115,20 +113,32 @@ class BrowserSettingsPayloadService
         'paypal_secret_key' => 'paypal_secret_key_configured',
     ];
 
+    /**
+     * AI credentials are central (super admin only). Whether AI is usable is reported separately as
+     * ai_assistant_available / ai_agent_available, so no per-company key state is shared here.
+     */
     public function shared(array $settings): array
     {
-        $payload = Arr::only($settings, self::SHARED_KEYS);
-        $payload['ai_api_key_configured'] = filled($settings['ai_api_key'] ?? null);
-        $payload['ai_agent_api_key_configured'] = filled($settings['ai_agent_api_key'] ?? null);
-
-        return $payload;
+        return Arr::only($settings, self::SHARED_KEYS);
     }
 
-    public function settingsPage(array $settings): array
+    public function settingsPage(array $settings, bool $includePlatformAI = false): array
     {
         $payload = Arr::only($settings, self::SETTINGS_PAGE_KEYS);
 
+        if ($includePlatformAI) {
+            $payload = array_merge($payload, Arr::only($settings, [
+                'ai_provider',
+                'ai_model',
+                'ai_agent_provider',
+                'ai_agent_model',
+            ]));
+        }
+
         foreach (self::SECRET_CONFIGURATION_FLAGS as $secretKey => $flagKey) {
+            if (!$includePlatformAI && in_array($secretKey, ['ai_api_key', 'ai_agent_api_key'], true)) {
+                continue;
+            }
             $payload[$flagKey] = filled($settings[$secretKey] ?? null);
         }
 
