@@ -133,7 +133,7 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
         order: 2950,
         children: [
             {
-                title: t('Helpdesk'),
+                title: t('Tickets'),
                 href: route('helpdesk-tickets.index'),
                 permission: 'manage-helpdesk-tickets',
             },

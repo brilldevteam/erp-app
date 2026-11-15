@@ -64,6 +64,8 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `UI-upgrade-2026-11-14` | Ticket Records summary correction: retain the five KPI cards while removing only the three breakdown panels; frontend build and local verification. | 2026-11-15 | Released - pushed without PR |
+| Codex | `UI-upgrade-2026-11-14` | Helpdesk Ticket Records UI simplification: rename the client submenu to Tickets, remove records summary panels, add the permission-aware create-ticket action, frontend/local verification, changelog and handoff. | 2026-11-15 | Released - pushed without PR |
 | Codex | `UI-upgrade-2026-11-14` | Client requester inline ticket status: expose the existing header dropdown to the ticket's client requester, preserve tenant isolation, focused tests, changelog and handoff. | 2026-11-14 | Released - pushed without PR |
 | Codex | `UI-upgrade-2026-11-14` | Helpdesk ticket header status layout: move the existing authorized status dropdown directly below Requester; frontend verification, changelog and handoff. | 2026-11-14 | Released - pushed without PR |
 | Codex | `UI-upgrade-2026-11-14` | Helpdesk client navigation and Ticket Records permission: grouped Helpdesk submenu, enforce existing `view-helpdesk-records`, default role grants, focused tests, changelog and handoff. | 2026-11-14 | Released - pushed without PR |
@@ -274,6 +276,21 @@ Zoho export inventory (Claude, 2026-10-28, read-only). Full detail with exact pa
 A work item is not complete until its code is committed, tests are recorded, affected workflows are manually checked when applicable, migrations and deployment steps are documented, the changelog is updated when required, and this coordination file contains a handoff entry.
 
 ## Handoff Log
+
+### 2026-11-15 Asia/Colombo - Codex - Ticket Records UI simplification
+
+- Branch: `UI-upgrade-2026-11-14`. Released on this branch without a PR.
+- Renamed the company/client Helpdesk child menu from Helpdesk to Tickets. Ticket Records retains the five KPI cards while removing only the By Status, By Priority and By Category breakdown panels.
+- Added the same permission-aware top-right plus action used by Manage Tickets. It opens the existing create-ticket dialog and remains hidden without `create-helpdesk-tickets`.
+- Files changed: `resources/js/utils/menus/company-menu.ts`, `resources/js/pages/helpdesk/records/index.tsx`, `CHANGELOG.md` and this handoff. No backend, permissions, migrations or data changed.
+- Verification: `npx tsc --noEmit` and `git diff --check` passed. Pre-existing generated `public/build`, storage and temporary workspace changes remain untouched and excluded.
+- Local environment update: applied the existing `2026_11_14_000008_grant_helpdesk_records_permission` migration on 2026-11-15 and cleared the Spatie permission/application caches, so company/client default roles receive Ticket Records locally while custom roles remain configurable.
+
+### 2026-11-15 Asia/Colombo - Codex - Ticket Records KPI correction
+
+- Branch: `UI-upgrade-2026-11-14`. Released on this branch without a PR.
+- Restored the five top KPI cards on Ticket Records. Only the By Status, By Priority and By Category panels remain removed, matching the clarified request.
+- Verification: `npx tsc --noEmit`, production frontend build and `git diff --check` passed. No backend, permission, migration or data changes were made for this correction.
 
 ### 2026-11-14 Asia/Colombo - Codex - Client requester status dropdown access
 

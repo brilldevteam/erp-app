@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDownAZ, ArrowUpAZ, CheckCircle2, ChevronDown, Clock3, Filter, Inbox, LoaderCircle, Search, Ticket, Timer, X } from 'lucide-react';
+import { ArrowDownAZ, ArrowUpAZ, CheckCircle2, ChevronDown, Clock3, Filter, Inbox, LoaderCircle, Plus, Search, Ticket, Timer, X } from 'lucide-react';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Dialog } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { PerPageSelector } from '@/components/ui/per-page-selector';
 import { Pagination } from '@/components/ui/pagination';
 import NoRecordsFound from '@/components/no-records-found';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { formatDate } from '@/utils/helpers';
+import Create from '../tickets/create';
 
 type TicketRecord = {
     id: number;
@@ -27,17 +30,11 @@ type TicketRecord = {
     assigned_agent?: { id: number; name: string } | null;
 };
 
-type Breakdown = Array<{ label: string; count: number }>;
-
 type Props = {
     records: { data: TicketRecord[]; current_page: number; last_page: number; per_page: number; total: number; from: number; to: number };
     summary: {
         total: number;
         by_status: Record<string, number>;
-        by_priority: Record<string, number>;
-        by_category: Breakdown;
-        by_company?: Breakdown;
-        by_agent?: Breakdown;
         avg_first_response_seconds: number | null;
         avg_resolution_seconds: number | null;
     };
@@ -46,6 +43,7 @@ type Props = {
     companies: Array<{ id: number; name: string }>;
     agents: Array<{ id: number; name: string }>;
     supportSide: boolean;
+    auth: { user?: { permissions?: string[] } };
 };
 
 const statuses = ['open', 'in_progress', 'waiting_customer', 'waiting_internal', 'resolved', 'closed'];
@@ -80,38 +78,13 @@ function duration(seconds: number | null, empty: string) {
     return `${Math.floor(hours / 24)}d ${hours % 24}h`;
 }
 
-function BreakdownList({ title, items }: { title: string; items: Breakdown }) {
-    const max = Math.max(1, ...items.map((item) => item.count));
-    return (
-        <div className="min-w-0">
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">{title}</h3>
-            {items.length ? (
-                <ul className="space-y-2">
-                    {items.map((item) => (
-                        <li key={item.label} className="text-sm">
-                            <div className="flex justify-between gap-3">
-                                <span className="truncate text-slate-700" title={item.label}>{item.label}</span>
-                                <span className="font-semibold tabular-nums text-slate-900">{item.count}</span>
-                            </div>
-                            <div className="mt-1 h-1.5 rounded-full bg-slate-100">
-                                <div className="h-1.5 rounded-full bg-primary/60" style={{ width: `${(item.count / max) * 100}%` }} />
-                            </div>
-                        </li>
-                    ))}
-                </ul>
-            ) : (
-                <p className="text-sm text-slate-500">-</p>
-            )}
-        </div>
-    );
-}
-
 export default function Records() {
     const { t } = useTranslation();
-    const { records, summary, filters = {}, categories, companies, agents, supportSide } = usePage().props as unknown as Props;
+    const { records, summary, filters = {}, categories, companies, agents, supportSide, auth } = usePage().props as unknown as Props;
     const [search, setSearch] = useState(filters.search || '');
     const [isSearching, setIsSearching] = useState(false);
     const [showAdvanced, setShowAdvanced] = useState(Boolean(filters.priority || filters.category_id || filters.company_id || filters.agent_id || filters.date_from || filters.date_to));
+    const [showCreate, setShowCreate] = useState(false);
 
     useFlashMessages();
 
@@ -146,7 +119,6 @@ export default function Records() {
 
     const openCount = (summary.by_status.open ?? 0) + (summary.by_status.in_progress ?? 0) + (summary.by_status.waiting_customer ?? 0) + (summary.by_status.waiting_internal ?? 0);
     const doneCount = (summary.by_status.resolved ?? 0) + (summary.by_status.closed ?? 0);
-
     const cards = [
         { label: t('Total tickets'), value: String(summary.total), icon: Ticket, tone: 'bg-blue-50 text-blue-600' },
         { label: t('Open'), value: String(openCount), icon: Inbox, tone: 'bg-amber-50 text-amber-700' },
@@ -155,11 +127,23 @@ export default function Records() {
         { label: t('Avg resolution'), value: duration(summary.avg_resolution_seconds, t('None resolved yet')), icon: Timer, tone: 'bg-rose-50 text-rose-600' },
     ];
 
-    const statusBreakdown = statuses.map((status) => ({ label: t(label(status)), count: summary.by_status[status] ?? 0 }));
-    const priorityBreakdown = priorities.map((priority) => ({ label: t(label(priority)), count: summary.by_priority[priority] ?? 0 }));
-
     return (
-        <AuthenticatedLayout breadcrumbs={[{ label: t('Helpdesk'), url: route('helpdesk-tickets.index') }, { label: t('Ticket Records') }]} pageTitle={t('Ticket Records')}>
+        <AuthenticatedLayout
+            breadcrumbs={[{ label: t('Helpdesk'), url: route('helpdesk-tickets.index') }, { label: t('Ticket Records') }]}
+            pageTitle={t('Ticket Records')}
+            pageActions={auth.user?.permissions?.includes('create-helpdesk-tickets') ? (
+                <TooltipProvider>
+                    <Tooltip delayDuration={0}>
+                        <TooltipTrigger asChild>
+                            <Button size="sm" onClick={() => setShowCreate(true)} aria-label={t('Create ticket')}>
+                                <Plus className="h-4 w-4" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>{t('Create')}</p></TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            ) : null}
+        >
             <Head title={t('Ticket Records')} />
 
             <div className="mx-auto max-w-[1600px] space-y-5 pb-8">
@@ -174,24 +158,6 @@ export default function Records() {
                                 </div>
                             </div>
                         </div>
-                    ))}
-                </section>
-
-                <section className={`grid gap-4 sm:grid-cols-2 ${supportSide ? 'xl:grid-cols-5' : 'xl:grid-cols-3'}`}>
-                    {[
-                        { title: t('By status'), items: statusBreakdown },
-                        { title: t('By priority'), items: priorityBreakdown },
-                        { title: t('By category'), items: summary.by_category },
-                        ...(supportSide ? [
-                            { title: t('By company'), items: summary.by_company ?? [] },
-                            { title: t('By agent'), items: summary.by_agent ?? [] },
-                        ] : []),
-                    ].map((section) => (
-                        <Card key={section.title} className="rounded-2xl border shadow-sm shadow-slate-200/40">
-                            <CardContent className="p-5">
-                                <BreakdownList title={section.title} items={section.items} />
-                            </CardContent>
-                        </Card>
                     ))}
                 </section>
 
@@ -374,6 +340,10 @@ export default function Records() {
                     )}
                 </Card>
             </div>
+
+            <Dialog open={showCreate} onOpenChange={setShowCreate}>
+                {showCreate && <Create onSuccess={() => setShowCreate(false)} />}
+            </Dialog>
         </AuthenticatedLayout>
     );
 }

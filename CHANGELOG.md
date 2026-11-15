@@ -1,5 +1,6 @@
 # Changelog
 
+- The client Helpdesk menu now labels its main ticket list as Tickets. Ticket Records retains its five KPI cards, removes the three detailed breakdown panels, and includes the same permission-aware create-ticket action as Manage Tickets.
 - The actual client requester can now use the inline status dropdown on their own Helpdesk ticket; unrelated clients remain blocked by requester and tenant authorization.
 - The inline Helpdesk ticket status dropdown now sits directly below Requester in the ticket header, keeping status changes visible beside the requester details.
 - Client navigation now groups Helpdesk and Ticket Records under one Helpdesk menu. Ticket Records uses its own `View Helpdesk Records` role permission, which can be granted or removed independently while existing company/client roles retain access by default.
