@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `security/settings-scope-2026-11-15` | Settings scope and security Phase 1: `HandleInertiaRequests.php`, `SettingController.php`, `Helper.php` (`setSetting` only), `AIAssistantSettingsController.php`, related security tests, deploy data-step documentation, changelog and handoff. | 2026-11-15 | Released - pushed without PR |
 | Codex | `fix/email-notification-toggles-2026-11-15` | Superadmin email notification toggles: persist/reload private notification settings correctly, enforce authorized keys, make Helpdesk dispatch respect switches, focused tests/build, changelog and handoff. | 2026-11-15 | Released - pushed without PR |
 | Codex | `UI-upgrade-2026-11-14` | Ticket Records summary correction: retain the five KPI cards while removing only the three breakdown panels; frontend build and local verification. | 2026-11-15 | Released - pushed without PR |
 | Codex | `UI-upgrade-2026-11-14` | Helpdesk Ticket Records UI simplification: rename the client submenu to Tickets, remove records summary panels, add the permission-aware create-ticket action, frontend/local verification, changelog and handoff. | 2026-11-15 | Released - pushed without PR |
@@ -277,6 +278,21 @@ Zoho export inventory (Claude, 2026-10-28, read-only). Full detail with exact pa
 A work item is not complete until its code is committed, tests are recorded, affected workflows are manually checked when applicable, migrations and deployment steps are documented, the changelog is updated when required, and this coordination file contains a handoff entry.
 
 ## Handoff Log
+
+### 2026-11-15 Asia/Colombo - Codex - Settings scope and security Phase 1
+
+- Branch: `security/settings-scope-2026-11-15`; released without a PR.
+- Commit: included in this handoff commit.
+- Files changed: `app/Http/Middleware/HandleInertiaRequests.php`, `app/Http/Controllers/SettingController.php`, `app/Helpers/Helper.php`, `packages/workdo/AIAssistant/src/Http/Controllers/AIAssistantSettingsController.php`, `tests/Unit/SettingsScopeSecurityTest.php`, `tests/Unit/SensitiveSettingsAuthorizationTest.php`, `docs/security-settings-scope-deployment.md`, `CHANGELOG.md` and `AGENTS.md`.
+- Database records/migrations affected: none locally or on live. The deployment runbook contains a counted, backed-up SQL data step to mark existing company brand rows private.
+- What was implemented: anonymous users now receive only allowlisted superadmin branding; company brand writes cannot affect login; settings writers reject unknown keys; settings are private by default with intentional public superadmin sections explicit; cache/optimization, cookie, SEO, storage, Pusher and bank-transfer operations require the superadmin type plus permission; company SMTP save/test rejects private, loopback, link-local, reserved and unresolved hosts; test-mail failures log only safe metadata and show a generic message.
+- Decisions and assumptions: per-company SMTP remains supported in Phase 1; central AI credentials, separated Platform/Company Settings and Helpdesk mailbox architecture remain Phase 2/3 work. No secret value was printed, logged or committed.
+- Tests run and results: PHP syntax passed for all changed PHP files; focused security/unit suite passed 25 tests and 107 assertions; `npm run build` passed with 4,023 modules. `SecurityRoleMatrixTest` and Helpdesk smoke tests were not run against `.env` because it targets `erp_live_copy`; disposable SQLite initialization did not complete within the command window.
+- Manual verification: frontend payload keys were compared with every endpoint allowlist; generated `public/build`, `public/hot`, `tmp` and storage artifacts remain excluded.
+- Known issues or blockers: exposed credentials must still be rotated by the user. Stripe plan activation still trusts `return_type` in `StripeController.php:298`; intentionally not changed in this branch.
+- Deployment or rollback notes: follow `docs/security-settings-scope-deployment.md`: back up first, record affected-row count, create the rollback table, update only public company brand rows, clear caches and verify anonymous login; rollback restores `is_public` by setting ID.
+- Files/areas still claimed: none after this release.
+- Exact next step: deploy and verify Phase 1, rotate exposed credentials, then wait for user decisions before Phase 2 or Phase 3.
 
 ### 2026-11-15 Asia/Colombo - Codex - Email notification toggle persistence
 

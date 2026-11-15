@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use App\Services\SocialAuthSettingsService;
 use App\Services\BrowserSettingsPayloadService;
 use App\Services\SensitiveSettingAuditService;
@@ -19,6 +20,21 @@ use Illuminate\Validation\ValidationException;
 
 class SettingController extends Controller
 {
+    private const SETTING_KEYS = [
+        'brand' => ['logo_dark', 'logo_light', 'favicon', 'titleText', 'footerText', 'sidebarVariant', 'sidebarStyle', 'layoutDirection', 'themeMode', 'themeColor', 'customColor'],
+        'company' => ['company_name', 'company_address', 'company_city', 'company_state', 'company_country', 'company_zipcode', 'company_telephone', 'company_email_from_name', 'registration_number', 'company_email'],
+        'system' => ['defaultLanguage', 'dateFormat', 'timeFormat', 'calendarStartDay', 'enableRegistration', 'enableEmailVerification', 'landingPageEnabled', 'termsConditionsUrl'],
+        'currency' => ['defaultCurrency', 'decimalFormat', 'decimalSeparator', 'thousandsSeparator', 'floatNumber', 'currencySymbolSpace', 'currencySymbolPosition'],
+        'cookie' => ['enableLogging', 'strictlyNecessaryCookies', 'cookieTitle', 'strictlyCookieTitle', 'cookieDescription', 'strictlyCookieDescription', 'contactUsDescription', 'contactUsUrl'],
+        'email' => ['provider', 'driver', 'host', 'port', 'username', 'password', 'clear_password', 'encryption', 'fromAddress'],
+        'seo' => ['metaKeywords', 'metaTitle', 'metaDescription', 'metaImage'],
+        'storage' => ['storageType', 'allowedFileTypes', 'maxUploadSize', 'awsAccessKeyId', 'awsSecretAccessKey', 'clearAwsSecretAccessKey', 'awsDefaultRegion', 'awsBucket', 'awsUrl', 'awsEndpoint', 'wasabiAccessKey', 'wasabiSecretKey', 'clearWasabiSecretKey', 'wasabiRegion', 'wasabiBucket', 'wasabiUrl', 'wasabiRoot'],
+        'bank_transfer' => ['bankTransferEnabled', 'instructions'],
+        'pusher' => ['app_id', 'app_key', 'app_secret', 'clear_app_secret', 'app_cluster'],
+        'social_login' => ['social_login_enabled', 'google_login_enabled', 'google_client_id', 'google_client_secret', 'clear_google_client_secret', 'microsoft_login_enabled', 'microsoft_client_id', 'microsoft_client_secret', 'clear_microsoft_client_secret', 'microsoft_tenant_id'],
+        'ai_agent' => ['ai_agent_provider', 'ai_agent_model', 'ai_agent_api_key', 'clear_ai_agent_api_key'],
+    ];
+
     public function index(
         SocialAuthSettingsService $socialAuthSettings,
         BrowserSettingsPayloadService $browserSettings
@@ -66,6 +82,7 @@ class SettingController extends Controller
     {
         if(Auth::user()->can('edit-brand-settings'))
         {
+            $this->rejectUnknownSettingKeys($request, self::SETTING_KEYS['brand']);
             $request->validate([
                 'settings.logo_dark' => 'nullable|string|max:500',
                 'settings.logo_light' => 'nullable|string|max:500',
@@ -105,7 +122,7 @@ class SettingController extends Controller
                 'settings.customColor.max' => __('Custom color must not exceed 50 characters.'),
             ]);
 
-            $settings = $request->input('settings');
+            $settings = Arr::only($request->input('settings', []), self::SETTING_KEYS['brand']);
             if (isset($settings['logo_dark']) ) {
                 $settings['logo_dark'] = basename($settings['logo_dark']);
             }
@@ -119,7 +136,7 @@ class SettingController extends Controller
             }
 
             foreach ($settings as $key => $value) {
-                setSetting($key, $value);
+                setSetting($key, $value, null, Auth::user()->type === 'superadmin');
             }
 
             return redirect()->back()->with('success', __('Brand settings save successfully.'));
@@ -134,6 +151,7 @@ class SettingController extends Controller
     {
         if(Auth::user()->can('edit-company-settings'))
         {
+            $this->rejectUnknownSettingKeys($request, self::SETTING_KEYS['company']);
             $request->validate([
                 'settings.company_name' => 'nullable|string|max:255',
                 'settings.company_address' => 'nullable|string|max:500',
@@ -168,10 +186,10 @@ class SettingController extends Controller
                 'settings.company_email.max' => __('Email must not exceed 255 characters.'),
             ]);
 
-            $settings = $request->input('settings');
+            $settings = Arr::only($request->input('settings', []), self::SETTING_KEYS['company']);
 
             foreach ($settings as $key => $value) {
-                setSetting($key, $value);
+                setSetting($key, $value, null, false);
             }
 
             return redirect()->back()->with('success', __('Company settings save successfully.'));
@@ -186,6 +204,7 @@ class SettingController extends Controller
     {
         if(Auth::user()->can('edit-system-settings'))
         {
+            $this->rejectUnknownSettingKeys($request, self::SETTING_KEYS['system']);
             $request->validate([
                 'settings.defaultLanguage' => 'required|string|max:10',
                 'settings.dateFormat' => 'required|string|max:50',
@@ -218,10 +237,10 @@ class SettingController extends Controller
                 'settings.termsConditionsUrl.max' => __('Terms and conditions URL must not exceed 500 characters.'),
             ]);
 
-            $settings = $request->input('settings');
+            $settings = Arr::only($request->input('settings', []), self::SETTING_KEYS['system']);
 
             foreach ($settings as $key => $value) {
-                setSetting($key, $value);
+                setSetting($key, $value, null, true);
             }
 
             return redirect()->back()->with('success', __('System settings save successfully.'));
@@ -236,6 +255,7 @@ class SettingController extends Controller
     {
         if(Auth::user()->can('edit-system-settings'))
         {
+            $this->rejectUnknownSettingKeys($request, self::SETTING_KEYS['currency']);
             $request->validate([
                 'settings.defaultCurrency' => 'required|string|max:10',
                 'settings.decimalFormat' => 'required|string|max:10',
@@ -266,10 +286,10 @@ class SettingController extends Controller
                 'settings.currencySymbolPosition.max' => __('Currency symbol position must not exceed 10 characters.'),
             ]);
 
-            $settings = $request->input('settings');
+            $settings = Arr::only($request->input('settings', []), self::SETTING_KEYS['currency']);
 
             foreach ($settings as $key => $value) {
-                setSetting($key, $value);
+                setSetting($key, $value, null, false);
             }
 
             return redirect()->back()->with('success', __('Currency settings save successfully.'));
@@ -282,7 +302,7 @@ class SettingController extends Controller
 
     public function clearCache(Request $request)
     {
-        if(Auth::user()->can('clear-cache'))
+        if($this->canManagePlatformSetting('clear-cache'))
         {
             try {
                 Artisan::call('cache:clear');
@@ -303,7 +323,7 @@ class SettingController extends Controller
 
     public function optimizeSite(Request $request)
     {
-        if(Auth::user()->can('clear-cache'))
+        if($this->canManagePlatformSetting('clear-cache'))
         {
             try {
                 Artisan::call('optimize:clear');
@@ -347,8 +367,9 @@ class SettingController extends Controller
 
     public function updateCookieSettings(Request $request)
     {
-        if(Auth::user()->can('edit-cookie-settings'))
+        if($this->canManagePlatformSetting('edit-cookie-settings'))
         {
+            $this->rejectUnknownSettingKeys($request, self::SETTING_KEYS['cookie']);
             $request->validate([
                 'settings.enableLogging' => 'required|boolean',
                 'settings.strictlyNecessaryCookies' => 'required|boolean',
@@ -383,10 +404,10 @@ class SettingController extends Controller
                 'settings.contactUsUrl.max' => __('Contact us URL must not exceed 500 characters.'),
             ]);
 
-            $settings = $request->input('settings');
+            $settings = Arr::only($request->input('settings', []), self::SETTING_KEYS['cookie']);
 
             foreach ($settings as $key => $value) {
-                setSetting($key, $value);
+                setSetting($key, $value, null, true);
             }
 
             return redirect()->back()->with('success', __('Cookie settings save successfully.'));
@@ -401,6 +422,7 @@ class SettingController extends Controller
     {
         if(Auth::user()->can('edit-email-settings'))
         {
+            $this->rejectUnknownSettingKeys($request, self::SETTING_KEYS['email']);
             $request->validate([
                 'settings.provider' => 'required|string|max:50',
                 'settings.driver' => 'required|string|max:50',
@@ -437,7 +459,8 @@ class SettingController extends Controller
                 'settings.fromAddress.max' => __('From email address must not exceed 255 characters.'),
             ]);
 
-            $settings = $request->input('settings');
+            $settings = Arr::only($request->input('settings', []), self::SETTING_KEYS['email']);
+            $this->rejectUnsafeCompanySmtpHost($settings['host']);
 
             $clearPassword = (bool) ($settings['clear_password'] ?? false);
             $wasConfigured = filled(company_setting('email_password'));
@@ -476,6 +499,8 @@ class SettingController extends Controller
             ]);
 
             try {
+                $this->rejectUnsafeCompanySmtpHost((string) company_setting('email_host'));
+
                 // Apply dynamic mail configuration
                 SetConfigEmail();
 
@@ -483,7 +508,12 @@ class SettingController extends Controller
 
                 return redirect()->back()->with('success', __('Test email sent successfully to :email', ['email' => $request->email]));
             } catch (\Exception $e) {
-                return redirect()->back()->with('error', __('Failed to send test email: :error', ['error' => $e->getMessage()]));
+                Log::warning('Test email delivery failed.', [
+                    'user_id' => Auth::id(),
+                    'exception' => get_class($e),
+                ]);
+
+                return redirect()->back()->with('error', __('Failed to send test email. Please verify the email configuration.'));
             }
         }
         else
@@ -494,8 +524,9 @@ class SettingController extends Controller
 
     public function updateSeoSettings(Request $request)
     {
-        if(Auth::user()->can('edit-seo-settings'))
+        if($this->canManagePlatformSetting('edit-seo-settings'))
         {
+            $this->rejectUnknownSettingKeys($request, self::SETTING_KEYS['seo']);
             $request->validate([
                 'settings.metaKeywords' => 'required|string|max:500',
                 'settings.metaTitle' => 'required|string|max:100',
@@ -515,14 +546,14 @@ class SettingController extends Controller
                 'settings.metaImage.max' => __('Meta image path is too long.'),
             ]);
 
-            $settings = $request->input('settings');
+            $settings = Arr::only($request->input('settings', []), self::SETTING_KEYS['seo']);
             if (isset($settings['metaImage']) ) {
                 $settings['metaImage'] = basename($settings['metaImage']);
             }
 
 
             foreach ($settings as $key => $value) {
-                setSetting($key, $value);
+                setSetting($key, $value, null, true);
             }
 
             return redirect()->back()->with('success', __('SEO settings save successfully.'));
@@ -535,8 +566,9 @@ class SettingController extends Controller
 
     public function updateStorageSettings(Request $request, SensitiveSettingAuditService $audit)
     {
-        if(Auth::user()->can('edit-storage-settings'))
+        if($this->canManagePlatformSetting('edit-storage-settings'))
         {
+            $this->rejectUnknownSettingKeys($request, self::SETTING_KEYS['storage']);
             $request->validate([
                 'settings.storageType' => 'required|string|in:local,aws_s3,wasabi',
                 'settings.allowedFileTypes' => 'required|string|max:1000',
@@ -591,7 +623,7 @@ class SettingController extends Controller
                 'settings.wasabiUrl.url' => __('Please enter a valid Wasabi URL.'),
             ]);
 
-            $settings = $request->input('settings');
+            $settings = Arr::only($request->input('settings', []), self::SETTING_KEYS['storage']);
 
             $secretActions = [
                 'awsSecretAccessKey' => [
@@ -643,7 +675,7 @@ class SettingController extends Controller
 
     public function downloadCookieData()
     {
-        if(Auth::user()->can('manage-cookie-settings'))
+        if($this->canManagePlatformSetting('manage-cookie-settings'))
         {
             $cookieDataPath = storage_path('app/cookie_data.csv');
 
@@ -692,8 +724,9 @@ class SettingController extends Controller
 
     public function updateBankTransferSettings(Request $request)
     {
-        if(Auth::user()->can('edit-bank-transfer-settings'))
+        if($this->canManagePlatformSetting('edit-bank-transfer-settings'))
         {
+            $this->rejectUnknownSettingKeys($request, self::SETTING_KEYS['bank_transfer']);
             $request->validate([
                 'settings.bankTransferEnabled' => 'required|string|in:on,off',
                 'settings.instructions' => 'nullable|string|max:2000',
@@ -705,7 +738,7 @@ class SettingController extends Controller
                 'settings.instructions.max' => __('Instructions must not exceed 2000 characters.'),
             ]);
 
-            $settings = $request->input('settings');
+            $settings = Arr::only($request->input('settings', []), self::SETTING_KEYS['bank_transfer']);
 
             foreach ($settings as $key => $value) {
                 setSetting($key, $value, null, false);
@@ -721,8 +754,9 @@ class SettingController extends Controller
 
     public function updatePusherSettings(Request $request, SensitiveSettingAuditService $audit)
     {
-        if(Auth::user()->can('edit-pusher-settings'))
+        if($this->canManagePlatformSetting('edit-pusher-settings'))
         {
+            $this->rejectUnknownSettingKeys($request, self::SETTING_KEYS['pusher']);
             $request->validate([
                 'settings.app_id' => 'required|string|max:50',
                 'settings.app_key' => 'required|string|max:100',
@@ -743,7 +777,7 @@ class SettingController extends Controller
                 'settings.app_cluster.max' => __('Pusher App Cluster must not exceed 20 characters.'),
             ]);
 
-            $settings = $request->input('settings');
+            $settings = Arr::only($request->input('settings', []), self::SETTING_KEYS['pusher']);
 
             $clearSecret = (bool) ($settings['clear_app_secret'] ?? false);
             $wasConfigured = filled(company_setting('pusher_app_secret'));
@@ -779,6 +813,8 @@ class SettingController extends Controller
             return back()->with('error', __('Permission denied'));
         }
 
+        $this->rejectUnknownSettingKeys($request, self::SETTING_KEYS['social_login']);
+
         $validated = $request->validate([
             'settings.social_login_enabled' => ['required', 'boolean'],
             'settings.google_login_enabled' => ['required', 'boolean'],
@@ -812,6 +848,7 @@ class SettingController extends Controller
     {
         if(Auth::user()->can('edit-ai-agent-settings'))
         {
+            $this->rejectUnknownSettingKeys($request, self::SETTING_KEYS['ai_agent']);
             $request->validate([
                 'settings.ai_agent_provider' => 'required|string|in:openai,anthropic,google',
                 'settings.ai_agent_model' => 'required|string|max:255',
@@ -819,7 +856,7 @@ class SettingController extends Controller
                 'settings.clear_ai_agent_api_key' => 'nullable|boolean',
             ]);
 
-            $settings = $request->input('settings');
+            $settings = Arr::only($request->input('settings', []), self::SETTING_KEYS['ai_agent']);
 
             $clearApiKey = (bool) ($settings['clear_ai_agent_api_key'] ?? false);
             $wasConfigured = filled(company_setting('ai_agent_api_key'));
@@ -903,6 +940,48 @@ class SettingController extends Controller
         if ($clear && filled($replacement)) {
             throw ValidationException::withMessages([
                 $field => __('Enter a replacement or clear the stored credential, not both.'),
+            ]);
+        }
+    }
+
+    private function rejectUnknownSettingKeys(Request $request, array $allowedKeys): void
+    {
+        $settings = $request->input('settings', []);
+
+        if (!is_array($settings) || array_diff(array_keys($settings), $allowedKeys) !== []) {
+            throw ValidationException::withMessages([
+                'settings' => __('Invalid setting key submitted.'),
+            ]);
+        }
+    }
+
+    private function canManagePlatformSetting(string $permission): bool
+    {
+        return Auth::user()?->type === 'superadmin' && Auth::user()->can($permission);
+    }
+
+    private function rejectUnsafeCompanySmtpHost(string $host): void
+    {
+        if (Auth::user()?->type === 'superadmin') {
+            return;
+        }
+
+        $normalizedHost = strtolower(trim($host, " \t\n\r\0\x0B."));
+        $addresses = filter_var($normalizedHost, FILTER_VALIDATE_IP)
+            ? [$normalizedHost]
+            : (gethostbynamel($normalizedHost) ?: []);
+
+        $isUnsafe = $normalizedHost === 'localhost'
+            || $addresses === []
+            || collect($addresses)->contains(fn (string $address) => filter_var(
+                $address,
+                FILTER_VALIDATE_IP,
+                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+            ) === false);
+
+        if ($isUnsafe) {
+            throw ValidationException::withMessages([
+                'settings.host' => __('The SMTP host is not allowed.'),
             ]);
         }
     }

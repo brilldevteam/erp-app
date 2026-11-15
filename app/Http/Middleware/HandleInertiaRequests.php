@@ -7,10 +7,10 @@ use Inertia\Middleware;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\File;
 use App\Classes\Module;
-use App\Models\Setting;
 use App\Services\SocialAuthSettingsService;
 use App\Services\TimeClockDeviceService;
 use App\Services\BrowserSettingsPayloadService;
+use Illuminate\Support\Arr;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -149,15 +149,6 @@ class HandleInertiaRequests extends Middleware
             'customColor',
         ];
 
-        $latestBrandSetting = Setting::whereIn('key', $brandKeys)
-            ->where('is_public', 1)
-            ->latest('updated_at')
-            ->first();
-
-        if (!$latestBrandSetting) {
-            return getAdminAllSetting(true);
-        }
-
-        return getCompanyAllSetting($latestBrandSetting->created_by, true) ?: getAdminAllSetting(true);
+        return Arr::only(getAdminAllSetting(true), $brandKeys);
     }
 }

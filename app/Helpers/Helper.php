@@ -27,7 +27,7 @@ if (!function_exists('creatorId')) {
 }
 
 if (!function_exists('setSetting')) {
-    function setSetting(string $key, $value, $userId = null, $isPublic = true): void
+    function setSetting(string $key, $value, $userId = null, $isPublic = false): void
     {
         $createdBy = $userId ?? creatorId();
         Setting::updateOrCreate(

@@ -15,7 +15,13 @@ class SensitiveSettingsAuthorizationTest extends TestCase
         $source = file_get_contents(dirname(__DIR__, 2).DIRECTORY_SEPARATOR.$path);
 
         $this->assertIsString($source);
-        $this->assertStringContainsString("can('{$permission}')", $source);
+        $hasDirectPermissionCheck = str_contains($source, "can('{$permission}')");
+        $hasPlatformPermissionCheck = str_contains($source, "canManagePlatformSetting('{$permission}')");
+
+        $this->assertTrue(
+            $hasDirectPermissionCheck || $hasPlatformPermissionCheck,
+            "The expected {$permission} authorization check was not found."
+        );
         $this->assertStringContainsString("__('Permission denied')", $source);
     }
 

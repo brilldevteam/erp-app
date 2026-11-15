@@ -7,6 +7,7 @@ use App\Services\SensitiveSettingAuditService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class AIAssistantSettingsController extends Controller
 {
@@ -35,6 +36,15 @@ class AIAssistantSettingsController extends Controller
     public function store(Request $request, SensitiveSettingAuditService $audit)
     {
         if (Auth::user()->can('edit-ai-assistant-settings')) {
+            $allowedKeys = ['ai_provider', 'ai_model', 'ai_api_key', 'clear_ai_api_key'];
+            $submittedSettings = $request->input('settings', []);
+
+            if (!is_array($submittedSettings) || array_diff(array_keys($submittedSettings), $allowedKeys) !== []) {
+                throw ValidationException::withMessages([
+                    'settings' => __('Invalid setting key submitted.'),
+                ]);
+            }
+
             $validator = Validator::make($request->all(), [
                 'settings.ai_provider' => 'required|string|in:openai,anthropic,google',
                 'settings.ai_model'    => 'required|string|max:255',
@@ -48,7 +58,7 @@ class AIAssistantSettingsController extends Controller
                     ->with('error', __('Validation failed'));
             }
 
-            $settings = $request->input('settings', []);
+            $settings = array_intersect_key($submittedSettings, array_flip($allowedKeys));
 
             $clearApiKey = (bool) ($settings['clear_ai_api_key'] ?? false);
             $replacement = $settings['ai_api_key'] ?? null;
