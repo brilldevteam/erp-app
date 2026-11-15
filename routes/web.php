@@ -203,6 +203,7 @@ Route::middleware(['auth', 'auth.session.current', 'verified', 'PlanModuleCheck'
     Route::post('settings/platform-ai', [SettingController::class, 'updateCentralAISettings'])->name('settings.platform-ai.update');
     Route::get('settings/ai-agent/providers', [SettingController::class, 'getAIAgentProviders'])->name('settings.ai-agent.providers');
     Route::post('email-notification-settings-save', [SettingController::class, 'mailNotificationStore'])->name('email.notification.setting.store');
+    Route::post('settings/helpdesk-notifications', [SettingController::class, 'updateHelpdeskNotificationSettings'])->name('settings.helpdesk-notifications.update');
 
     // Bank Transfer Payment routes
     Route::post('bank-transfer', [BankTransferPaymentController::class, 'store'])->name('payment.bank-transfer.store');

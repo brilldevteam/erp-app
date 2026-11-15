@@ -75,27 +75,37 @@ class HelpdeskSecurityTest extends TestCase
         cache()->flush();
     }
 
-    public function test_superadmin_email_notification_setting_persists_in_the_settings_page(): void
+    public function test_superadmin_helpdesk_notification_settings_persist_and_replace_the_legacy_switches(): void
     {
-        $notification = Notification::where('type', 'mail')->where('module', 'general')->where('action', 'Helpdesk Ticket')->first();
-        if (!$notification || !$this->admin->can($notification->permissions)) {
-            $this->markTestSkipped('The Helpdesk Ticket notification permission is not available locally.');
+        if (!$this->admin->can('manage-email-notification-settings')) {
+            $this->markTestSkipped('The email notification settings permission is not available locally.');
         }
 
-        $this->as($this->admin)->post(route('email.notification.setting.store'), [
-            'mail_noti' => ['Helpdesk Ticket' => 'on'],
-        ])->assertRedirect();
+        $events = array_fill_keys(array_keys(\App\Services\HelpdeskNotificationSettings::EVENTS), 'off');
+        $this->as($this->admin)->post(route('settings.helpdesk-notifications.update'), ['settings' => [
+            'support_email' => 'Support@Example.test, help@example.test',
+            'ticket_created_support' => 'on',
+        ] + $events + ['ticket_created_support' => 'on']])->assertSessionHasNoErrors()->assertRedirect();
 
-        $this->assertDatabaseHas('settings', [
-            'key' => 'Helpdesk Ticket',
-            'value' => 'on',
-            'created_by' => $this->admin->id,
-            'is_public' => 0,
-        ]);
+        $this->assertDatabaseHas('settings', ['key' => 'helpdesk_support_email', 'value' => 'support@example.test,help@example.test', 'created_by' => $this->admin->id, 'is_public' => 0]);
+        $this->assertDatabaseHas('settings', ['key' => 'helpdesk_mail_ticket_created_support', 'value' => 'on', 'created_by' => $this->admin->id, 'is_public' => 0]);
 
-        $page = $this->as($this->admin)->get(route('settings.index'));
-        $page->assertOk();
-        $this->assertSame('on', $page->viewData('page')['props']['globalSettings']['Helpdesk Ticket'] ?? null);
+        $props = $this->as($this->admin)->get(route('settings.index'))->assertOk()->viewData('page')['props'];
+        $this->assertSame('support@example.test, help@example.test', $props['helpdeskNotificationSettings']['support_email']);
+        $this->assertSame('on', $props['helpdeskNotificationSettings']['events']['ticket_created_support']);
+        $this->assertSame('off', $props['helpdeskNotificationSettings']['events']['reply_to_customer']);
+
+        // The legacy switches no longer appear in, or save through, Email Notification Settings.
+        $listed = collect($props['notifications'])->flatten(1)->pluck('action')->all();
+        $this->assertNotContains('Helpdesk Ticket', $listed);
+        $this->assertNotContains('Helpdesk Ticket Reply', $listed);
+        $this->as($this->admin)->post(route('email.notification.setting.store'), ['mail_noti' => ['Helpdesk Ticket' => 'on']])->assertStatus(422);
+
+        // Invalid addresses and company users are refused.
+        $this->as($this->admin)->post(route('settings.helpdesk-notifications.update'), ['settings' => ['support_email' => 'not-an-email'] + $events])
+            ->assertSessionHasErrors('settings.support_email');
+        $this->as($this->company)->post(route('settings.helpdesk-notifications.update'), ['settings' => ['support_email' => ''] + $events])
+            ->assertForbidden();
     }
 
     public function test_helpdesk_email_switch_controls_delivery_queueing(): void

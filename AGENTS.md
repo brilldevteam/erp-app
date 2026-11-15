@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Claude | `security/helpdesk-notifications-phase3-2026-11-16` | Settings scope Phase 3 (Helpdesk email notifications): `app/Services/HelpdeskEmailService.php`, new `HelpdeskNotificationSettings` service and email content renderer, `app/Jobs/SendHelpdeskEmail.php`, Helpdesk notification endpoint/props in `SettingController.php`, `routes/web.php`, new `helpdesk-notification-settings.tsx`, superadmin settings menu/registry, Helpdesk/settings tests, `CHANGELOG.md`, handoff. No migrations or data changes. | 2026-11-15 | Released - committed and pushed without a PR (see handoff). |
 | Codex | `security/settings-scope-phase2-2026-11-16` | Settings scope Phase 2: central AI settings/readers, company AI toggles, platform/company Brand and System separation, settings menus/payloads, optional company SMTP fallback and mail metadata, permission migration/seeding, focused tests, deployment runbook, changelog and handoff. | 2026-11-16 | Released - taken over and completed by Claude on 2026-11-15 after Codex hit its usage limit; committed and pushed without a PR (see handoff). |
 | Codex | `security/settings-scope-2026-11-15` | Phase 1 follow-up: `SettingController.php`, settings payload compatibility/security tests, `docs/security-settings-scope-deployment.md`, `CHANGELOG.md` and handoff. Preserve the released Phase 1 controls and exclude generated/runtime files. | 2026-11-15 | Released - verified; push recorded below |
 | Codex | `security/settings-scope-2026-11-15` | Settings scope and security Phase 1: `HandleInertiaRequests.php`, `SettingController.php`, `Helper.php` (`setSetting` only), `AIAssistantSettingsController.php`, related security tests, deploy data-step documentation, changelog and handoff. | 2026-11-15 | Released - pushed without PR |
@@ -280,6 +281,23 @@ Zoho export inventory (Claude, 2026-10-28, read-only). Full detail with exact pa
 A work item is not complete until its code is committed, tests are recorded, affected workflows are manually checked when applicable, migrations and deployment steps are documented, the changelog is updated when required, and this coordination file contains a handoff entry.
 
 ## Handoff Log
+
+### 2026-11-15 Asia/Colombo - Claude - Settings scope Phase 3: Helpdesk notifications
+
+- Branch: `security/helpdesk-notifications-phase3-2026-11-16` (from Phase 2 `63a976bd8`); pushed without a PR.
+- Problem found: the two Helpdesk email templates are customer wording ("your ticket has been created", "your request has been received") but were used for every event, so super admins and agents received customer text. Support had no mailbox (all super admin logins), and one "Helpdesk Ticket Reply" switch drove assignment, reply and status emails.
+- Implemented:
+  - `app/Services/HelpdeskNotificationSettings.php`: 7 events (`ticket_created_support`, `ticket_created_confirmation`, `ticket_created_company`, `ticket_assigned`, `reply_to_customer`, `reply_to_support`, `status_changed`), private super admin switches `helpdesk_mail_<event>`, support mailbox `helpdesk_support_email` (max 5). Unsaved switches inherit the legacy `Helpdesk Ticket` / `Helpdesk Ticket Reply` values; the two new events start off. No migration or data change.
+  - `app/Services/HelpdeskEmailContent.php`: subject and body per event; ticket text stays escaped through `HelpdeskTicket::emailText()`.
+  - `app/Services/HelpdeskEmailService.php`: per-event switches and recipients; support mailbox (fallback super admin logins) for new tickets and unassigned customer replies; optional customer confirmation; optional company notification only when a client/staff (not the company itself) raised the ticket; customer emails reply to the first mailbox address. Delivery keys unchanged; template stored as `helpdesk:<event>`.
+  - `app/Jobs/SendHelpdeskEmail.php`: renders `helpdesk:` deliveries through `CommonEmailTemplate` on the central SMTP; older deliveries keep the template path.
+  - `SettingController`: `updateHelpdeskNotificationSettings` (super admin type + `manage-email-notification-settings`, unknown keys rejected, addresses validated) at `settings.helpdesk-notifications.update`; `helpdeskNotificationSettings` page prop; legacy switches removed from Email Notification Settings listing and save.
+  - `resources/js/pages/settings/components/helpdesk-notification-settings.tsx`, super admin menu and registry.
+  - Tests: new `tests/Smoke/HelpdeskNotificationsPhase3Test.php` (7); `HelpdeskSecurityTest` legacy-switch test rewritten for the new section.
+  - Docs: `docs/security-settings-scope-phase3-deployment.md`; `CHANGELOG.md`.
+- Verification: Phase 3 smoke 7/7; Helpdesk smoke 30/30; Phase 2 smoke 8/8; SecurityRoleMatrixTest 1/1; full unit suite 196 with the same 5 pre-existing unrelated failures; PageSmokeTest 333 pages, 0 server errors; tsc clean for changed files; `npm run build` passed; `git diff --check` clean. Not seen in a browser.
+- Deploy: no migration. Clear caches, keep the `emails` queue worker running, then set the support mailbox and switches.
+- Next: user browser check of Settings → Helpdesk Notifications and one test ticket; deploy Phases 1-3 in order.
 
 ### 2026-11-15 Asia/Colombo - Claude - Settings scope Phase 2 takeover and completion
 

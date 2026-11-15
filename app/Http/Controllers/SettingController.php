@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Log;
 use App\Services\SocialAuthSettingsService;
 use App\Services\BrowserSettingsPayloadService;
 use App\Services\SensitiveSettingAuditService;
+use App\Services\HelpdeskNotificationSettings;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 
@@ -40,7 +41,8 @@ class SettingController extends Controller
 
     public function index(
         SocialAuthSettingsService $socialAuthSettings,
-        BrowserSettingsPayloadService $browserSettings
+        BrowserSettingsPayloadService $browserSettings,
+        HelpdeskNotificationSettings $helpdeskNotifications
     )
     {
         if(Auth::user()->can('manage-settings'))
@@ -50,11 +52,13 @@ class SettingController extends Controller
 
             if(Auth::user()->hasRole('superadmin'))
             {
-               $notifications = \App\Models\Notification::where('type','mail')->where('module', 'general')->get()->groupBy('module');
+               $notifications = \App\Models\Notification::where('type','mail')->where('module', 'general')
+                   ->whereNotIn('action', HelpdeskNotificationSettings::LEGACY_SWITCHES)->get()->groupBy('module');
             }
             else
             {
-               $notifications = \App\Models\Notification::where('type','mail')->get()->groupBy('module');
+               $notifications = \App\Models\Notification::where('type','mail')
+                   ->whereNotIn('action', HelpdeskNotificationSettings::LEGACY_SWITCHES)->get()->groupBy('module');
             }
 
             $notificationKeys = $notifications->flatten()->pluck('action')->all();
@@ -72,6 +76,9 @@ class SettingController extends Controller
                 'socialAuthSettings' => Auth::user()->hasRole('superadmin')
                     && Auth::user()->can('edit-social-login-settings')
                     ? $socialAuthSettings->adminPayload()
+                    : null,
+                'helpdeskNotificationSettings' => $this->canManagePlatformSetting('manage-email-notification-settings')
+                    ? $helpdeskNotifications->pageValues()
                     : null,
             ]);
         }
@@ -989,6 +996,40 @@ class SettingController extends Controller
         return response()->json(['providers' => $providers]);
     }
 
+    public function updateHelpdeskNotificationSettings(Request $request)
+    {
+        abort_unless($this->canManagePlatformSetting('manage-email-notification-settings'), 403);
+
+        $events = array_keys(HelpdeskNotificationSettings::EVENTS);
+        $this->rejectUnknownSettingKeys($request, ['support_email', ...$events]);
+        $request->validate(
+            ['settings.support_email' => 'nullable|string|max:1000']
+                + collect($events)->mapWithKeys(fn (string $event) => ["settings.{$event}" => 'required|in:on,off'])->all()
+        );
+
+        $settings = $request->input('settings', []);
+        $tokens = array_values(array_filter(array_map('trim', preg_split('/[\s,;]+/', (string) ($settings['support_email'] ?? '')) ?: [])));
+        $addresses = HelpdeskNotificationSettings::parseAddresses(implode(',', $tokens));
+
+        if (count($addresses) !== count(array_unique(array_map('strtolower', $tokens)))) {
+            throw ValidationException::withMessages([
+                'settings.support_email' => __('Enter valid email addresses separated by commas.'),
+            ]);
+        }
+        if (count($addresses) > HelpdeskNotificationSettings::MAX_SUPPORT_ADDRESSES) {
+            throw ValidationException::withMessages([
+                'settings.support_email' => __('Enter at most :count support email addresses.', ['count' => HelpdeskNotificationSettings::MAX_SUPPORT_ADDRESSES]),
+            ]);
+        }
+
+        setSetting(HelpdeskNotificationSettings::SUPPORT_EMAIL_KEY, $addresses ? implode(',', $addresses) : null, null, false);
+        foreach ($events as $event) {
+            setSetting(HelpdeskNotificationSettings::switchKey($event), $settings[$event], null, false);
+        }
+
+        return redirect()->back()->with('success', __('Helpdesk notification settings saved successfully.'));
+    }
+
     public function mailNotificationStore(Request $request)
     {
         abort_unless($request->user()?->can('manage-email-notification-settings'), 403);
@@ -1000,6 +1041,7 @@ class SettingController extends Controller
 
         $notifications = \App\Models\Notification::query()
             ->where('type', 'mail')
+            ->whereNotIn('action', HelpdeskNotificationSettings::LEGACY_SWITCHES)
             ->when($request->user()->hasRole('superadmin'), fn ($query) => $query->where('module', 'general'))
             ->get()
             ->filter(fn ($notification) => $request->user()->can($notification->permissions));

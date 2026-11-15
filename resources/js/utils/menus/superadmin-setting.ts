@@ -1,4 +1,4 @@
-import { Palette, Settings as SettingsIcon, Search, HardDrive, Mail, Cookie, Trash2, DollarSign, CreditCard, Radio, KeyRound, Bot } from 'lucide-react';
+import { Palette, Settings as SettingsIcon, Search, HardDrive, Mail, Cookie, Trash2, DollarSign, CreditCard, Radio, KeyRound, Bot, Headphones } from 'lucide-react';
 
 export interface SettingMenuItem {
   order: number;
@@ -105,6 +105,14 @@ export const getSuperAdminSettings = (t: (key: string) => string): SettingMenuIt
     icon: Mail,
     permission: 'manage-email-notification-settings',
     component: 'email-notification-settings'
+  },
+  {
+    order: 515,
+    title: t('Helpdesk Notifications'),
+    href: '#helpdesk-notification-settings',
+    icon: Headphones,
+    permission: 'manage-email-notification-settings',
+    component: 'helpdesk-notification-settings'
   },
   {
     order: 1000,
