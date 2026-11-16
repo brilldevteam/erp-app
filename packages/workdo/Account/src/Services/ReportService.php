@@ -7,6 +7,25 @@ use Illuminate\Support\Facades\DB;
 
 class ReportService
 {
+    /**
+     * Multi-currency documents store amounts in their own currency (e.g. USD). Reports are in the
+     * company's base currency, so every amount is converted at its own document's exchange rate.
+     */
+    private function rate(string $table): string
+    {
+        return "COALESCE(NULLIF({$table}.exchange_rate, 0), 1)";
+    }
+
+    private function base(string $column, string $table, ?string $alias = null): \Illuminate\Contracts\Database\Query\Expression
+    {
+        return DB::raw("ROUND({$table}.{$column} * " . $this->rate($table) . ', 2) as ' . ($alias ?? $column));
+    }
+
+    private function sumBase(string $column, string $table): \Illuminate\Contracts\Database\Query\Expression
+    {
+        return DB::raw("COALESCE(SUM({$table}.{$column} * " . $this->rate($table) . '), 0)');
+    }
+
     public function getInvoiceAging($filters = [])
     {
         $asOfDate = $filters['as_of_date'] ?? date('Y-m-d');
@@ -43,7 +62,7 @@ class ReportService
                 'sales_invoices.invoice_number',
                 'sales_invoices.invoice_date',
                 'sales_invoices.due_date',
-                'sales_invoices.balance_amount as balance',
+                $this->base('balance_amount', 'sales_invoices', 'balance'),
                 DB::raw('COALESCE(customers.company_name, users.name) as customer_name'),
                 'customers.customer_code as account_code',
                 'users.id as customer_id',
@@ -66,7 +85,7 @@ class ReportService
         $customerData = [];
 
         foreach ($invoices as $invoice) {
-            $balance = $invoice->balance;
+            $balance = (float) $invoice->balance;
             $days = $invoice->days_overdue;
 
             if ($days <= 0) {
@@ -158,7 +177,7 @@ class ReportService
                 'purchase_invoices.id',
                 'purchase_invoices.invoice_number as bill_number',
                 'purchase_invoices.due_date',
-                'purchase_invoices.balance_amount as balance',
+                $this->base('balance_amount', 'purchase_invoices', 'balance'),
                 'users.name as vendor_name',
                 'users.id as vendor_id',
                 DB::raw('DATEDIFF("' . $asOfDate . '", purchase_invoices.due_date) as days_overdue')
@@ -177,7 +196,7 @@ class ReportService
         $vendorData = [];
 
         foreach ($bills as $bill) {
-            $balance = $bill->balance;
+            $balance = (float) $bill->balance;
             $days = $bill->days_overdue;
 
             if ($days <= 0) {
@@ -237,7 +256,7 @@ class ReportService
             ->select(
                 'sales_invoice_item_taxes.tax_name',
                 'sales_invoice_item_taxes.tax_rate',
-                DB::raw('SUM((sales_invoice_items.unit_price * sales_invoice_items.quantity - sales_invoice_items.discount_amount) * sales_invoice_item_taxes.tax_rate / 100) as tax_amount')
+                DB::raw('SUM((sales_invoice_items.unit_price * sales_invoice_items.quantity - sales_invoice_items.discount_amount) * sales_invoice_item_taxes.tax_rate / 100 * ' . $this->rate('sales_invoices') . ') as tax_amount')
             )
             ->groupBy('sales_invoice_item_taxes.tax_name', 'sales_invoice_item_taxes.tax_rate')
             ->get();
@@ -252,26 +271,26 @@ class ReportService
             ->select(
                 'purchase_invoice_item_taxes.tax_name',
                 'purchase_invoice_item_taxes.tax_rate',
-                DB::raw('SUM((purchase_invoice_items.unit_price * purchase_invoice_items.quantity - purchase_invoice_items.discount_amount) * purchase_invoice_item_taxes.tax_rate / 100) as tax_amount')
+                DB::raw('SUM((purchase_invoice_items.unit_price * purchase_invoice_items.quantity - purchase_invoice_items.discount_amount) * purchase_invoice_item_taxes.tax_rate / 100 * ' . $this->rate('purchase_invoices') . ') as tax_amount')
             )
             ->groupBy('purchase_invoice_item_taxes.tax_name', 'purchase_invoice_item_taxes.tax_rate')
             ->get();
 
-        $totalCollected = $taxCollected->sum('tax_amount');
-        $totalPaid = $taxPaid->sum('tax_amount');
+        $totalCollected = round((float) $taxCollected->sum('tax_amount'), 2);
+        $totalPaid = round((float) $taxPaid->sum('tax_amount'), 2);
 
         return [
             'tax_collected' => [
                 'items' => $taxCollected->map(fn($t) => [
                     'tax_name' => $t->tax_name . ' (' . $t->tax_rate . '%)',
-                    'amount' => $t->tax_amount
+                    'amount' => round((float) $t->tax_amount, 2)
                 ]),
                 'total' => $totalCollected
             ],
             'tax_paid' => [
                 'items' => $taxPaid->map(fn($t) => [
                     'tax_name' => $t->tax_name . ' (' . $t->tax_rate . '%)',
-                    'amount' => $t->tax_amount
+                    'amount' => round((float) $t->tax_amount, 2)
                 ]),
                 'total' => $totalPaid
             ],
@@ -296,23 +315,23 @@ class ReportService
         $totalBalance = 0;
 
         foreach ($customers as $customer) {
-            $invoiced = DB::table('sales_invoices')
+            $invoiced = (float) DB::table('sales_invoices')
                 ->where('customer_id', $customer->id)
                 ->whereNotIn('status', ['draft', 'cancelled'])
                 ->where('invoice_date', '<=', $asOfDate)
-                ->sum('total_amount');
+                ->value($this->sumBase('total_amount', 'sales_invoices'));
 
-            $returns = DB::table('sales_invoice_returns')
+            $returns = (float) DB::table('sales_invoice_returns')
                 ->where('customer_id', $customer->id)
                 ->whereIn('status', ['approved', 'completed'])
                 ->where('return_date', '<=', $asOfDate)
-                ->sum('total_amount');
+                ->value($this->sumBase('total_amount', 'sales_invoice_returns'));
 
-            $balance = DB::table('sales_invoices')
+            $balance = (float) DB::table('sales_invoices')
                 ->where('customer_id', $customer->id)
                 ->whereNotIn('status', ['draft', 'cancelled'])
                 ->where('invoice_date', '<=', $asOfDate)
-                ->sum('balance_amount');
+                ->value($this->sumBase('balance_amount', 'sales_invoices'));
 
             $netInvoiced = $invoiced - $returns;
             $paid = $invoiced - $balance;
@@ -358,28 +377,24 @@ class ReportService
         $balances = [];
         $totalBalance = 0;
 
-        // Multi-currency documents store amounts in their own currency (e.g. USD); the report is in the
-        // company's base currency, so each amount is converted at that document's exchange rate.
-        $toBase = fn (string $column) => DB::raw("COALESCE(SUM({$column} * COALESCE(NULLIF(exchange_rate, 0), 1)), 0)");
-
         foreach ($vendors as $vendor) {
             $billed = (float) DB::table('purchase_invoices')
                 ->where('vendor_id', $vendor->id)
                 ->whereNotIn('status', ['draft', 'cancelled'])
                 ->where('invoice_date', '<=', $asOfDate)
-                ->value($toBase('total_amount'));
+                ->value($this->sumBase('total_amount', 'purchase_invoices'));
 
             $returns = (float) DB::table('purchase_returns')
                 ->where('vendor_id', $vendor->id)
                 ->whereIn('status', ['approved', 'completed'])
                 ->where('return_date', '<=', $asOfDate)
-                ->value($toBase('total_amount'));
+                ->value($this->sumBase('total_amount', 'purchase_returns'));
 
             $balance = (float) DB::table('purchase_invoices')
                 ->where('vendor_id', $vendor->id)
                 ->whereNotIn('status', ['draft', 'cancelled'])
                 ->where('invoice_date', '<=', $asOfDate)
-                ->value($toBase('balance_amount'));
+                ->value($this->sumBase('balance_amount', 'purchase_invoices'));
 
             $netBilled = $billed - $returns;
             $paid = $billed - $balance;
@@ -429,7 +444,7 @@ class ReportService
         $invoicesQuery = DB::table('sales_invoices')
             ->where('customer_id', $customerId)
             ->whereNotIn('status', ['draft', 'cancelled'])
-            ->select('invoice_number', 'invoice_date as date', 'due_date', 'subtotal', 'tax_amount', 'total_amount', 'balance_amount', 'status');
+            ->select('invoice_number', 'invoice_date as date', 'due_date', $this->base('subtotal', 'sales_invoices'), $this->base('tax_amount', 'sales_invoices'), $this->base('total_amount', 'sales_invoices'), $this->base('balance_amount', 'sales_invoices'), 'status');
 
         if ($startDate) $invoicesQuery->where('invoice_date', '>=', $startDate);
         if ($endDate) $invoicesQuery->where('invoice_date', '<=', $endDate);
@@ -438,7 +453,7 @@ class ReportService
         $returnsQuery = DB::table('sales_invoice_returns')
             ->where('customer_id', $customerId)
             ->whereIn('status', ['approved', 'completed'])
-            ->select('return_number', 'return_date as date', 'subtotal', 'tax_amount', 'total_amount', 'status');
+            ->select('return_number', 'return_date as date', $this->base('subtotal', 'sales_invoice_returns'), $this->base('tax_amount', 'sales_invoice_returns'), $this->base('total_amount', 'sales_invoice_returns'), 'status');
 
         if ($startDate) $returnsQuery->where('return_date', '>=', $startDate);
         if ($endDate) $returnsQuery->where('return_date', '<=', $endDate);
@@ -447,7 +462,7 @@ class ReportService
         $creditNotesQuery = DB::table('credit_notes')
             ->where('customer_id', $customerId)
             ->whereIn('status', ['approved', 'completed'])
-            ->select('credit_note_number', 'credit_note_date as date', 'total_amount', 'applied_amount', 'balance_amount', 'status');
+            ->select('credit_note_number', 'credit_note_date as date', $this->base('total_amount', 'credit_notes'), $this->base('applied_amount', 'credit_notes'), $this->base('balance_amount', 'credit_notes'), 'status');
 
         if ($startDate) $creditNotesQuery->where('credit_note_date', '>=', $startDate);
         if ($endDate) $creditNotesQuery->where('credit_note_date', '<=', $endDate);
@@ -456,7 +471,7 @@ class ReportService
         $paymentsQuery = DB::table('customer_payments')
             ->leftJoin('bank_accounts', 'customer_payments.bank_account_id', '=', 'bank_accounts.id')
             ->where('customer_payments.customer_id', $customerId)
-            ->select('customer_payments.payment_number', 'customer_payments.payment_date as date', 'customer_payments.payment_amount as amount', 'customer_payments.reference_number', 'customer_payments.payment_mode', 'customer_payments.status', 'bank_accounts.account_name as bank_account');
+            ->select('customer_payments.payment_number', 'customer_payments.payment_date as date', $this->base('payment_amount', 'customer_payments', 'amount'), 'customer_payments.reference_number', 'customer_payments.payment_mode', 'customer_payments.status', 'bank_accounts.account_name as bank_account');
 
         if ($startDate) $paymentsQuery->where('payment_date', '>=', $startDate);
         if ($endDate) $paymentsQuery->where('payment_date', '<=', $endDate);
@@ -470,11 +485,11 @@ class ReportService
             'credit_notes' => $creditNotes,
             'payments' => $payments,
             'summary' => [
-                'total_invoiced' => $invoices->sum('total_amount'),
-                'total_returns' => $returns->sum('total_amount'),
-                'total_credit_notes' => $creditNotes->sum('total_amount'),
-                'total_payments' => $payments->sum('amount'),
-                'balance' => $invoices->sum('balance_amount')
+                'total_invoiced' => round((float) $invoices->sum('total_amount'), 2),
+                'total_returns' => round((float) $returns->sum('total_amount'), 2),
+                'total_credit_notes' => round((float) $creditNotes->sum('total_amount'), 2),
+                'total_payments' => round((float) $payments->sum('amount'), 2),
+                'balance' => round((float) $invoices->sum('balance_amount'), 2)
             ]
         ];
     }
@@ -497,7 +512,7 @@ class ReportService
         $invoicesQuery = DB::table('purchase_invoices')
             ->where('vendor_id', $vendorId)
             ->whereNotIn('status', ['draft', 'cancelled'])
-            ->select('invoice_number', 'invoice_date as date', 'due_date', 'subtotal', 'tax_amount', 'total_amount', 'balance_amount', 'status');
+            ->select('invoice_number', 'invoice_date as date', 'due_date', $this->base('subtotal', 'purchase_invoices'), $this->base('tax_amount', 'purchase_invoices'), $this->base('total_amount', 'purchase_invoices'), $this->base('balance_amount', 'purchase_invoices'), 'status');
 
         if ($startDate) $invoicesQuery->where('invoice_date', '>=', $startDate);
         if ($endDate) $invoicesQuery->where('invoice_date', '<=', $endDate);
@@ -506,7 +521,7 @@ class ReportService
         $returnsQuery = DB::table('purchase_returns')
             ->where('vendor_id', $vendorId)
             ->whereIn('status', ['approved', 'completed'])
-            ->select('return_number', 'return_date as date', 'subtotal', 'tax_amount', 'total_amount', 'status');
+            ->select('return_number', 'return_date as date', $this->base('subtotal', 'purchase_returns'), $this->base('tax_amount', 'purchase_returns'), $this->base('total_amount', 'purchase_returns'), 'status');
 
         if ($startDate) $returnsQuery->where('return_date', '>=', $startDate);
         if ($endDate) $returnsQuery->where('return_date', '<=', $endDate);
@@ -515,7 +530,7 @@ class ReportService
         $debitNotesQuery = DB::table('debit_notes')
             ->where('vendor_id', $vendorId)
             ->whereIn('status', ['approved', 'completed'])
-            ->select('debit_note_number', 'debit_note_date as date', 'total_amount', 'applied_amount', 'balance_amount', 'status');
+            ->select('debit_note_number', 'debit_note_date as date', $this->base('total_amount', 'debit_notes'), $this->base('applied_amount', 'debit_notes'), $this->base('balance_amount', 'debit_notes'), 'status');
 
         if ($startDate) $debitNotesQuery->where('debit_note_date', '>=', $startDate);
         if ($endDate) $debitNotesQuery->where('debit_note_date', '<=', $endDate);
@@ -524,7 +539,7 @@ class ReportService
         $paymentsQuery = DB::table('vendor_payments')
             ->leftJoin('bank_accounts', 'vendor_payments.bank_account_id', '=', 'bank_accounts.id')
             ->where('vendor_payments.vendor_id', $vendorId)
-            ->select('vendor_payments.payment_number', 'vendor_payments.payment_date as date', 'vendor_payments.payment_amount as amount', 'vendor_payments.reference_number', 'vendor_payments.payment_mode', 'vendor_payments.status', 'bank_accounts.account_name as bank_account');
+            ->select('vendor_payments.payment_number', 'vendor_payments.payment_date as date', $this->base('payment_amount', 'vendor_payments', 'amount'), 'vendor_payments.reference_number', 'vendor_payments.payment_mode', 'vendor_payments.status', 'bank_accounts.account_name as bank_account');
 
         if ($startDate) $paymentsQuery->where('payment_date', '>=', $startDate);
         if ($endDate) $paymentsQuery->where('payment_date', '<=', $endDate);
@@ -538,11 +553,11 @@ class ReportService
             'debit_notes' => $debitNotes,
             'payments' => $payments,
             'summary' => [
-                'total_invoiced' => $invoices->sum('total_amount'),
-                'total_returns' => $returns->sum('total_amount'),
-                'total_debit_notes' => $debitNotes->sum('total_amount'),
-                'total_payments' => $payments->sum('amount'),
-                'balance' => $invoices->sum('balance_amount')
+                'total_invoiced' => round((float) $invoices->sum('total_amount'), 2),
+                'total_returns' => round((float) $returns->sum('total_amount'), 2),
+                'total_debit_notes' => round((float) $debitNotes->sum('total_amount'), 2),
+                'total_payments' => round((float) $payments->sum('amount'), 2),
+                'balance' => round((float) $invoices->sum('balance_amount'), 2)
             ]
         ];
     }

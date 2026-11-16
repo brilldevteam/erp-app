@@ -282,6 +282,13 @@ A work item is not complete until its code is committed, tests are recorded, aff
 
 ## Handoff Log
 
+### 2026-11-16 Asia/Colombo - Claude - All Account reports converted to base currency
+
+- Branch: `release/2026-11-16` (uncommitted). User report from live: Vendor Detail showed USD amounts with a QAR symbol.
+- `packages/workdo/Account/src/Services/ReportService.php`: new `rate()`, `base()`, `sumBase()` helpers; Invoice Aging, Bill Aging, Tax Summary, Customer Balance, Vendor Balance, Customer Detail and Vendor Detail now multiply every amount (invoices, returns, credit/debit notes, payments, item taxes) by its own document's exchange rate. Same field names, so the screens and print pages are unchanged.
+- Checked and already correct: DoubleEntry reports (General Ledger, Trial Balance, P&L, Balance Sheet, Cash Flow, Expense) read journal lines, and `JournalService` posts amount x rate.
+- Tests: `tests/Smoke/VendorBalanceMultiCurrencyTest.php` now 2 tests / 18 assertions (vendor balance + detail + bill aging; customer balance + detail + invoice aging) - pass.
+
 ### 2026-11-16 Asia/Colombo - Claude - AI Assistant back to per-company keys; central AI page removed
 
 - Branch: `security/settings-scope-2026-11-15` (uncommitted). User decision: the platform must not pay for company AI usage.
