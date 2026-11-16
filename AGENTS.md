@@ -282,6 +282,13 @@ A work item is not complete until its code is committed, tests are recorded, aff
 
 ## Handoff Log
 
+### 2026-11-16 Asia/Colombo - Claude - Create did nothing for customers made in the ERP
+
+- Branch: `release/2026-11-16`. User report from live: Sales Invoice Create did nothing for a customer they created; imported customers worked.
+- Cause: `CustomerController`/`VendorController` save every new party with `preferred_currency_code` (the company currency). Sales Create/Edit, Credit Note, Customer Payment and Debit Note forms apply that currency on selection and blank `exchange_rate`, while the Multi-Currency section stays hidden; the server rejects the empty rate and the error renders inside the hidden section. Not SMTP: the email is sent only after the invoice is saved.
+- Fix: `resources/js/components/transaction-currency-fields.tsx` - base currency with no valid rate gets 1.00; a foreign currency opens the Multi-Currency section so the rate and its error are visible. Needs `npm run build` on live.
+- Also confirmed: on email failure `SalesInvoiceController::store` returns `back()` to the Create form although the invoice was saved (duplicate risk on re-click) - not changed.
+
 ### 2026-11-16 Asia/Colombo - Claude - All Account reports converted to base currency
 
 - Branch: `release/2026-11-16` (uncommitted). User report from live: Vendor Detail showed USD amounts with a QAR symbol.

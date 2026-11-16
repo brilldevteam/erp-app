@@ -54,6 +54,18 @@ export default function TransactionCurrencyFields({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Picking a customer or vendor applies their preferred currency and clears the rate. A base-currency
+    // pick needs rate 1; a foreign pick must show the fields, or a missing rate fails with no visible error.
+    useEffect(() => {
+        if (!currencyCode) return;
+        if (currencyCode === baseCurrency) {
+            if (!(Number(exchangeRate) > 0)) onRateChange('1.00');
+        } else if (!multiCurrencyEnabled) {
+            setMultiCurrencyEnabled(true);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currencyCode, exchangeRate]);
+
     const toggleMultiCurrency = (checked: boolean) => {
         setMultiCurrencyEnabled(checked);
         if (!checked) {
