@@ -29,19 +29,13 @@ class ProductionReportEmailController extends Controller
             ->where('type', $validated['type'])
             ->firstOrFail();
 
-        $companySettings = getCompanyAllSetting();
-        if (empty($companySettings['email_fromAddress'])) {
-            return response()->json([
-                'message' => __('Email is not configured for this company. Configure the SMTP sender in system settings first.'),
-            ], 422);
-        }
-        if (($companySettings['email_driver'] ?? 'smtp') === 'smtp' && empty($companySettings['email_host'])) {
-            return response()->json([
-                'message' => __('The company SMTP host is not configured. Complete the company email settings and try again.'),
-            ], 422);
-        }
-
+        // Companies send through the central super admin mailer; check that it is set up.
         SetConfigEmail();
+        if (empty(config('mail.from.address')) || (config('mail.default') === 'smtp' && empty(config('mail.mailers.smtp.host')))) {
+            return response()->json([
+                'message' => __('Email sending is not set up yet. Please contact support.'),
+            ], 422);
+        }
 
         $pdf = $request->file('report');
         $filename = $record->record_key.'.pdf';

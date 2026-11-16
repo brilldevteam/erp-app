@@ -282,6 +282,46 @@ A work item is not complete until its code is committed, tests are recorded, aff
 
 ## Handoff Log
 
+### 2026-11-16 Asia/Colombo - Claude - AI Assistant back to per-company keys; central AI page removed
+
+- Branch: `security/settings-scope-2026-11-15` (uncommitted). User decision: the platform must not pay for company AI usage.
+- `AIAssistantSettingsController.php` and `ai-assistant-settings.tsx` restored byte-for-byte from `63a976bd8^` (provider, model, masked key, Clear, audit).
+- `CentralAISettingsService` now reads only the company's own `ai_*` / `ai_agent_*` settings (no `admin_setting`); `availability()` still drives the AI button. `BrowserSettingsPayloadService`: `ai_provider`/`ai_model` and `ai_api_key_configured` on the company settings page; `ai_assistant_enabled` dropped.
+- Removed: super admin "AI Settings" menu, `platform-ai-settings.tsx`, route `settings.platform-ai.update`, `SettingController::updateCentralAISettings`, `SETTING_KEYS['central_ai']`. The `manage/edit-platform-ai-settings` permissions (migration + seeder) are left in place, unused.
+- Runbook: no Phase 2 data step (company AI keys are kept); the audited company keys should be rotated by those companies.
+- Tests: SettingsScopePhase2Test 10/10, Phase2Security 4/4, FormPayloadCompatibility 16/16, SettingsScopeSecurity 6/6, BrowserSettingsPayload 2/2.
+
+### 2026-11-16 Asia/Colombo - Claude - SMTP is super admin only
+
+- Branch: `security/settings-scope-2026-11-15` (uncommitted). User decision: companies must not see or set SMTP; they keep sending email through the central mailer.
+- Company settings menu: Email Settings removed (`company-setting.ts`). `updateEmailSettings` and `testEmail` now require `canManagePlatformSetting` (super admin).
+- `SetConfigEmail()`: any non-super-admin owner always uses the central super admin SMTP (company name as sender name unless `company_email_from_name`, company email as reply-to); saved company SMTP rows are ignored, not deleted. `EmailTemplate::sendEmailTemplate` always uses the central mailer; `CommonEmailTemplate` no longer falls back to a company's own from-address; VideoProduction report email checks the central mailer instead of company SMTP.
+- `BrowserSettingsPayloadService::settingsPage`: `email_*` and `email_password_configured` only for the super admin.
+- Tests: SettingsScopePhase2Test 10/10 (new: company cannot save/test SMTP), plus unit settings tests and HelpdeskNotificationsPhase3Test pass. Runbook updated.
+
+### 2026-11-16 Asia/Colombo - Claude - Multi-currency purchase invoice view and Vendor Balance
+
+- Branch: `security/settings-scope-2026-11-15` (uncommitted).
+- `resources/js/pages/Purchase/View.tsx`: unit price, line tax/discount/total, subtotal, discount, tax and paid show in the invoice currency (like Print.tsx); both Balance Due figures show balance x exchange_rate in the base currency (like the list).
+- `ReportService::getVendorBalanceSummary`: billed, returns and balance summed as amount x exchange_rate (NULL/0 rate = 1) and cast to float, which also fixes the Total row showing 0.00 for Total Billed (string sums were concatenated in JS).
+- New `tests/Smoke/VendorBalanceMultiCurrencyTest.php` (pass). Local data: all purchase invoices are at rate 1 (3 Brill USD bills to Newoon at 1.00), so existing report numbers are unchanged.
+- Not changed (same pattern, not asked): Customer Balance report, Vendor/Customer Detail reports.
+
+### 2026-11-15 Asia/Colombo - Claude - AI Agent back to per-company keys
+
+- Branch: `security/settings-scope-2026-11-15` (uncommitted). User decision: clients pay for their own AI Agent usage.
+- `ai-agent-settings.tsx` restored to the pre-Phase 2 form (provider, model, masked key with Clear). `SettingController::updateAIAgentSettings` restored (key audited, never returned); `central_ai` now holds AI Assistant keys only; `platform-ai-settings.tsx` shows the AI Assistant only.
+- `CentralAISettingsService::agentConfig()` reads the company's own `ai_agent_*` settings (never the super admin's). `BrowserSettingsPayloadService::settingsPage` returns `ai_agent_provider`/`ai_agent_model` and `ai_agent_api_key_configured` to the company's settings page; the shared payload still carries no AI keys.
+- Runbook Phase 2 data step now clears company `ai_api_key` only (local: 3 rows); the 1 company `ai_agent_api_key` row is kept, and that company should rotate it.
+- Tests updated: SettingsScopePhase2Test 9/9, Phase2Security 4/4, FormPayloadCompatibility 17/17, BrowserSettingsPayload 2/2, SettingsScopeSecurity 6/6.
+
+### 2026-11-15 Asia/Colombo - Claude - Brand Settings: logos are super admin only
+
+- Branch: `security/settings-scope-2026-11-15` (uncommitted).
+- `brand-settings.tsx`: Logos tab and section shown only to the super admin (like Text); companies open on Theme and no longer submit logo keys.
+- `SettingController::SETTING_KEYS['brand_company']`: removed `logo_dark`/`logo_light`, so a company post with logos is rejected.
+- Test added in `SettingsScopePhase2Test` (8/8 pass). Existing company logo rows are left as they are (not deleted).
+
 ### 2026-11-15 Asia/Colombo - Claude - Settings scope Phase 4: release preparation and rehearsal
 
 - Branch: `security/helpdesk-notifications-phase3-2026-11-16` (release branch for Phases 1-3); runbook commit pushed without a PR. No code changes in this step.

@@ -6,6 +6,7 @@ import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { PurchaseInvoice } from './types';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import { formatCurrency, formatDate } from '@/utils/helpers';
+import { formatTransactionMoney } from '@/utils/transaction-money';
 import { getStatusBadgeClasses } from './utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +28,14 @@ interface ViewProps {
 export default function View() {
     const { t } = useTranslation();
     const { invoice, auth } = usePage<ViewProps>().props;
+
+    // Multi-currency: line and summary amounts are in the invoice currency (e.g. USD);
+    // Balance Due is shown in the company's base currency at the invoice's exchange rate.
+    const isForeignInvoice = Boolean(invoice.base_currency_code) && Boolean(invoice.currency_code) && invoice.currency_code !== invoice.base_currency_code;
+    const money = (value: number | string) => isForeignInvoice ? formatTransactionMoney(value, invoice.currency_code!) : formatCurrency(value);
+    const balanceDue = isForeignInvoice
+        ? formatTransactionMoney(Number(invoice.balance_amount) * (Number(invoice.exchange_rate) || 1), invoice.base_currency_code!)
+        : formatCurrency(invoice.balance_amount);
 
     useFlashMessages();
 
@@ -175,8 +184,8 @@ export default function View() {
                                                 <RevertInvoiceDialog routeName="purchase-invoices.revert-to-draft" invoiceId={invoice.id} />
                                             )}
                                         </div>
-                                        <div className="min-w-0 text-left xl:text-right">
-                                            <div className="text-xl font-bold text-blue-600">{formatCurrency(invoice.balance_amount)}</div>
+                                        <div className="shrink-0 whitespace-nowrap text-left xl:text-right">
+                                            <div className="text-xl font-bold text-blue-600" dir="ltr">{balanceDue}</div>
                                             <div className="text-sm text-muted-foreground">{t('Balance Due')}</div>
                                         </div>
                                     </div>
@@ -310,9 +319,9 @@ export default function View() {
                                                 {item.account ? `${item.account.account_code} - ${item.account.account_name}` : <span className="text-muted-foreground">{t('Inventory (default)')}</span>}
                                             </td>
                                             <td className="px-4 py-4 text-right">{Number(item.quantity)}</td>
-                                            <td className="px-4 py-4 text-right">{formatCurrency(item.unit_price)}</td>
+                                            <td className="px-4 py-4 text-right">{money(item.unit_price)}</td>
                                             <td className="px-4 py-4 text-right">
-                                                {lineDiscountLabel(item) ?? '-'}
+                                                {lineDiscountLabel(item, money) ?? '-'}
                                             </td>
                                             <td className="px-4 py-4 text-right">
                                                 {item.taxes && item.taxes.length > 0 ? (
@@ -321,20 +330,20 @@ export default function View() {
                                                             <div key={taxIndex} className="text-sm">{tax.tax_name} ({tax.tax_rate}%)</div>
                                                         ))}
                                                         <div className="text-sm text-muted-foreground">
-                                                            {formatCurrency(item.tax_amount)}
+                                                            {money(item.tax_amount)}
                                                         </div>
                                                     </div>
                                                 ) : item.tax_percentage > 0 ? (
                                                     <div>
                                                         <div>{item.tax_percentage}%</div>
                                                         <div className="text-sm text-muted-foreground">
-                                                            {formatCurrency(item.tax_amount)}
+                                                            {money(item.tax_amount)}
                                                         </div>
                                                     </div>
                                                 ) : '-'}
                                             </td>
                                             <td className="px-4 py-4 text-right font-semibold">
-                                                {formatCurrency(item.total_amount)}
+                                                {money(item.total_amount)}
                                             </td>
                                         </tr>
                                     ))}
@@ -347,18 +356,18 @@ export default function View() {
                             <div className="w-80 space-y-3">
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">{t('Subtotal')}</span>
-                                    <span className="font-medium">{formatCurrency(invoice.subtotal)}</span>
+                                    <span className="font-medium">{money(invoice.subtotal)}</span>
                                 </div>
                                 {invoice.discount_amount > 0 && (
                                     <div className="flex justify-between text-sm">
                                         <span className="text-muted-foreground">{t('Discount')}</span>
-                                        <span className="font-medium text-red-600">-{formatCurrency(invoice.discount_amount)}</span>
+                                        <span className="font-medium text-red-600">-{money(invoice.discount_amount)}</span>
                                     </div>
                                 )}
                                 {invoice.tax_amount > 0 && (
                                     <div className="flex justify-between text-sm">
                                         <span className="text-muted-foreground">{t('Tax')}</span>
-                                        <span className="font-medium">{formatCurrency(invoice.tax_amount)}</span>
+                                        <span className="font-medium">{money(invoice.tax_amount)}</span>
                                     </div>
                                 )}
                                 <div className="border-t pt-3">
@@ -370,12 +379,12 @@ export default function View() {
                                 {invoice.paid_amount > 0 && (
                                     <div className="flex justify-between text-sm">
                                         <span className="text-muted-foreground">{t('Paid Amount')}</span>
-                                        <span className="font-medium text-green-600">{formatCurrency(invoice.paid_amount)}</span>
+                                        <span className="font-medium text-green-600">{money(invoice.paid_amount)}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between">
                                     <span className="font-semibold">{t('Balance Due')}</span>
-                                    <span className="font-bold text-lg">{formatCurrency(invoice.balance_amount)}</span>
+                                    <span className="font-bold text-lg">{balanceDue}</span>
                                 </div>
                             </div>
                         </div>

@@ -358,24 +358,28 @@ class ReportService
         $balances = [];
         $totalBalance = 0;
 
+        // Multi-currency documents store amounts in their own currency (e.g. USD); the report is in the
+        // company's base currency, so each amount is converted at that document's exchange rate.
+        $toBase = fn (string $column) => DB::raw("COALESCE(SUM({$column} * COALESCE(NULLIF(exchange_rate, 0), 1)), 0)");
+
         foreach ($vendors as $vendor) {
-            $billed = DB::table('purchase_invoices')
+            $billed = (float) DB::table('purchase_invoices')
                 ->where('vendor_id', $vendor->id)
                 ->whereNotIn('status', ['draft', 'cancelled'])
                 ->where('invoice_date', '<=', $asOfDate)
-                ->sum('total_amount');
+                ->value($toBase('total_amount'));
 
-            $returns = DB::table('purchase_returns')
+            $returns = (float) DB::table('purchase_returns')
                 ->where('vendor_id', $vendor->id)
                 ->whereIn('status', ['approved', 'completed'])
                 ->where('return_date', '<=', $asOfDate)
-                ->sum('total_amount');
+                ->value($toBase('total_amount'));
 
-            $balance = DB::table('purchase_invoices')
+            $balance = (float) DB::table('purchase_invoices')
                 ->where('vendor_id', $vendor->id)
                 ->whereNotIn('status', ['draft', 'cancelled'])
                 ->where('invoice_date', '<=', $asOfDate)
-                ->sum('balance_amount');
+                ->value($toBase('balance_amount'));
 
             $netBilled = $billed - $returns;
             $paid = $billed - $balance;

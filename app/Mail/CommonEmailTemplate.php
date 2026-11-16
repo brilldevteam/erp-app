@@ -38,8 +38,8 @@ class CommonEmailTemplate extends Mailable
     public function build()
     {
         $mail = $this->from(
-                // Explicit sender, else the company's own, else the active (possibly central) mailer's sender.
-                $this->fromAddress ?: (company_setting('email_fromAddress', $this->user_id) ?: config('mail.from.address')),
+                // Explicit sender, else the active mailer's sender (companies always use the central mailer).
+                $this->fromAddress ?: config('mail.from.address'),
                 $this->fromName ?: $this->template->from
             );
 

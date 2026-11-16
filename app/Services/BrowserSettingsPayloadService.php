@@ -55,8 +55,6 @@ class BrowserSettingsPayloadService
         'vat_gst_number_switch',
         'tax_type',
         'tax_number',
-        'ai_agent_enabled',
-        'ai_assistant_enabled',
     ];
 
     private const SETTINGS_PAGE_KEYS = [
@@ -66,13 +64,6 @@ class BrowserSettingsPayloadService
         'landingPageEnabled',
         'termsConditionsUrl',
         'enableLogging',
-        'email_provider',
-        'email_driver',
-        'email_host',
-        'email_port',
-        'email_username',
-        'email_encryption',
-        'email_fromAddress',
         'storageType',
         'allowedFileTypes',
         'maxUploadSize',
@@ -98,6 +89,11 @@ class BrowserSettingsPayloadService
         'paypal_enabled',
         'paypal_mode',
         'contract_prefix',
+        // The company's own AI provider and model; API keys are reported only as configured or not.
+        'ai_agent_provider',
+        'ai_agent_model',
+        'ai_provider',
+        'ai_model',
     ];
 
     private const SECRET_CONFIGURATION_FLAGS = [
@@ -114,29 +110,33 @@ class BrowserSettingsPayloadService
     ];
 
     /**
-     * AI credentials are central (super admin only). Whether AI is usable is reported separately as
-     * ai_assistant_available / ai_agent_available, so no per-company key state is shared here.
+     * No AI key or key state is shared on every page. Whether AI is usable is reported separately as
+     * ai_assistant_available / ai_agent_available.
      */
     public function shared(array $settings): array
     {
         return Arr::only($settings, self::SHARED_KEYS);
     }
 
-    public function settingsPage(array $settings, bool $includePlatformAI = false): array
+    public function settingsPage(array $settings, bool $isSuperAdmin = false): array
     {
         $payload = Arr::only($settings, self::SETTINGS_PAGE_KEYS);
 
-        if ($includePlatformAI) {
+        if ($isSuperAdmin) {
             $payload = array_merge($payload, Arr::only($settings, [
-                'ai_provider',
-                'ai_model',
-                'ai_agent_provider',
-                'ai_agent_model',
+                // SMTP is platform-only; companies have no Email Settings page.
+                'email_provider',
+                'email_driver',
+                'email_host',
+                'email_port',
+                'email_username',
+                'email_encryption',
+                'email_fromAddress',
             ]));
         }
 
         foreach (self::SECRET_CONFIGURATION_FLAGS as $secretKey => $flagKey) {
-            if (!$includePlatformAI && in_array($secretKey, ['ai_api_key', 'ai_agent_api_key'], true)) {
+            if (!$isSuperAdmin && $secretKey === 'email_password') {
                 continue;
             }
             $payload[$flagKey] = filled($settings[$secretKey] ?? null);

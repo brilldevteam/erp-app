@@ -57,7 +57,6 @@ class SettingsScopeSecurityTest extends TestCase
 
         $this->assertStringContainsString("self::SETTING_KEYS[\$isSuperAdmin ? 'brand_platform' : 'brand_company']", $source);
         $this->assertStringContainsString("self::SETTING_KEYS[\$isSuperAdmin ? 'system_platform' : 'system_company']", $source);
-        $this->assertStringContainsString("self::SETTING_KEYS['central_ai']", $source);
 
         $assistantSource = file_get_contents(
             base_path('packages/workdo/AIAssistant/src/Http/Controllers/AIAssistantSettingsController.php')

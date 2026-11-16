@@ -22,7 +22,7 @@ use Illuminate\Validation\ValidationException;
 class SettingController extends Controller
 {
     private const SETTING_KEYS = [
-        'brand_company' => ['logo_dark', 'logo_light', 'sidebarVariant', 'sidebarStyle', 'layoutDirection', 'themeMode', 'themeColor', 'customColor'],
+        'brand_company' => ['sidebarVariant', 'sidebarStyle', 'layoutDirection', 'themeMode', 'themeColor', 'customColor'],
         'brand_platform' => ['logo_dark', 'logo_light', 'favicon', 'titleText', 'footerText', 'sidebarVariant', 'sidebarStyle', 'layoutDirection', 'themeMode', 'themeColor', 'customColor'],
         'company' => ['company_name', 'company_address', 'company_city', 'company_state', 'company_country', 'company_zipcode', 'company_telephone', 'company_email_from_name', 'registration_number', 'company_email', 'vat_gst_number_switch', 'tax_type', 'tax_number'],
         'system_company' => ['defaultLanguage', 'dateFormat', 'timeFormat', 'calendarStartDay'],
@@ -35,8 +35,8 @@ class SettingController extends Controller
         'bank_transfer' => ['bankTransferEnabled', 'instructions'],
         'pusher' => ['app_id', 'app_key', 'app_secret', 'clear_app_secret', 'app_cluster', 'enabled'],
         'social_login' => ['social_login_enabled', 'google_login_enabled', 'google_client_id', 'google_client_secret', 'clear_google_client_secret', 'microsoft_login_enabled', 'microsoft_client_id', 'microsoft_client_secret', 'clear_microsoft_client_secret', 'microsoft_tenant_id'],
-        'ai_agent' => ['ai_agent_enabled'],
-        'central_ai' => ['ai_agent_provider', 'ai_agent_model', 'ai_agent_api_key', 'clear_ai_agent_api_key', 'ai_provider', 'ai_model', 'ai_api_key', 'clear_ai_api_key'],
+        // Each company uses its own AI Agent provider and key, so the platform does not pay for its usage.
+        'ai_agent' => ['ai_agent_provider', 'ai_agent_model', 'ai_agent_api_key', 'clear_ai_agent_api_key'],
     ];
 
     public function index(
@@ -463,10 +463,11 @@ class SettingController extends Controller
 
     public function updateEmailSettings(Request $request, SensitiveSettingAuditService $audit)
     {
-        if(Auth::user()->can('edit-email-settings'))
+        // SMTP is platform-only: companies always send through the central super admin mailer.
+        if($this->canManagePlatformSetting('edit-email-settings'))
         {
             $this->rejectUnknownSettingKeys($request, self::SETTING_KEYS['email']);
-            $required = Auth::user()->type === 'superadmin' ? 'required' : 'nullable';
+            $required = 'required';
             $request->validate([
                 'settings.provider' => "{$required}|string|max:50",
                 'settings.driver' => "{$required}|string|max:50",
@@ -535,7 +536,7 @@ class SettingController extends Controller
 
     public function testEmail(Request $request)
     {
-        if(Auth::user()->can('test-email'))
+        if($this->canManagePlatformSetting('test-email'))
         {
             $request->validate([
                 'email' => 'required|email'
@@ -545,15 +546,7 @@ class SettingController extends Controller
             ]);
 
             try {
-                $host = company_setting('email_host');
-                $fromAddress = company_setting('email_fromAddress');
-                if (Auth::user()->type !== 'superadmin' && (blank($host) || blank($fromAddress))) {
-                    $adminId = \App\Models\User::where('type', 'superadmin')->orderBy('id')->value('id');
-                    SetConfigEmail($adminId);
-                } else {
-                    $this->rejectUnsafeCompanySmtpHost((string) $host);
-                    SetConfigEmail();
-                }
+                SetConfigEmail();
 
                 Mail::to($request->email)->send(new TestMail());
 
@@ -898,20 +891,42 @@ class SettingController extends Controller
         return back()->with('success', __('Social login settings saved successfully.'));
     }
 
-    public function updateAIAgentSettings(Request $request)
+    public function updateAIAgentSettings(Request $request, SensitiveSettingAuditService $audit)
     {
         if(Auth::user()->can('edit-ai-agent-settings'))
         {
             $this->rejectUnknownSettingKeys($request, self::SETTING_KEYS['ai_agent']);
             $request->validate([
-                'settings.ai_agent_enabled' => 'required|boolean',
+                'settings.ai_agent_provider' => 'required|string|in:openai,anthropic,google',
+                'settings.ai_agent_model' => 'required|string|max:255',
+                'settings.ai_agent_api_key' => 'nullable|string|max:255',
+                'settings.clear_ai_agent_api_key' => 'nullable|boolean',
             ]);
 
             $settings = Arr::only($request->input('settings', []), self::SETTING_KEYS['ai_agent']);
 
+            $clearApiKey = (bool) ($settings['clear_ai_agent_api_key'] ?? false);
+            $wasConfigured = filled(company_setting('ai_agent_api_key'));
+            $this->rejectReplacementAndClear($settings['ai_agent_api_key'] ?? null, $clearApiKey, 'settings.ai_agent_api_key');
+            unset($settings['clear_ai_agent_api_key']);
+
+            if ($clearApiKey) {
+                $settings['ai_agent_api_key'] = null;
+            } elseif (blank($settings['ai_agent_api_key'] ?? null)) {
+                unset($settings['ai_agent_api_key']);
+
+                if (blank(company_setting('ai_agent_api_key'))) {
+                    return back()->withErrors([
+                        'settings.ai_agent_api_key' => __('An API key is required before enabling the AI Agent.'),
+                    ]);
+                }
+            }
+
             foreach ($settings as $key => $value) {
                 setSetting($key, $value,null, false);
             }
+
+            $audit->recordSubmittedSecret('ai_agent', 'ai_agent_api_key', $wasConfigured, $request->input('settings.ai_agent_api_key'), $clearApiKey);
 
             return redirect()->back()->with('success', __('AI Agent settings saved successfully.'));
         }
@@ -919,61 +934,6 @@ class SettingController extends Controller
         {
             return back()->with('error', __('Permission denied'));
         }
-    }
-
-    public function updateCentralAISettings(Request $request, SensitiveSettingAuditService $audit)
-    {
-        abort_unless(
-            Auth::user()?->type === 'superadmin' && Auth::user()->can('edit-platform-ai-settings'),
-            403
-        );
-
-        $this->rejectUnknownSettingKeys($request, self::SETTING_KEYS['central_ai']);
-        $request->validate([
-            'settings.ai_agent_provider' => 'required|string|in:openai,anthropic,google',
-            'settings.ai_agent_model' => 'required|string|max:255',
-            'settings.ai_agent_api_key' => 'nullable|string|max:255',
-            'settings.clear_ai_agent_api_key' => 'nullable|boolean',
-            'settings.ai_provider' => 'required|string|in:openai,anthropic,google',
-            'settings.ai_model' => 'required|string|max:255',
-            'settings.ai_api_key' => 'nullable|string|max:255',
-            'settings.clear_ai_api_key' => 'nullable|boolean',
-        ]);
-
-        $settings = Arr::only($request->input('settings', []), self::SETTING_KEYS['central_ai']);
-        $auditEntries = [];
-
-        foreach ([
-            ['secret' => 'ai_agent_api_key', 'clear' => 'clear_ai_agent_api_key', 'audit' => 'ai_agent'],
-            ['secret' => 'ai_api_key', 'clear' => 'clear_ai_api_key', 'audit' => 'ai_assistant'],
-        ] as $credential) {
-            $secretKey = $credential['secret'];
-            $clearKey = $credential['clear'];
-            $clear = (bool) ($settings[$clearKey] ?? false);
-            $replacement = $settings[$secretKey] ?? null;
-            $wasConfigured = filled(admin_setting($secretKey));
-
-            $this->rejectReplacementAndClear($replacement, $clear, "settings.{$secretKey}");
-            unset($settings[$clearKey]);
-
-            if ($clear) {
-                $settings[$secretKey] = null;
-            } elseif (blank($replacement)) {
-                unset($settings[$secretKey]);
-            }
-
-            $auditEntries[] = [$credential['audit'], $secretKey, $wasConfigured, $replacement, $clear];
-        }
-
-        foreach ($settings as $key => $value) {
-            setSetting($key, $value, Auth::id(), false);
-        }
-
-        foreach ($auditEntries as $entry) {
-            $audit->recordSubmittedSecret(...$entry);
-        }
-
-        return back()->with('success', __('AI settings saved successfully.'));
     }
 
     public function getAIAgentProviders()

@@ -4,14 +4,20 @@ namespace App\Services;
 
 class CentralAISettingsService
 {
+    /**
+     * The AI Agent runs on the company's own provider and API key (the company pays for its usage).
+     */
     public function agentConfig(): ?array
     {
-        return $this->config('ai_agent', 'ai_agent_enabled');
+        return $this->companyConfig('ai_agent');
     }
 
+    /**
+     * The AI Assistant runs on the company's own provider and API key (the company pays for its usage).
+     */
     public function assistantConfig(): ?array
     {
-        return $this->config('ai', 'ai_assistant_enabled');
+        return $this->companyConfig('ai');
     }
 
     /**
@@ -25,20 +31,16 @@ class CentralAISettingsService
         ];
     }
 
-    private function config(string $prefix, string $companySwitch): ?array
+    /**
+     * The signed-in company's own provider, model and key. The super admin's keys are never used for a company.
+     */
+    private function companyConfig(string $prefix): ?array
     {
-        $provider = admin_setting("{$prefix}_provider");
-        $model = admin_setting("{$prefix}_model");
-        $apiKey = admin_setting("{$prefix}_api_key");
-        $enabled = company_setting($companySwitch);
+        $provider = company_setting("{$prefix}_provider");
+        $model = company_setting("{$prefix}_model");
+        $apiKey = company_setting("{$prefix}_api_key");
 
-        if ($enabled === null || $enabled === '') {
-            $enabled = filled($apiKey);
-        } else {
-            $enabled = filter_var($enabled, FILTER_VALIDATE_BOOLEAN);
-        }
-
-        if (!$enabled || blank($provider) || blank($model) || blank($apiKey)) {
+        if (blank($provider) || blank($model) || blank($apiKey)) {
             return null;
         }
 

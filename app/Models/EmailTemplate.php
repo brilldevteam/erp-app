@@ -69,12 +69,9 @@ class EmailTemplate extends Model
                 }
                 $tenantId = $tenant?->id;
                 $companySettings = getCompanyAllSetting($tenantId);
-                $usesCompanySmtp = $tenant?->type === 'company'
-                    && filled($companySettings['email_host'] ?? null)
-                    && filled($companySettings['email_fromAddress'] ?? null);
-                $mailerOwnerId = $usesCompanySmtp
-                    ? $tenantId
-                    : User::where('type', 'superadmin')->orderBy('id')->value('id');
+                // SMTP is platform-only: every company sends through the central super admin mailer.
+                $usesCompanySmtp = false;
+                $mailerOwnerId = User::where('type', 'superadmin')->orderBy('id')->value('id');
                 $mailerSettings = getCompanyAllSetting($mailerOwnerId);
 
                 if (filled($mailerSettings['email_host'] ?? null) && filled($mailerSettings['email_fromAddress'] ?? null)) {

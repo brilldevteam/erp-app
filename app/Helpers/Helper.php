@@ -520,18 +520,17 @@ if (!function_exists('SetConfigEmail')) {
                 $user_id = User::where('type', 'superadmin')->first()->id;
                 $company_settings = getCompanyAllSetting($user_id);
             }
-            // Company SMTP is optional. Without a complete own setup (host and sender address), the company
-            // sends through the central super admin mailer, keeping its own name and its email as reply-to.
-            $mailer_settings = $company_settings;
-            $uses_central_mailer = false;
-            if (blank($company_settings['email_host'] ?? null) || blank($company_settings['email_fromAddress'] ?? null)) {
-                $central_owner_id = User::where('type', 'superadmin')->orderBy('id')->value('id');
-                $central_settings = $central_owner_id ? getCompanyAllSetting($central_owner_id) : [];
-                if (filled($central_settings['email_host'] ?? null) && filled($central_settings['email_fromAddress'] ?? null)) {
-                    $mailer_settings = $central_settings;
-                    $uses_central_mailer = true;
-                }
+            // SMTP is platform-only. Every company sends through the central super admin mailer, keeping its
+            // own name as sender name and its email as reply-to. Any SMTP values saved by a company are ignored.
+            $central_owner_id = User::where('type', 'superadmin')->orderBy('id')->value('id');
+            $settings_owner = $user_id ? User::find($user_id) : Auth::user();
+            if ($settings_owner && !in_array($settings_owner->type, ['company', 'superadmin'], true)) {
+                $settings_owner = User::find($settings_owner->created_by);
             }
+            $uses_central_mailer = $settings_owner?->type !== 'superadmin';
+            $mailer_settings = $uses_central_mailer
+                ? ($central_owner_id ? getCompanyAllSetting($central_owner_id) : [])
+                : $company_settings;
 
             $from_name = $company_settings['company_email_from_name'] ?? null;
             if ($uses_central_mailer && blank($from_name)) {

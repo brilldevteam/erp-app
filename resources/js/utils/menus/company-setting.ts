@@ -50,14 +50,7 @@ export const getCompanySettings = (t: (key: string) => string): SettingMenuItem[
     permission: 'manage-currency-settings',
     component: 'currency-settings'
   },
-  {
-    order: 500,
-    title: t('Email Settings'),
-    href: '#email-settings',
-    icon: Mail,
-    permission: 'manage-email-settings',
-    component: 'email-settings'
-  },
+  // No Email Settings for companies: all company email is sent through the super admin's central SMTP.
   {
     order: 510,
     title: t('Email Notification Settings'),

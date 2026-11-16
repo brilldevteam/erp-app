@@ -44,7 +44,6 @@ class SettingsFormPayloadCompatibilityTest extends TestCase
                 'themeColor' => 'green', 'customColor' => '#10b981',
             ], $platform],
             'company brand' => ['brand_company', [
-                'logo_dark' => '', 'logo_light' => '',
                 'sidebarVariant' => 'inset', 'sidebarStyle' => 'plain',
                 'layoutDirection' => 'ltr', 'themeMode' => 'light',
                 'themeColor' => 'green', 'customColor' => '#10b981',
@@ -88,7 +87,7 @@ class SettingsFormPayloadCompatibilityTest extends TestCase
                 'port' => '587', 'username' => 'mailer@example.test', 'password' => '',
                 'clear_password' => false, 'encryption' => 'tls',
                 'fromAddress' => 'noreply@example.test',
-            ], $shared],
+            ], $platform],
             'seo' => ['seo', [
                 'metaKeywords' => 'erp', 'metaTitle' => 'Wazely ERP',
                 'metaDescription' => 'ERP software', 'metaImage' => '',
@@ -118,21 +117,17 @@ class SettingsFormPayloadCompatibilityTest extends TestCase
                 'microsoft_tenant_id' => 'common',
             ], $platform],
             'AI agent' => ['ai_agent', [
-                'ai_agent_enabled' => true,
-            ], ['company']],
-            'platform AI' => ['central_ai', [
                 'ai_agent_provider' => 'openai', 'ai_agent_model' => 'gpt-4o',
                 'ai_agent_api_key' => '', 'clear_ai_agent_api_key' => false,
-                'ai_provider' => 'openai', 'ai_model' => 'gpt-4',
-                'ai_api_key' => '', 'clear_ai_api_key' => false,
-            ], $platform],
+            ], ['company']],
         ];
     }
 
     public function test_ai_assistant_form_payload_matches_its_controller_allowlist(): void
     {
         $payload = [
-            'ai_assistant_enabled' => true,
+            'ai_provider' => 'openai', 'ai_model' => 'gpt-4',
+            'ai_api_key' => '', 'clear_ai_api_key' => false,
         ];
         $source = file_get_contents(base_path(
             'packages/workdo/AIAssistant/src/Http/Controllers/AIAssistantSettingsController.php'

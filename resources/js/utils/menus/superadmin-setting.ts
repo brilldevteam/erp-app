@@ -1,4 +1,4 @@
-import { Palette, Settings as SettingsIcon, Search, HardDrive, Mail, Cookie, Trash2, DollarSign, CreditCard, Radio, KeyRound, Bot, Headphones } from 'lucide-react';
+import { Palette, Settings as SettingsIcon, Search, HardDrive, Mail, Cookie, Trash2, DollarSign, CreditCard, Radio, KeyRound, Headphones } from 'lucide-react';
 
 export interface SettingMenuItem {
   order: number;
@@ -10,14 +10,6 @@ export interface SettingMenuItem {
 }
 
 export const getSuperAdminSettings = (t: (key: string) => string): SettingMenuItem[] => [
-  {
-    order: 35,
-    title: t('AI Settings'),
-    href: '#platform-ai-settings',
-    icon: Bot,
-    permission: 'manage-platform-ai-settings',
-    component: 'platform-ai-settings'
-  },
   {
     order: 55,
     title: t('Social Login Settings'),

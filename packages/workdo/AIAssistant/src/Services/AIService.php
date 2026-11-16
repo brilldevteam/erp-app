@@ -12,7 +12,7 @@ class AIService
         $config = app(CentralAISettingsService::class)->assistantConfig();
 
         if (!$config) {
-            throw new \Exception(__('AI Assistant is unavailable or disabled'));
+            throw new \Exception(__('AI configuration not found'));
         }
 
         $promptBuilder = new PromptBuilder();

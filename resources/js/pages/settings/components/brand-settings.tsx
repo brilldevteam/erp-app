@@ -38,7 +38,7 @@ export default function BrandSettings({ userSettings, auth }: BrandSettingsProps
   const [isLoading, setIsLoading] = useState(false);
   const canEdit = auth?.user?.permissions?.includes('edit-brand-settings');
   const isSuperAdmin = auth?.user?.type === 'superadmin';
-  const [activeSection, setActiveSection] = useState<'logos' | 'text' | 'theme'>('logos');
+  const [activeSection, setActiveSection] = useState<'logos' | 'text' | 'theme'>(isSuperAdmin ? 'logos' : 'theme');
   const [settings, setSettings] = useState<BrandSettings>({
     logo_dark: userSettings?.logo_dark || '',
     logo_light: userSettings?.logo_light || '',
@@ -96,7 +96,7 @@ export default function BrandSettings({ userSettings, auth }: BrandSettingsProps
 
     const submittedSettings = isSuperAdmin
       ? settings
-      : Object.fromEntries(Object.entries(settings).filter(([key]) => !['favicon', 'titleText', 'footerText'].includes(key)));
+      : Object.fromEntries(Object.entries(settings).filter(([key]) => !['logo_dark', 'logo_light', 'favicon', 'titleText', 'footerText'].includes(key)));
     router.post(route('settings.brand.update'), {
       settings: submittedSettings
     }, {
@@ -145,7 +145,8 @@ export default function BrandSettings({ userSettings, auth }: BrandSettingsProps
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <div className="flex space-x-2 mb-6">
-              <Button
+              {/* Logos, title and footer text are platform branding; only the super admin sets them. */}
+              {isSuperAdmin && <Button
                 variant={activeSection === 'logos' ? "default" : "outline"}
                 size="sm"
                 onClick={() => setActiveSection('logos')}
@@ -153,8 +154,7 @@ export default function BrandSettings({ userSettings, auth }: BrandSettingsProps
               >
                 <Upload className="h-4 w-4 mr-2" />
                 {t('Logos')}
-              </Button>
-              {/* Title and footer text are platform branding; only the super admin sets them. */}
+              </Button>}
               {isSuperAdmin && <Button
                 variant={activeSection === 'text' ? "default" : "outline"}
                 size="sm"
@@ -176,7 +176,7 @@ export default function BrandSettings({ userSettings, auth }: BrandSettingsProps
             </div>
 
             {/* Logos Section */}
-            {activeSection === 'logos' && (
+            {isSuperAdmin && activeSection === 'logos' && (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-3">

@@ -32,57 +32,82 @@ class SettingsScopePhase2Test extends TestCase
         ]);
     }
 
-    public function test_company_ai_switches_use_central_credentials_and_fail_closed(): void
+    public function test_agent_and_assistant_use_only_the_company_credentials(): void
     {
         $this->putSettings($this->admin->id, [
-            'ai_agent_provider' => 'openai', 'ai_agent_model' => 'gpt-4o',
+            'ai_agent_provider' => 'openai', 'ai_agent_model' => 'central-agent-model',
             'ai_agent_api_key' => 'test-central-key',
-            'ai_provider' => 'openai', 'ai_model' => 'gpt-4',
+            'ai_provider' => 'openai', 'ai_model' => 'central-assistant-model',
             'ai_api_key' => 'test-central-assistant-key',
         ]);
         $this->putSettings($this->company->id, [
-            'ai_agent_enabled' => '1', 'ai_assistant_enabled' => '1',
+            'ai_agent_provider' => null, 'ai_agent_model' => null, 'ai_agent_api_key' => null,
+            'ai_provider' => null, 'ai_model' => null, 'ai_api_key' => null,
         ]);
 
         $service = app(CentralAISettingsService::class);
-        $this->assertSame('gpt-4o', $service->agentConfig()['model']);
-        $this->assertSame('gpt-4', $service->assistantConfig()['model']);
-
-        $this->putSettings($this->company->id, ['ai_agent_enabled' => '0']);
+        // The super admin's keys are never used for a company.
         $this->assertNull($service->agentConfig());
-
-        $this->putSettings($this->admin->id, ['ai_api_key' => null]);
         $this->assertNull($service->assistantConfig());
+
+        $this->putSettings($this->company->id, [
+            'ai_agent_provider' => 'anthropic', 'ai_agent_model' => 'company-agent-model',
+            'ai_agent_api_key' => 'test-company-agent-key',
+            'ai_provider' => 'google', 'ai_model' => 'company-assistant-model',
+            'ai_api_key' => 'test-company-assistant-key',
+        ]);
+        $this->assertSame('test-company-agent-key', $service->agentConfig()['api_key']);
+        $this->assertSame('company-assistant-model', $service->assistantConfig()['model']);
+        $this->assertSame('test-company-assistant-key', $service->assistantConfig()['api_key']);
     }
 
-    public function test_superadmin_saves_and_audits_masked_central_ai_credentials(): void
+    public function test_company_saves_its_own_ai_agent_key_masked_and_audited(): void
     {
         $permission = Permission::firstOrCreate(
-            ['name' => 'edit-platform-ai-settings', 'guard_name' => 'web'],
-            ['module' => 'settings', 'label' => 'Edit Platform AI Settings', 'add_on' => 'general']
+            ['name' => 'edit-ai-agent-settings', 'guard_name' => 'web'],
+            ['module' => 'settings', 'label' => 'Edit AI Agent Settings', 'add_on' => 'general']
         );
-        $this->admin->givePermissionTo($permission);
-        $this->actingAs($this->admin)->withSession([
-            AuthSessionService::SESSION_KEY => max(1, (int) ($this->admin->security_version ?? 1)),
-        ]);
+        $this->company->givePermissionTo($permission);
 
-        $response = $this->post(route('settings.platform-ai.update'), ['settings' => [
+        $this->post(route('settings.ai-agent.update'), ['settings' => [
             'ai_agent_provider' => 'openai', 'ai_agent_model' => 'gpt-4o',
-            'ai_agent_api_key' => 'replacement-agent-key', 'clear_ai_agent_api_key' => false,
-            'ai_provider' => 'openai', 'ai_model' => 'gpt-4',
-            'ai_api_key' => 'replacement-assistant-key', 'clear_ai_api_key' => false,
-        ]]);
+            'ai_agent_api_key' => 'company-agent-key', 'clear_ai_agent_api_key' => false,
+        ]])->assertSessionHasNoErrors();
 
-        $response->assertSessionHasNoErrors();
-        $this->assertDatabaseHas('settings', ['created_by' => $this->admin->id, 'key' => 'ai_agent_model', 'value' => 'gpt-4o']);
-        $this->assertDatabaseHas('sensitive_setting_audits', ['user_id' => $this->admin->id, 'setting_key' => 'ai_agent_api_key']);
-        $this->assertDatabaseHas('sensitive_setting_audits', ['user_id' => $this->admin->id, 'setting_key' => 'ai_api_key']);
+        $this->assertDatabaseHas('settings', ['created_by' => $this->company->id, 'key' => 'ai_agent_model', 'value' => 'gpt-4o']);
+        $this->assertDatabaseHas('sensitive_setting_audits', ['user_id' => $this->company->id, 'setting_key' => 'ai_agent_api_key']);
 
-        $payload = app(\App\Services\BrowserSettingsPayloadService::class)->settingsPage(getCompanyAllSetting($this->admin->id), true);
+        $payload = app(\App\Services\BrowserSettingsPayloadService::class)->settingsPage(getCompanyAllSetting($this->company->id));
+        $this->assertSame('gpt-4o', $payload['ai_agent_model']);
         $this->assertTrue($payload['ai_agent_api_key_configured']);
-        $this->assertTrue($payload['ai_api_key_configured']);
         $this->assertArrayNotHasKey('ai_agent_api_key', $payload);
+    }
+
+    public function test_company_saves_its_own_ai_assistant_key_masked_and_audited(): void
+    {
+        $permission = Permission::firstOrCreate(
+            ['name' => 'edit-ai-assistant-settings', 'guard_name' => 'web'],
+            ['module' => 'settings', 'label' => 'Edit AI Assistant Settings', 'add_on' => 'AIAssistant']
+        );
+        $this->company->givePermissionTo($permission);
+
+        $this->post(route('ai-assistant.settings.store'), ['settings' => [
+            'ai_provider' => 'openai', 'ai_model' => 'gpt-4',
+            'ai_api_key' => 'company-assistant-key', 'clear_ai_api_key' => false,
+        ]])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('settings', ['created_by' => $this->company->id, 'key' => 'ai_model', 'value' => 'gpt-4']);
+        $this->assertDatabaseHas('sensitive_setting_audits', ['user_id' => $this->company->id, 'setting_key' => 'ai_api_key']);
+
+        $payload = app(\App\Services\BrowserSettingsPayloadService::class)->settingsPage(getCompanyAllSetting($this->company->id));
+        $this->assertSame('gpt-4', $payload['ai_model']);
+        $this->assertTrue($payload['ai_api_key_configured']);
         $this->assertArrayNotHasKey('ai_api_key', $payload);
+
+        // Unknown keys are refused.
+        $this->post(route('ai-assistant.settings.store'), ['settings' => [
+            'ai_provider' => 'openai', 'ai_model' => 'gpt-4', 'ai_agent_api_key' => 'x',
+        ]])->assertSessionHasErrors();
     }
 
     public function test_company_brand_and_system_reject_platform_fields_while_superadmin_accepts_them(): void
@@ -93,6 +118,18 @@ class SettingsScopePhase2Test extends TestCase
             'themeMode' => 'light', 'themeColor' => 'green', 'customColor' => '#10b981',
         ]]);
         $companyBrand->assertSessionHasErrors('settings');
+
+        // Logos are platform branding too: a company may save its theme but not logos.
+        $this->post(route('settings.brand.update'), ['settings' => [
+            'logo_dark' => 'company-logo.png',
+            'sidebarVariant' => 'inset', 'sidebarStyle' => 'plain', 'layoutDirection' => 'ltr',
+            'themeMode' => 'light', 'themeColor' => 'green', 'customColor' => '#10b981',
+        ]])->assertSessionHasErrors('settings');
+        $this->post(route('settings.brand.update'), ['settings' => [
+            'sidebarVariant' => 'inset', 'sidebarStyle' => 'plain', 'layoutDirection' => 'ltr',
+            'themeMode' => 'light', 'themeColor' => 'green', 'customColor' => '#10b981',
+        ]])->assertSessionHasNoErrors();
+        $this->assertDatabaseMissing('settings', ['created_by' => $this->company->id, 'key' => 'logo_dark', 'value' => 'company-logo.png']);
 
         $companySystem = $this->post(route('settings.system.update'), ['settings' => [
             'defaultLanguage' => 'en', 'dateFormat' => 'Y-m-d', 'timeFormat' => 'H:i',
@@ -138,36 +175,60 @@ class SettingsScopePhase2Test extends TestCase
             && $mail->replyToAddress === 'reply@example.test'
         );
 
+        // SMTP values a company saved before are ignored: it still sends through the central mailer.
         Mail::fake();
         $this->putSettings($this->company->id, [
             'email_host' => 'smtp.tenant.test', 'email_fromAddress' => 'tenant@example.test',
-            'company_email_from_name' => 'Tenant Sender',
         ]);
         $result = EmailTemplate::sendEmailTemplate($template->name, ['recipient@example.test'], [], $this->company->id);
         $this->assertTrue($result['is_success']);
         Mail::assertSent(CommonEmailTemplate::class, fn (CommonEmailTemplate $mail) =>
-            $mail->fromAddress === 'tenant@example.test'
-            && $mail->fromName === 'Tenant Sender'
-            && $mail->replyToAddress === null
+            $mail->fromAddress === 'central@example.test'
+            && $mail->fromName === 'Tenant Company'
+            && $mail->replyToAddress === 'reply@example.test'
         );
     }
 
-    public function test_company_page_payload_reports_central_ai_availability_without_key_state(): void
+    public function test_company_cannot_save_or_test_smtp_settings(): void
     {
-        $this->putSettings($this->admin->id, [
-            'ai_agent_provider' => 'openai', 'ai_agent_model' => 'gpt-4o', 'ai_agent_api_key' => 'test-central-key',
-            'ai_provider' => 'openai', 'ai_model' => 'gpt-4', 'ai_api_key' => 'test-central-assistant-key',
+        foreach (['edit-email-settings', 'test-email'] as $name) {
+            $this->company->givePermissionTo(Permission::firstOrCreate(
+                ['name' => $name, 'guard_name' => 'web'],
+                ['module' => 'settings', 'label' => $name, 'add_on' => 'general']
+            ));
+        }
+        Mail::fake();
+
+        $this->post(route('settings.email.update'), ['settings' => [
+            'provider' => 'smtp', 'driver' => 'smtp', 'host' => 'smtp.tenant.test', 'port' => '587',
+            'username' => 'u', 'password' => 'p', 'encryption' => 'tls', 'fromAddress' => 'tenant@example.test',
+        ]])->assertSessionHas('error');
+        $this->assertDatabaseMissing('settings', ['created_by' => $this->company->id, 'key' => 'email_host', 'value' => 'smtp.tenant.test']);
+
+        $this->post(route('settings.email.test'), ['email' => 'recipient@example.test'])->assertSessionHas('error');
+        Mail::assertNothingSent();
+
+        // The company settings page carries no SMTP details.
+        $payload = app(\App\Services\BrowserSettingsPayloadService::class)->settingsPage(['email_host' => 'smtp.tenant.test', 'email_password' => 'secret']);
+        $this->assertArrayNotHasKey('email_host', $payload);
+        $this->assertArrayNotHasKey('email_password_configured', $payload);
+    }
+
+    public function test_company_page_payload_reports_ai_availability_without_key_state(): void
+    {
+        $this->putSettings($this->company->id, [
+            'ai_provider' => 'openai', 'ai_model' => 'gpt-4', 'ai_api_key' => 'test-company-assistant-key',
+            'ai_agent_provider' => 'openai', 'ai_agent_model' => 'gpt-4o', 'ai_agent_api_key' => 'test-company-agent-key',
         ]);
-        $this->putSettings($this->company->id, ['ai_agent_enabled' => '1', 'ai_assistant_enabled' => '1']);
 
         $shared = $this->get(route('settings.index'))->assertOk()->viewData('page')['props']['companyAllSetting'];
         $this->assertTrue($shared['ai_assistant_available']);
         $this->assertTrue($shared['ai_agent_available']);
-        foreach (['ai_api_key', 'ai_agent_api_key', 'ai_api_key_configured', 'ai_agent_api_key_configured', 'ai_provider', 'ai_model'] as $key) {
+        foreach (['ai_api_key', 'ai_agent_api_key', 'ai_api_key_configured', 'ai_agent_api_key_configured', 'ai_provider', 'ai_model', 'ai_agent_provider', 'ai_agent_model'] as $key) {
             $this->assertArrayNotHasKey($key, $shared);
         }
 
-        $this->putSettings($this->company->id, ['ai_assistant_enabled' => '0']);
+        $this->putSettings($this->company->id, ['ai_api_key' => null]);
         $shared = $this->get(route('settings.index'))->assertOk()->viewData('page')['props']['companyAllSetting'];
         $this->assertFalse($shared['ai_assistant_available']);
         $this->assertTrue($shared['ai_agent_available']);
@@ -189,14 +250,20 @@ class SettingsScopePhase2Test extends TestCase
         $this->assertSame('Tenant Company', config('mail.from.name'));
         $this->assertSame('reply@example.test', config('mail.reply_to.address'));
 
+        // Saved company SMTP values are ignored; the company's own sender name is kept.
         $this->putSettings($this->company->id, [
             'email_host' => 'smtp.tenant.test', 'email_fromAddress' => 'tenant@example.test',
             'company_email_from_name' => 'Tenant Sender',
         ]);
         $this->assertTrue(SetConfigEmail($this->company->id));
-        $this->assertSame('smtp.tenant.test', config('mail.mailers.smtp.host'));
-        $this->assertSame('tenant@example.test', config('mail.from.address'));
+        $this->assertSame('smtp.central.test', config('mail.mailers.smtp.host'));
+        $this->assertSame('central@example.test', config('mail.from.address'));
         $this->assertSame('Tenant Sender', config('mail.from.name'));
+        $this->assertSame('reply@example.test', config('mail.reply_to.address'));
+
+        // The super admin uses its own SMTP, with no reply-to.
+        $this->assertTrue(SetConfigEmail($this->admin->id));
+        $this->assertSame('smtp.central.test', config('mail.mailers.smtp.host'));
         $this->assertNull(config('mail.reply_to'));
     }
 

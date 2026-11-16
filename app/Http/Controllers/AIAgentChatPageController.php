@@ -45,7 +45,7 @@ class AIAgentChatPageController extends Controller
         {
             // Check if AI Agent is configured
             if (!app(CentralAISettingsService::class)->agentConfig()) {
-                return response()->json(['error' => __('AI Agent is unavailable or disabled.')], 400);
+                return response()->json(['error' => __('AI Agent is not configured. Please configure it in settings first.')], 400);
             }
 
             $session = AIAgentChatSession::create([

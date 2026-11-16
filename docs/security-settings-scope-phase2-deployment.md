@@ -1,5 +1,7 @@
 # Settings Scope Phase 2 Deployment
 
+> **Updated 2026-11-16:** the AI Agent and the AI Assistant were both moved back to each company's own provider, model and API key, so companies pay for their own AI usage; the super admin AI Settings page was removed. Company SMTP was removed instead: every company sends through the central SMTP. There is no Phase 2 data step any more. Follow `security-settings-scope-release-runbook.md`; where this file says otherwise, the runbook wins.
+
 This release centralizes AI credentials, separates platform and company settings, and adds central SMTP fallback for companies without a complete custom SMTP configuration. Do not include credential values in deployment logs.
 
 ## Behaviour Changes To Expect
