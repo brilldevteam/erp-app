@@ -538,7 +538,7 @@ class EmailTemplate extends Model
 
             $arrValue[$key] = $val;
         }
-        $arrValue['app_name']     = env('APP_NAME');
+        $arrValue['app_name']     = config('app.name');
         if (is_null($arrValue['company_name']) || $arrValue['company_name'] == '-') {
             $companySettings = getCompanyAllSetting();
             $arrValue['company_name'] = $companySettings['company_name'] ?? '--';
