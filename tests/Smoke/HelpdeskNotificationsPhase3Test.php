@@ -54,6 +54,7 @@ class HelpdeskNotificationsPhase3Test extends TestCase
             ->delete();
         Cache::flush();
         Queue::fake();
+        Mail::fake();
     }
 
     private function admin(array $settings): void
@@ -215,5 +216,41 @@ class HelpdeskNotificationsPhase3Test extends TestCase
             && str_contains($mail->template->subject, 'We received your support ticket')
             && $mail->replyToAddress === 'support@example.test'
         );
+    }
+
+    public function test_emails_send_after_the_response_without_a_queue_worker_and_retry_failures(): void
+    {
+        $this->admin([
+            'email_host' => 'smtp.central.test', 'email_fromAddress' => 'central@example.test',
+            'helpdesk_mail_ticket_created_confirmation' => 'on',
+        ]);
+
+        app(HelpdeskEmailService::class)->ticketCreated($this->fresh());
+        $delivery = $this->delivery("ticket-confirmation:{$this->ticket->id}");
+        $this->assertSame('pending', $delivery->status);
+
+        // Sent when the request finishes - nothing goes to a queue that needs a worker.
+        app()->terminate();
+        $this->assertSame('sent', $delivery->fresh()->status);
+        Mail::assertSent(CommonEmailTemplate::class, fn (CommonEmailTemplate $mail) => $mail->hasTo($this->client->email));
+        Queue::assertNothingPushed();
+
+        // A send that failed earlier stays pending and goes out with the next Helpdesk email.
+        $stale = HelpdeskEmailDelivery::create([
+            'delivery_key' => 'stale-'.uniqid(), 'ticket_id' => $this->ticket->id, 'event' => 'ticket_created_confirmation',
+            'template' => HelpdeskEmailService::TEMPLATE_PREFIX.'ticket_created_confirmation',
+            'recipients' => [$this->client->email], 'payload' => $delivery->payload, 'status' => 'pending', 'attempts' => 1,
+        ]);
+        HelpdeskEmailDelivery::whereKey($stale->id)->update(['updated_at' => now()->subMinutes(5)]);
+
+        $second = HelpdeskTicket::create([
+            'title' => 'Second', 'description' => 'Another one', 'status' => 'open', 'priority' => 'low',
+            'created_by' => $this->ticket->created_by, 'requester_user_id' => $this->client->id,
+        ]);
+        app(HelpdeskEmailService::class)->ticketCreated($second->fresh(['creator', 'requester', 'assignedAgent', 'category']));
+        app()->terminate();
+
+        $this->assertSame('sent', $stale->fresh()->status);
+        $this->assertSame('sent', $this->delivery("ticket-confirmation:{$second->id}")->status);
     }
 }

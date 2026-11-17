@@ -135,11 +135,32 @@ class HelpdeskEmailService
         );
 
         if ($delivery->wasRecentlyCreated) {
-            try {
-                SendHelpdeskEmail::dispatch($delivery->id);
-            } catch (\Throwable $exception) {
-                report($exception);
-            }
+            $this->sendAfterResponse($delivery->id);
         }
+    }
+
+    /**
+     * Sends once the page has been returned to the user, so no queue worker or cron is needed and nobody waits
+     * on SMTP. A send that failed earlier is still pending and is retried here, up to the job's try limit.
+     */
+    private function sendAfterResponse(int $deliveryId): void
+    {
+        app()->terminating(function () use ($deliveryId) {
+            $retries = HelpdeskEmailDelivery::where('status', 'pending')
+                ->where('attempts', '<', (new SendHelpdeskEmail(0))->tries)
+                ->where('updated_at', '<', now()->subMinutes(2))
+                // Older news is no longer useful to the recipient.
+                ->where('created_at', '>=', now()->subDay())
+                ->whereKeyNot($deliveryId)
+                ->orderBy('id')->limit(5)->pluck('id');
+
+            foreach ([$deliveryId, ...$retries] as $id) {
+                try {
+                    (new SendHelpdeskEmail($id))->handle();
+                } catch (\Throwable $exception) {
+                    report($exception);
+                }
+            }
+        });
     }
 }

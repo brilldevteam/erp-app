@@ -78,7 +78,11 @@ class SendHelpdeskEmail implements ShouldQueue
 
             $delivery->update(['status' => 'sent', 'sent_at' => now(), 'last_error' => null]);
         } catch (Throwable $exception) {
-            $delivery->update(['status' => 'pending', 'last_error' => $exception->getMessage()]);
+            // Pending is retried later; after the last try it is marked failed.
+            $delivery->update([
+                'status' => $delivery->attempts >= $this->tries ? 'failed' : 'pending',
+                'last_error' => $exception->getMessage(),
+            ]);
             throw $exception;
         }
     }

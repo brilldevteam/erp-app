@@ -282,6 +282,12 @@ A work item is not complete until its code is committed, tests are recorded, aff
 
 ## Handoff Log
 
+### 2026-11-17 Asia/Colombo - Claude - Helpdesk emails no longer need a queue worker
+
+- Branch: `release/2026-11-16`. Live had no queue worker, so every Helpdesk email stayed `pending` in `helpdesk_email_deliveries` until someone ran `queue:work` by hand (done once on 2026-11-16; all sent).
+- `HelpdeskEmailService` now sends each delivery in an `app()->terminating()` callback (after the response, so the user does not wait) instead of `SendHelpdeskEmail::dispatch()`. The same callback retries up to 5 earlier `pending` deliveries (attempts below the job's `tries`, last tried 2+ minutes ago, created in the last 24 hours). `SendHelpdeskEmail::handle()` marks a delivery `failed` after the last try, else leaves it `pending` with `last_error`.
+- Tests: Phase 3 + Helpdesk security + settings Phase 2 smoke tests, 48 pass (new: sends without a worker and retries a failed one).
+
 ### 2026-11-16 Asia/Colombo - Claude - Create did nothing for customers made in the ERP
 
 - Branch: `release/2026-11-16`. User report from live: Sales Invoice Create did nothing for a customer they created; imported customers worked.

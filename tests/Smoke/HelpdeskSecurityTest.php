@@ -125,7 +125,7 @@ class HelpdeskSecurityTest extends TestCase
         cache()->flush();
         app(HelpdeskEmailService::class)->ticketCreated($ticket);
         $this->assertSame(1, HelpdeskEmailDelivery::where('delivery_key', "ticket-created:{$ticket->id}")->count());
-        Queue::assertPushed(\App\Jobs\SendHelpdeskEmail::class);
+        Queue::assertNothingPushed();
     }
 
     public function test_internal_notes_never_reach_a_company_page(): void
@@ -146,6 +146,8 @@ class HelpdeskSecurityTest extends TestCase
     {
         $this->turnRepliesEmailOn();
         Mail::fake();
+        // Only this test's emails: older pending deliveries in the database would be retried too.
+        HelpdeskEmailDelivery::where('status', 'pending')->update(['status' => 'failed']);
 
         $this->reply($this->admin, ['is_internal' => 1])->assertOk();
         Mail::assertNothingOutgoing();
@@ -182,8 +184,10 @@ class HelpdeskSecurityTest extends TestCase
         $this->reply($this->company)->assertOk()->assertJson(['success' => true]);
         $this->assertSame(1, HelpdeskReply::where('ticket_id', $this->ticket->id)->count());
         $delivery = HelpdeskEmailDelivery::where('ticket_id', $this->ticket->id)->firstOrFail();
-        $this->assertSame('failed', $delivery->status);
+        // Kept pending so it is retried with the next Helpdesk email; failed only after the last try.
+        $this->assertSame('pending', $delivery->status);
         $this->assertSame(1, $delivery->attempts);
+        $this->assertSame('SMTP down', $delivery->last_error);
     }
 
     public function test_bad_list_parameters_are_ignored(): void
