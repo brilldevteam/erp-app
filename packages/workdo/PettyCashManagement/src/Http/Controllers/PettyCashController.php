@@ -38,11 +38,12 @@ class PettyCashController extends Controller
                 })
                 ->when(request('status') !== null && request('status') !== '', fn($q) => $q->where('status', request('status')))
 
-                ->when(request('sort'), fn($q) => $q->orderBy(request('sort'), request('direction', 'asc')), fn($q) => $q->latest())
+                // Newest by date first; imported records share one created_at, so that order was arbitrary.
+                ->when(request('sort'), fn($q) => $q->orderBy(request('sort'), request('direction', 'asc')), fn($q) => $q->orderByDesc('date')->orderByDesc('id'))
                 ->paginate(request('per_page', 10))
                 ->withQueryString();
 
-            $latestEntryId = PettyCash::where('created_by', creatorId())->latest()->value('id');
+            $latestEntryId = \Workdo\PettyCashManagement\Services\PettyCashLedger::currentFund()?->id;
 
             return Inertia::render('PettyCashManagement/PettyCashes/Index', [
                 'pettycashes' => $pettycashes,
