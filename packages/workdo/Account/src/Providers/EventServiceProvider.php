@@ -14,6 +14,7 @@ use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvi
 use Workdo\Account\Listeners\ApproveHolidayzRoomBookingListener;
 use Workdo\Account\Listeners\ApproveMedicalOrderPaymentListener;
 use Workdo\Account\Listeners\ApprovePettyCashListener;
+use Workdo\Account\Listeners\CreatePettyCashExpenseListener;
 use Workdo\Account\Listeners\LogCustomerActivity;
 use Workdo\Account\Events\CreateCustomer;
 use Workdo\Account\Events\UpdateCustomer;
@@ -124,6 +125,7 @@ use Workdo\MedicalLabManagement\Events\ApproveMedicalOrderPayment;
 use Workdo\ParkingManagement\Events\ParkingBookingPayments;
 use Workdo\ParkingManagement\Events\UpdateParkingPaymentStatus;
 use Workdo\PettyCashManagement\Events\ApprovePettyCash;
+use Workdo\PettyCashManagement\Events\CreatePettyCashExpense;
 use Workdo\PettyCashManagement\Events\CreatePettyCash;
 use Workdo\PettyCashManagement\Events\UpdatePettyCash;
 use Workdo\Warranty\Events\CompleteWarrantyClaim;
@@ -381,6 +383,9 @@ class EventServiceProvider extends ServiceProvider
         ],
         ApprovePettyCash::class => [
             ApprovePettyCashListener::class,
+        ],
+        CreatePettyCashExpense::class => [
+            CreatePettyCashExpenseListener::class,
         ],
     ];
 }

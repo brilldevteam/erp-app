@@ -17,6 +17,8 @@ use Workdo\PettyCashManagement\Models\PettyCashCategory;
 use App\Models\User;
 use Workdo\PettyCashManagement\Models\PettyCash;
 use Workdo\PettyCashManagement\Models\PettyCashExpense;
+use Workdo\PettyCashManagement\Services\PettyCashLedger;
+use Illuminate\Support\Facades\DB;
 
 class PettyCashRequestController extends Controller
 {
@@ -130,58 +132,72 @@ class PettyCashRequestController extends Controller
                 'rejection_reason' => 'nullable|string|max:1000'
             ]);
 
-            $pettycashrequest->status = $validated['status'];
-
-            if($validated['status'] == '1') {
-                // Approval
-                $pattyCash = PettyCash::latest()->where('created_by', creatorId())->first();
+            if ($validated['status'] == '1') {
+                $pattyCash = PettyCashLedger::currentFund();
+                if (!$pattyCash) {
+                    return redirect()->back()->with('error', __('No petty cash record found!'));
+                }
                 if ($pattyCash->status != 1) {
                     return redirect()->back()->with('error', __('Please approve petty cash first before processing request.'));
                 }
-                if($pattyCash) {
-                    $closing_balance = $pattyCash->closing_balance - $validated['approved_amount'];
-                    if($closing_balance < 0) {
-                        return redirect()->back()->with('error', __('Insufficient petty cash balance! Available balance: :balance, Requested amount: :amount', [
-                            'balance' => number_format($pattyCash->closing_balance, 2),
-                            'amount' => number_format($validated['approved_amount'], 2)
-                        ]));
-                    }
-
-                    $pettycashrequest->approved_at      = $validated['approved_at'];
-                    $pettycashrequest->approved_by      = $validated['approved_by'];
-                    $pettycashrequest->approved_amount  = $validated['approved_amount'];
-                    $pettycashrequest->rejection_reason = null;
-
-                    $pattyCash->closing_balance = $closing_balance;
-                    $pattyCash->total_expense  += $validated['approved_amount'];
-                    $pattyCash->save();
-
-                    $expense               = new PettyCashExpense();
-                    $expense->request_id   = $pettycashrequest->id;
-                    $expense->pettycash_id = $pattyCash->id;
-                    $expense->type         = 'pettycash';
-                    $expense->amount       = $validated['approved_amount'];
-                    $expense->remarks      = $pettycashrequest->remarks;
-                    $expense->status       = 1;
-                    $expense->approved_at  = now();
-                    $expense->approved_by  = Auth::id();
-                    $expense->creator_id   = Auth::id();
-                    $expense->created_by   = creatorId();
-                    $expense->save();
-
-                    CreatePettyCashExpense::dispatch($expense);
-                } else {
-                    return redirect()->back()->with('error', __('No petty cash record found!'));
+                if ($message = PettyCashLedger::missingAccountMessage($pettycashrequest->category)) {
+                    return redirect()->back()->with('error', $message);
                 }
-            } else {
-                // Rejection
-                $pettycashrequest->approved_at      = null;
-                $pettycashrequest->approved_by      = null;
-                $pettycashrequest->approved_amount  = null;
-                $pettycashrequest->rejection_reason = $validated['rejection_reason'];
+                $closing_balance = $pattyCash->closing_balance - $validated['approved_amount'];
+                if ($closing_balance < 0) {
+                    return redirect()->back()->with('error', __('Insufficient petty cash balance! Available balance: :balance, Requested amount: :amount', [
+                        'balance' => number_format($pattyCash->closing_balance, 2),
+                        'amount' => number_format($validated['approved_amount'], 2)
+                    ]));
+                }
             }
 
-            $pettycashrequest->save();
+            try {
+                // The fund, the expense and its journal are saved together or not at all.
+                DB::transaction(function () use ($validated, $pettycashrequest) {
+                    $pettycashrequest->status = $validated['status'];
+
+                    if ($validated['status'] == '1') {
+                        $pattyCash = PettyCashLedger::currentFund();
+
+                        $pettycashrequest->approved_at      = $validated['approved_at'] ?? now();
+                        $pettycashrequest->approved_by      = $validated['approved_by'];
+                        $pettycashrequest->approved_amount  = $validated['approved_amount'];
+                        $pettycashrequest->rejection_reason = null;
+                        $pettycashrequest->save();
+
+                        $pattyCash->closing_balance = $pattyCash->closing_balance - $validated['approved_amount'];
+                        $pattyCash->total_expense  += $validated['approved_amount'];
+                        $pattyCash->save();
+
+                        $expense               = new PettyCashExpense();
+                        $expense->request_id   = $pettycashrequest->id;
+                        $expense->pettycash_id = $pattyCash->id;
+                        $expense->type         = 'pettycash';
+                        $expense->amount       = $validated['approved_amount'];
+                        $expense->remarks      = $pettycashrequest->remarks;
+                        $expense->status       = 1;
+                        $expense->approved_at  = now();
+                        $expense->approved_by  = Auth::id();
+                        $expense->creator_id   = Auth::id();
+                        $expense->created_by   = creatorId();
+                        $expense->save();
+
+                        CreatePettyCashExpense::dispatch($expense);
+                    } else {
+                        // Rejection
+                        $pettycashrequest->approved_at      = null;
+                        $pettycashrequest->approved_by      = null;
+                        $pettycashrequest->approved_amount  = null;
+                        $pettycashrequest->rejection_reason = $validated['rejection_reason'];
+                        $pettycashrequest->save();
+                    }
+                });
+            } catch (\Throwable $exception) {
+                report($exception);
+
+                return redirect()->back()->with('error', !$exception instanceof \Illuminate\Database\QueryException ? $exception->getMessage() : __('The petty cash request could not be approved. Please try again.'));
+            }
 
             UpdateStatusPettyCashRequest::dispatch($pettycashrequest);
 
@@ -196,9 +212,14 @@ class PettyCashRequestController extends Controller
     public function destroy(PettyCashRequest $pettycashrequest)
     {
         if(Auth::user()->can('delete-petty-cash-requests')){
-            DestroyPettyCashRequest::dispatch($pettycashrequest);
+            DB::transaction(function () use ($pettycashrequest) {
+                DestroyPettyCashRequest::dispatch($pettycashrequest);
 
-            $pettycashrequest->delete();
+                // Approved spending is undone: journal removed and the amount returned to the fund.
+                PettyCashLedger::reverse(PettyCashExpense::with('pettyCash')->where('request_id', $pettycashrequest->id)->get());
+
+                $pettycashrequest->delete();
+            });
 
             return redirect()->back()->with('success', __('The petty cash request has been deleted.'));
         }

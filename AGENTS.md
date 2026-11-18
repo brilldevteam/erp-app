@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Claude | `release/2026-11-16` | Petty cash posting (step 1 of 2, Sithari approved 2026-11-18): `packages/workdo/PettyCashManagement` (category expense account + migration, request/reimbursement approval and delete, fund selection, category UI), `JournalService` petty cash journals, `BankTransactionsService::approvePettyCash`, Account `EventServiceProvider` petty cash listeners, smoke test. Step 2 (bring Zoho petty cash history into the section, journals untouched) follows as a data change. | 2026-11-18 | Step 1 committed and pushed; step 2 pending |
 | Claude | `security/helpdesk-notifications-phase3-2026-11-16` | Settings scope Phase 3 (Helpdesk email notifications): `app/Services/HelpdeskEmailService.php`, new `HelpdeskNotificationSettings` service and email content renderer, `app/Jobs/SendHelpdeskEmail.php`, Helpdesk notification endpoint/props in `SettingController.php`, `routes/web.php`, new `helpdesk-notification-settings.tsx`, superadmin settings menu/registry, Helpdesk/settings tests, `CHANGELOG.md`, handoff. No migrations or data changes. | 2026-11-15 | Released - committed and pushed without a PR (see handoff). |
 | Codex | `security/settings-scope-phase2-2026-11-16` | Settings scope Phase 2: central AI settings/readers, company AI toggles, platform/company Brand and System separation, settings menus/payloads, optional company SMTP fallback and mail metadata, permission migration/seeding, focused tests, deployment runbook, changelog and handoff. | 2026-11-16 | Released - taken over and completed by Claude on 2026-11-15 after Codex hit its usage limit; committed and pushed without a PR (see handoff). |
 | Codex | `security/settings-scope-2026-11-15` | Phase 1 follow-up: `SettingController.php`, settings payload compatibility/security tests, `docs/security-settings-scope-deployment.md`, `CHANGELOG.md` and handoff. Preserve the released Phase 1 controls and exclude generated/runtime files. | 2026-11-15 | Released - verified; push recorded below |
@@ -281,6 +282,16 @@ Zoho export inventory (Claude, 2026-10-28, read-only). Full detail with exact pa
 A work item is not complete until its code is committed, tests are recorded, affected workflows are manually checked when applicable, migrations and deployment steps are documented, the changelog is updated when required, and this coordination file contains a handoff entry.
 
 ## Handoff Log
+
+### 2026-11-18 Asia/Colombo - Claude - Petty cash spending now posts to the accounts (step 1 of 2)
+
+- Branch: `release/2026-11-16`. Sithari agreed (2026-11-18): keep the imported Zoho petty cash journals; make the petty cash section usable and later show the history there.
+- Categories have an expense account (`petty_cash_categories.account_id`, migration `2026_11_18_000001`, same choices as bill lines); required on create/edit when Account is active.
+- Approving a request or reimbursement posts Dr category account / Cr 1005 on the approval date (`CreatePettyCashExpenseListener` -> `JournalService::pettyCashExpenseJournal`), inside one transaction with the fund and expense rows; a category without an account blocks approval. Deleting an approved one removes the journal, returns the amount to the fund and deletes the expense (`PettyCashLedger::reverse`).
+- Top-up journal was reversed (Dr bank / Cr petty cash) and dated now; now Dr 1005 / Cr bank GL on the fund date (bank transaction dated the same).
+- Fund used for spending/new top-ups is the newest by date (`PettyCashLedger::currentFund`); `latest()` picked arbitrarily between Brill's PC-JEANNE and PC-MAIN (same created_at).
+- Live after deploy: run the migration; set expense accounts on existing categories before approving. PC-JEANNE closing 179.41 is the Zoho July figure, not today's ledger 1,176.75 - step 2 must reconcile it.
+- Tests: `tests/Smoke/PettyCashPostingTest.php` 7 pass; `npm run build` passes.
 
 ### 2026-11-17 Asia/Colombo - Claude - Helpdesk emails no longer need a queue worker
 

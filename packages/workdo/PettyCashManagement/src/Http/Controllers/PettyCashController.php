@@ -74,7 +74,7 @@ class PettyCashController extends Controller
                 return redirect()->route('petty-cash-management.petty-cashes.index')->with('error', __('Please approve all previous petty cash entries before creating a new one.'));
             }
 
-            $previousEntry  = PettyCash::latest()->where('created_by', creatorId())->first();
+            $previousEntry  = \Workdo\PettyCashManagement\Services\PettyCashLedger::currentFund();
             $addedAmount    = $validated['added_amount'] ?? 0;
 
             $openingBalance = $previousEntry ? $previousEntry->closing_balance : 0;

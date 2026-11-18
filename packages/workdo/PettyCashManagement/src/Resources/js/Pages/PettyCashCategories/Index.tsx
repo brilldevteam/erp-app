@@ -106,6 +106,14 @@ export default function Index() {
             header: t('Name'),
             sortable: false
         },
+        {
+            key: 'account',
+            header: t('Expense Account'),
+            sortable: false,
+            render: (_: any, pettycashcategorie: PettyCashCategorie) => pettycashcategorie.account
+                ? `${pettycashcategorie.account.account_code} - ${pettycashcategorie.account.account_name}`
+                : <span className="text-muted-foreground">{t('Not set')}</span>
+        },
         ...(auth.user?.permissions?.some((p: string) => ['edit-petty-cash-categories', 'delete-petty-cash-categories'].includes(p)) ? [{
             key: 'actions',
             header: t('Actions'),

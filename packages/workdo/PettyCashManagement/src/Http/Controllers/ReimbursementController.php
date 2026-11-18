@@ -11,6 +11,8 @@ use Workdo\PettyCashManagement\Events\UpdateStatusReimbursement;
 use Workdo\PettyCashManagement\Events\DestroyReimbursement;
 use Workdo\PettyCashManagement\Events\CreatePettyCashExpense;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
+use Workdo\PettyCashManagement\Services\PettyCashLedger;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use App\Models\User;
@@ -155,9 +157,14 @@ class ReimbursementController extends Controller
     public function destroy(PettyCashReimbursement $reimbursement)
     {
         if(Auth::user()->can('delete-reimbursements')){
-            DestroyReimbursement::dispatch($reimbursement);
+            DB::transaction(function () use ($reimbursement) {
+                DestroyReimbursement::dispatch($reimbursement);
 
-            $reimbursement->delete();
+                // Approved spending is undone: journal removed and the amount returned to the fund.
+                PettyCashLedger::reverse(PettyCashExpense::with('pettyCash')->where('reimbursement_id', $reimbursement->id)->get());
+
+                $reimbursement->delete();
+            });
 
             return redirect()->back()->with('success', __('The reimbursement has been deleted.'));
         }
@@ -177,57 +184,71 @@ class ReimbursementController extends Controller
                 'rejection_reason' => 'nullable|string|max:1000'
             ]);
 
-            $reimbursement->status = $validated['status'];
-
-            if($validated['status'] == '1') {
-                $pattyCash = PettyCash::latest()->where('created_by', creatorId())->first();
-                if($pattyCash) {
-                    if($pattyCash->status != 1) {
-                        return redirect()->back()->with('error', __('Please approve petty cash first before processing reimbursement.'));
-                    }
-                    $closing_balance = $pattyCash->closing_balance - $validated['approved_amount'];
-                    if($closing_balance < 0) {
-                        return redirect()->back()->with('error', __('Insufficient petty cash balance! Available balance: :balance, Requested amount: :amount', [
-                            'balance' => number_format($pattyCash->closing_balance, 2),
-                            'amount'  => number_format($validated['approved_amount'], 2)
-                        ]));
-                    }
-
-                    $reimbursement->approved_date    = $validated['approved_date'];
-                    $reimbursement->approved_by      = $validated['approved_by'];
-                    $reimbursement->approved_amount  = $validated['approved_amount'];
-                    $reimbursement->rejection_reason = null;
-
-                    $pattyCash->closing_balance = $closing_balance;
-                    $pattyCash->total_expense  += $validated['approved_amount'];
-                    $pattyCash->save();
-
-                    $expense                   = new PettyCashExpense();
-                    $expense->reimbursement_id = $reimbursement->id;
-                    $expense->pettycash_id     = $pattyCash->id;
-                    $expense->type             = 'reimbursement';
-                    $expense->amount           = $validated['approved_amount'];
-                    $expense->remarks          = $reimbursement->description;
-                    $expense->status           = 1;
-                    $expense->approved_at      = now();
-                    $expense->approved_by      = Auth::id();
-                    $expense->creator_id       = Auth::id();
-                    $expense->created_by       = creatorId();
-                    $expense->save();
-
-                    CreatePettyCashExpense::dispatch($expense);
-
-                } else {
+            if ($validated['status'] == '1') {
+                $pattyCash = PettyCashLedger::currentFund();
+                if (!$pattyCash) {
                     return redirect()->back()->with('error', __('Petty cash not found!'));
                 }
-            } else {
-                $reimbursement->approved_date    = null;
-                $reimbursement->approved_by      = null;
-                $reimbursement->approved_amount  = null;
-                $reimbursement->rejection_reason = $validated['rejection_reason'];
+                if ($pattyCash->status != 1) {
+                    return redirect()->back()->with('error', __('Please approve petty cash first before processing reimbursement.'));
+                }
+                if ($message = PettyCashLedger::missingAccountMessage($reimbursement->category)) {
+                    return redirect()->back()->with('error', $message);
+                }
+                $closing_balance = $pattyCash->closing_balance - $validated['approved_amount'];
+                if ($closing_balance < 0) {
+                    return redirect()->back()->with('error', __('Insufficient petty cash balance! Available balance: :balance, Requested amount: :amount', [
+                        'balance' => number_format($pattyCash->closing_balance, 2),
+                        'amount'  => number_format($validated['approved_amount'], 2)
+                    ]));
+                }
             }
 
-            $reimbursement->save();
+            try {
+                // The fund, the expense and its journal are saved together or not at all.
+                DB::transaction(function () use ($validated, $reimbursement) {
+                    $reimbursement->status = $validated['status'];
+
+                    if ($validated['status'] == '1') {
+                        $pattyCash = PettyCashLedger::currentFund();
+
+                        $reimbursement->approved_date    = $validated['approved_date'] ?? now();
+                        $reimbursement->approved_by      = $validated['approved_by'];
+                        $reimbursement->approved_amount  = $validated['approved_amount'];
+                        $reimbursement->rejection_reason = null;
+                        $reimbursement->save();
+
+                        $pattyCash->closing_balance = $pattyCash->closing_balance - $validated['approved_amount'];
+                        $pattyCash->total_expense  += $validated['approved_amount'];
+                        $pattyCash->save();
+
+                        $expense                   = new PettyCashExpense();
+                        $expense->reimbursement_id = $reimbursement->id;
+                        $expense->pettycash_id     = $pattyCash->id;
+                        $expense->type             = 'reimbursement';
+                        $expense->amount           = $validated['approved_amount'];
+                        $expense->remarks          = $reimbursement->description;
+                        $expense->status           = 1;
+                        $expense->approved_at      = now();
+                        $expense->approved_by      = Auth::id();
+                        $expense->creator_id       = Auth::id();
+                        $expense->created_by       = creatorId();
+                        $expense->save();
+
+                        CreatePettyCashExpense::dispatch($expense);
+                    } else {
+                        $reimbursement->approved_date    = null;
+                        $reimbursement->approved_by      = null;
+                        $reimbursement->approved_amount  = null;
+                        $reimbursement->rejection_reason = $validated['rejection_reason'];
+                        $reimbursement->save();
+                    }
+                });
+            } catch (\Throwable $exception) {
+                report($exception);
+
+                return redirect()->back()->with('error', !$exception instanceof \Illuminate\Database\QueryException ? $exception->getMessage() : __('The reimbursement could not be approved. Please try again.'));
+            }
 
             UpdateStatusReimbursement::dispatch($reimbursement);
 

@@ -3022,7 +3022,7 @@ class JournalService
             'entry_type' => 'automatic',
             'reference_type' => 'petty_cash',
             'reference_id' => $pettyCash->id,
-            'description' => 'Petty Cash Expense - ' . ($pettyCash->description ?? 'Petty cash transaction'),
+            'description' => 'Petty Cash Top-up - ' . ($pettyCash->pettycash_number ?? ('PC-' . $pettyCash->id)),
             'total_debit' => $pettyCash->added_amount,
             'total_credit' => $pettyCash->added_amount,
             'status' => 'posted',
@@ -3032,8 +3032,8 @@ class JournalService
 
         JournalEntryItem::create([
             'journal_entry_id' => $journalEntry->id,
-            'account_id' => $bankGLAccount->id,
-            'description' => 'Expense incurred',
+            'account_id' => $pettyCashAccount->id,
+            'description' => 'Petty cash top-up',
             'debit_amount' => $pettyCash->added_amount,
             'credit_amount' => 0,
             'creator_id' => Auth::id(),
@@ -3042,8 +3042,8 @@ class JournalService
 
         JournalEntryItem::create([
             'journal_entry_id' => $journalEntry->id,
-            'account_id' => $pettyCashAccount->id,
-            'description' => 'Payment from petty cash',
+            'account_id' => $bankGLAccount->id,
+            'description' => 'Transferred to petty cash',
             'debit_amount' => 0,
             'credit_amount' => $pettyCash->added_amount,
             'creator_id' => Auth::id(),
@@ -3058,5 +3058,71 @@ class JournalService
 
         $this->updateAccountBalances($journalEntry);
         return $journalEntry;
+    }
+
+    /**
+     * Approved petty cash spending (a request or a reimbursement): the category's expense account is debited
+     * and the petty cash account (1005) credited, on the approval date.
+     */
+    public function pettyCashExpenseJournal($expense, int $expenseAccountId, $date, string $description)
+    {
+        $this->validateAccounts(['1005']);
+        $amount = round((float) $expense->amount, 2);
+        $this->validateBalance($amount, $amount);
+
+        $pettyCashAccount = ChartOfAccount::where('account_code', '1005')->where('created_by', creatorId())->firstOrFail();
+        $expenseAccount = ChartOfAccount::whereKey($expenseAccountId)->where('created_by', creatorId())->firstOrFail();
+
+        $journalEntry = JournalEntry::create([
+            'journal_date' => $date ?: now(),
+            'entry_type' => 'automatic',
+            'reference_type' => 'petty_cash_expense',
+            'reference_id' => $expense->id,
+            'description' => $description,
+            'total_debit' => $amount,
+            'total_credit' => $amount,
+            'status' => 'posted',
+            'creator_id' => Auth::id(),
+            'created_by' => creatorId(),
+        ]);
+
+        JournalEntryItem::create([
+            'journal_entry_id' => $journalEntry->id,
+            'account_id' => $expenseAccount->id,
+            'description' => $description,
+            'debit_amount' => $amount,
+            'credit_amount' => 0,
+            'creator_id' => Auth::id(),
+            'created_by' => creatorId(),
+        ]);
+
+        JournalEntryItem::create([
+            'journal_entry_id' => $journalEntry->id,
+            'account_id' => $pettyCashAccount->id,
+            'description' => 'Paid from petty cash',
+            'debit_amount' => 0,
+            'credit_amount' => $amount,
+            'creator_id' => Auth::id(),
+            'created_by' => creatorId(),
+        ]);
+
+        $this->updateAccountBalances($journalEntry);
+
+        return $journalEntry;
+    }
+
+    /** Removes the journal of a petty cash expense whose request or reimbursement is deleted. */
+    public function deletePettyCashExpenseJournal(int $expenseId): void
+    {
+        $journalEntries = JournalEntry::where('reference_type', 'petty_cash_expense')
+            ->where('reference_id', $expenseId)
+            ->where('created_by', creatorId())
+            ->get();
+
+        foreach ($journalEntries as $journalEntry) {
+            $this->reverseAccountBalances($journalEntry);
+            JournalEntryItem::where('journal_entry_id', $journalEntry->id)->delete();
+            $journalEntry->delete();
+        }
     }
 }

@@ -971,10 +971,10 @@ class BankTransactionsService
 
         $bankTransaction = new BankTransaction();
         $bankTransaction->bank_account_id = $pettyCash->bank_account_id;
-        $bankTransaction->transaction_date = now();
+        $bankTransaction->transaction_date = $pettyCash->date ?? now();
         $bankTransaction->transaction_type = 'debit';
         $bankTransaction->reference_number = $pettyCash->pettycash_number ?? 'PC-' . $pettyCash->id;
-        $bankTransaction->description = 'Petty Cash Expense - ' . ($pettyCash->description ?? 'Petty cash transaction');
+        $bankTransaction->description = 'Petty Cash Top-up - ' . ($pettyCash->pettycash_number ?? 'PC-' . $pettyCash->id);
         $bankTransaction->amount = $pettyCash->added_amount;
         $bankTransaction->running_balance = $runningBalance;
         $bankTransaction->transaction_status = 'cleared';

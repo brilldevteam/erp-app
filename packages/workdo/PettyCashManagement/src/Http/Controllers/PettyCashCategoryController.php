@@ -19,6 +19,7 @@ class PettyCashCategoryController extends Controller
     {
         if(Auth::user()->can('manage-petty-cash-categories')){
             $pettycashcategories = PettyCashCategory::query()
+                ->with('account:id,account_code,account_name')
                 ->where(function($q) {
                     if(Auth::user()->can('manage-any-petty-cash-categories')) {
                         $q->where('created_by', creatorId());
@@ -37,7 +38,7 @@ class PettyCashCategoryController extends Controller
 
             return Inertia::render('PettyCashManagement/PettyCashCategories/Index', [
                 'pettycashcategories' => $pettycashcategories,
-
+                'expenseAccounts'     => PettyCashCategory::expenseAccountOptions(),
             ]);
         }
         else{
@@ -52,6 +53,7 @@ class PettyCashCategoryController extends Controller
 
             $pettycashcategory       = new PettyCashCategory();
             $pettycashcategory->name = $validated['name'];
+            $pettycashcategory->account_id = $validated['account_id'] ?? null;
 
             $pettycashcategory->creator_id = Auth::id();
             $pettycashcategory->created_by = creatorId();
@@ -72,6 +74,7 @@ class PettyCashCategoryController extends Controller
             $validated = $request->validated();
 
             $pettycashcategory->name = $validated['name'];
+            $pettycashcategory->account_id = $validated['account_id'] ?? null;
             $pettycashcategory->save();
 
             UpdatePettyCashCategory::dispatch($request, $pettycashcategory);
