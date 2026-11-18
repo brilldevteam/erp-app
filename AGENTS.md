@@ -64,7 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
-| Claude | `release/2026-11-16` | Petty cash posting (step 1 of 2, Sithari approved 2026-11-18): `packages/workdo/PettyCashManagement` (category expense account + migration, request/reimbursement approval and delete, fund selection, category UI), `JournalService` petty cash journals, `BankTransactionsService::approvePettyCash`, Account `EventServiceProvider` petty cash listeners, smoke test. Step 2 (bring Zoho petty cash history into the section, journals untouched) follows as a data change. | 2026-11-18 | Step 1 committed and pushed; step 2 pending |
+| Claude | `release/2026-11-16` | Petty cash posting (step 1 of 2, Sithari approved 2026-11-18): `packages/workdo/PettyCashManagement` (category expense account + migration, request/reimbursement approval and delete, fund selection, category UI), `JournalService` petty cash journals, `BankTransactionsService::approvePettyCash`, Account `EventServiceProvider` petty cash listeners, smoke test. Step 2 (bring Zoho petty cash history into the section, journals untouched) follows as a data change. | 2026-11-18 | Step 1 pushed; step 2 command pushed, live run pending (user) |
 | Claude | `security/helpdesk-notifications-phase3-2026-11-16` | Settings scope Phase 3 (Helpdesk email notifications): `app/Services/HelpdeskEmailService.php`, new `HelpdeskNotificationSettings` service and email content renderer, `app/Jobs/SendHelpdeskEmail.php`, Helpdesk notification endpoint/props in `SettingController.php`, `routes/web.php`, new `helpdesk-notification-settings.tsx`, superadmin settings menu/registry, Helpdesk/settings tests, `CHANGELOG.md`, handoff. No migrations or data changes. | 2026-11-15 | Released - committed and pushed without a PR (see handoff). |
 | Codex | `security/settings-scope-phase2-2026-11-16` | Settings scope Phase 2: central AI settings/readers, company AI toggles, platform/company Brand and System separation, settings menus/payloads, optional company SMTP fallback and mail metadata, permission migration/seeding, focused tests, deployment runbook, changelog and handoff. | 2026-11-16 | Released - taken over and completed by Claude on 2026-11-15 after Codex hit its usage limit; committed and pushed without a PR (see handoff). |
 | Codex | `security/settings-scope-2026-11-15` | Phase 1 follow-up: `SettingController.php`, settings payload compatibility/security tests, `docs/security-settings-scope-deployment.md`, `CHANGELOG.md` and handoff. Preserve the released Phase 1 controls and exclude generated/runtime files. | 2026-11-15 | Released - verified; push recorded below |
@@ -282,6 +282,13 @@ Zoho export inventory (Claude, 2026-10-28, read-only). Full detail with exact pa
 A work item is not complete until its code is committed, tests are recorded, affected workflows are manually checked when applicable, migrations and deployment steps are documented, the changelog is updated when required, and this coordination file contains a handoff entry.
 
 ## Handoff Log
+
+### 2026-11-18 Asia/Colombo - Claude - Petty cash history import (step 2 of 2)
+
+- Branch: `release/2026-11-16`. New `php artisan petty-cash:import-ledger` (dry run unless `--apply`): reads the journals of a petty cash account and creates top-up funds (`PCJ-nnn`) per money-in line and an approved request + expense (`PCJ-R-nnnn`) per spend line, split by expense account, with categories per account. No journals are created or changed (expenses are saved without dispatching `CreatePettyCashExpense`). Refuses a second run with the same prefix; checks money in/out/balance and journal line count equal the ledger before saving.
+- Rehearsed on the 2026-11-18 live backup (local DB `erp_live_20261118`): 30 top-ups, 293 spend lines, 12 categories, balance 1,176.75 = ledger, 316 journal lines unchanged; rollback SQL restored PC-JEANNE exactly.
+- Live steps, backup and rollback: `docs/petty-cash-history-import.md`. Not run on live yet.
+- Tests: `tests/Smoke/PettyCashLedgerImportTest.php` + posting tests, 8 pass.
 
 ### 2026-11-18 Asia/Colombo - Claude - Petty cash spending now posts to the accounts (step 1 of 2)
 
