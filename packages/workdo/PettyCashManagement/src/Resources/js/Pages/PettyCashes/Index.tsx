@@ -27,7 +27,7 @@ import { formatDate, formatCurrency } from '@/utils/helpers';
 
 export default function Index() {
     const { t } = useTranslation();
-    const { pettycashes, auth, latestEntryId } = usePage<PettyCashesIndexProps>().props;
+    const { pettycashes, auth } = usePage<PettyCashesIndexProps>().props;
     const urlParams = new URLSearchParams(window.location.search);
 
     const [filters, setFilters] = useState<PettyCashFilters>({
@@ -168,7 +168,6 @@ export default function Index() {
             key: 'actions',
             header: t('Actions'),
             render: (_: any, pettycash: PettyCash) => {
-                const isLatestEntry = pettycash.id === latestEntryId;
                 const isApproved = pettycash.status == 1;
                 return (
                     <div className="flex gap-1">
@@ -197,7 +196,7 @@ export default function Index() {
                                     </TooltipContent>
                                 </Tooltip>
                             )}
-                            {auth.user?.permissions?.includes('edit-petty-cashes') && isLatestEntry && !isApproved && (
+                            {auth.user?.permissions?.includes('edit-petty-cashes') && !isApproved && (
                                 <Tooltip delayDuration={0}>
                                     <TooltipTrigger asChild>
                                         <Button variant="ghost" size="sm" onClick={() => openModal('edit', pettycash)} className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700">
@@ -209,7 +208,7 @@ export default function Index() {
                                     </TooltipContent>
                                 </Tooltip>
                             )}
-                            {auth.user?.permissions?.includes('delete-petty-cashes') && isLatestEntry && !isApproved && (
+                            {auth.user?.permissions?.includes('delete-petty-cashes') && !isApproved && (
                                 <Tooltip delayDuration={0}>
                                     <TooltipTrigger asChild>
                                         <Button
@@ -442,7 +441,7 @@ pageActions={
                                                             </TooltipContent>
                                                         </Tooltip>
                                                     )}
-                                                    {auth.user?.permissions?.includes('edit-petty-cashes') && pettycash.id === latestEntryId && pettycash.status != 1 && (
+                                                    {auth.user?.permissions?.includes('edit-petty-cashes') && pettycash.status != 1 && (
                                                         <Tooltip delayDuration={300}>
                                                             <TooltipTrigger asChild>
                                                                 <Button variant="ghost" size="sm" onClick={() => openModal('edit', pettycash)} className="h-9 w-9 p-0 text-blue-600 hover:text-blue-700">
@@ -454,7 +453,7 @@ pageActions={
                                                             </TooltipContent>
                                                         </Tooltip>
                                                     )}
-                                                    {auth.user?.permissions?.includes('delete-petty-cashes') && pettycash.id === latestEntryId && pettycash.status != 1 && (
+                                                    {auth.user?.permissions?.includes('delete-petty-cashes') && pettycash.status != 1 && (
                                                         <Tooltip delayDuration={300}>
                                                             <TooltipTrigger asChild>
                                                                 <Button
@@ -515,7 +514,10 @@ pageActions={
             </Dialog>
 
             <Dialog open={!!viewingItem} onOpenChange={() => setViewingItem(null)}>
-                {viewingItem && <View pettycash={viewingItem} />}
+                {viewingItem && <View
+                    pettycash={pettycashes.data.find((item) => item.id === viewingItem.id) || viewingItem}
+                    canEdit={!!auth.user?.permissions?.includes('edit-petty-cashes')}
+                />}
             </Dialog>
 
             <ConfirmationDialog

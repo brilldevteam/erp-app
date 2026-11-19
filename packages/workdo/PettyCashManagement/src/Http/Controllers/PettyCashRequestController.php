@@ -18,6 +18,8 @@ use App\Models\User;
 use Workdo\PettyCashManagement\Models\PettyCash;
 use Workdo\PettyCashManagement\Models\PettyCashExpense;
 use Workdo\PettyCashManagement\Services\PettyCashLedger;
+use Workdo\PettyCashManagement\Services\PettyCashAttachmentService;
+use Workdo\PettyCashManagement\Models\PettyCashAttachment;
 use Illuminate\Support\Facades\DB;
 
 class PettyCashRequestController extends Controller
@@ -26,7 +28,7 @@ class PettyCashRequestController extends Controller
     {
         if(Auth::user()->can('manage-petty-cash-requests')){
             $pettycashrequests = PettyCashRequest::query()
-                ->with(['user', 'category', 'approver'])
+                ->with(['user', 'category', 'approver', 'attachments.uploader:id,name'])
                 ->where(function($q) {
                     if(Auth::user()->can('manage-any-petty-cash-requests')) {
                         $q->where('created_by', creatorId());
@@ -81,15 +83,26 @@ class PettyCashRequestController extends Controller
         if(Auth::user()->can('create-petty-cash-requests')){
             $validated = $request->validated();
 
-            $pettycashrequest                   = new PettyCashRequest();
-            $pettycashrequest->user_id          = $validated['user_id'];
-            $pettycashrequest->categorie_id     = $validated['categorie_id'];
-            $pettycashrequest->requested_amount = $validated['requested_amount'];
-            $pettycashrequest->status           = 0;
-            $pettycashrequest->remarks          = $validated['remarks'];
-            $pettycashrequest->creator_id       = Auth::id();
-            $pettycashrequest->created_by       = creatorId();
-            $pettycashrequest->save();
+            $pettycashrequest = new PettyCashRequest();
+            $paths = [];
+            try {
+                // The request and its supporting documents are saved together or not at all.
+                DB::transaction(function () use ($validated, $request, $pettycashrequest, &$paths) {
+                    $pettycashrequest->user_id          = $validated['user_id'];
+                    $pettycashrequest->categorie_id     = $validated['categorie_id'];
+                    $pettycashrequest->requested_amount = $validated['requested_amount'];
+                    $pettycashrequest->status           = 0;
+                    $pettycashrequest->remarks          = $validated['remarks'];
+                    $pettycashrequest->creator_id       = Auth::id();
+                    $pettycashrequest->created_by       = creatorId();
+                    $pettycashrequest->save();
+
+                    app(PettyCashAttachmentService::class)->store(PettyCashAttachment::REQUEST, $pettycashrequest, $request->file('attachments', []), $paths);
+                });
+            } catch (\Throwable $e) {
+                app(PettyCashAttachmentService::class)->cleanup($paths);
+                throw $e;
+            }
 
             CreatePettyCashRequest::dispatch($request, $pettycashrequest);
 
@@ -103,6 +116,11 @@ class PettyCashRequestController extends Controller
     public function update(UpdatePettyCashRequestRequest $request, PettyCashRequest $pettycashrequest)
     {
         if(Auth::user()->can('edit-petty-cash-requests')){
+            // Saving would put an approved or rejected request back to pending; approved spending stays posted.
+            if ((string) $pettycashrequest->status !== '0') {
+                return redirect()->back()->with('error', __('Only pending petty cash requests can be edited.'));
+            }
+
             $validated = $request->validated();
 
             $pettycashrequest->user_id          = $validated['user_id'];
@@ -220,6 +238,8 @@ class PettyCashRequestController extends Controller
 
                 $pettycashrequest->delete();
             });
+
+            app(PettyCashAttachmentService::class)->removeAll(PettyCashAttachment::REQUEST, $pettycashrequest);
 
             return redirect()->back()->with('success', __('The petty cash request has been deleted.'));
         }

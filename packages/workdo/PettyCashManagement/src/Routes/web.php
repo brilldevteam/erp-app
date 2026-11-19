@@ -5,6 +5,7 @@ use Workdo\PettyCashManagement\Http\Controllers\PettyCashExpenseController;
 use Workdo\PettyCashManagement\Http\Controllers\PettyCashRequestController;
 use Workdo\PettyCashManagement\Http\Controllers\PettyCashController;
 use Workdo\PettyCashManagement\Http\Controllers\PettyCashCategoryController;
+use Workdo\PettyCashManagement\Http\Controllers\PettyCashAttachmentController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:PettyCashManagement'])->group(function () {
@@ -32,7 +33,13 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:PettyCashManageme
         Route::delete('/{pettycashrequest}', [PettyCashRequestController::class, 'destroy'])->name('destroy');
     });
 
-    Route::get('petty-cash-management/users/{user}/categories', [PettyCashRequestController::class, 'getCategoriesByUser'])->name('pettycashmanagement.users.categories');
+    // Supporting documents for petty cash requests and petty cash funds.
+    Route::post('petty-cash-management/attachments/{type}/{id}', [PettyCashAttachmentController::class, 'store'])
+        ->whereIn('type', ['request', 'fund'])->whereNumber('id')->name('petty-cash-management.attachments.store');
+    Route::get('petty-cash-management/attachments/{attachment}', [PettyCashAttachmentController::class, 'download'])->name('petty-cash-management.attachments.download');
+    Route::delete('petty-cash-management/attachments/{attachment}', [PettyCashAttachmentController::class, 'destroy'])->name('petty-cash-management.attachments.destroy');
+
+    Route::get('petty-cash-management/users/{user}/categories',[PettyCashRequestController::class, 'getCategoriesByUser'])->name('pettycashmanagement.users.categories');
 
     Route::prefix('petty-cash-management/petty-cash-expenses')->name('petty-cash-management.petty-cash-expenses.')->group(function () {
         Route::get('/', [PettyCashExpenseController::class, 'index'])->name('index');

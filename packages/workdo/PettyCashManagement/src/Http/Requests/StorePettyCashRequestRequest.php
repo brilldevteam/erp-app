@@ -18,6 +18,11 @@ class StorePettyCashRequestRequest extends FormRequest
             'categorie_id'     => 'required|exists:petty_cash_categories,id',
             'requested_amount' => 'required',
             'remarks'          => 'nullable',
-        ];
+        ] + \Workdo\PettyCashManagement\Services\PettyCashAttachmentService::rules();
+    }
+
+    public function messages(): array
+    {
+        return \Workdo\PettyCashManagement\Services\PettyCashAttachmentService::messages();
     }
 }

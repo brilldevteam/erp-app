@@ -12,6 +12,9 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Workdo\PettyCashManagement\Events\ApprovePettyCash;
+use Workdo\PettyCashManagement\Models\PettyCashAttachment;
+use Workdo\PettyCashManagement\Services\PettyCashAttachmentService;
+use Illuminate\Support\Facades\DB;
 
 class PettyCashController extends Controller
 {
@@ -19,7 +22,7 @@ class PettyCashController extends Controller
     {
         if(Auth::user()->can('manage-petty-cashes')){
             $pettycashes = PettyCash::query()
-                ->with(['expenses.request.user', 'expenses.request.category', 'expenses.reimbursement.user', 'expenses.reimbursement.category', 'expenses.approver'])
+                ->with(['expenses.request.user', 'expenses.request.category', 'expenses.reimbursement.user', 'expenses.reimbursement.category', 'expenses.approver', 'attachments.uploader:id,name'])
                 ->where(function($q) {
                     if(Auth::user()->can('manage-any-petty-cashes')) {
                         $q->where('created_by', creatorId());
@@ -82,18 +85,29 @@ class PettyCashController extends Controller
             $closingBalance = $openingBalance + $addedAmount;
             $totalBalance   = $closingBalance;
 
-            $pettycash                  = new PettyCash();
-            $pettycash->date            = $validated['date'];
-            $pettycash->opening_balance = $openingBalance;
-            $pettycash->added_amount    = $addedAmount;
-            $pettycash->total_balance   = $totalBalance;
-            $pettycash->total_expense   = 0;
-            $pettycash->closing_balance = $closingBalance;
-            $pettycash->remarks         = $validated['remarks'];
-            $pettycash->status          = 0;
-            $pettycash->creator_id      = Auth::id();
-            $pettycash->created_by      = creatorId();
-            $pettycash->save();
+            $pettycash = new PettyCash();
+            $paths = [];
+            try {
+                // The fund and its supporting documents are saved together or not at all.
+                DB::transaction(function () use ($pettycash, $validated, $openingBalance, $addedAmount, $totalBalance, $closingBalance, $request, &$paths) {
+                    $pettycash->date            = $validated['date'];
+                    $pettycash->opening_balance = $openingBalance;
+                    $pettycash->added_amount    = $addedAmount;
+                    $pettycash->total_balance   = $totalBalance;
+                    $pettycash->total_expense   = 0;
+                    $pettycash->closing_balance = $closingBalance;
+                    $pettycash->remarks         = $validated['remarks'];
+                    $pettycash->status          = 0;
+                    $pettycash->creator_id      = Auth::id();
+                    $pettycash->created_by      = creatorId();
+                    $pettycash->save();
+
+                    app(PettyCashAttachmentService::class)->store(PettyCashAttachment::FUND, $pettycash, $request->file('attachments', []), $paths);
+                });
+            } catch (\Throwable $e) {
+                app(PettyCashAttachmentService::class)->cleanup($paths);
+                throw $e;
+            }
 
             CreatePettyCash::dispatch($request, $pettycash);
 
@@ -105,6 +119,14 @@ class PettyCashController extends Controller
     public function update(UpdatePettyCashRequest $request, PettyCash $pettycash)
     {
         if(Auth::user()->can('edit-petty-cashes')){
+            if ((int) $pettycash->created_by !== (int) creatorId()) {
+                return redirect()->back()->with('error', __('Permission denied'));
+            }
+            // An approved fund is already posted to the bank and the journal.
+            if ((int) $pettycash->status === 1) {
+                return redirect()->back()->with('error', __('Only draft petty cash funds can be edited.'));
+            }
+
             $validated = $request->validated();
 
             if ($validated['date'] !== $pettycash->date) {
@@ -141,9 +163,21 @@ class PettyCashController extends Controller
     public function destroy(PettyCash $pettycash)
     {
         if(Auth::user()->can('delete-petty-cashes')){
+            if ((int) $pettycash->created_by !== (int) creatorId()) {
+                return redirect()->back()->with('error', __('Permission denied'));
+            }
+            if ((int) $pettycash->status === 1) {
+                return redirect()->back()->with('error', __('Only draft petty cash funds can be deleted.'));
+            }
+            if ($pettycash->expenses()->exists()) {
+                return redirect()->back()->with('error', __('This petty cash fund has spending recorded against it and cannot be deleted.'));
+            }
+
             DestroyPettyCash::dispatch($pettycash);
 
             $pettycash->delete();
+
+            app(PettyCashAttachmentService::class)->removeAll(PettyCashAttachment::FUND, $pettycash);
 
             return redirect()->back()->with('success', __('The petty cash has been deleted.'));
         }

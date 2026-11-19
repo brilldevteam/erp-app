@@ -4,12 +4,14 @@ import { FileText, User, Calendar, DollarSign, MessageSquare, CheckCircle, XCirc
 import { PettyCashRequest } from './types';
 import { Badge } from '@/components/ui/badge';
 import { formatDate, formatDateTime, formatCurrency } from '@/utils/helpers';
+import SavedPettyCashDocuments from '../Shared/SavedPettyCashDocuments';
 
 interface ViewProps {
     pettycashrequest: PettyCashRequest;
+    canEdit?: boolean;
 }
 
-export default function View({ pettycashrequest }: ViewProps) {
+export default function View({ pettycashrequest, canEdit = false }: ViewProps) {
     const { t } = useTranslation();
     const statusOptions: any = {
         "0": t('Pending'),
@@ -143,6 +145,8 @@ export default function View({ pettycashrequest }: ViewProps) {
                         </div>
                     </div>
                 )}
+
+                <SavedPettyCashDocuments type="request" recordId={pettycashrequest.id} attachments={pettycashrequest.attachments || []} canAttach={canEdit} canRemove={canEdit} />
             </div>
         </DialogContent>
     );

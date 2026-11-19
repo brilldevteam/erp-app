@@ -52,6 +52,12 @@ class PettyCashRequest extends Model
         return $this->belongsTo(User::class, 'approved_by');
     }
 
+    public function attachments()
+    {
+        return $this->hasMany(PettyCashAttachment::class, 'attachable_id')
+            ->where('attachable_type', PettyCashAttachment::REQUEST)->latest('id');
+    }
+
     protected static function boot()
     {
         parent::boot();

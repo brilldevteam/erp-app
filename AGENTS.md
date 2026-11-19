@@ -283,6 +283,14 @@ A work item is not complete until its code is committed, tests are recorded, aff
 
 ## Handoff Log
 
+### 2026-11-19 Asia/Colombo - Claude - Petty cash supporting documents + draft fund edit/delete
+
+- Branch: `feature/petty-cash-documents` (from `release/2026-11-16` @ 343f5a01). Not deployed, no PR.
+- New table `petty_cash_attachments` (package migration `2026_11_19_000001`), with `attachable_type` = `request`|`fund`, files on the private `local` disk under `petty-cash/{company}/...`. There are up to 5 files per record (PDF/JPG/PNG/Word/Excel/ZIP, 5 MB each). Routes: `petty-cash-management.attachments.store|download|destroy`, scoped to company + own/any permission. Files can be attached on the create form of requests and funds, and added, previewed, downloaded or removed in each View dialog.
+- Petty Cashes: edit/delete were shown only on the newest-dated fund, so a draft dated earlier than an approved fund (Brill: PC-2026-11-001 dated 30 Sep vs PCJ-030 06 Oct) had no edit/delete. That was Sithari's report. Now any draft fund can be edited or deleted. Server side, approved funds are refused, a fund with spending can't be deleted, and the fund must belong to the company. Requests: pending ones already had edit/delete on live (checked). The server now refuses editing approved/rejected requests (it used to reset them to pending).
+- Tests: `tests/Smoke/PettyCashDocumentsTest.php` (8). Full smoke suite 79 pass. Deploy needs `php artisan migrate` + `npm run build`.
+- Live demo (Charger cafe) has a test pending request Req-2026-11-002 (25 QAR) created for checking; delete after the live check.
+
 ### 2026-11-19 Asia/Colombo - Claude - CRM dashboard counts + timesheet whole hours
 
 - Branch: `release/2026-11-16`. Lead `DashboardController`: Clients and Users counted with separate queries (the shared builder made Clients always 0); Users = company staff via `User::emp([], ['hr'])`, so vendors/clients are no longer counted. Timesheet Store/Update requests: minutes 0-60 allowed, plus a check that hours+minutes > 0 ("Enter a time greater than 0."); Create/Edit minute dropdowns now 0-60 (was 1-60, so whole hours and attendance auto-fill on the hour failed).

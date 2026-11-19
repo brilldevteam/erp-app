@@ -17,7 +17,7 @@ class StorePettyCashRequest extends FormRequest
             'date'         => 'required|date|unique:petty_cashes,date,NULL,id,created_by,' . creatorId(),
             'added_amount' => 'required|numeric',
             'remarks'      => 'nullable|string|max:1000',
-        ];
+        ] + \Workdo\PettyCashManagement\Services\PettyCashAttachmentService::rules();
     }
 
     public function messages(): array
@@ -29,6 +29,6 @@ class StorePettyCashRequest extends FormRequest
             'added_amount.required' => __('Added amount is required.'),
             'added_amount.numeric' => __('Added amount must be a number.'),
             'added_amount.min' => __('Added amount cannot be negative.'),
-        ];
+        ] + \Workdo\PettyCashManagement\Services\PettyCashAttachmentService::messages();
     }
 }

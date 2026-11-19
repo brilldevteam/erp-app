@@ -6,13 +6,15 @@ import { DataTable } from "@/components/ui/data-table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatDate, formatCurrency } from '@/utils/helpers';
 import { PettyCash, PettyCashExpense } from './types';
+import SavedPettyCashDocuments from '../Shared/SavedPettyCashDocuments';
 interface ViewProps {
     pettycash: PettyCash;
+    canEdit?: boolean;
 }
 
 
 
-export default function View({ pettycash }: ViewProps) {
+export default function View({ pettycash, canEdit = false }: ViewProps) {
     const { t } = useTranslation();
     const expenses = pettycash.expenses || [];
 
@@ -125,6 +127,8 @@ export default function View({ pettycash }: ViewProps) {
                         </div>
                     )}
                 </div>
+
+                <SavedPettyCashDocuments type="fund" recordId={pettycash.id} attachments={pettycash.attachments || []} canAttach={canEdit} canRemove={canEdit} />
             </div>
         </DialogContent>
     );

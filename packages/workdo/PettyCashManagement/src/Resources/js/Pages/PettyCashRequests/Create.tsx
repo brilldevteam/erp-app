@@ -11,6 +11,7 @@ import { CreatePettyCashRequestProps, CreatePettyCashRequestFormData } from './t
 import { usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import PettyCashDocuments from '../Shared/PettyCashDocuments';
 
 export default function Create({ onSuccess }: CreatePettyCashRequestProps) {
     const { users, pettycashcategories } = usePage<any>().props;
@@ -23,6 +24,7 @@ export default function Create({ onSuccess }: CreatePettyCashRequestProps) {
         categorie_id: '',
         requested_amount: '',
         remarks: '',
+        attachments: [] as File[],
     });
 
     useEffect(() => {
@@ -43,6 +45,7 @@ export default function Create({ onSuccess }: CreatePettyCashRequestProps) {
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         post(route('petty-cash-management.petty-cash-requests.store'), {
+            forceFormData: true,
             onSuccess: () => {
                 onSuccess();
             }
@@ -110,6 +113,8 @@ export default function Create({ onSuccess }: CreatePettyCashRequestProps) {
                     />
                     <InputError message={errors.remarks} />
                 </div>
+
+                <PettyCashDocuments files={data.attachments} onChange={(files) => setData('attachments', files)} errors={errors as Record<string, string>} disabled={processing} />
 
                 <div className="flex justify-end gap-2">
                     <Button type="button" variant="outline" onClick={onSuccess}>

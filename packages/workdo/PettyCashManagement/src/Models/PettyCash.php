@@ -69,5 +69,11 @@ class PettyCash extends Model
         return $this->hasMany(PettyCashExpense::class, 'pettycash_id');
     }
 
+    public function attachments()
+    {
+        return $this->hasMany(PettyCashAttachment::class, 'attachable_id')
+            ->where('attachable_type', PettyCashAttachment::FUND)->latest('id');
+    }
+
 
 }

@@ -591,7 +591,10 @@ export default function Index() {
             </Dialog>
 
             <Dialog open={!!viewingItem} onOpenChange={() => setViewingItem(null)}>
-                {viewingItem && <View pettycashrequest={viewingItem} />}
+                {viewingItem && <View
+                    pettycashrequest={pettycashrequests.data.find((item) => item.id === viewingItem.id) || viewingItem}
+                    canEdit={!!auth.user?.permissions?.includes('edit-petty-cash-requests')}
+                />}
             </Dialog>
 
             <Dialog open={!!approvalItem} onOpenChange={() => setApprovalItem(null)}>

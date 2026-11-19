@@ -13,6 +13,7 @@ import { usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useFormFields } from '@/hooks/useFormFields';
+import PettyCashDocuments from '../Shared/PettyCashDocuments';
 
 
 export default function Create({ onSuccess }: CreatePettyCashProps) {
@@ -23,6 +24,7 @@ export default function Create({ onSuccess }: CreatePettyCashProps) {
         date: new Date().toISOString().split('T')[0],
         added_amount: '0',
         remarks: '',
+        attachments: [] as File[],
     });
 
 
@@ -30,6 +32,7 @@ export default function Create({ onSuccess }: CreatePettyCashProps) {
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         post(route('petty-cash-management.petty-cashes.store'), {
+            forceFormData: true,
             onSuccess: () => {
                 onSuccess();
             }
@@ -78,6 +81,8 @@ export default function Create({ onSuccess }: CreatePettyCashProps) {
                     />
                     <InputError message={errors.remarks} />
                 </div>
+
+                <PettyCashDocuments files={data.attachments} onChange={(files) => setData('attachments', files)} errors={errors as Record<string, string>} disabled={processing} />
 
                 <div className="flex justify-end gap-2">
                     <Button type="button" variant="outline" onClick={onSuccess}>

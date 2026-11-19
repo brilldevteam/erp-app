@@ -1,4 +1,5 @@
 import { PaginatedData, ModalState, AuthContext } from '@/types/common';
+import type { PettyCashAttachment } from '../Shared/SavedPettyCashDocuments';
 
 export interface User {
     id: number;
@@ -25,17 +26,18 @@ export interface PettyCashRequest {
     created_by?: number;
     creator?: User;
     created_at: string;
+    approved_amount?: number;
+    rejection_reason?: string;
+    request_number?: string;
+    attachments?: PettyCashAttachment[];
 }
 
 export interface CreatePettyCashRequestFormData {
     user_id: string;
     categorie_id: string;
     requested_amount: string;
-    status: string;
     remarks: string;
-    approved_at: any;
-    approved_by: string;
-    created_by: string;
+    attachments: File[];
 }
 
 export interface EditPettyCashRequestFormData {
