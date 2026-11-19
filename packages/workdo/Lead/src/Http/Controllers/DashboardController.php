@@ -35,13 +35,14 @@ class DashboardController extends Controller
                 return $this->userDashboard($request);
             }
             
-            $users = User::where('created_by', creatorId());
             $deal = Deal::where('created_by', creatorId());
             $lead = Lead::where('created_by', creatorId());
             $totalLeads = $lead->count();
             $totalDeals = $deal->count();
-            $totalUsers = $users->where('type', '!=', 'client')->count();
-            $totalClients = $users->where('type', 'client')->count();
+            // Separate queries: chaining both filters onto one builder always counted 0 clients.
+            // Users = the company's staff (vendors and clients are not users of the CRM).
+            $totalUsers = User::where('created_by', creatorId())->emp([], ['hr'])->count();
+            $totalClients = User::where('created_by', creatorId())->where('type', 'client')->count();
 
             // Recent deals
             $recentDeals = $deal

@@ -214,7 +214,7 @@ export default function Edit({ timesheet, users, projects, hasHRM, hasTaskly, on
                             </SelectTrigger>
                             <SelectContent>
                                 {(() => {
-                                    const allMinutes = Array.from({ length: 60 }, (_, i) => i + 1);
+                                    const allMinutes = Array.from({ length: 61 }, (_, i) => i); // 0-60, so whole hours can be logged
                                     const currentMinutes = timesheet.minutes;
                                     
                                     // Edit mode: always show all minutes + ensure current saved value is included

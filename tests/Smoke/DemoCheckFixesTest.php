@@ -191,4 +191,36 @@ class DemoCheckFixesTest extends TestCase
         $this->assertTrue($categories->contains($menu->id));
         $this->assertFalse($categories->contains($raw->id));
     }
+
+    public function test_crm_dashboard_counts_clients_and_staff_separately(): void
+    {
+        $company = $this->company('manage-crm-dashboard');
+        $before = $this->inertia(route('lead.index'))['stats'];
+
+        $this->user($company, 'client');
+        $this->user($company, 'client');
+        $this->user($company, 'staff');
+        $this->user($company, 'hr');
+        $this->user($company, 'vendor');
+
+        $after = $this->inertia(route('lead.index'))['stats'];
+        $this->assertSame(2, $after['total_clients'] - $before['total_clients']);
+        // Staff and HR count as users; the vendor does not.
+        $this->assertSame(2, $after['total_users'] - $before['total_users']);
+    }
+
+    public function test_timesheet_accepts_whole_hours_but_not_zero_time(): void
+    {
+        $company = $this->company('create-timesheet');
+        $staff = $this->user($company, 'staff');
+        $entry = ['user_id' => $staff->id, 'date' => '2026-11-18', 'notes' => 'Whole hour test', 'type' => 'manual', 'project_id' => '', 'task_id' => ''];
+
+        $this->from(route('timesheet.index'))->post(route('timesheet.store'), $entry + ['hours' => 4, 'minutes' => 0])
+            ->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('timesheets', ['user_id' => $staff->id, 'hours' => 4, 'minutes' => 0]);
+
+        $this->from(route('timesheet.index'))->post(route('timesheet.store'), $entry + ['hours' => 0, 'minutes' => 0])
+            ->assertSessionHasErrors(['minutes' => 'Enter a time greater than 0.']);
+        $this->assertSame(1, \Workdo\Timesheet\Models\Timesheet::where('user_id', $staff->id)->count());
+    }
 }

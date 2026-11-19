@@ -283,6 +283,17 @@ A work item is not complete until its code is committed, tests are recorded, aff
 
 ## Handoff Log
 
+### 2026-11-19 Asia/Colombo - Claude - CRM dashboard counts + timesheet whole hours
+
+- Branch: `release/2026-11-16`. Lead `DashboardController`: Clients and Users counted with separate queries (the shared builder made Clients always 0); Users = company staff via `User::emp([], ['hr'])`, so vendors/clients are no longer counted. Timesheet Store/Update requests: minutes 0-60 allowed, plus a check that hours+minutes > 0 ("Enter a time greater than 0."); Create/Edit minute dropdowns now 0-60 (was 1-60, so whole hours and attendance auto-fill on the hour failed).
+- Tests: 2 new in `tests/Smoke/DemoCheckFixesTest.php`; full smoke suite 71 pass. Deploy needs `npm run build` (timesheet pages).
+
+### 2026-11-19 Asia/Colombo - Claude - Charger Cafe demo: remaining sections filled (no code change)
+
+- erp.wazely.io (= dasherp site/DB), company "Charger cafe". Added: CRM (4 sources, 3 labels, 5 leads, 3 deals, 1 won, 1 converted from a lead), Assets (4 categories, 3 locations, 7 assets, 2 assignments, 3 maintenance, 3 depreciation), Budget (Q4 period + operating budget 453,000, 6 allocations; monitoring 64,005 spent), Appointments (hours, 3 questions, 3 booking types, 6 public bookings, 1 callback), Projects (2 projects, 4 milestones, 8 tasks), Timesheet (5), Contracts (4 types, 4 contracts, 1 renewal), Goals (3 categories, 3 goals, 3 milestones, 3 contributions), Retainers (2, one paid), quotations (2, both converted via the real UI - old "no feedback" bug no longer happens), product invoice + sales return + 2 credit notes, revenue entry, proposal. Helpdesk skipped on purpose (tickets go to real Wazely agents). TB balanced; 119 pages load, 28 new screens render without console errors.
+- Bugs found, not fixed yet: CRM dashboard "Clients" always 0 (reused `$users` builder) and "Users" counts vendors; Timesheet rejects whole hours (`minutes` min:1); budget spending not recalculated when a budget is activated (only on the next journal); public appointment booking has no server-side double-booking check; retainer/vendor payment "cleared" has no guard against clearing twice; customers without portal show `client.<id>.<random>@import.local` in CRM client pickers.
+- For Codex (security): `crm/leads/order` updates `Lead::where('id', $item)` unscoped; `crm/deals/{deal}/change-status`, budget approve/active have no company check; `StoreSalesProposalRequest` customer/product ids not company-scoped.
+
 ### 2026-11-19 Asia/Colombo - Claude - Demo check fixes (payslip, dashboards, HR lists, POS till)
 
 - Branch: `release/2026-11-16`. (1) `JournalService::createPayrollJournal` checks the payroll's bank account (own company) and GL link before writing anything; clear message instead of "glAccount on null"; payslip stays unpaid. (2) Account dashboard Recent Expenses: newest by `expense_date`, shows that date, base currency; Recent Revenue amounts also in base currency; all dates sent as plain `Y-m-d` (date casts serialized with a timezone could show a day early). (3) POS dashboard today/week/month, last-10-days and recent sales use `pos_date`. (4) HRM employee pickers (Add/Edit Employee, leave, attendance, awards, warnings, complaints, promotions, transfers, resignations, terminations) include `hr`-type users via `User::emp([], ['hr'])`; other modules unchanged. (5) POS till (`pos.products`, `pos.create` categories) hides items with sale price 0.

@@ -215,7 +215,7 @@ export default function Create({ users, projects, hasHRM, hasTaskly, onSuccess }
                             </SelectTrigger>
                             <SelectContent>
                                 {(() => {
-                                    const allMinutes = Array.from({ length: 60 }, (_, i) => i + 1);
+                                    const allMinutes = Array.from({ length: 61 }, (_, i) => i); // 0-60, so whole hours can be logged
                                     
                                     if (data.type === 'clock_in_out' && remainingHours) {
                                         const totalRemainingMinutes = (remainingHours.hours * 60) + remainingHours.minutes;

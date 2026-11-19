@@ -17,7 +17,7 @@ class StoreTimesheetRequest extends FormRequest
         $rules = [
             'date' => 'required|date',
             'hours' => 'required|integer|min:0|max:12',
-            'minutes' => 'required|integer|min:1|max:60',
+            'minutes' => 'required|integer|min:0|max:60',
             'notes' => 'nullable|string|max:1000',
             'type' => 'required|in:clock_in_out,project,manual',
         ];
@@ -41,10 +41,25 @@ class StoreTimesheetRequest extends FormRequest
         return $rules;
     }
 
+    /**
+     * Whole hours are allowed (e.g. 4 h 0 min), but the total time must be more than zero.
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            if ($validator->errors()->has('hours') || $validator->errors()->has('minutes')) {
+                return;
+            }
+            if (((int) $this->input('hours') * 60) + (int) $this->input('minutes') <= 0) {
+                $validator->errors()->add('minutes', __('Enter a time greater than 0.'));
+            }
+        });
+    }
+
     public function messages(): array
     {
         return [
-            'minutes.min' => _('Minutes must be at least 1.'),
+            'minutes.min' => __('Minutes cannot be negative.'),
             'minutes.max' => __('Minutes cannot exceed 60.'),
             'hours.max' => __('Hours cannot exceed 12.'),
         ];
