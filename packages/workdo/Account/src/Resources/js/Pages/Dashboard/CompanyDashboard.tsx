@@ -25,7 +25,7 @@ interface AccountProps {
     };
     monthlyVendorPayments?: Array<{ month: string; vendor_payments: number }>;
     monthlyCustomerPayments?: Array<{ month: string; customer_payments: number }>;
-    recentRevenues?: Array<{ id: number; title: string; description: string; amount: number; date: string }>;
+    recentRevenues?: Array<{ id: number | string; title: string; description: string; amount: number; date: string }>;
     recentExpenses?: Array<{ id: number; title: string; description: string; amount: number; date: string }>;
     recent_items?: Array<{
         id: number;

@@ -68,19 +68,63 @@ class DashboardController extends Controller
         
         $netProfit = $totalRevenue - $totalExpense;
 
+        // Recent income from every source: revenue entries, posted sales invoices and POS sales.
         $recentRevenues = Revenue::where('created_by', $creatorId)
-            ->latest()
+            ->latest('revenue_date')
+            ->latest('id')
             ->limit(5)
             ->get()
-            ->map(function($item) {
-                return [
-                    'id' => $item->id,
-                    'title' => $item->revenue_number,
-                    'description' => $item->description ?? 'Revenue transaction',
-                    'amount' => $item->amount,
-                    'date' => $item->created_at
-                ];
-            });
+            ->map(fn ($item) => [
+                'id' => 'revenue-' . $item->id,
+                'title' => $item->revenue_number,
+                'description' => $item->description ?? __('Revenue transaction'),
+                'amount' => (float) $item->amount,
+                'date' => $item->revenue_date ?? $item->created_at,
+                'sort' => $item->created_at,
+            ]);
+
+        $recentRevenues = $recentRevenues->concat(
+            SalesInvoice::where('created_by', $creatorId)
+                ->whereNotIn('status', ['draft', 'cancelled'])
+                ->with('customer:id,name')
+                ->latest('invoice_date')
+                ->latest('id')
+                ->limit(5)
+                ->get()
+                ->map(fn ($item) => [
+                    'id' => 'invoice-' . $item->id,
+                    'title' => $item->invoice_number,
+                    'description' => __('Sales invoice') . ($item->customer ? ' - ' . $item->customer->name : ''),
+                    'amount' => round((float) $item->total_amount * ((float) $item->exchange_rate > 0 ? (float) $item->exchange_rate : 1), 2),
+                    'date' => $item->invoice_date,
+                    'sort' => $item->created_at,
+                ])
+        );
+
+        if (Module_is_active('Pos') && class_exists(\Workdo\Pos\Models\Pos::class)) {
+            $recentRevenues = $recentRevenues->concat(
+                \Workdo\Pos\Models\Pos::where('created_by', $creatorId)
+                    ->with(['warehouse:id,name', 'payment:pos_id,discount_amount'])
+                    ->latest('pos_date')
+                    ->latest('id')
+                    ->limit(5)
+                    ->get()
+                    ->map(fn ($item) => [
+                        'id' => 'pos-' . $item->id,
+                        'title' => $item->sale_number,
+                        'description' => __('POS sale') . ($item->warehouse ? ' - ' . $item->warehouse->name : ''),
+                        'amount' => (float) ($item->payment->discount_amount ?? 0),
+                        'date' => $item->pos_date,
+                        'sort' => $item->created_at,
+                    ])
+            );
+        }
+
+        $recentRevenues = $recentRevenues
+            ->sortByDesc(fn ($item) => [Carbon::parse($item['date'])->toDateString(), Carbon::parse($item['sort'])->timestamp])
+            ->take(5)
+            ->map(fn ($item) => collect($item)->except('sort')->all())
+            ->values();
 
         $recentExpenses = Expense::where('created_by', $creatorId)
             ->latest()

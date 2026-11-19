@@ -64,7 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
-| Claude | `release/2026-11-16` | Petty cash posting (step 1 of 2, Sithari approved 2026-11-18): `packages/workdo/PettyCashManagement` (category expense account + migration, request/reimbursement approval and delete, fund selection, category UI), `JournalService` petty cash journals, `BankTransactionsService::approvePettyCash`, Account `EventServiceProvider` petty cash listeners, smoke test. Step 2 (bring Zoho petty cash history into the section, journals untouched) follows as a data change. | 2026-11-18 | Step 1 pushed; step 2 command pushed, live run pending (user) |
+| Claude | `release/2026-11-16` | Petty cash posting (step 1 of 2, Sithari approved 2026-11-18): `packages/workdo/PettyCashManagement` (category expense account + migration, request/reimbursement approval and delete, fund selection, category UI), `JournalService` petty cash journals, `BankTransactionsService::approvePettyCash`, Account `EventServiceProvider` petty cash listeners, smoke test. Step 2 (bring Zoho petty cash history into the section, journals untouched) follows as a data change. | 2026-11-18 | Released - both steps live; import applied on live 2026-11-18 (balance 1,176.75 = ledger) |
 | Claude | `security/helpdesk-notifications-phase3-2026-11-16` | Settings scope Phase 3 (Helpdesk email notifications): `app/Services/HelpdeskEmailService.php`, new `HelpdeskNotificationSettings` service and email content renderer, `app/Jobs/SendHelpdeskEmail.php`, Helpdesk notification endpoint/props in `SettingController.php`, `routes/web.php`, new `helpdesk-notification-settings.tsx`, superadmin settings menu/registry, Helpdesk/settings tests, `CHANGELOG.md`, handoff. No migrations or data changes. | 2026-11-15 | Released - committed and pushed without a PR (see handoff). |
 | Codex | `security/settings-scope-phase2-2026-11-16` | Settings scope Phase 2: central AI settings/readers, company AI toggles, platform/company Brand and System separation, settings menus/payloads, optional company SMTP fallback and mail metadata, permission migration/seeding, focused tests, deployment runbook, changelog and handoff. | 2026-11-16 | Released - taken over and completed by Claude on 2026-11-15 after Codex hit its usage limit; committed and pushed without a PR (see handoff). |
 | Codex | `security/settings-scope-2026-11-15` | Phase 1 follow-up: `SettingController.php`, settings payload compatibility/security tests, `docs/security-settings-scope-deployment.md`, `CHANGELOG.md` and handoff. Preserve the released Phase 1 controls and exclude generated/runtime files. | 2026-11-15 | Released - verified; push recorded below |
@@ -283,11 +283,24 @@ A work item is not complete until its code is committed, tests are recorded, aff
 
 ## Handoff Log
 
+### 2026-11-19 Asia/Colombo - Claude - POS sales report filters + dashboard recent revenue
+
+- Branch: `release/2026-11-16`. `PosReportController::sales`: date from/to (default this month) and warehouse filters; all figures are net of discount (`pos_payments.discount_amount`) and dated by `pos_date`, not `created_at`; adds summary (net, count, discounts, average) and a paginated sales list tab. `Sales.tsx` gets the filter bar, summary cards and list.
+- Account `DashboardController`: "Recent Revenue" now merges revenue entries, posted sales invoices (base currency) and POS sales, newest by document date, top 5.
+- Tests: `tests/Smoke/PosSalesReportTest.php` (2 pass). Needs `npm run build` on deploy (frontend changed).
+
+### 2026-11-18 Asia/Colombo - Claude - Charger Cafe demo company check (erp.wazely.io)
+
+- No code changed. Filled demo data for `chargercafe@test.com` on erp.wazely.io (COO request: HR, procurement, POS for 2 cafes, admin, revenue): 3 branches, 10 departments, 14 designations, 4 roles, 12 users/employees, attendance, leave, payroll (Oct, 3 payslips paid), 4 POs -> bills -> payments + 1 return, transfers, 49+1 POS sales over 2 cafes, catering invoice + receipt, 2 expenses, petty cash, opening-balance journal. Base currency set USD -> QAR; company details filled. TB balances; bank/cash match the ledger.
+- Found, not fixed: POS sales report ignores discounts (4,906 vs 4,836), has no date/cafe filter, and charts use `created_at` not `pos_date`; paying a payslip on a payroll with no bank account shows raw PHP error (`glAccount` on null); account dashboard "Recent Revenue" ignores POS/invoices and "Recent Expenses" shows created date; P&L cannot split by cafe; journal numbers are global (new company got JE-2026-338).
+- 2026-11-19 recheck: all sections have data. Working days were Mon-Fri, so 15 Nov (Sunday) attendance was rejected; set all 7 days and added it (36 records). HRM employee dropdowns list 11 of 12 (the `hr` role user is left out).
+- For Codex (security): `product-service/stock` store and journal `items.*.account_id` use `exists` without `created_by` scope; POS store trusts client `items.*.price` and does not check stock; `expense_categories.category_code` unique across all companies.
+
 ### 2026-11-18 Asia/Colombo - Claude - Petty cash history import (step 2 of 2)
 
 - Branch: `release/2026-11-16`. New `php artisan petty-cash:import-ledger` (dry run unless `--apply`): reads the journals of a petty cash account and creates top-up funds (`PCJ-nnn`) per money-in line and an approved request + expense (`PCJ-R-nnnn`) per spend line, split by expense account, with categories per account. No journals are created or changed (expenses are saved without dispatching `CreatePettyCashExpense`). Refuses a second run with the same prefix; checks money in/out/balance and journal line count equal the ledger before saving.
 - Rehearsed on the 2026-11-18 live backup (local DB `erp_live_20261118`): 30 top-ups, 293 spend lines, 12 categories, balance 1,176.75 = ledger, 316 journal lines unchanged; rollback SQL restored PC-JEANNE exactly.
-- Live steps, backup and rollback: `docs/petty-cash-history-import.md`. Not run on live yet.
+- Live steps, backup and rollback: `docs/petty-cash-history-import.md`. Applied on LIVE 2026-11-18 by the user after a dry run identical to the rehearsal (20,530.00 in / 19,353.25 out / 1,176.75 balance, 316 journal lines unchanged). Backup table `petty_cashes_backup_20261118` on live - drop once accepted.
 - Tests: `tests/Smoke/PettyCashLedgerImportTest.php` + posting tests, 8 pass.
 
 ### 2026-11-18 Asia/Colombo - Claude - Petty cash spending now posts to the accounts (step 1 of 2)
