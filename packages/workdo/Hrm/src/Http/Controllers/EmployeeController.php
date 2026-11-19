@@ -64,7 +64,7 @@ class EmployeeController extends Controller
 
             return Inertia::render('Hrm/Employees/Index', [
                 'employees' => $employees,
-                'users' => User::emp()->where('created_by', creatorId())->select('id', 'name')->get(),
+                'users' => User::emp([], ['hr'])->where('created_by', creatorId())->select('id', 'name')->get(),
                 'branches' => Branch::where('created_by', creatorId())->select('id', 'branch_name')->get(),
                 'departments' => Department::where('created_by', creatorId())->select('id', 'department_name', 'branch_id')->get(),
                 'designations' => Designation::where('created_by', creatorId())->select('id', 'designation_name', 'branch_id', 'department_id')->get(),
@@ -79,7 +79,7 @@ class EmployeeController extends Controller
     {
         if (Auth::user()->can('create-employees')) {
             return Inertia::render('Hrm/Employees/Create', [
-                'users' => User::emp()->where('created_by', creatorId())->whereNotIn('id', Employee::where('created_by', creatorId())->pluck('user_id'))->select('id', 'name')->get(),
+                'users' => User::emp([], ['hr'])->where('created_by', creatorId())->whereNotIn('id', Employee::where('created_by', creatorId())->pluck('user_id'))->select('id', 'name')->get(),
                 'branches' => Branch::where('created_by', creatorId())->select('id', 'branch_name')->get(),
                 'departments' => Department::where('created_by', creatorId())->select('id', 'department_name', 'branch_id')->get(),
                 'designations' => Designation::where('created_by', creatorId())->select('id', 'designation_name', 'branch_id', 'department_id')->get(),
@@ -187,7 +187,7 @@ class EmployeeController extends Controller
 
             return Inertia::render('Hrm/Employees/Edit', [
                 'employee' => $employee,
-                'users' => User::emp()->where('created_by', creatorId())->select('id', 'name')->get(),
+                'users' => User::emp([], ['hr'])->where('created_by', creatorId())->select('id', 'name')->get(),
                 'branches' => Branch::where('created_by', creatorId())->select('id', 'branch_name')->get(),
                 'departments' => Department::where('created_by', creatorId())->select('id', 'department_name', 'branch_id')->get(),
                 'designations' => Designation::where('created_by', creatorId())->select('id', 'designation_name', 'branch_id', 'department_id')->get(),

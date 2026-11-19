@@ -18,6 +18,7 @@ interface SalesReportProps {
             sale_number: string;
             total: number;
             pos_date: string;
+            sale_date?: string;
             customer?: { name: string };
             warehouse?: { name: string };
             payment?: { amount: number; discount: number; discount_amount: number };
@@ -203,7 +204,7 @@ export default function SalesReport({ salesData, dailySales, monthlySales, wareh
                                         {salesData.data.map((sale) => (
                                             <tr key={sale.id} className="border-b last:border-0">
                                                 <td className="py-2 pr-4">{sale.sale_number}</td>
-                                                <td className="py-2 pr-4">{formatDate(sale.pos_date)}</td>
+                                                <td className="py-2 pr-4">{formatDate(sale.sale_date || sale.pos_date)}</td>
                                                 <td className="py-2 pr-4">{sale.warehouse?.name || '-'}</td>
                                                 <td className="py-2 pr-4">{sale.customer?.name || t('Walk-in Customer')}</td>
                                                 <td className="py-2 pr-4 text-right">{formatCurrency(sale.payment?.discount ?? 0)}</td>

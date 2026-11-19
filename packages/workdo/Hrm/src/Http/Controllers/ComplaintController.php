@@ -49,7 +49,7 @@ class ComplaintController extends Controller
             return Inertia::render('Hrm/Complaints/Index', [
                 'complaints' => $complaints,
                 'employees' => $this->getFilteredEmployees(),
-                'allEmployees' =>  User::emp()
+                'allEmployees' =>  User::emp([], ['hr'])
                     ->where('created_by', creatorId())
                     ->whereIn('id', Employee::where('created_by', creatorId())->pluck('user_id'))
                     ->select('id', 'name')
@@ -152,7 +152,7 @@ class ComplaintController extends Controller
             });
         }
 
-        return User::emp()->where('created_by', creatorId())
+        return User::emp([], ['hr'])->where('created_by', creatorId())
             ->whereIn('id', $employeeQuery->pluck('user_id'))
             ->select('id', 'name')->get();
     }

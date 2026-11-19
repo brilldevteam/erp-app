@@ -283,6 +283,12 @@ A work item is not complete until its code is committed, tests are recorded, aff
 
 ## Handoff Log
 
+### 2026-11-19 Asia/Colombo - Claude - Demo check fixes (payslip, dashboards, HR lists, POS till)
+
+- Branch: `release/2026-11-16`. (1) `JournalService::createPayrollJournal` checks the payroll's bank account (own company) and GL link before writing anything; clear message instead of "glAccount on null"; payslip stays unpaid. (2) Account dashboard Recent Expenses: newest by `expense_date`, shows that date, base currency; Recent Revenue amounts also in base currency; all dates sent as plain `Y-m-d` (date casts serialized with a timezone could show a day early). (3) POS dashboard today/week/month, last-10-days and recent sales use `pos_date`. (4) HRM employee pickers (Add/Edit Employee, leave, attendance, awards, warnings, complaints, promotions, transfers, resignations, terminations) include `hr`-type users via `User::emp([], ['hr'])`; other modules unchanged. (5) POS till (`pos.products`, `pos.create` categories) hides items with sale price 0.
+- Tests: `tests/Smoke/DemoCheckFixesTest.php` (5) + `PosSalesReportTest` (2); full smoke suite 69 pass. Deploy needs `npm run build` (Sales.tsx).
+- Not changed (needs a decision): P&L per cafe, POS stock check, salary journal posts net pay on click date.
+
 ### 2026-11-19 Asia/Colombo - Claude - POS sales report filters + dashboard recent revenue
 
 - Branch: `release/2026-11-16`. `PosReportController::sales`: date from/to (default this month) and warehouse filters; all figures are net of discount (`pos_payments.discount_amount`) and dated by `pos_date`, not `created_at`; adds summary (net, count, discounts, average) and a paginated sales list tab. `Sales.tsx` gets the filter bar, summary cards and list.

@@ -65,6 +65,7 @@ class PosReportController extends Controller
                 ->withQueryString();
             $salesData->getCollection()->transform(function ($sale) {
                 $sale->total = (float) ($sale->payment->discount_amount ?? 0);
+                $sale->sale_date = Carbon::parse($sale->pos_date ?? $sale->created_at)->toDateString();
                 return $sale;
             });
 

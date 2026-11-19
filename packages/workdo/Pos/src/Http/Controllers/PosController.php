@@ -94,7 +94,13 @@ class PosController extends Controller
                 ->select('id', 'name', 'address')
                 ->get();
 
+            // Only categories that hold something the till can sell.
             $categories = ProductServiceCategory::where('created_by', creatorId())
+                ->whereIn('id', ProductServiceItem::where('created_by', creatorId())
+                    ->where('is_active', true)
+                    ->where('type', '!=', 'service')
+                    ->where('sale_price', '>', 0)
+                    ->select('category_id'))
                 ->select('id', 'name', 'color')
                 ->get();
             return Inertia::render('Pos/Pos/Create', [
@@ -125,7 +131,9 @@ class PosController extends Controller
             })
             ->where('created_by', creatorId())
             ->where('is_active', true)
-            ->where('type', '!=', 'service');
+            ->where('type', '!=', 'service')
+            // Items without a selling price (raw materials, supplies) are not sold at the till.
+            ->where('sale_price', '>', 0);
 
         if ($categoryId) {
             $query->where('category_id', $categoryId);

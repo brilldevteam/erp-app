@@ -78,8 +78,8 @@ class DashboardController extends Controller
                 'id' => 'revenue-' . $item->id,
                 'title' => $item->revenue_number,
                 'description' => $item->description ?? __('Revenue transaction'),
-                'amount' => (float) $item->amount,
-                'date' => $item->revenue_date ?? $item->created_at,
+                'amount' => round((float) $item->amount * ((float) $item->exchange_rate > 0 ? (float) $item->exchange_rate : 1), 2),
+                'date' => ($item->revenue_date ?? $item->created_at)?->toDateString(),
                 'sort' => $item->created_at,
             ]);
 
@@ -96,7 +96,7 @@ class DashboardController extends Controller
                     'title' => $item->invoice_number,
                     'description' => __('Sales invoice') . ($item->customer ? ' - ' . $item->customer->name : ''),
                     'amount' => round((float) $item->total_amount * ((float) $item->exchange_rate > 0 ? (float) $item->exchange_rate : 1), 2),
-                    'date' => $item->invoice_date,
+                    'date' => \Carbon\Carbon::parse($item->invoice_date ?? $item->created_at)->toDateString(),
                     'sort' => $item->created_at,
                 ])
         );
@@ -114,7 +114,7 @@ class DashboardController extends Controller
                         'title' => $item->sale_number,
                         'description' => __('POS sale') . ($item->warehouse ? ' - ' . $item->warehouse->name : ''),
                         'amount' => (float) ($item->payment->discount_amount ?? 0),
-                        'date' => $item->pos_date,
+                        'date' => \Carbon\Carbon::parse($item->pos_date ?? $item->created_at)->toDateString(),
                         'sort' => $item->created_at,
                     ])
             );
@@ -126,8 +126,10 @@ class DashboardController extends Controller
             ->map(fn ($item) => collect($item)->except('sort')->all())
             ->values();
 
+        // Newest by expense date, shown in the base currency.
         $recentExpenses = Expense::where('created_by', $creatorId)
-            ->latest()
+            ->latest('expense_date')
+            ->latest('id')
             ->limit(5)
             ->get()
             ->map(function($item) {
@@ -135,8 +137,8 @@ class DashboardController extends Controller
                     'id' => $item->id,
                     'title' => $item->expense_number,
                     'description' => $item->description ?? 'Expense transaction',
-                    'amount' => $item->amount,
-                    'date' => $item->created_at
+                    'amount' => round((float) $item->amount * ((float) $item->exchange_rate > 0 ? (float) $item->exchange_rate : 1), 2),
+                    'date' => ($item->expense_date ?? $item->created_at)?->toDateString()
                 ];
             });
 

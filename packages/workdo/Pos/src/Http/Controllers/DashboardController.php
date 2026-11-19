@@ -40,18 +40,16 @@ class DashboardController extends Controller
         $thisWeek = Carbon::now()->startOfWeek();
         $thisMonth = Carbon::now()->startOfMonth();
 
-        // Sales Analytics
-        $todaySales = PosPayment::where('created_by', $creatorId)
-            ->whereDate('created_at', $today)
-            ->sum('discount_amount');
+        // Sales Analytics, dated by the sale date (pos_date), not the date the sale was entered.
+        $salesBetween = fn (Carbon $from, Carbon $to) => DB::table('pos_payments')
+            ->join('pos', 'pos_payments.pos_id', '=', 'pos.id')
+            ->where('pos.created_by', $creatorId)
+            ->whereBetween('pos.pos_date', [$from->toDateString(), $to->toDateString()])
+            ->sum('pos_payments.discount_amount');
 
-        $weekSales = PosPayment::where('created_by', $creatorId)
-            ->where('created_at', '>=', $thisWeek)
-            ->sum('discount_amount');
-
-        $monthSales = PosPayment::where('created_by', $creatorId)
-            ->where('created_at', '>=', $thisMonth)
-            ->sum('discount_amount');
+        $todaySales = $salesBetween($today, $today);
+        $weekSales = $salesBetween($thisWeek, $today);
+        $monthSales = $salesBetween($thisMonth, $today);
 
         $totalSales = PosPayment::where('created_by', $creatorId)->count();
         $totalRevenue = PosPayment::where('created_by', $creatorId)->sum('discount_amount');
@@ -80,7 +78,8 @@ class DashboardController extends Controller
         // Recent Sales
         $recentSales = Pos::with(['customer:id,name', 'warehouse:id,name', 'payment:pos_id,discount_amount'])
             ->where('created_by', $creatorId)
-            ->latest()
+            ->latest('pos_date')
+            ->latest('id')
             ->limit(5)
             ->get()
             ->map(function ($sale) {
@@ -109,12 +108,8 @@ class DashboardController extends Controller
         // Last 10 days sales report
         $last10DaysSales = [];
         for ($i = 9; $i >= 0; $i--) {
-            $date = Carbon::now()->subDays($i);
-            $dailySales = DB::table('pos_payments')
-                ->join('pos', 'pos_payments.pos_id', '=', 'pos.id')
-                ->where('pos.created_by', $creatorId)
-                ->whereDate('pos_payments.created_at', $date)
-                ->sum('pos_payments.discount_amount');
+            $date = Carbon::today()->subDays($i);
+            $dailySales = $salesBetween($date, $date);
             $last10DaysSales[] = [
                 'date' => $date->format('M d'),
                 'sales' => $dailySales

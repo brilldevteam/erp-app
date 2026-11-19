@@ -384,7 +384,7 @@ class LeaveApplicationController extends Controller
             });
         }
 
-        return User::emp()->where('created_by', creatorId())
+        return User::emp([], ['hr'])->where('created_by', creatorId())
             ->whereIn('id', $employeeQuery->pluck('user_id'))
             ->select('id', 'name')->get();
     }

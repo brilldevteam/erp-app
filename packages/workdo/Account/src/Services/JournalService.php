@@ -1364,9 +1364,16 @@ class JournalService
      */
     public function createPayrollJournal($payrollEntry)
     {
-        $bankGLAccount = BankAccount::where('id', $payrollEntry->payroll->bank_account_id)->first()->glAccount;
+        // Checked before anything is written, so a missing bank account leaves the payslip unpaid with a clear message.
+        $bankAccount = BankAccount::where('id', $payrollEntry->payroll->bank_account_id)
+            ->where('created_by', creatorId())
+            ->first();
+        if (!$bankAccount) {
+            throw new \Exception(__('Choose a bank account for this payroll before paying salaries. Edit the payroll and select the bank account the salaries are paid from.'));
+        }
+        $bankGLAccount = $bankAccount->glAccount;
         if (!$bankGLAccount) {
-            throw new \Exception("Bank account must have a GL account assigned");
+            throw new \Exception(__('The bank account :name has no chart of account linked. Link it in Banking before paying salaries.', ['name' => $bankAccount->account_name]));
         }
 
         $this->validateAccounts(['5200']);
