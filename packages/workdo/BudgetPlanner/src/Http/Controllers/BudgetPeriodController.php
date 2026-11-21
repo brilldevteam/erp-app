@@ -117,6 +117,7 @@ class BudgetPeriodController extends Controller
     public function approve(BudgetPeriod $budget_period)
     {
         if(Auth::user()->can('approve-budget-periods')){
+            abort_unless((int) $budget_period->created_by === (int) creatorId(), 404);
             if ($budget_period->status !== 'draft') {
                 return back()->with('error', __('Only draft budget periods can be approved.'));
             }
@@ -138,6 +139,7 @@ class BudgetPeriodController extends Controller
     public function active(BudgetPeriod $budget_period)
     {
         if(Auth::user()->can('active-budget-periods')){
+            abort_unless((int) $budget_period->created_by === (int) creatorId(), 404);
             if ($budget_period->status !== 'approved') {
                 return back()->with('error', __('Only approved budget periods can be active.'));
             }

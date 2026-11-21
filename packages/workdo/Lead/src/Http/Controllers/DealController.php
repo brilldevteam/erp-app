@@ -783,6 +783,7 @@ class DealController extends Controller
     public function changeStatus(Request $request, Deal $deal)
     {
         if (Auth::user()->can('edit-deals')) {
+            abort_unless((int) $deal->created_by === (int) creatorId(), 404);
             $deal->status = $request->deal_status;
             $deal->save();
             return back()->with('success', __('The deal status updated successfully.'));

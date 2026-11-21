@@ -197,9 +197,10 @@ class PosController extends Controller
 
                     $finalAmount = 0;
                     foreach ($validated['items'] as $item) {
-                        $product = ProductServiceItem::where('created_by', creatorId())->find($item['id']);
+                        $product = ProductServiceItem::where('created_by', creatorId())->findOrFail($item['id']);
+                        $price = (float) $product->sale_price;
 
-                        $subtotal = $item['quantity'] * $item['price'];
+                        $subtotal = $item['quantity'] * $price;
 
                         $taxAmount = 0;
                         $taxIds = null;
@@ -219,7 +220,7 @@ class PosController extends Controller
                         $saleItem->pos_id = $sale->id;
                         $saleItem->product_id = $item['id'];
                         $saleItem->quantity = $item['quantity'];
-                        $saleItem->price = $item['price'];
+                        $saleItem->price = $price;
                         $saleItem->tax_ids = $taxIds;
                         $saleItem->subtotal = $subtotal;
                         $saleItem->tax_amount = $taxAmount;

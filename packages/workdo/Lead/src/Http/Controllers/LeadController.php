@@ -791,12 +791,12 @@ class LeadController extends Controller
 
         if (Auth::user()->can('lead-move')) {
             $post       = $request->all();
-            $lead       = Lead::where('created_by', creatorId())->find($post['lead_id']);
+            $lead       = Lead::where('created_by', creatorId())->findOrFail($post['lead_id']);
             $lead_users = $lead->userLeads()->with('user')->get()->pluck('user.email', 'user.id')->toArray();
 
             if ($lead->stage_id != $post['stage_id']) {
 
-                $newStage     = LeadStage::where('created_by', creatorId())->find($post['stage_id']);
+                $newStage     = LeadStage::where('created_by', creatorId())->findOrFail($post['stage_id']);
                 $oldStage     = $lead->stage;
 
                 LeadActivityLog::create([
@@ -828,8 +828,8 @@ class LeadController extends Controller
             }
 
             foreach ($post['order'] as $key => $item) {
-
-                $leads = Lead::where('id', $item)->update(['order' => $key, 'stage_id' => $post['stage_id']]);
+                Lead::where('created_by', creatorId())->findOrFail($item)
+                    ->update(['order' => $key, 'stage_id' => $post['stage_id']]);
             }
             LeadMoved::dispatch($request, $lead, $oldStage);
             return back()->with('success', __('The lead moved successfully.'));

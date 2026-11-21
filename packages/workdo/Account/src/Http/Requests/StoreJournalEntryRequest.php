@@ -4,12 +4,20 @@ namespace Workdo\Account\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
+use Workdo\Account\Models\ChartOfAccount;
 
 class StoreJournalEntryRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $accountIds = collect($this->input('items', []))
+            ->pluck('account_id')
+            ->filter(fn ($id) => filter_var($id, FILTER_VALIDATE_INT) !== false)
+            ->map(fn ($id) => (int) $id)
+            ->unique();
+
+        return $accountIds->isEmpty()
+            || ChartOfAccount::where('created_by', creatorId())->whereIn('id', $accountIds)->count() === $accountIds->count();
     }
 
     public function rules(): array

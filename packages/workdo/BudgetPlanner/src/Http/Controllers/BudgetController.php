@@ -107,6 +107,7 @@ class BudgetController extends Controller
     public function approve(Budget $budget)
     {
         if(Auth::user()->can('approve-budgets')){
+            abort_unless((int) $budget->created_by === (int) creatorId(), 404);
             if ($budget->status !== 'draft') {
                 return back()->with('error', __('Only draft budgets can be approved.'));
             }
@@ -128,6 +129,7 @@ class BudgetController extends Controller
     public function active(Budget $budget)
     {
         if(Auth::user()->can('active-budgets')){
+            abort_unless((int) $budget->created_by === (int) creatorId(), 404);
             if ($budget->status !== 'approved') {
                 return back()->with('error', __('Only approved budgets can be active.'));
             }

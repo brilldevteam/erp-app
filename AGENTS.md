@@ -64,6 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
+| Codex | `security/charger-cafe-tenant-hardening-2026-11-21` | Charger Cafe security follow-up: stock/journal line tenant validation, authoritative POS pricing, per-company expense-category codes, CRM lead/deal action scoping, Budget Planner approve/activate scoping, sales-proposal party/product validation, focused smoke tests, changelog and handoff. | 2026-11-21 | Complete locally - not committed, pushed or deployed |
 | Claude | `release/2026-11-16` | Petty cash posting (step 1 of 2, Sithari approved 2026-11-18): `packages/workdo/PettyCashManagement` (category expense account + migration, request/reimbursement approval and delete, fund selection, category UI), `JournalService` petty cash journals, `BankTransactionsService::approvePettyCash`, Account `EventServiceProvider` petty cash listeners, smoke test. Step 2 (bring Zoho petty cash history into the section, journals untouched) follows as a data change. | 2026-11-18 | Released - both steps live; import applied on live 2026-11-18 (balance 1,176.75 = ledger) |
 | Claude | `security/helpdesk-notifications-phase3-2026-11-16` | Settings scope Phase 3 (Helpdesk email notifications): `app/Services/HelpdeskEmailService.php`, new `HelpdeskNotificationSettings` service and email content renderer, `app/Jobs/SendHelpdeskEmail.php`, Helpdesk notification endpoint/props in `SettingController.php`, `routes/web.php`, new `helpdesk-notification-settings.tsx`, superadmin settings menu/registry, Helpdesk/settings tests, `CHANGELOG.md`, handoff. No migrations or data changes. | 2026-11-15 | Released - committed and pushed without a PR (see handoff). |
 | Codex | `security/settings-scope-phase2-2026-11-16` | Settings scope Phase 2: central AI settings/readers, company AI toggles, platform/company Brand and System separation, settings menus/payloads, optional company SMTP fallback and mail metadata, permission migration/seeding, focused tests, deployment runbook, changelog and handoff. | 2026-11-16 | Released - taken over and completed by Claude on 2026-11-15 after Codex hit its usage limit; committed and pushed without a PR (see handoff). |
@@ -283,6 +284,16 @@ A work item is not complete until its code is committed, tests are recorded, aff
 
 ## Handoff Log
 
+### 2026-11-21 Asia/Colombo - Codex - Charger Cafe tenant hardening (LOCAL, not committed)
+
+- Branch: `security/charger-cafe-tenant-hardening-2026-11-21`, created from `release/2026-11-21` at `8f0cd40e`. Nothing was committed, pushed or deployed.
+- Stock entry product/warehouse IDs and journal-entry account IDs are tenant checked. POS validates its product, warehouse and customer IDs, reloads products from the company catalogue and calculates each line from the stored `sale_price`; browser-submitted prices are ignored.
+- Expense-category codes are unique by `(created_by, category_code)` through scoped validation and a package migration. Expense-category GL accounts and bound update/delete records are tenant checked.
+- CRM lead ordering validates the lead, destination stage and every ordered lead against the company. Deal status changes, Budget and Budget Period approve/activate actions reject foreign records.
+- Sales proposals validate customer, product and optional warehouse IDs against the company on create and update.
+- Tests: `tests/Smoke/ChargerCafeTenantSecurityTest.php` passes 8 tests / 30 assertions; final full `phpunit -c phpunit.smoke.xml` passes 101 tests / 565 assertions, including 333 page checks with 0 server errors and 0 login redirects; `npm run build` passes (4026 modules, existing chunk-size warnings only). Migration `--pretend` produced only the intended composite unique index. No live or accounting data was changed.
+- Deployment, when approved: run the package migration and rebuild frontend assets. Generated `public/build`, `public/hot`, `tmp`, `storage` and all pre-existing unrelated workspace changes are excluded.
+
 ### 2026-11-21 Asia/Colombo - Claude - Document numbers past 999 + POS sale saved all-or-nothing (LOCAL, not committed)
 
 - User rule: keep work local; no branch/commit/push until the user says all work is done. These changes are uncommitted on `release/2026-11-21`.
@@ -291,6 +302,7 @@ A work item is not complete until its code is committed, tests are recorded, aff
   - Bank transfers and journals are global sequences (their columns are unique globally).
   - POS used `count()+1`; it now uses the highest number.
 - POS `store()`: the sale, items, payment and `CreatePos` listeners (stock, cash register, revenue/COGS journals) run in one DB transaction. On failure nothing is saved, the error is reported, and the reply is `withErrors(['pos' => …])`, so the POS screen gets onError: it shows a toast and keeps the payment window open with no receipt. Before this, an empty `catch` said "created" and left sales without accounts. The email stays after the commit, with errors reported. Workflow `CreatePosLis` catches and reports its own errors so automations never block a sale.
+- Committed as `8f0cd40e` on `release/2026-11-21` (the user asked for it) and DEPLOYED 2026-11-21. Live check: demo POS sale #POS00691 saved, with stock down and revenue/COGS posted; journal save OK (JE-2026-1638, deleted); the new POS error text is in the live build; 119 pages OK.
 - Tests: `DocumentNumberTest` (6; 4 fail on the old code), `PosSaleSavingTest` (2; the failure case fails on the old code), `JournalNumberTest`. Full smoke suite 93 pass, build OK, no new type errors. Deploy needs `npm run build` (POS screen); no migration.
 
 ### 2026-11-21 Asia/Colombo - Claude - URGENT: journal numbers stuck at JE-2026-1000 (all companies)

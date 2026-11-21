@@ -3,12 +3,31 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Models\User;
+use App\Models\Warehouse;
+use Workdo\ProductService\Models\ProductServiceItem;
 
 class UpdateSalesProposalRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $tenantId = creatorId();
+        $productIds = collect($this->input('items', []))->pluck('product_id')
+            ->filter(fn ($id) => filter_var($id, FILTER_VALIDATE_INT) !== false)
+            ->map(fn ($id) => (int) $id)->unique();
+
+        if ($productIds->isNotEmpty()
+            && ProductServiceItem::where('created_by', $tenantId)->whereIn('id', $productIds)->count() !== $productIds->count()) {
+            return false;
+        }
+
+        if ($this->filled('warehouse_id')
+            && !Warehouse::where('created_by', $tenantId)->whereKey($this->input('warehouse_id'))->exists()) {
+            return false;
+        }
+
+        return !$this->filled('customer_id')
+            || User::query()->accountingCustomers($tenantId)->whereKey($this->input('customer_id'))->exists();
     }
 
     public function rules(): array

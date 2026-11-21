@@ -453,21 +453,26 @@ class ProductServiceItemController extends Controller
     {
         if(Auth::user()->can('create-stock')){
             $request->validate([
-                'product_id' => 'required|exists:product_service_items,id',
-                'warehouse_id' => 'required|exists:warehouses,id',
+                'product_id' => 'required|integer',
+                'warehouse_id' => 'required|integer',
                 'quantity' => 'required|numeric|min:0'
             ]);
 
-            $existingStock = WarehouseStock::where('product_id', $request->product_id)
-                ->where('warehouse_id', $request->warehouse_id)
+            $product = ProductServiceItem::where('created_by', creatorId())
+                ->findOrFail($request->integer('product_id'));
+            $warehouse = \App\Models\Warehouse::where('created_by', creatorId())
+                ->findOrFail($request->integer('warehouse_id'));
+
+            $existingStock = WarehouseStock::where('product_id', $product->id)
+                ->where('warehouse_id', $warehouse->id)
                 ->first();
 
             if ($existingStock) {
                 $existingStock->increment('quantity', $request->quantity);
             } else {
                 WarehouseStock::create([
-                    'product_id' => $request->product_id,
-                    'warehouse_id' => $request->warehouse_id,
+                    'product_id' => $product->id,
+                    'warehouse_id' => $warehouse->id,
                     'quantity' => $request->quantity,
                 ]);
             }

@@ -96,6 +96,8 @@ class ExpenseCategoriesController extends Controller
 
     public function destroy(ExpenseCategories $expensecategories)
     {
+        abort_unless((int) $expensecategories->created_by === (int) creatorId(), 404);
+
         if(Auth::user()->can('delete-expense-categories')){
 
             DestroyExpenseCategories::dispatch($expensecategories);
