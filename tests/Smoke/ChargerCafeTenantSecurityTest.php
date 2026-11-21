@@ -141,6 +141,8 @@ class ChargerCafeTenantSecurityTest extends TestCase
             'customer_id' => null,
             'warehouse_id' => $warehouse->id,
             'pos_date' => '2026-11-21',
+            // A sale needs the bank or cash account it is paid into.
+            'bank_account_id' => \Workdo\Account\Models\BankAccount::where('created_by', $this->company->id)->value('id'),
             'items' => [['id' => $foreignProduct->id, 'quantity' => 2, 'price' => 1]],
             'discount' => 0,
         ];

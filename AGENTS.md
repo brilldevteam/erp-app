@@ -284,6 +284,13 @@ A work item is not complete until its code is committed, tests are recorded, aff
 
 ## Handoff Log
 
+### 2026-11-21 Asia/Colombo - Claude - Final pre-demo live check (on Codex branch security/charger-cafe-tenant-hardening-2026-11-21)
+
+- Reviewed Codex's tenant hardening (b3e4dc10 + b421030e); it's correct. The expense-category migration only adds unique(created_by, category_code); there was no old global DB index. Security code is live (a lead-order probe returns 404).
+- Live check in visible Chrome: real till sale #POS00692 (Charger Cafe, Cash Register, 1 Cappuccino) showed "Sale Completed" and a receipt; 33 sections had no errors and no JS errors. API checks: re-clearing payments refused, double booking refused, journal save OK, foreign chart account refused 403, tampered POS price ignored (recorded at the real 15 QAR), TB 305,803 balanced, Inventory 23,852 = stock value, no negative stock, Oct P&L revenue = POS net 67,133. P&L 2026 profit 21,427.
+- Found: a POS sale with no bank account was correctly not saved but showed a technical message. LOCAL fix (not committed): `StorePosRequest` requires `bank_account_id` (own company) when Account is active, with the message "Choose the bank or cash account for this sale."; new test in `PosSaleSavingTest`; Codex's POS test now sends a bank account. Needs approval to push + deploy (PHP only, no build).
+- Confirmed on live: migration `2026_11_21_000001_make_expense_category_codes_unique_per_company` has Ran (batch 64).
+
 ### 2026-11-21 Asia/Colombo - Codex - Charger Cafe tenant hardening
 
 - Branch: `security/charger-cafe-tenant-hardening-2026-11-21`, created from `release/2026-11-21` at `8f0cd40e`. Implementation commit `b3e4dc10d` was pushed to GitHub without a PR; nothing was deployed.

@@ -46,6 +46,19 @@ class StorePosRequest extends FormRequest
             'items.*.tax_amount' => 'nullable|numeric|min:0',
             'tax_amount' => 'nullable|numeric|min:0',
             'discount' => 'nullable|numeric|min:0',
+            // The sale is posted to this bank or cash account, so it is needed whenever accounting is on.
+            'bank_account_id' => Module_is_active('Account')
+                ? ['required', 'integer', \Illuminate\Validation\Rule::exists('bank_accounts', 'id')->where(fn ($query) => $query->where('created_by', creatorId()))]
+                : ['nullable'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'bank_account_id.required' => __('Choose the bank or cash account for this sale.'),
+            'bank_account_id.integer' => __('Choose the bank or cash account for this sale.'),
+            'bank_account_id.exists' => __('Choose one of your bank or cash accounts for this sale.'),
         ];
     }
 }

@@ -69,6 +69,17 @@ class PosSaleSavingTest extends TestCase
         $this->assertTrue(JournalEntry::where('reference_type', 'pos_sale_cogs')->where('reference_id', $sale->id)->exists());
     }
 
+    public function test_sale_without_a_bank_account_asks_for_one_and_saves_nothing(): void
+    {
+        $this->from('/pos/create')->post(route('pos.store'), [
+            'customer_id' => null, 'warehouse_id' => $this->warehouse->id, 'pos_date' => '2026-11-20', 'bank_account_id' => null,
+            'items' => [['id' => $this->latte->id, 'quantity' => 1, 'price' => 20]], 'tax_amount' => 0, 'discount' => 0,
+        ])->assertSessionHasErrors(['bank_account_id' => 'Choose the bank or cash account for this sale.']);
+
+        $this->assertFalse(Pos::where('warehouse_id', $this->warehouse->id)->exists());
+        $this->assertSame(10.0, $this->stock());
+    }
+
     public function test_sale_is_not_saved_and_cashier_sees_why_when_a_step_fails(): void
     {
         // Simulate the accounting step failing, as it did when journal numbers were stuck.
