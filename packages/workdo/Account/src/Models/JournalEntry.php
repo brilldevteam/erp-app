@@ -81,16 +81,15 @@ class JournalEntry extends Model
     public static function generateJournalNumber(): string
     {
         $year = date('Y');
-        $lastEntry = static::where('journal_number', 'like', "JE-{$year}-%")
-            ->orderBy('journal_number', 'desc')
-            ->first();
+        $prefix = "JE-{$year}-";
 
-        if ($lastEntry) {
-            $lastNumber = (int) substr($lastEntry->journal_number, -3);
-            $nextNumber = $lastNumber + 1;
-        } else {
-            $nextNumber = 1;
-        }
+        // Numbers are unique across all companies. Take the highest by its numeric part: sorting the text
+        // ("JE-2026-999" > "JE-2026-1000") and reading only the last 3 digits made every number after 999
+        // repeat JE-2026-1000, so every new journal failed.
+        $lastNumber = (int) static::where('journal_number', 'like', $prefix . '%')
+            ->selectRaw('MAX(CAST(SUBSTRING(journal_number, ?) AS UNSIGNED)) as last_number', [strlen($prefix) + 1])
+            ->value('last_number');
+        $nextNumber = $lastNumber + 1;
 
         return "JE-{$year}-" . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
     }

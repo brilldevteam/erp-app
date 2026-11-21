@@ -283,6 +283,12 @@ A work item is not complete until its code is committed, tests are recorded, aff
 
 ## Handoff Log
 
+### 2026-11-21 Asia/Colombo - Claude - URGENT: journal numbers stuck at JE-2026-1000 (all companies)
+
+- Live log: `Duplicate entry 'JE-2026-1000' for key 'journal_entries_journal_number_unique'`. Cause: `JournalEntry::generateJournalNumber()` sorted the numbers as text and read only the last 3 digits, so after JE-2026-999 it kept generating JE-2026-1000, and every new journal for every company failed (500 on manual journals). It was triggered by the Charger demo backfill (596 POS sales) pushing the global counter past 999.
+- Fix: take MAX of the numeric part (`CAST(SUBSTRING(...) AS UNSIGNED)`). Test `tests/Smoke/JournalNumberTest.php` fails on the old code and passes on the new one. Pushed to `release/2026-11-21` as an emergency fix (user approved).
+- POS `store()` swallows listener exceptions (`catch (\Throwable)` → success), so demo sales from 23 Oct (partly) to 11 Nov were saved without their revenue/COGS journals. Backfill after the deploy.
+
 ### 2026-11-21 Asia/Colombo - Claude - Open demo-check findings 1-4 fixed
 
 - Branch: `feature/petty-cash-documents`. Not deployed yet, no PR.
@@ -292,6 +298,8 @@ A work item is not complete until its code is committed, tests are recorded, aff
 - Placeholder `@import.local` emails hidden (shared `displayEmail`) in the Convert Lead to Deal client picker and the Quotation Create/Edit customer pickers. Convert to Deal no longer sends the "New User" welcome email when an existing client is picked.
 - Tests: `tests/Smoke/OpenFindingsFixesTest.php` (5; all fail on the old code). Full smoke suite 84 pass. Deploy needs `npm run build` (no migration).
 - Still open: decisions (P&L per cafe, POS stock check, salary posting) and the Codex security list.
+- 2026-11-21: branch `release/2026-11-21` (= aa3297ae) created and DEPLOYED to live. Verified on the live demo: re-clearing cleared vendor/customer/retainer payments is refused and nothing is posted; double booking is refused; a rejected booking frees its slot; the placeholder filter is in the live build; 119 demo pages open. The budget activation fix was not exercised on live (an active test budget can't be deleted); it is covered by the local test.
+- From now on (user's rule): keep new work local. No new branch, commit or push until the user says all work is done.
 
 ### 2026-11-19 Asia/Colombo - Claude - Petty cash supporting documents + draft fund edit/delete
 
