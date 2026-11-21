@@ -14,6 +14,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { InputError } from '@/components/ui/input-error';
 import { Lead } from '../types';
+import { displayEmail } from '@/utils/display-email';
 
 interface Client {
     id: number;
@@ -173,7 +174,7 @@ export default function ConvertToDeal({ lead, deal, buttonClassName }: ConvertTo
                                     <SelectContent>
                                         {clients.map((client) => (
                                             <SelectItem key={client.id} value={client.email}>
-                                                {client.name} ({client.email})
+                                                {client.name}{displayEmail(client.email) ? ` (${displayEmail(client.email)})` : ''}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>

@@ -916,7 +916,8 @@ class LeadController extends Controller
             // // Send Email to client if they are new created.
             // EmailTemplate::sendEmailTemplate('New User', [$client->id => $client->email], $cArr);
 
-            if(company_setting('New User') == 'on') {
+            // The welcome email (with the password) is only for a client created here, not an existing one.
+            if($request->client_check != 'exist' && company_setting('New User') == 'on') {
                 $emailData = [
                     'name' => $request->client_name,
                     'email' => $request->client_email,

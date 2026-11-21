@@ -320,40 +320,58 @@ class CustomerPaymentController extends Controller
     public function updateStatus(Request $request, CustomerPayment $customerPayment)
     {
         if(Auth::user()->can('cleared-customer-payments') && $customerPayment->created_by == creatorId()){
+            if (!in_array($request->status, ['cleared', 'cancelled'], true)) {
+                return back()->with('error', __('Choose a valid payment status.'));
+            }
+
             try {
-                // Create journal entry and update invoices when payment is cleared
-                if($request->status === 'cleared') {
-                    if($customerPayment->payment_amount > 0)
-                    {
-                        $this->journalService->createCustomerPaymentJournal($customerPayment);
-                        $this->bankTransactionsService->createCustomerPayment($customerPayment);
+                // Locked and re-checked inside one transaction: a second click or a second tab cannot post
+                // the journal, the bank entry and the invoice balances twice.
+                $updated = DB::transaction(function () use ($request, $customerPayment) {
+                    $locked = CustomerPayment::whereKey($customerPayment->id)->lockForUpdate()->first();
+                    if (!$locked || $locked->status !== 'pending') {
+                        return false;
                     }
-                    // Update invoice balances
-                    foreach ($customerPayment->allocations as $allocation) {
-                        $invoice = $allocation->invoice;
-                        $invoice->paid_amount += $allocation->allocated_amount;
-                        $invoice->balance_amount = $invoice->total_amount - $invoice->paid_amount;
 
-                        if ($invoice->balance_amount == 0) {
-                            $invoice->status = 'paid';
-                        } elseif ($invoice->paid_amount > 0) {
-                            $invoice->status = 'partial';
+                    if ($request->status === 'cleared') {
+                        if ($locked->payment_amount > 0) {
+                            $this->journalService->createCustomerPaymentJournal($locked);
+                            $this->bankTransactionsService->createCustomerPayment($locked);
                         }
-                        $invoice->save();
+                        // Update invoice balances
+                        foreach ($locked->allocations as $allocation) {
+                            $invoice = $allocation->invoice;
+                            $invoice->paid_amount += $allocation->allocated_amount;
+                            $invoice->balance_amount = $invoice->total_amount - $invoice->paid_amount;
+
+                            if ($invoice->balance_amount == 0) {
+                                $invoice->status = 'paid';
+                            } elseif ($invoice->paid_amount > 0) {
+                                $invoice->status = 'partial';
+                            }
+                            $invoice->save();
+                        }
+
+                        // Credit notes are used up only when the payment clears, not when it is cancelled.
+                        foreach (CreditNoteApplication::where('payment_id', $locked->id)->get() as $creditNote) {
+                            $creditNoteModel = CreditNote::where('created_by', $locked->created_by)->find($creditNote['credit_note_id']);
+                            if (!$creditNoteModel) continue;
+                            $creditNoteModel->applied_amount += $creditNote['applied_amount'];
+                            $creditNoteModel->balance_amount = $creditNoteModel->total_amount - $creditNoteModel->applied_amount;
+                            $creditNoteModel->status = $creditNoteModel->balance_amount <= 0 ? 'applied' : 'partial';
+                            $creditNoteModel->save();
+                        }
                     }
+
+                    $locked->update(['status' => $request->status]);
+
+                    return true;
+                });
+
+                if (!$updated) {
+                    return back()->with('error', __('This payment is no longer pending, so its status was not changed.'));
                 }
-
-                $creditNoteApplication = CreditNoteApplication::where('payment_id', $customerPayment->id)->get();
-
-                foreach ($creditNoteApplication as $creditNote) {
-                    $creditNoteModel = CreditNote::find($creditNote['credit_note_id']);
-                    $creditNoteModel->applied_amount += $creditNote['applied_amount'];
-                    $creditNoteModel->balance_amount = $creditNoteModel->total_amount - $creditNoteModel->applied_amount;
-                    $creditNoteModel->status = $creditNoteModel->balance_amount <= 0 ? 'applied' : 'partial';
-                    $creditNoteModel->save();
-                }
-
-                $customerPayment->update(['status' => $request->status]);
+                $customerPayment->refresh();
                  // Dispatch event
                 UpdateCustomerPaymentStatus::dispatch($request, $customerPayment);
                 if($customerPayment->status == "cleared"){

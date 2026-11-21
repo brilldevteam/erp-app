@@ -15,6 +15,7 @@ use Workdo\BudgetPlanner\Events\CloseBudget;
 use Workdo\BudgetPlanner\Events\CreateBudget;
 use Workdo\BudgetPlanner\Events\DestroyBudget;
 use Workdo\BudgetPlanner\Events\UpdateBudget;
+use Workdo\BudgetPlanner\Services\BudgetService;
 
 class BudgetController extends Controller
 {
@@ -132,6 +133,12 @@ class BudgetController extends Controller
             }
 
             $budget->update(['status' => 'active']);
+
+            // Spending is otherwise only refreshed when a new journal posts, so a budget activated
+            // part-way through its period would show 0 spent until then.
+            if (Module_is_active('Account') && $budget->budgetPeriod) {
+                app(BudgetService::class)->updateBudgetSpending($budget->id);
+            }
 
             ActiveBudget::dispatch($budget);
 

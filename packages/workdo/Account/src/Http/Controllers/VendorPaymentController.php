@@ -16,6 +16,7 @@ use App\Models\PurchaseInvoice;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Workdo\Account\Events\CreateVendorPayment;
 use Workdo\Account\Events\UpdateVendorPaymentStatus;
@@ -307,40 +308,57 @@ class VendorPaymentController extends Controller
     public function updateStatus(Request $request, VendorPayment $vendorPayment)
     {
         if(Auth::user()->can('cleared-vendor-payments') && $vendorPayment->created_by == creatorId()){
+            if (!in_array($request->status, ['cleared', 'cancelled'], true)) {
+                return back()->with('error', __('Choose a valid payment status.'));
+            }
+
             try {
-                // Create journal entry and update invoices when payment is cleared
-                if($request->status === 'cleared') {
-                    if($vendorPayment->payment_amount > 0)
-                    {
-                        $this->journalService->createVendorPaymentJournal($vendorPayment);
-                        $this->bankTransactionsService->createVendorPayment($vendorPayment);
+                // Locked and re-checked inside one transaction: a second click or a second tab cannot post
+                // the journal, the bank entry and the bill balances twice.
+                $updated = DB::transaction(function () use ($request, $vendorPayment) {
+                    $locked = VendorPayment::whereKey($vendorPayment->id)->lockForUpdate()->first();
+                    if (!$locked || $locked->status !== 'pending') {
+                        return false;
                     }
-                    // Update invoice balances
-                    foreach ($vendorPayment->allocations as $allocation) {
-                        $invoice = $allocation->invoice;
-                        $invoice->paid_amount += $allocation->allocated_amount;
-                        $state = OutstandingDocumentService::paymentState(
-                            (float) $invoice->total_amount,
-                            (float) $invoice->paid_amount
-                        );
-                        $invoice->balance_amount = $state['balance_amount'];
-                        $invoice->status = $state['status'];
-                        $invoice->save();
+
+                    if ($request->status === 'cleared') {
+                        if ($locked->payment_amount > 0) {
+                            $this->journalService->createVendorPaymentJournal($locked);
+                            $this->bankTransactionsService->createVendorPayment($locked);
+                        }
+                        // Update invoice balances
+                        foreach ($locked->allocations as $allocation) {
+                            $invoice = $allocation->invoice;
+                            $invoice->paid_amount += $allocation->allocated_amount;
+                            $state = OutstandingDocumentService::paymentState(
+                                (float) $invoice->total_amount,
+                                (float) $invoice->paid_amount
+                            );
+                            $invoice->balance_amount = $state['balance_amount'];
+                            $invoice->status = $state['status'];
+                            $invoice->save();
+                        }
+
+                        // Debit notes are used up only when the payment clears, not when it is cancelled.
+                        foreach (DebitNoteApplication::where('payment_id', $locked->id)->get() as $debitNote) {
+                            $debitNoteModel = DebitNote::where('created_by', $locked->created_by)->find($debitNote['debit_note_id']);
+                            if (!$debitNoteModel) continue;
+                            $debitNoteModel->applied_amount += $debitNote['applied_amount'];
+                            $debitNoteModel->balance_amount = $debitNoteModel->total_amount - $debitNoteModel->applied_amount;
+                            $debitNoteModel->status = $debitNoteModel->balance_amount <= 0 ? 'applied' : 'partial';
+                            $debitNoteModel->save();
+                        }
                     }
+
+                    $locked->update(['status' => $request->status]);
+
+                    return true;
+                });
+
+                if (!$updated) {
+                    return back()->with('error', __('This payment is no longer pending, so its status was not changed.'));
                 }
-
-                $debitNoteApplication = DebitNoteApplication::where('payment_id', $vendorPayment->id)->get();
-
-                foreach ($debitNoteApplication as $debitNote) {
-                    $debitNoteModel = DebitNote::where('created_by', creatorId())->find($debitNote['debit_note_id']);
-                    if (!$debitNoteModel) continue;
-                    $debitNoteModel->applied_amount += $debitNote['applied_amount'];
-                    $debitNoteModel->balance_amount = $debitNoteModel->total_amount - $debitNoteModel->applied_amount;
-                    $debitNoteModel->status = $debitNoteModel->balance_amount <= 0 ? 'applied' : 'partial';
-                    $debitNoteModel->save();
-                }
-
-                $vendorPayment->update(['status' => $request->status]);
+                $vendorPayment->refresh();
 
                  // Dispatch event
                  UpdateVendorPaymentStatus::dispatch($request, $vendorPayment);

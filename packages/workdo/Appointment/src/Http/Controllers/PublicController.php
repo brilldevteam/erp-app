@@ -15,9 +15,13 @@ use Workdo\Appointment\Events\AppointmentCallback as AppointmentCallbackEvent;
 use Workdo\Appointment\Models\AppointmentSetting;
 use App\Models\User;
 use Workdo\Appointment\Models\AppointmentHour;
+use Illuminate\Support\Facades\DB;
 
 class PublicController extends Controller
 {
+    /** Bookings in these statuses no longer hold their time slot ('cancel' is what a customer cancel saves). */
+    private const FREE_SLOT_STATUSES = ['cancel', 'cancelled', 'reject'];
+
     private function getUserIdFromRequest(Request $request)
     {
         $userSlug = $request->route('userSlug');
@@ -89,14 +93,21 @@ class PublicController extends Controller
             abort(404, __('Appointment not found.'));
         }
 
+        if (!$appointment->enabled) {
+            return back()->withErrors(['start_time' => __('This appointment is currently not available for booking.')]);
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'phone' => 'nullable|string|max:20',
             'date' => 'required|date|after_or_equal:today',
-            'start_time' => 'required',
-            'end_time' => 'required',
+            'start_time' => 'required|date_format:H:i,H:i:s',
+            'end_time' => 'required|date_format:H:i,H:i:s|after:start_time',
             'questions' => 'nullable|array'
+        ], [
+            'start_time.required' => __('Please choose a time slot.'),
+            'end_time.after' => __('Please choose a valid time slot.'),
         ]);
 
         // Transform questions to use question names as keys
@@ -112,20 +123,43 @@ class PublicController extends Controller
             }
         }
 
-        $schedule = Schedule::create([
-            'unique_id' => 'SCH-' . strtoupper(uniqid()),
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'date' => $request->date,
-            'start_time' => $request->start_time,
-            'end_time' => $request->end_time,
-            'appointment_id' => $appointment->id,
-            'questions' => json_encode($questionsWithNames),
-            'status' => 'pending',
-            'creator_id' => $appointment->creator_id ?? null,
-            'created_by' => $appointment->created_by ?? null
-        ]);
+        $date = date('Y-m-d', strtotime($request->date));
+        $startTime = date('H:i:s', strtotime($request->start_time));
+        $endTime = date('H:i:s', strtotime($request->end_time));
+
+        // The appointment row is locked so two people booking at the same moment cannot both get the slot.
+        $schedule = DB::transaction(function () use ($appointment, $request, $questionsWithNames, $date, $startTime, $endTime) {
+            Appointment::whereKey($appointment->id)->lockForUpdate()->first();
+
+            $slotTaken = Schedule::where('appointment_id', $appointment->id)
+                ->whereDate('date', $date)
+                ->whereNotIn('status', self::FREE_SLOT_STATUSES)
+                ->where('start_time', '<', $endTime)
+                ->where('end_time', '>', $startTime)
+                ->exists();
+            if ($slotTaken) {
+                return null;
+            }
+
+            return Schedule::create([
+                'unique_id' => 'SCH-' . strtoupper(uniqid()),
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'date' => $date,
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'appointment_id' => $appointment->id,
+                'questions' => json_encode($questionsWithNames),
+                'status' => 'pending',
+                'creator_id' => $appointment->creator_id ?? null,
+                'created_by' => $appointment->created_by ?? null
+            ]);
+        });
+
+        if (!$schedule) {
+            return back()->withErrors(['start_time' => __('This time slot has just been booked. Please choose another time.')]);
+        }
 
         // Dispatch event for packages to handle their fields
         CreateSchedule::dispatch($request, $schedule);
@@ -417,7 +451,7 @@ class PublicController extends Controller
 
         $bookedSlots = Schedule::where('appointment_id', $appointment->id)
             ->where('date', $date)
-            ->where('status', '!=', 'cancelled')
+            ->whereNotIn('status', self::FREE_SLOT_STATUSES)
             ->get(['start_time', 'end_time'])
             ->map(function ($schedule) {
                 // Ensure time format is HH:MM

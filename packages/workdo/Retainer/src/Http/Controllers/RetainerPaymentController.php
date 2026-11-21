@@ -17,6 +17,7 @@ use Workdo\Retainer\Events\DestroyRetainerPayment;
 use Workdo\Retainer\Http\Requests\StoreSalesRetainerPaymentRequest;
 use Workdo\Account\Services\BankTransactionsService;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\DB;
 
 class RetainerPaymentController extends Controller
 {
@@ -173,34 +174,49 @@ class RetainerPaymentController extends Controller
     public function updateStatus(Request $request, SalesRetainerPayment $retainerPayment)
     {
         if (Auth::user()->can('cleared-retainer-payments') && $retainerPayment->created_by == creatorId()) {
+            if (!in_array($request->status, ['cleared', 'cancelled'], true)) {
+                return back()->with('error', __('Choose a valid payment status.'));
+            }
+
             try {
-                if ($request->status === 'cleared') {
-
-                    try {
-                        UpdateRetainerPaymentStatus::dispatch($request, $retainerPayment);
-                    } catch (\Throwable $th) {
-                        return back()->with('error', $th->getMessage());
+                // Locked and re-checked inside one transaction: a second click or a second tab cannot post
+                // the journal, the bank entry and the retainer balances twice.
+                $updated = DB::transaction(function () use ($request, $retainerPayment) {
+                    $locked = SalesRetainerPayment::whereKey($retainerPayment->id)->lockForUpdate()->first();
+                    if (!$locked || $locked->status !== 'pending') {
+                        return false;
                     }
 
-                    // Update retainer balances for each allocation
-                    foreach ($retainerPayment->allocations as $allocation) {
-                        $retainer                  = $allocation->retainer;
-                        $retainer->paid_amount    += $allocation->allocated_amount;
-                        $retainer->balance_amount -= $allocation->allocated_amount;
+                    if ($request->status === 'cleared') {
+                        // Posts the journal and the bank entry (Account module listener).
+                        UpdateRetainerPaymentStatus::dispatch($request, $locked);
 
-                        if ($retainer->balance_amount <= 0) {
-                            $retainer->status = 'paid';
-                        } elseif ($retainer->paid_amount > 0) {
-                            $retainer->status = 'partial';
+                        // Update retainer balances for each allocation
+                        foreach ($locked->allocations as $allocation) {
+                            $retainer                  = $allocation->retainer;
+                            $retainer->paid_amount    += $allocation->allocated_amount;
+                            $retainer->balance_amount -= $allocation->allocated_amount;
+
+                            if ($retainer->balance_amount <= 0) {
+                                $retainer->status = 'paid';
+                            } elseif ($retainer->paid_amount > 0) {
+                                $retainer->status = 'partial';
+                            }
+                            $retainer->save();
                         }
-                        $retainer->save();
                     }
+
+                    $locked->update(['status' => $request->status]);
+
+                    return true;
+                });
+
+                if (!$updated) {
+                    return back()->with('error', __('This payment is no longer pending, so its status was not changed.'));
                 }
 
-                $retainerPayment->update(['status' => $request->status]);
-
                 return back()->with('success', __('The payment status has been updated successfully.'));
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 return back()->with('error', $e->getMessage());
             }
         } else {

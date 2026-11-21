@@ -283,13 +283,23 @@ A work item is not complete until its code is committed, tests are recorded, aff
 
 ## Handoff Log
 
+### 2026-11-21 Asia/Colombo - Claude - Open demo-check findings 1-4 fixed
+
+- Branch: `feature/petty-cash-documents`. Not deployed yet, no PR.
+- Payments (customer, vendor, retainer) `updateStatus`: only `cleared`/`cancelled` accepted, and only from `pending`. The payment row is locked and re-checked inside one DB transaction, so a second click or tab can't post the journal, bank entry and invoice/bill/retainer balances twice. Credit/debit notes are applied only on clear (cancel used to apply them too). The customer credit note lookup is scoped to the company.
+- Budget `active()`: recalculates spent/remaining for the period via `BudgetService::updateBudgetSpending` (before, it only refreshed when a new journal posted).
+- Appointment public `store()`: server-side overlap check under a lock on the appointment; time formats validated, end after start; disabled appointments refused. A customer cancel saves status `cancel` but the booked-slot list only freed `cancelled`. Both now free `cancel`, `cancelled` and `reject`.
+- Placeholder `@import.local` emails hidden (shared `displayEmail`) in the Convert Lead to Deal client picker and the Quotation Create/Edit customer pickers. Convert to Deal no longer sends the "New User" welcome email when an existing client is picked.
+- Tests: `tests/Smoke/OpenFindingsFixesTest.php` (5; all fail on the old code). Full smoke suite 84 pass. Deploy needs `npm run build` (no migration).
+- Still open: decisions (P&L per cafe, POS stock check, salary posting) and the Codex security list.
+
 ### 2026-11-19 Asia/Colombo - Claude - Petty cash supporting documents + draft fund edit/delete
 
 - Branch: `feature/petty-cash-documents` (from `release/2026-11-16` @ 343f5a01). Not deployed, no PR.
 - New table `petty_cash_attachments` (package migration `2026_11_19_000001`), with `attachable_type` = `request`|`fund`, files on the private `local` disk under `petty-cash/{company}/...`. There are up to 5 files per record (PDF/JPG/PNG/Word/Excel/ZIP, 5 MB each). Routes: `petty-cash-management.attachments.store|download|destroy`, scoped to company + own/any permission. Files can be attached on the create form of requests and funds, and added, previewed, downloaded or removed in each View dialog.
 - Petty Cashes: edit/delete were shown only on the newest-dated fund, so a draft dated earlier than an approved fund (Brill: PC-2026-11-001 dated 30 Sep vs PCJ-030 06 Oct) had no edit/delete. That was Sithari's report. Now any draft fund can be edited or deleted. Server side, approved funds are refused, a fund with spending can't be deleted, and the fund must belong to the company. Requests: pending ones already had edit/delete on live (checked). The server now refuses editing approved/rejected requests (it used to reset them to pending).
 - Tests: `tests/Smoke/PettyCashDocumentsTest.php` (8). Full smoke suite 79 pass. Deploy needs `php artisan migrate` + `npm run build`.
-- Live demo (Charger cafe) has a test pending request Req-2026-11-002 (25 QAR) created for checking; delete after the live check.
+- DEPLOYED to live 2026-11-19 (server folder now on `feature/petty-cash-documents` @ 01699713, migrated, built). Verified on live: both Create forms show the documents section, upload + download from View works, draft fund shows edit/delete. Test request Req-2026-11-002 deleted (its file removed with it).
 
 ### 2026-11-19 Asia/Colombo - Claude - CRM dashboard counts + timesheet whole hours
 

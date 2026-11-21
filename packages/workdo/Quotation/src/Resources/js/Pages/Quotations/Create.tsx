@@ -23,6 +23,7 @@ import CreateWarehouse from '@/pages/warehouses/create';
 import TransactionCurrencyFields from '@/components/transaction-currency-fields';
 import { baseToTransactionAmount, formatTransactionMoney } from '@/utils/transaction-money';
 import SalespersonField, { Salesperson } from './components/SalespersonField';
+import { displayEmail } from '@/utils/display-email';
 
 interface CreateProps {
     quotationType: 'product' | 'service';
@@ -264,7 +265,7 @@ export default function Create() {
                                         <SelectContent searchable>
                                             {customers.map((customer) => (
                                                 <SelectItem key={customer.id} value={customer.id.toString()}>
-                                                    {customer.name}{customer.email ? ` - ${customer.email}` : ''}
+                                                    {customer.name}{displayEmail(customer.email) ? ` - ${displayEmail(customer.email)}` : ''}
                                                 </SelectItem>
                                             ))}
                                             {auth.user.permissions?.includes('create-customers') && (

@@ -20,6 +20,7 @@ import { CalendarDays, Package } from 'lucide-react';
 import TransactionCurrencyFields from '@/components/transaction-currency-fields';
 import { baseToTransactionAmount, formatTransactionMoney } from '@/utils/transaction-money';
 import SalespersonField, { Salesperson } from './components/SalespersonField';
+import { displayEmail } from '@/utils/display-email';
 
 interface EditProps {
     quotation: Quotation;
@@ -212,7 +213,7 @@ export default function Edit() {
                                         <SelectContent searchable>
                                             {customers.map((customer) => (
                                                 <SelectItem key={customer.id} value={customer.id.toString()}>
-                                                    {customer.name}{customer.email ? ` - ${customer.email}` : ''}
+                                                    {customer.name}{displayEmail(customer.email) ? ` - ${displayEmail(customer.email)}` : ''}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
