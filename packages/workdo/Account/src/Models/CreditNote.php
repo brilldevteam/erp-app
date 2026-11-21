@@ -98,20 +98,6 @@ class CreditNote extends Model
 
     public static function generateCreditNoteNumber(): string
     {
-        $year = date('Y');
-        $month = date('m');
-        $lastNote = static::where('credit_note_number', 'like', "CN-{$year}-{$month}-%")
-            ->where('created_by', creatorId())
-            ->orderBy('credit_note_number', 'desc')
-            ->first();
-
-        if ($lastNote) {
-            $lastNumber = (int) substr($lastNote->credit_note_number, -3);
-            $nextNumber = $lastNumber + 1;
-        } else {
-            $nextNumber = 1;
-        }
-
-        return "CN-{$year}-{$month}-" . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        return \App\Support\DocumentNumber::next(static::where('created_by', creatorId()), 'credit_note_number', 'CN-' . date('Y') . '-' . date('m') . '-', 3);
     }
 }

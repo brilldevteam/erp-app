@@ -68,20 +68,6 @@ class PettyCashReimbursement extends Model
 
     public static function generateReimbursementNumber(): string
     {
-        $year = date('Y');
-        $month = date('m');
-        $lastReimbursement = static::where('reimbursement_number', 'like', "Reimb-{$year}-{$month}-%")
-            ->where('created_by', creatorId())
-            ->orderBy('reimbursement_number', 'desc')
-            ->first();
-
-        if ($lastReimbursement) {
-            $lastNumber = (int) substr($lastReimbursement->reimbursement_number, -3);
-            $nextNumber = $lastNumber + 1;
-        } else {
-            $nextNumber = 1;
-        }
-
-        return "Reimb-{$year}-{$month}-" . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        return \App\Support\DocumentNumber::next(static::where('created_by', creatorId()), 'reimbursement_number', 'Reimb-' . date('Y') . '-' . date('m') . '-', 3);
     }
 }

@@ -283,11 +283,24 @@ A work item is not complete until its code is committed, tests are recorded, aff
 
 ## Handoff Log
 
+### 2026-11-21 Asia/Colombo - Claude - Document numbers past 999 + POS sale saved all-or-nothing (LOCAL, not committed)
+
+- User rule: keep work local; no branch/commit/push until the user says all work is done. These changes are uncommitted on `release/2026-11-21`.
+- New `app/Support/DocumentNumber::next()`: the next number is the MAX of the numeric part (never text order, never the last 3 digits), it counts soft-deleted rows, escapes LIKE wildcards in the prefix, and takes an optional cross-company uniqueness check. All 20 generators use it with the same prefixes and padding as before: SI, PI, SR, PR, SP, QT, CP, VP, CN, DN, REV, EXP, BT, RET, RP, PC, Req, Reimb, #POS, JE.
+  - Debit notes: `debit_note_number` is unique across all companies but counted per company, so two companies' first DN in a month clashed. They now skip numbers taken by any company.
+  - Bank transfers and journals are global sequences (their columns are unique globally).
+  - POS used `count()+1`; it now uses the highest number.
+- POS `store()`: the sale, items, payment and `CreatePos` listeners (stock, cash register, revenue/COGS journals) run in one DB transaction. On failure nothing is saved, the error is reported, and the reply is `withErrors(['pos' => …])`, so the POS screen gets onError: it shows a toast and keeps the payment window open with no receipt. Before this, an empty `catch` said "created" and left sales without accounts. The email stays after the commit, with errors reported. Workflow `CreatePosLis` catches and reports its own errors so automations never block a sale.
+- Tests: `DocumentNumberTest` (6; 4 fail on the old code), `PosSaleSavingTest` (2; the failure case fails on the old code), `JournalNumberTest`. Full smoke suite 93 pass, build OK, no new type errors. Deploy needs `npm run build` (POS screen); no migration.
+
 ### 2026-11-21 Asia/Colombo - Claude - URGENT: journal numbers stuck at JE-2026-1000 (all companies)
 
 - Live log: `Duplicate entry 'JE-2026-1000' for key 'journal_entries_journal_number_unique'`. Cause: `JournalEntry::generateJournalNumber()` sorted the numbers as text and read only the last 3 digits, so after JE-2026-999 it kept generating JE-2026-1000, and every new journal for every company failed (500 on manual journals). It was triggered by the Charger demo backfill (596 POS sales) pushing the global counter past 999.
 - Fix: take MAX of the numeric part (`CAST(SUBSTRING(...) AS UNSIGNED)`). Test `tests/Smoke/JournalNumberTest.php` fails on the old code and passes on the new one. Pushed to `release/2026-11-21` as an emergency fix (user approved).
 - POS `store()` swallows listener exceptions (`catch (\Throwable)` → success), so demo sales from 23 Oct (partly) to 11 Nov were saved without their revenue/COGS journals. Backfill after the deploy.
+- DONE 2026-11-21: deployed `ac60910c`, and journals save again (test journal JE-2026-1545, deleted). The backfill (`/tmp/pos_backfill.php`, company 1215 only, dry run then APPLY) posted the missing revenue 40,780 + COGS 12,831 for 272 sales. Live demo now: POS = P&L revenue for every period; 2026 P&L revenue 108,957, expenses 92,888, net profit 16,069; Trial Balance 295,355 = 295,355; no negative stock. Brill's log showed no duplicate-number errors except the demo test.
+- Demo data follow-ups, done 2026-11-21: paid restock bills PI-005..008 (VP-2026-11-003/004, 28 Oct, cleared); added 44 POS sales for 19-21 Nov (7,724 net, journals posted); opening-stock journal 30 Sep 2026, Dr Inventory 1200 / Cr Share Capital 3100, 26,695, so Inventory = stock on hand (23,878). Live demo: 690 POS sales, 2026 P&L profit 21,356, TB 305,706 balanced. Report with screenshots: https://claude.ai/artifact/59p3nSCkwY4f5GmWfv5ew6
+- Open (for later, not fixed): POS `store()` still reports success when its accounting listener fails; it should report the error. Other `generate*Number()` methods may use the same text-sort and 3-digit pattern; check them.
 
 ### 2026-11-21 Asia/Colombo - Claude - Open demo-check findings 1-4 fixed
 

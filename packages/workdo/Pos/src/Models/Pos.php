@@ -56,7 +56,6 @@ class Pos extends Model
 
     public static function generateSaleNumber()
     {
-       $nextNumber = self::where('created_by', creatorId())->count() + 1;
-        return '#POS' . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
+        return \App\Support\DocumentNumber::next(self::where('created_by', creatorId()), 'sale_number', '#POS', 5);
     }
 }

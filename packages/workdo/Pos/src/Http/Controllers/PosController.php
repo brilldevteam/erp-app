@@ -8,6 +8,7 @@ use Workdo\ProductService\Models\WarehouseStock;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Workdo\Pos\Events\CreatePos;
 use Workdo\ProductService\Models\ProductServiceCategory;
@@ -178,63 +179,80 @@ class PosController extends Controller
         if(Auth::user()->can('create-pos')){
             $validated = $request->validated();
 
-            $saleNumber = Pos::generateSaleNumber();
-            $sale = new Pos();
-            $sale->sale_number = $saleNumber;
-            $sale->customer_id = $validated['customer_id'] ?? null;
-            $sale->warehouse_id = $validated['warehouse_id'];
-            $sale->pos_date = $validated['pos_date'] ?? now()->toDateString();
-            $sale->creator_id = Auth::id();
-            $sale->created_by = creatorId();
-            $sale->save();
+            $sale = null;
+            $posPayment = null;
+            try {
+                // The sale, its stock movement, the cash register entry and the accounting are saved together.
+                // If any step fails, nothing is saved and the cashier sees why (it used to say "created" anyway).
+                DB::transaction(function () use ($request, $validated, &$sale, &$posPayment) {
+                    $saleNumber = Pos::generateSaleNumber();
+                    $sale = new Pos();
+                    $sale->sale_number = $saleNumber;
+                    $sale->customer_id = $validated['customer_id'] ?? null;
+                    $sale->warehouse_id = $validated['warehouse_id'];
+                    $sale->pos_date = $validated['pos_date'] ?? now()->toDateString();
+                    $sale->creator_id = Auth::id();
+                    $sale->created_by = creatorId();
+                    $sale->save();
 
-            $finalAmount = 0;
-            foreach ($validated['items'] as $item) {
-                $product = ProductServiceItem::where('created_by', creatorId())->find($item['id']);
+                    $finalAmount = 0;
+                    foreach ($validated['items'] as $item) {
+                        $product = ProductServiceItem::where('created_by', creatorId())->find($item['id']);
 
-                $subtotal = $item['quantity'] * $item['price'];
+                        $subtotal = $item['quantity'] * $item['price'];
 
-                $taxAmount = 0;
-                $taxIds = null;
-                if ($product && $product->tax_ids && is_array($product->tax_ids) && !empty($product->tax_ids)) {
-                    $taxIds = $product->tax_ids;
-                    $taxes = ProductServiceTax::whereIn('id', $taxIds)
-                        ->where('created_by', creatorId())
-                        ->get();
+                        $taxAmount = 0;
+                        $taxIds = null;
+                        if ($product && $product->tax_ids && is_array($product->tax_ids) && !empty($product->tax_ids)) {
+                            $taxIds = $product->tax_ids;
+                            $taxes = ProductServiceTax::whereIn('id', $taxIds)
+                                ->where('created_by', creatorId())
+                                ->get();
 
-                    foreach ($taxes as $tax) {
-                        $taxAmount += $subtotal * ($tax->rate / 100);
+                            foreach ($taxes as $tax) {
+                                $taxAmount += $subtotal * ($tax->rate / 100);
+                            }
+                        }
+                        $totalAmount = $subtotal + $taxAmount;
+                        $finalAmount+= $totalAmount;
+                        $saleItem = new PosItem();
+                        $saleItem->pos_id = $sale->id;
+                        $saleItem->product_id = $item['id'];
+                        $saleItem->quantity = $item['quantity'];
+                        $saleItem->price = $item['price'];
+                        $saleItem->tax_ids = $taxIds;
+                        $saleItem->subtotal = $subtotal;
+                        $saleItem->tax_amount = $taxAmount;
+                        $saleItem->total_amount = $totalAmount;
+                        $saleItem->creator_id = Auth::id();
+                        $saleItem->created_by = creatorId();
+                        $saleItem->save();
+
                     }
-                }
-                $totalAmount = $subtotal + $taxAmount;
-                $finalAmount+= $totalAmount;
-                $saleItem = new PosItem();
-                $saleItem->pos_id = $sale->id;
-                $saleItem->product_id = $item['id'];
-                $saleItem->quantity = $item['quantity'];
-                $saleItem->price = $item['price'];
-                $saleItem->tax_ids = $taxIds;
-                $saleItem->subtotal = $subtotal;
-                $saleItem->tax_amount = $taxAmount;
-                $saleItem->total_amount = $totalAmount;
-                $saleItem->creator_id = Auth::id();
-                $saleItem->created_by = creatorId();
-                $saleItem->save();
-           
+
+                    $posPayment = new PosPayment();
+                    $posPayment->pos_id = $sale->id;
+                    $posPayment->discount = $validated['discount'];
+                    $posPayment->amount = $finalAmount;
+                    $posPayment->discount_amount = $finalAmount-$validated['discount'];
+                    $posPayment->creator_id = Auth::id();
+                    $posPayment->created_by = creatorId();
+
+                    $posPayment->save();
+
+                    CreatePos::dispatch($request, $sale);
+                });
+            } catch (\Throwable $th) {
+                report($th);
+                $message = $th instanceof \Illuminate\Database\QueryException
+                    ? __('The sale could not be saved. Please try again.')
+                    : __('The sale could not be saved: :reason', ['reason' => $th->getMessage()]);
+
+                return back()->withErrors(['pos' => $message]);
             }
 
-            $posPayment = new PosPayment();
-            $posPayment->pos_id = $sale->id;
-            $posPayment->discount = $validated['discount'];
-            $posPayment->amount = $finalAmount;
-            $posPayment->discount_amount = $finalAmount-$validated['discount'];
-            $posPayment->creator_id = Auth::id();
-            $posPayment->created_by = creatorId();
-        
-            $posPayment->save();
-
+            // The sale is saved; a problem with the notification email must not undo it.
             try {
-                CreatePos::dispatch($request, $sale);
                 $sale->load('items.product');
                 
                 if(company_setting('Create POS') == 'on') {
@@ -256,7 +274,7 @@ class PosController extends Controller
                     }
                 }
             } catch (\Throwable $th) {
-
+                report($th);
             }
 
             return back()->with('success', __('The POS sale has been created successfully.'));

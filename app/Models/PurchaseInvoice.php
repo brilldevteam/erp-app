@@ -142,20 +142,6 @@ class PurchaseInvoice extends Model
 
     public static function generateInvoiceNumber(): string
     {
-        $year = date('Y');
-        $month = date('m');
-        $lastInvoice = static::where('invoice_number', 'like', "PI-{$year}-{$month}-%")
-            ->where('created_by', creatorId())
-            ->orderBy('invoice_number', 'desc')
-            ->first();
-
-        if ($lastInvoice) {
-            $lastNumber = (int) substr($lastInvoice->invoice_number, -3);
-            $nextNumber = $lastNumber + 1;
-        } else {
-            $nextNumber = 1;
-        }
-
-        return "PI-{$year}-{$month}-" . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        return \App\Support\DocumentNumber::next(static::where('created_by', creatorId()), 'invoice_number', 'PI-' . date('Y') . '-' . date('m') . '-', 3);
     }
 }

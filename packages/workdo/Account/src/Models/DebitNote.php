@@ -98,20 +98,7 @@ class DebitNote extends Model
 
     public static function generateDebitNoteNumber(): string
     {
-        $year = date('Y');
-        $month = date('m');
-        $lastNote = static::where('debit_note_number', 'like', "DN-{$year}-{$month}-%")
-            ->where('created_by', creatorId())
-            ->orderBy('debit_note_number', 'desc')
-            ->first();
-
-        if ($lastNote) {
-            $lastNumber = (int) substr($lastNote->debit_note_number, -3);
-            $nextNumber = $lastNumber + 1;
-        } else {
-            $nextNumber = 1;
-        }
-
-        return "DN-{$year}-{$month}-" . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        // Each company has its own sequence, but the column is unique across all companies.
+        return \App\Support\DocumentNumber::next(static::where('created_by', creatorId()), 'debit_note_number', 'DN-' . date('Y') . '-' . date('m') . '-', 3, static::query());
     }
 }

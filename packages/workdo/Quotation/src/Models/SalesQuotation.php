@@ -183,21 +183,7 @@ class SalesQuotation extends Model
 
     public static function generateQuotationNumber(): string
     {
-        $year = date('Y');
-        $month = date('m');
-        $lastQuotation = static::where('quotation_number', 'like', "QT-{$year}-{$month}-%")
-            ->where('created_by', creatorId())
-            ->orderBy('quotation_number', 'desc')
-            ->first();
-
-        if ($lastQuotation) {
-            $lastNumber = (int) substr($lastQuotation->quotation_number, -3);
-            $nextNumber = $lastNumber + 1;
-        } else {
-            $nextNumber = 1;
-        }
-
-        return "QT-{$year}-{$month}-" . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        return \App\Support\DocumentNumber::next(static::where('created_by', creatorId()), 'quotation_number', 'QT-' . date('Y') . '-' . date('m') . '-', 3);
     }
     public static function GivePermissionToRoles($role_id = null, $rolename = null)
     {

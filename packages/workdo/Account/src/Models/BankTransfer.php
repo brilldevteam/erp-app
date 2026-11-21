@@ -53,21 +53,7 @@ class BankTransfer extends Model
 
     public static function generateTransferNumber()
     {
-        $year = date('Y');
-        $month = date('m');
-
-        $lastTransfer = self::where('transfer_number', 'like', "BT-{$year}-{$month}-%")
-            ->orderBy('transfer_number', 'desc')
-            ->first();
-
-        if ($lastTransfer) {
-            $lastNumber = (int) substr($lastTransfer->transfer_number, -3);
-            $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
-        } else {
-            $newNumber = '001';
-        }
-
-        return "BT-{$year}-{$month}-{$newNumber}";
+        return \App\Support\DocumentNumber::next(self::query(), 'transfer_number', 'BT-' . date('Y') . '-' . date('m') . '-', 3);
     }
 
     public function getTotalDebitAttribute()

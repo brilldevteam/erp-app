@@ -42,22 +42,7 @@ class SalesRetainerPayment extends Model
 
     public static function generatePaymentNumber()
     {
-
-        $year = date('Y');
-        $month = date('m');
-        $lastPayment = static::where('payment_number', 'like', "RP-{$year}-{$month}-%")
-            ->where('created_by', creatorId())
-            ->orderBy('payment_number', 'desc')
-            ->first();
-
-        if ($lastPayment) {
-            $lastNumber = (int) substr($lastPayment->payment_number, -3);
-            $nextNumber = $lastNumber + 1;
-        } else {
-            $nextNumber = 1;
-        }
-
-        return "RP-{$year}-{$month}-" . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        return \App\Support\DocumentNumber::next(static::where('created_by', creatorId()), 'payment_number', 'RP-' . date('Y') . '-' . date('m') . '-', 3);
     }
 
     public function retainer(): BelongsTo

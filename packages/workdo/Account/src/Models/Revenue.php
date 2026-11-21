@@ -70,9 +70,6 @@ class Revenue extends Model
 
     public static function generateRevenueNumber($createdBy = null): string
     {
-        $year = date('Y');
-        $month = date('m');
-        
         if ($createdBy) {
             $userId = $createdBy;
         } elseif (auth()->check()) {
@@ -80,19 +77,7 @@ class Revenue extends Model
         } else {
             $userId = 1;
         }
-        
-        $lastRevenue = static::where('revenue_number', 'like', "REV-{$year}-{$month}-%")
-            ->where('created_by', $userId)
-            ->orderBy('revenue_number', 'desc')
-            ->first();
 
-        if ($lastRevenue) {
-            $lastNumber = (int) substr($lastRevenue->revenue_number, -3);
-            $nextNumber = $lastNumber + 1;
-        } else {
-            $nextNumber = 1;
-        }
-
-        return "REV-{$year}-{$month}-" . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        return \App\Support\DocumentNumber::next(static::where('created_by', $userId), 'revenue_number', 'REV-' . date('Y') . '-' . date('m') . '-', 3);
     }
 }

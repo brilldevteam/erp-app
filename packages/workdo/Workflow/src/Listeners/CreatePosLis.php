@@ -23,6 +23,12 @@ class CreatePosLis
             'Price' => $pos->payment?->discount_amount ?? 0,
         ];
 
-        WorkflowActionService::processWorkflow('Pos', 'POS Order', $data, $pos->created_by);
+        // Runs while the sale is being saved: a failing workflow action (an email, a message) is logged
+        // but must not stop the sale from being saved.
+        try {
+            WorkflowActionService::processWorkflow('Pos', 'POS Order', $data, $pos->created_by);
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
     }
 }

@@ -60,21 +60,7 @@ class SalesRetainer extends Model
 
     public static function generateRetainerNumber()
     {
-        $year = date('Y');
-        $month = date('m');
-        $lastRetainer = static::where('retainer_number', 'like', "RET-{$year}-{$month}-%")
-            ->where('created_by', creatorId())
-            ->orderBy('retainer_number', 'desc')
-            ->first();
-
-        if ($lastRetainer) {
-            $lastNumber = (int) substr($lastRetainer->retainer_number, -3);
-            $nextNumber = $lastNumber + 1;
-        } else {
-            $nextNumber = 1;
-        }
-
-        return "RET-{$year}-{$month}-" . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        return \App\Support\DocumentNumber::next(static::where('created_by', creatorId()), 'retainer_number', 'RET-' . date('Y') . '-' . date('m') . '-', 3);
     }
 
     public function customer(): BelongsTo

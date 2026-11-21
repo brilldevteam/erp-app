@@ -15,6 +15,7 @@ import { useFavicon } from '@/hooks/use-favicon';
 import { useFormFields } from '@/hooks/useFormFields';
 import { BrandProvider } from '@/contexts/brand-context';
 import ReceiptModal from './ReceiptModal';
+import { toast } from 'sonner';
 
 interface Customer {
     id: number;
@@ -268,7 +269,9 @@ function CreateContent({ customers = [], warehouses = [], categories = [] }: Cre
             },
             onError: (errors) => {
                 setProcessing(false);
-                console.error('Payment failed:', errors);
+                // Nothing was saved: say why and keep the payment window open so the cashier can try again.
+                const reason = errors.pos || Object.values(errors)[0];
+                toast.error(reason || t('The sale could not be saved. Please try again.'));
             },
                     preserveState: true,
                     preserveScroll: true
