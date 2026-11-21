@@ -64,7 +64,7 @@ Potential overlap includes controllers that build customer/vendor options, impor
 
 | Owner | Branch | Files or area claimed | Started | Status |
 | --- | --- | --- | --- | --- |
-| Codex | `security/charger-cafe-tenant-hardening-2026-11-21` | Charger Cafe security follow-up: stock/journal line tenant validation, authoritative POS pricing, per-company expense-category codes, CRM lead/deal action scoping, Budget Planner approve/activate scoping, sales-proposal party/product validation, focused smoke tests, changelog and handoff. | 2026-11-21 | Complete locally - not committed, pushed or deployed |
+| Codex | `security/charger-cafe-tenant-hardening-2026-11-21` | Charger Cafe security follow-up: stock/journal line tenant validation, authoritative POS pricing, per-company expense-category codes, CRM lead/deal action scoping, Budget Planner approve/activate scoping, sales-proposal party/product validation, focused smoke tests, changelog and handoff. | 2026-11-21 | Released - pushed without PR; not deployed |
 | Claude | `release/2026-11-16` | Petty cash posting (step 1 of 2, Sithari approved 2026-11-18): `packages/workdo/PettyCashManagement` (category expense account + migration, request/reimbursement approval and delete, fund selection, category UI), `JournalService` petty cash journals, `BankTransactionsService::approvePettyCash`, Account `EventServiceProvider` petty cash listeners, smoke test. Step 2 (bring Zoho petty cash history into the section, journals untouched) follows as a data change. | 2026-11-18 | Released - both steps live; import applied on live 2026-11-18 (balance 1,176.75 = ledger) |
 | Claude | `security/helpdesk-notifications-phase3-2026-11-16` | Settings scope Phase 3 (Helpdesk email notifications): `app/Services/HelpdeskEmailService.php`, new `HelpdeskNotificationSettings` service and email content renderer, `app/Jobs/SendHelpdeskEmail.php`, Helpdesk notification endpoint/props in `SettingController.php`, `routes/web.php`, new `helpdesk-notification-settings.tsx`, superadmin settings menu/registry, Helpdesk/settings tests, `CHANGELOG.md`, handoff. No migrations or data changes. | 2026-11-15 | Released - committed and pushed without a PR (see handoff). |
 | Codex | `security/settings-scope-phase2-2026-11-16` | Settings scope Phase 2: central AI settings/readers, company AI toggles, platform/company Brand and System separation, settings menus/payloads, optional company SMTP fallback and mail metadata, permission migration/seeding, focused tests, deployment runbook, changelog and handoff. | 2026-11-16 | Released - taken over and completed by Claude on 2026-11-15 after Codex hit its usage limit; committed and pushed without a PR (see handoff). |
@@ -284,9 +284,9 @@ A work item is not complete until its code is committed, tests are recorded, aff
 
 ## Handoff Log
 
-### 2026-11-21 Asia/Colombo - Codex - Charger Cafe tenant hardening (LOCAL, not committed)
+### 2026-11-21 Asia/Colombo - Codex - Charger Cafe tenant hardening
 
-- Branch: `security/charger-cafe-tenant-hardening-2026-11-21`, created from `release/2026-11-21` at `8f0cd40e`. Nothing was committed, pushed or deployed.
+- Branch: `security/charger-cafe-tenant-hardening-2026-11-21`, created from `release/2026-11-21` at `8f0cd40e`. Implementation commit `b3e4dc10d` was pushed to GitHub without a PR; nothing was deployed.
 - Stock entry product/warehouse IDs and journal-entry account IDs are tenant checked. POS validates its product, warehouse and customer IDs, reloads products from the company catalogue and calculates each line from the stored `sale_price`; browser-submitted prices are ignored.
 - Expense-category codes are unique by `(created_by, category_code)` through scoped validation and a package migration. Expense-category GL accounts and bound update/delete records are tenant checked.
 - CRM lead ordering validates the lead, destination stage and every ordered lead against the company. Deal status changes, Budget and Budget Period approve/activate actions reject foreign records.
